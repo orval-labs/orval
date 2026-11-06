@@ -202,6 +202,55 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
   return copy;
 };
 
+export type getEventAtResponse200 = {
+  data: Event;
+  status: 200;
+};
+
+export type getEventAtResponseSuccess = getEventAtResponse200 & {
+  headers: Headers;
+};
+export type getEventAtResponse = getEventAtResponseSuccess;
+
+export const getGetEventAtUrl = (startsAt: Temporal.Instant) => {
+  return `/events/at/${String(startsAt)}`;
+};
+
+export const getEventAt = async (
+  startsAt: Temporal.Instant,
+  options?: RequestInit,
+): Promise<getEventAtResponse> => {
+  const res = await fetch(getGetEventAtUrl(startsAt), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: getEventAtResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeGetEventAtResponse(data as Event);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getEventAtResponse;
+};
+
+const deserializeGetEventAtResponse = (data: Event): Event => {
+  if (data == null) return data;
+  data.startsAt =
+    typeof data.startsAt === 'string'
+      ? Temporal.Instant.from(data.startsAt as unknown as string)
+      : data.startsAt;
+  data.date =
+    typeof data.date === 'string'
+      ? Temporal.PlainDate.from(data.date as unknown as string)
+      : data.date;
+  return data;
+};
+
 export type addRemindersResponse204 = {
   data: void;
   status: 204;

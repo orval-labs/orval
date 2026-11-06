@@ -18,6 +18,8 @@ import type {
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
+import type { Dayjs } from 'dayjs';
+
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
   readonly context?: HttpContext;
@@ -227,6 +229,51 @@ export class DateTypeTestService {
     });
   }
 
+  getEventAt<TData = Event>(
+    startsAt: Dayjs,
+    options?: HttpClientBodyOptions,
+  ): Observable<TData>;
+  getEventAt<TData = Event>(
+    startsAt: Dayjs,
+    options?: HttpClientEventOptions,
+  ): Observable<HttpEvent<TData>>;
+  getEventAt<TData = Event>(
+    startsAt: Dayjs,
+    options?: HttpClientResponseOptions,
+  ): Observable<AngularHttpResponse<TData>>;
+  getEventAt<TData = Event>(
+    startsAt: Dayjs,
+    options?: HttpClientObserveOptions,
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    if (options?.observe === 'events') {
+      return this.http.get<TData>(
+        `/events/at/${((value) => value.toISOString())(startsAt)}`,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'events',
+        },
+      );
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.get<TData>(
+        `/events/at/${((value) => value.toISOString())(startsAt)}`,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'response',
+        },
+      );
+    }
+
+    return this.http.get<TData>(
+      `/events/at/${((value) => value.toISOString())(startsAt)}`,
+      {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'body',
+      },
+    );
+  }
+
   addReminders<TData = void>(
     eventId: string,
     reminders: Reminders,
@@ -281,4 +328,5 @@ export class DateTypeTestService {
 
 export type ListEventsClientResult = NonNullable<Event[]>;
 export type CreateEventClientResult = NonNullable<Event>;
+export type GetEventAtClientResult = NonNullable<Event>;
 export type AddRemindersClientResult = NonNullable<void>;

@@ -5,6 +5,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  encodeRouteParameters,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -158,9 +159,11 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
+    params,
   }: GeneratorVerbOptions,
-  { route, context, pathRoute }: GeneratorOptions,
+  { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
+  const route = encodeRouteParameters(_route, params);
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const bodyForm = generateFormDataAndUrlEncodedFunction({

@@ -3,12 +3,22 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
+  GetterParam,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResolverValue,
 } from '../types';
 import { stringify } from '../utils';
 import { camelPathParamName, parseRoutePath } from './route';
+import {
+  findCustomFormatType,
+  findModelFormatType,
+  getCustomFormatType,
+  getFormatTypeError,
+} from './scalar';
 
 /**
  * Return the name of every `{param}` in an OpenAPI path, in spec spelling.
@@ -76,6 +86,36 @@ function resolvePathParam(
   }
 
   return pathParam;
+}
+
+/**
+ * The {@link GetterParam.formatTypeEncoding} of a path parameter, which a
+ * component `$ref` types with the model type.
+ */
+function getFormatTypeEncoding(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  { isRef, originalSchema }: ResolverValue,
+  parameterName: string,
+  operationId: string,
+  context: ContextSpec,
+): GetterParam['formatTypeEncoding'] {
+  const found = isRef
+    ? findModelFormatType(schema, context)
+    : findCustomFormatType(schema, context);
+  if (!found) return undefined;
+  // Otherwise the mapped values sit inside an array or object.
+  const isValue = !!getCustomFormatType(
+    originalSchema,
+    context.output.override,
+  );
+  if (isValue && found.config.encode) return { encode: found.config.encode };
+  return {
+    error: getFormatTypeError(
+      found.format,
+      found.config,
+      `operation \`${operationId}\`, path parameter \`${parameterName}\` ${isValue ? 'needs `encode`' : "can't encode it"}`,
+    ).message,
+  };
 }
 
 export function getParams({
@@ -159,6 +199,13 @@ export function getParams({
       default: schemaDefault,
       required,
       allowReserved,
+      formatTypeEncoding: getFormatTypeEncoding(
+        schema,
+        resolvedValue,
+        nameWithoutSanitize,
+        operationId,
+        context,
+      ),
       imports: resolvedValue.imports,
       originalSchema,
     };

@@ -4,6 +4,7 @@ import {
   type ClientExtraFilesBuilder,
   type ClientFileBuilder,
   type ContextSpec,
+  encodeRouteParameters,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorClient,
@@ -30,7 +31,6 @@ import {
   isPrimitiveResponseType,
   jsDoc,
   jsStringLiteralEscape,
-  makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputClient,
@@ -238,13 +238,11 @@ export const generateSharedRequestFunction = (
   } = verbOptions;
   const { context, pathRoute } = options;
 
-  const route = context.output.urlEncodeParameters
-    ? makeRouteSafe(
-        options.route,
-        new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
-        new Set(params.map((p) => p.name)),
-      )
-    : options.route;
+  const route = encodeRouteParameters(
+    options.route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const getUrlFnName = camel(`get-${operationName}-url`);
   const urlProps = props.filter(

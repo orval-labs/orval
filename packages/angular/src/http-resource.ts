@@ -8,6 +8,7 @@ import {
   type ContextSpec,
   dedupeSchemaImports,
   emitResponseValidation,
+  encodeRouteParameters,
   getZodNamespaceImport,
   getArrayResponseSchema,
   escapeRegExp,
@@ -32,7 +33,6 @@ import {
   isTextContentType,
   jsDoc,
   jsStringLiteralEscape,
-  makeRouteSafe,
   mapTemplateExpressions,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -1167,13 +1167,11 @@ const buildHttpResourceFunction = (
   // to rewrite it to its signal form (e.g. `${param()}`), so encoding first
   // would stop the substitution from matching. Wrapping the already-rewritten
   // form yields `${encodeURIComponent(String(param()))}`, which is correct.
-  let encodedRoute = output.urlEncodeParameters
-    ? makeRouteSafe(
-        signalRoute,
-        new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
-        new Set(params.map((p) => p.name)),
-      )
-    : signalRoute;
+  let encodedRoute = encodeRouteParameters(
+    signalRoute,
+    params,
+    output.urlEncodeParameters,
+  );
   // MUST run after the urlEncodeParameters/makeRouteSafe step above (see the
   // comment on `encodedRoute` for why): prefixing before it would wrap
   // `baseUrl` in `encodeURIComponent(String(...))`.

@@ -6,6 +6,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   emitResponseValidation,
+  encodeRouteParameters,
   filterByContentType,
   generateBodyOptions,
   type GeneratedDateDeserializer,
@@ -45,7 +46,6 @@ import {
   GetterPropType,
   isObject,
   isDateTimeParam,
-  makeRouteSafe,
   needsHttpStatusCodeTypes,
   type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
@@ -314,14 +314,11 @@ const generateRequestFunctionParts = (
   { route: _route, context, pathRoute }: GeneratorOptions,
   { signalOnlyOptions = false }: RequestFunctionOptions = {},
 ) => {
-  let route = _route;
-
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const isRequestOptions = override.requestOptions !== false;
   const isSignalOnlyOptions = !isRequestOptions && signalOnlyOptions;

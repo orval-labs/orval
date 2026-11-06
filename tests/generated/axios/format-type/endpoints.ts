@@ -9,6 +9,8 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type { CreateEvent, Event, ListEventsParams, Reminders } from './model';
 
+import type { Dayjs } from 'dayjs';
+
 export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
   const listEvents = (
     params?: ListEventsParams,
@@ -50,6 +52,27 @@ export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
       });
   };
 
+  const getEventAt = (
+    startsAt: Dayjs,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<Event>> => {
+    return axiosInstance.get(
+      `/events/at/${((value) => value.toISOString())(startsAt)}`,
+      options,
+    );
+  };
+  const getGetEventAtUrl = (startsAt: Dayjs) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/events/at/${((value) => value.toISOString())(startsAt)}`,
+        baseURL: '',
+      });
+  };
+
   const addReminders = (
     eventId: string,
     reminders: Reminders,
@@ -87,12 +110,15 @@ export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
   return {
     listEvents,
     createEvent,
+    getEventAt,
     addReminders,
     getListEventsUrl,
     getCreateEventUrl,
+    getGetEventAtUrl,
     getAddRemindersUrl,
   };
 };
 export type ListEventsResult = AxiosResponse<Event[]>;
 export type CreateEventResult = AxiosResponse<Event>;
+export type GetEventAtResult = AxiosResponse<Event>;
 export type AddRemindersResult = AxiosResponse<void>;

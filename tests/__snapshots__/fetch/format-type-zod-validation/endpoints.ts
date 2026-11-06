@@ -14,6 +14,8 @@ import type {
   Reminders,
 } from './model';
 
+import type { Dayjs } from 'dayjs';
+
 export type listEventsResponse200 = {
   data: EventOutput[];
   status: 200;
@@ -181,6 +183,56 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
         : copy.date;
   }
   return copy;
+};
+
+export type getEventAtResponse200 = {
+  data: EventOutput;
+  status: 200;
+};
+
+export type getEventAtResponseSuccess = getEventAtResponse200 & {
+  headers: Headers;
+};
+export type getEventAtResponse = getEventAtResponseSuccess;
+
+export const getGetEventAtUrl = (startsAt: Dayjs) => {
+  return `/events/at/${((value) => value.toISOString())(startsAt)}`;
+};
+
+export const getEventAt = async (
+  startsAt: Dayjs,
+  options?: RequestInit,
+): Promise<getEventAtResponse> => {
+  const res = await fetch(getGetEventAtUrl(startsAt), {
+    ...options,
+    method: 'GET',
+  });
+
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  if (body && contentType.includes('json') && res.status === 200) {
+    parsedBody = deserializeGetEventAtResponse(parsedBody as Event);
+  }
+  const data = contentType.includes('json')
+    ? Event.parse(parsedBody)
+    : parsedBody;
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getEventAtResponse;
+};
+
+const deserializeGetEventAtResponse = (data: Event): Event => {
+  if (data == null) return data;
+  data.date = new Date(data.date);
+  return data;
 };
 
 export type addRemindersResponse204 = {

@@ -2727,6 +2727,11 @@ export interface GetterParam {
    * `urlEncodeParameters`) (#3910).
    */
   allowReserved?: boolean;
+  /**
+   * The `encode` of a `formatType` value, or the error for one without it.
+   * Read it through `encodeRouteParameters`.
+   */
+  formatTypeEncoding?: { encode: string } | { error: string };
   imports: GeneratorImport[];
 }
 

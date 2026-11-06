@@ -43,6 +43,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+  /events/at/{startsAt}:
+    get:
+      operationId: getEventAt
+      parameters:
+        - name: startsAt
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
   /events/{eventId}/reminders:
     post:
       operationId: addReminders

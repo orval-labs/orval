@@ -62,6 +62,7 @@ export default defineConfig({
                 importPath: '../../../../mutators/zod-codec',
               },
             },
+            encode: '(value) => value.toISOString()',
           },
         },
       },

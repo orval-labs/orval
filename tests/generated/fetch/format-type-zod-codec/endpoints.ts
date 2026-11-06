@@ -47,6 +47,22 @@ export const CreateEventResponse = zod.object({
     .default(createEventResponseStatusDefault),
 });
 
+export const GetEventAtParams = zod.object({
+  startsAt: isoDatetimeCodec,
+});
+
+export const getEventAtResponseStatusDefault = `DRAFT`;
+
+export const GetEventAtResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  startsAt: isoDatetimeCodec,
+  date: zod.iso.date(),
+  status: zod
+    .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
+    .default(getEventAtResponseStatusDefault),
+});
+
 export const AddRemindersParams = zod.object({
   eventId: zod.string(),
 });

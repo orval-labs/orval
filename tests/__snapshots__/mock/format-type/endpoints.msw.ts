@@ -47,6 +47,20 @@ export const getCreateEventResponseMock = (
   ...overrideResponse,
 });
 
+export const getGetEventAtResponseMock = (
+  overrideResponse: Partial<Extract<Event, object>> = {},
+): Event => ({
+  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  startsAt: dayjs(faker.date.past()),
+  date: Temporal.PlainDate.from(faker.date.past().toISOString().slice(0, 10)),
+  status: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(EventStatus)),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
+
 export const getListEventsMockHandler = (
   overrideResponse?:
     | Event[]
@@ -97,6 +111,30 @@ export const getCreateEventMockHandler = (
   );
 };
 
+export const getGetEventAtMockHandler = (
+  overrideResponse?:
+    | Event
+    | ((
+        info: Parameters<HttpResponseResolver<{ startsAt: string }>>[0],
+      ) => Promise<Event> | Event),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get<{ startsAt: string }>(
+    '*/events/at/:startsAt',
+    async (info: Parameters<HttpResponseResolver<{ startsAt: string }>>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetEventAtResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getAddRemindersMockHandler = (
   overrideResponse?:
     | void
@@ -124,5 +162,6 @@ export const getAddRemindersMockHandler = (
 export const getDateTypeTestMock = () => [
   getListEventsMockHandler(),
   getCreateEventMockHandler(),
+  getGetEventAtMockHandler(),
   getAddRemindersMockHandler(),
 ];

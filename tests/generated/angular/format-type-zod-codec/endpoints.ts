@@ -17,6 +17,8 @@ import type { EventOutput, ListEventsParams, Reminders } from './model';
 import { HttpResponse as AngularHttpResponse } from '@angular/common/http';
 import type { HttpHeaders } from '@angular/common/http';
 
+import type { Dayjs } from 'dayjs';
+
 import { defer, map } from 'rxjs';
 
 import * as zod from 'zod';
@@ -265,6 +267,69 @@ export class DateTypeTestService {
     });
   }
 
+  getEventAt(
+    startsAt: Dayjs,
+    options?: HttpClientBodyOptions,
+  ): Observable<EventOutput>;
+  getEventAt(
+    startsAt: Dayjs,
+    options?: HttpClientEventOptions,
+  ): Observable<HttpEvent<EventOutput>>;
+  getEventAt(
+    startsAt: Dayjs,
+    options?: HttpClientResponseOptions,
+  ): Observable<AngularHttpResponse<EventOutput>>;
+  getEventAt(
+    startsAt: Dayjs,
+    options?: HttpClientObserveOptions,
+  ): Observable<
+    EventOutput | HttpEvent<EventOutput> | AngularHttpResponse<EventOutput>
+  > {
+    if (options?.observe === 'events') {
+      return this.http
+        .get<EventOutput>(
+          `/events/at/${((value) => value.toISOString())(startsAt)}`,
+          {
+            ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+            observe: 'events',
+          },
+        )
+        .pipe(
+          map((event) =>
+            event instanceof AngularHttpResponse
+              ? event.clone({ body: Event.parse(event.body) })
+              : event,
+          ),
+        );
+    }
+
+    if (options?.observe === 'response') {
+      return this.http
+        .get<EventOutput>(
+          `/events/at/${((value) => value.toISOString())(startsAt)}`,
+          {
+            ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+            observe: 'response',
+          },
+        )
+        .pipe(
+          map((response) =>
+            response.clone({ body: Event.parse(response.body) }),
+          ),
+        );
+    }
+
+    return this.http
+      .get<EventOutput>(
+        `/events/at/${((value) => value.toISOString())(startsAt)}`,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'body',
+        },
+      )
+      .pipe(map((data) => Event.parse(data)));
+  }
+
   addReminders<TData = void>(
     eventId: string,
     reminders: Reminders,
@@ -314,4 +379,5 @@ export class DateTypeTestService {
 
 export type ListEventsClientResult = NonNullable<EventOutput[]>;
 export type CreateEventClientResult = NonNullable<EventOutput>;
+export type GetEventAtClientResult = NonNullable<EventOutput>;
 export type AddRemindersClientResult = NonNullable<void>;

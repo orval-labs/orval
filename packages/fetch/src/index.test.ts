@@ -2081,3 +2081,26 @@ describe('generateRequestFunction — formatType query values', () => {
     ).toThrow('needs `encode`');
   });
 });
+
+describe('generateRequestFunction — formatType path values', () => {
+  it('encodes them into the URL', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        route: '/pets/${bornAt}',
+        params: [
+          {
+            name: 'bornAt',
+            definition: 'bornAt: Dayjs',
+            implementation: 'bornAt: Dayjs',
+            default: undefined,
+            required: true,
+            imports: [],
+            formatTypeEncoding: { encode: 'toIso' },
+          },
+        ],
+      }),
+      makeOptions(makeContext([]), { route: '/pets/${bornAt}' }),
+    );
+    expect(implementation).toContain('`/pets/${toIso(bornAt)}`');
+  });
+});

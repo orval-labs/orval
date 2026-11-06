@@ -10,6 +10,7 @@ import {
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
+  encodeRouteParameters,
   getZodNamespaceImport,
   getArrayResponseSchema,
   generateBodyOptions,
@@ -28,7 +29,6 @@ import {
   isTextContentType,
   GetterPropType,
   jsStringLiteralEscape,
-  makeRouteSafe,
   pascal,
   toObjectString,
   type EnumMember,
@@ -524,16 +524,14 @@ export const generateHttpClientImplementation = (
   const operationName = methodName ?? reservedOperationName;
   // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
   // at the single point the route enters this builder so the mutator config and
-  // every inline interpolation below stay consistent. `makeRouteSafe` is not
-  // idempotent — applying it more than once double-encodes — so it must run here
-  // exactly once and nowhere downstream.
-  let route = _route;
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  // every inline interpolation below stay consistent. `encodeRouteParameters` is
+  // not idempotent — applying it more than once double-encodes — so it must run
+  // here exactly once and nowhere downstream.
+  let route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
   // MUST run after the urlEncodeParameters/makeRouteSafe step above:
   // wrapRouteParameters (invoked by makeRouteSafe) rewrites every `${...}`
   // segment of the route, so prefixing before it would wrap `this.baseUrl`

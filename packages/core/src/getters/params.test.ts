@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
-import type { GetterParameters, OpenApiPrimitiveSchemaType } from '../types';
+import type {
+  GetterParameters,
+  OpenApiPrimitiveSchemaType,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '../types';
 import { getParams, getParamsInPath } from './params';
 
 const context = createTestContextSpec();
@@ -121,4 +126,74 @@ describe('getParams getter', () => {
       expect(params[0].implementation).toBe(`version: ${type} = ${rendered}`);
     },
   );
+});
+
+describe('getParams formatType values', () => {
+  const formatTypeContext = (encode?: string) =>
+    createTestContextSpec({
+      spec: {
+        components: {
+          schemas: { StartsAt: { type: 'string', format: 'date-time' } },
+        },
+      },
+      override: {
+        formatType: { 'date-time': { type: 'Dayjs', encode } },
+      },
+    });
+  const getEncoding = (
+    schema: OpenApiSchemaObject | OpenApiReferenceObject,
+    paramsContext = formatTypeContext('toIso'),
+  ) =>
+    getParams({
+      pathRoute: '/events/{startsAt}',
+      pathParams: [
+        {
+          parameter: { name: 'startsAt', in: 'path', required: true, schema },
+          imports: [],
+        },
+      ],
+      operationId: 'getEvent',
+      context: paramsContext,
+      output: paramsContext.output,
+    })[0].formatTypeEncoding;
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+
+  it('encodes a mapped value with encode', () => {
+    expect(getEncoding(dateTime)).toEqual({ encode: 'toIso' });
+    expect(getEncoding({ $ref: '#/components/schemas/StartsAt' })).toEqual({
+      encode: 'toIso',
+    });
+    expect(getEncoding({ type: 'string' })).toBeUndefined();
+  });
+
+  it('records the error for a mapped value without encode', () => {
+    expect(getEncoding(dateTime, formatTypeContext())).toEqual({
+      error:
+        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `encode`',
+    });
+  });
+
+  it('records the error for mapped array items', () => {
+    expect(getEncoding({ type: 'array', items: dateTime })).toEqual({
+      error:
+        "override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` can't encode it",
+    });
+  });
+
+  it('leaves a component typed with its Zod schema input alone', () => {
+    const zodContext = formatTypeContext();
+    zodContext.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+
+    expect(
+      getEncoding({ $ref: '#/components/schemas/StartsAt' }, zodContext),
+    ).toBeUndefined();
+    expect(getEncoding(dateTime, zodContext)).toEqual({
+      error:
+        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `encode`',
+    });
+  });
 });

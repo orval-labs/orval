@@ -2,6 +2,7 @@ import {
   camel,
   type ClientHeaderBuilder,
   emitResponseValidation,
+  encodeRouteParameters,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -28,7 +29,6 @@ import {
   isObject,
   isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
-  makeRouteSafe,
   OutputHttpClient,
   pascal,
   toObjectString,
@@ -99,13 +99,11 @@ export const generateAngularHttpRequestFunction = (
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
 ) => {
-  let route = _route;
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
@@ -324,14 +322,11 @@ export const generateAxiosRequestFunction = (
   adapter: FrameworkAdapter,
 ) => {
   const props = adapter.transformProps(_props);
-  let route = _route;
-
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const unrefStatements = adapter.getRequestUnrefStatements(props);
 

@@ -37,6 +37,22 @@ export const CreateEventBody = S.Struct({
   ),
 });
 
+export const GetEventAtParams = S.Struct({
+  startsAt: DayjsFromString,
+});
+
+export const getEventAtResponseStatusDefault = 'DRAFT';
+
+export const GetEventAtResponse = S.Struct({
+  id: S.String,
+  name: S.String,
+  startsAt: DayjsFromString,
+  date: S.String.check(S.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+  status: S.Literals(['DRAFT', 'PUBLISHED', 'CANCELLED']).pipe(
+    S.withDecodingDefaultType(Effect.succeed(getEventAtResponseStatusDefault)),
+  ),
+});
+
 export const AddRemindersParams = S.Struct({
   eventId: S.String,
 });
