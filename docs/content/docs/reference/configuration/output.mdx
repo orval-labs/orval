@@ -3481,6 +3481,8 @@ Limitations:
 - Orval still generates Zod schemas (`schemas: { type: 'zod' }`). Calling a Valibot or ArkType value means supplying the schema values yourself.
 - An inline array response is validated through `zod.array(Item)`, and `useDatesTransform` wraps a mutator's schema with `zod.pipe(...)`. Zod therefore remains a runtime dependency of the generated client even with the flag on.
 - A custom mutator receives the schema value as before and has to validate it on its own, through `~standard` for a non-Zod schema.
+- `runtimeImplementationStyle: 'shared'` for `fetch` does not validate responses, with or without `standardSchema`.
+- A tag or operation override that only sets `standardSchema` inherits the output-level `runtimeValidation`, not the enclosing tag's. Restate `strategy` to turn validation on for it.
 
 ### arrayFormat
 
