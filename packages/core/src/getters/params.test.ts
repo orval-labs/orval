@@ -164,6 +164,10 @@ describe('getParams formatType values', () => {
       encode: 'toIso',
     });
     expect(getEncoding({ type: 'string' })).toBeUndefined();
+    expect(getEncoding({ ...dateTime, type: ['string', 'null'] })).toEqual({
+      encode: 'toIso',
+      nullable: true,
+    });
   });
 
   it('records the error for a mapped value without encode', () => {

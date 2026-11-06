@@ -235,6 +235,56 @@ const deserializeGetEventAtResponse = (data: Event): Event => {
   return data;
 };
 
+export type getEventUntilResponse200 = {
+  data: EventOutput;
+  status: 200;
+};
+
+export type getEventUntilResponseSuccess = getEventUntilResponse200 & {
+  headers: Headers;
+};
+export type getEventUntilResponse = getEventUntilResponseSuccess;
+
+export const getGetEventUntilUrl = (endsAt: Dayjs | null) => {
+  return `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`;
+};
+
+export const getEventUntil = async (
+  endsAt: Dayjs | null,
+  options?: RequestInit,
+): Promise<getEventUntilResponse> => {
+  const res = await fetch(getGetEventUntilUrl(endsAt), {
+    ...options,
+    method: 'GET',
+  });
+
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  if (body && contentType.includes('json') && res.status === 200) {
+    parsedBody = deserializeGetEventUntilResponse(parsedBody as Event);
+  }
+  const data = contentType.includes('json')
+    ? Event.parse(parsedBody)
+    : parsedBody;
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getEventUntilResponse;
+};
+
+const deserializeGetEventUntilResponse = (data: Event): Event => {
+  if (data == null) return data;
+  data.date = new Date(data.date);
+  return data;
+};
+
 export type addRemindersResponse204 = {
   data: void;
   status: 204;

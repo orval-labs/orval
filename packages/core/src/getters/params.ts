@@ -11,7 +11,7 @@ import type {
   OpenApiSchemaObject,
   ResolverValue,
 } from '../types';
-import { stringify } from '../utils';
+import { isSchemaNullable, stringify } from '../utils';
 import { camelPathParamName, parseRoutePath } from './route';
 import {
   findCustomFormatType,
@@ -108,7 +108,12 @@ function getFormatTypeEncoding(
     originalSchema,
     context.output.override,
   );
-  if (isValue && found.config.encode) return { encode: found.config.encode };
+  if (isValue && found.config.encode) {
+    return {
+      encode: found.config.encode,
+      ...(isSchemaNullable(originalSchema) && { nullable: true }),
+    };
+  }
   return {
     error: getFormatTypeError(
       found.format,

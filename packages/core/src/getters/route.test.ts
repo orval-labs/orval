@@ -674,6 +674,18 @@ describe('encodeRouteParameters', () => {
     );
   });
 
+  it('keeps null for a nullable value', () => {
+    const nullable = [
+      param('day', { formatTypeEncoding: { encode: 'toIso', nullable: true } }),
+    ];
+    expect(encodeRouteParameters('/days/${day()}', nullable)).toBe(
+      '/days/${((value) => value == null ? value : toIso(value))(day())}',
+    );
+    expect(encodeRouteParameters('/days/${day}', nullable, true)).toBe(
+      '/days/${encodeURIComponent(String(((value) => value == null ? value : toIso(value))(day)))}',
+    );
+  });
+
   it('keeps a route without formatType values as it is', () => {
     expect(encodeRouteParameters(route, [param('id')])).toBe(route);
   });

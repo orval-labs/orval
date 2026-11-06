@@ -2731,7 +2731,9 @@ export interface GetterParam {
    * The `encode` of a `formatType` value, or the error for one without it.
    * Read it through `encodeRouteParameters`.
    */
-  formatTypeEncoding?: { encode: string } | { error: string };
+  formatTypeEncoding?:
+    | { encode: string; nullable?: boolean }
+    | { error: string };
   imports: GeneratorImport[];
 }
 

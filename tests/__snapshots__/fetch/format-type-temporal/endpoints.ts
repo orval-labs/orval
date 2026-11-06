@@ -283,6 +283,61 @@ const deserializeGetEventAtResponse = (data: Event): Event => {
   return data;
 };
 
+export type getEventUntilResponse200 = {
+  data: Event;
+  status: 200;
+};
+
+export type getEventUntilResponseSuccess = getEventUntilResponse200 & {
+  headers: Headers;
+};
+export type getEventUntilResponse = getEventUntilResponseSuccess;
+
+export const getGetEventUntilUrl = (endsAt: Temporal.Instant | null) => {
+  return `/events/until/${((value) => (value == null ? value : String(value)))(endsAt)}`;
+};
+
+export const getEventUntil = async (
+  endsAt: Temporal.Instant | null,
+  options?: RequestInit,
+): Promise<getEventUntilResponse> => {
+  const res = await fetch(getGetEventUntilUrl(endsAt), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: getEventUntilResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeGetEventUntilResponse(data as Event);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getEventUntilResponse;
+};
+
+const deserializeGetEventUntilResponse = (data: Event): Event => {
+  if (data == null) return data;
+  data.startsAt =
+    typeof data.startsAt === 'string'
+      ? Temporal.Instant.from(data.startsAt as unknown as string)
+      : data.startsAt;
+  data.date =
+    typeof data.date === 'string'
+      ? Temporal.PlainDate.from(data.date as unknown as string)
+      : data.date;
+  if (data.endsAt != null) {
+    data.endsAt =
+      typeof data.endsAt === 'string'
+        ? Temporal.Instant.from(data.endsAt as unknown as string)
+        : data.endsAt;
+  }
+  return data;
+};
+
 export type addRemindersResponse204 = {
   data: void;
   status: 204;

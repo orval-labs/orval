@@ -73,6 +73,27 @@ export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
       });
   };
 
+  const getEventUntil = (
+    endsAt: Dayjs | null,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<Event>> => {
+    return axiosInstance.get(
+      `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+      options,
+    );
+  };
+  const getGetEventUntilUrl = (endsAt: Dayjs | null) => {
+    return axiosInstance
+      .create({
+        baseURL: '',
+        params: null,
+      })
+      .getUri({
+        url: `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+        baseURL: '',
+      });
+  };
+
   const addReminders = (
     eventId: string,
     reminders: Reminders,
@@ -117,14 +138,17 @@ export const getDateTypeTest = (axiosInstance: AxiosInstance = axios) => {
     listEvents,
     createEvent,
     getEventAt,
+    getEventUntil,
     addReminders,
     getListEventsUrl,
     getCreateEventUrl,
     getGetEventAtUrl,
+    getGetEventUntilUrl,
     getAddRemindersUrl,
   };
 };
 export type ListEventsResult = AxiosResponse<Event[]>;
 export type CreateEventResult = AxiosResponse<Event>;
 export type GetEventAtResult = AxiosResponse<Event>;
+export type GetEventUntilResult = AxiosResponse<Event>;
 export type AddRemindersResult = AxiosResponse<void>;

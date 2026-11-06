@@ -469,7 +469,7 @@ export const makeRouteSafe = (
  * `route` as a client requests it: a path parameter that takes a `formatType`
  * goes through its `encode`, failing for one without, and under
  * `urlEncodeParameters` every parameter but an `allowReserved` one through
- * `encodeURIComponent`.
+ * `encodeURIComponent`. A nullable one keeps `null` as it is.
  */
 export const encodeRouteParameters = (
   route: string,
@@ -482,7 +482,15 @@ export const encodeRouteParameters = (
     if ('error' in formatTypeEncoding) {
       throw new Error(formatTypeEncoding.error);
     }
-    encodes.set(name, formatTypeEncoding.encode);
+    const { encode, nullable } = formatTypeEncoding;
+    // A function rather than a ternary on the route expression, which can be
+    // a signal read that TypeScript does not narrow.
+    encodes.set(
+      name,
+      nullable
+        ? `(value) => value == null ? value : ${callFormatTypeFunction(encode, 'value')}`
+        : encode,
+    );
   }
   if (urlEncodeParameters) {
     return makeRouteSafe(

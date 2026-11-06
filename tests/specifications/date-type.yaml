@@ -65,6 +65,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+  /events/until/{endsAt}:
+    get:
+      operationId: getEventUntil
+      parameters:
+        - name: endsAt
+          in: path
+          required: true
+          schema:
+            type: [string, 'null']
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
   /events/{eventId}/reminders:
     post:
       operationId: addReminders

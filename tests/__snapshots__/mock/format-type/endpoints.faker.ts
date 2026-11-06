@@ -56,3 +56,18 @@ export const getGetEventAtResponseMock = (
   endsAt: faker.helpers.arrayElement([dayjs(faker.date.past()), null]),
   ...overrideResponse,
 });
+
+export const getGetEventUntilResponseMock = (
+  overrideResponse: Partial<Extract<Event, object>> = {},
+): Event => ({
+  id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  startsAt: dayjs(faker.date.past()),
+  date: Temporal.PlainDate.from(faker.date.past().toISOString().slice(0, 10)),
+  status: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(EventStatus)),
+    undefined,
+  ]),
+  endsAt: faker.helpers.arrayElement([dayjs(faker.date.past()), null]),
+  ...overrideResponse,
+});

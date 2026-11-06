@@ -71,6 +71,23 @@ export const GetEventAtResponse = zod.object({
   endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
 });
 
+export const GetEventUntilParams = zod.object({
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullable(),
+});
+
+export const getEventUntilResponseStatusDefault = `DRAFT`;
+
+export const GetEventUntilResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  startsAt: zod.iso.datetime({ offset: true }).transform(dayjs),
+  date: zod.iso.date(),
+  status: zod
+    .enum(['DRAFT', 'PUBLISHED', 'CANCELLED'])
+    .default(getEventUntilResponseStatusDefault),
+  endsAt: zod.iso.datetime({ offset: true }).transform(dayjs).nullish(),
+});
+
 export const AddRemindersParams = zod.object({
   eventId: zod.string(),
 });

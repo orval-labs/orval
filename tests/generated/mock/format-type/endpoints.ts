@@ -72,6 +72,27 @@ export const getGetEventAtUrl = (startsAt: Dayjs) => {
     });
 };
 
+export const getEventUntil = (
+  endsAt: Dayjs | null,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Event>> => {
+  return axios.get(
+    `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+    options,
+  );
+};
+export const getGetEventUntilUrl = (endsAt: Dayjs | null) => {
+  return axios
+    .create({
+      baseURL: '',
+      params: null,
+    })
+    .getUri({
+      url: `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+      baseURL: '',
+    });
+};
+
 export const addReminders = (
   eventId: string,
   reminders: Reminders,
@@ -111,4 +132,5 @@ export const getAddRemindersUrl = (eventId: string) => {
 export type ListEventsResult = AxiosResponse<Event[]>;
 export type CreateEventResult = AxiosResponse<Event>;
 export type GetEventAtResult = AxiosResponse<Event>;
+export type GetEventUntilResult = AxiosResponse<Event>;
 export type AddRemindersResult = AxiosResponse<void>;

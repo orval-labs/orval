@@ -282,6 +282,51 @@ export class DateTypeTestService {
     );
   }
 
+  getEventUntil<TData = Event>(
+    endsAt: Dayjs | null,
+    options?: HttpClientBodyOptions,
+  ): Observable<TData>;
+  getEventUntil<TData = Event>(
+    endsAt: Dayjs | null,
+    options?: HttpClientEventOptions,
+  ): Observable<HttpEvent<TData>>;
+  getEventUntil<TData = Event>(
+    endsAt: Dayjs | null,
+    options?: HttpClientResponseOptions,
+  ): Observable<AngularHttpResponse<TData>>;
+  getEventUntil<TData = Event>(
+    endsAt: Dayjs | null,
+    options?: HttpClientObserveOptions,
+  ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
+    if (options?.observe === 'events') {
+      return this.http.get<TData>(
+        `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'events',
+        },
+      );
+    }
+
+    if (options?.observe === 'response') {
+      return this.http.get<TData>(
+        `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+        {
+          ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+          observe: 'response',
+        },
+      );
+    }
+
+    return this.http.get<TData>(
+      `/events/until/${((value) => (value == null ? value : ((value) => value.toISOString())(value)))(endsAt)}`,
+      {
+        ...(options as Omit<NonNullable<typeof options>, 'observe'>),
+        observe: 'body',
+      },
+    );
+  }
+
   addReminders<TData = void>(
     eventId: string,
     reminders: Reminders,
@@ -343,4 +388,5 @@ export class DateTypeTestService {
 export type ListEventsClientResult = NonNullable<Event[]>;
 export type CreateEventClientResult = NonNullable<Event>;
 export type GetEventAtClientResult = NonNullable<Event>;
+export type GetEventUntilClientResult = NonNullable<Event>;
 export type AddRemindersClientResult = NonNullable<void>;

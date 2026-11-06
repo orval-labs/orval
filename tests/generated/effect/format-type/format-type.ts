@@ -57,6 +57,25 @@ export const GetEventAtResponse = S.Struct({
   endsAt: S.optional(S.NullOr(DayjsFromString)),
 });
 
+export const GetEventUntilParams = S.Struct({
+  endsAt: S.NullOr(DayjsFromString),
+});
+
+export const getEventUntilResponseStatusDefault = 'DRAFT';
+
+export const GetEventUntilResponse = S.Struct({
+  id: S.String,
+  name: S.String,
+  startsAt: DayjsFromString,
+  date: S.String.check(S.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+  status: S.Literals(['DRAFT', 'PUBLISHED', 'CANCELLED']).pipe(
+    S.withDecodingDefaultType(
+      Effect.succeed(getEventUntilResponseStatusDefault),
+    ),
+  ),
+  endsAt: S.optional(S.NullOr(DayjsFromString)),
+});
+
 export const AddRemindersParams = S.Struct({
   eventId: S.String,
 });
