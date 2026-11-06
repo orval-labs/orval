@@ -117,8 +117,8 @@ const buildGuardBody = ({
  */
 const bindSchemaOnce = (schemaRef: string): string =>
   /^[\w$.]+$/.test(schemaRef)
-    ? `(raw) => ${parseCall('parse', schemaRef, 'raw', true)}`
-    : `((schema) => (raw) => ${parseCall('parse', 'schema', 'raw', true)})(${schemaRef})`;
+    ? `(raw: unknown) => ${parseCall('parse', schemaRef, 'raw', true)}`
+    : `((schema) => (raw: unknown) => ${parseCall('parse', 'schema', 'raw', true)})(${schemaRef})`;
 
 /**
  * Emits the response-validation snippet for a single call site.
@@ -165,7 +165,7 @@ export const emitResponseValidation = ({
 
     case 'parse-fn':
       return strategy === 'both'
-        ? `(raw) => { ${guard('raw')} }`
+        ? `(${standardSchema ? 'raw: unknown' : 'raw'}) => { ${guard('raw')} }`
         : standardSchema
           ? bindSchemaOnce(schemaRef)
           : `${schemaRef}.parse`;

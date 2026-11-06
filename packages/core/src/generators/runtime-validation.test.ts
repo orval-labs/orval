@@ -485,7 +485,7 @@ describe('standardSchema contexts', () => {
         strategy: 'throw',
         context: 'parse-fn',
       }),
-    ).toBe('(raw) => orvalParseStandardSchema(Pets, raw)');
+    ).toBe('(raw: unknown) => orvalParseStandardSchema(Pets, raw)');
   });
 
   it('uses the safe helper in the both guard', () => {
@@ -496,6 +496,16 @@ describe('standardSchema contexts', () => {
         context: 'parse-fn',
       }),
     ).toContain('orvalSafeParseStandardSchema(Pets, raw)');
+  });
+
+  it('annotates the parse-fn parameter so it typechecks without context', () => {
+    expect(
+      emitResponseValidation({
+        ...base,
+        strategy: 'both',
+        context: 'parse-fn',
+      }),
+    ).toMatch(/^\(raw: unknown\) => \{/);
   });
 });
 
@@ -535,7 +545,7 @@ describe('standardSchema parse-fn with a composed schema', () => {
     });
 
     expect(snippet).toBe(
-      '((schema) => (raw) => orvalParseStandardSchema(schema, raw))(zod.array(Item))',
+      '((schema) => (raw: unknown) => orvalParseStandardSchema(schema, raw))(zod.array(Item))',
     );
   });
 
@@ -548,7 +558,7 @@ describe('standardSchema parse-fn with a composed schema', () => {
         context: 'parse-fn',
         standardSchema: true,
       }),
-    ).toBe('(raw) => orvalParseStandardSchema(Pet, raw)');
+    ).toBe('(raw: unknown) => orvalParseStandardSchema(Pet, raw)');
   });
 });
 
@@ -565,6 +575,14 @@ describe('getStandardSchemaHelper detection', () => {
     expect(
       getStandardSchemaHelper(
         '/** doc */\nconst x = orvalParseStandardSchema(P, y);',
+      ),
+    ).toContain('function orvalParseStandardSchema');
+  });
+
+  it('keeps a call that follows a string literal containing a comment opener', () => {
+    expect(
+      getStandardSchemaHelper(
+        "const re = '/api/**'; foo(orvalParseStandardSchema(Pets, x));\n/** doc */",
       ),
     ).toContain('function orvalParseStandardSchema');
   });

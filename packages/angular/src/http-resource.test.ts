@@ -3388,7 +3388,7 @@ describe('angular httpResource generator', () => {
       } as never);
 
       expect(header).toContain(
-        'parse: (raw) => orvalParseStandardSchema(Pet, raw)',
+        'parse: (raw: unknown) => orvalParseStandardSchema(Pet, raw)',
       );
       expect(header).not.toContain('Pet.parse');
     });
