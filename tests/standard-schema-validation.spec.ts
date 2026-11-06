@@ -38,11 +38,11 @@ const loadHelpers = (): StandardSchemaHelpers => {
     getStandardSchemaHelper('orvalParseStandardSchema(Schema, value)'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   );
-  // Compiled as a function body so the declarations stay local instead of
-  // becoming globals of the test worker.
-  const loaded: unknown = vm.compileFunction(
-    `${outputText}\nreturn { orvalParseStandardSchema, orvalSafeParseStandardSchema };`,
-  )();
+  // Wrapped in an IIFE so the declarations stay local instead of becoming
+  // globals of the test worker.
+  const loaded: unknown = vm.runInThisContext(
+    `(() => {\n${outputText}\nreturn { orvalParseStandardSchema, orvalSafeParseStandardSchema };\n})()`,
+  );
   if (!isHelpers(loaded)) throw new Error('helpers were not declared');
   return loaded;
 };
