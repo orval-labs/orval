@@ -1033,14 +1033,19 @@ export function generateMutatorConfig({
   const shouldSetContentType =
     body.contentType && !(isAngular && isFormDataContentType(body.contentType));
 
-  const headerOptions =
-    shouldSetContentType || headers || accept
-      ? `,\n      headers: {${
-          shouldSetContentType
-            ? `'Content-Type': '${jsStringLiteralEscape(body.contentType)}', `
-            : ''
-        }${headers ? '...headers, ' : ''}${accept ? `Accept: ${accept}` : ''}}`
-      : '';
+  const headerOptions = accept
+    ? `,\n      headers: {${
+        shouldSetContentType
+          ? `'Content-Type': '${jsStringLiteralEscape(body.contentType)}', `
+          : ''
+      }${headers ? '...headers, ' : ''}Accept: ${accept}}`
+    : shouldSetContentType
+      ? `,\n      headers: {'Content-Type': '${jsStringLiteralEscape(
+          body.contentType,
+        )}', ${headers ? '...headers' : ''}}`
+      : headers
+        ? ',\n      headers'
+        : '';
 
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
