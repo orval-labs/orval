@@ -2206,7 +2206,7 @@ This option only drives the Angular `HttpClient` pipeline that `angular-query` g
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
-The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown — so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
+The boolean form is preserved for backward compatibility: `true` is the same as `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown - so the failure still surfaces through the client's native error channel while giving production visibility into contract drift.
 
 Set `standardSchema: true` to validate through the Standard Schema interface instead; see [`standardSchema`](#standardschema) under `override.fetch`.
 
@@ -2774,10 +2774,10 @@ The exact mechanism depends on the strategy: `throw` parses directly (e.g.
 `Schema.parse()`), while `both` validates through a safe-parse wrapper so it can
 log before re-throwing.
 
-The boolean form is preserved for backward compatibility: `true` ≡
+The boolean form is preserved for backward compatibility: `true` is the same as
 `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first
 logged through `console.error('[orval] <operation> response validation failed', error)`
-with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown — so the failure still surfaces through
+with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown - so the failure still surfaces through
 the client's native error channel (RxJS error / `resource.error()` signal) while
 giving production visibility into contract drift.
 
@@ -3446,7 +3446,7 @@ Enable Zod runtime validation for fetch client responses. Requires `schemas: { t
 
 This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for primitive response types (`number`, `string`, `boolean`) and for ndjson streams, neither of which has a generated schema to parse against.
 
-The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
+The boolean form is preserved for backward compatibility: `true` is the same as `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw error (a `ZodError`, or a `StandardSchemaError` with `standardSchema`), then re-thrown (rejecting the returned promise) - giving production visibility into contract drift while still failing fast.
 
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
@@ -3455,7 +3455,7 @@ A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOu
 **Type:** `boolean`
 **Default:** `false`
 
-Validate through the [Standard Schema](https://standardschema.dev) interface instead of Zod's `parse`/`safeParse`. Generated code calls `schema['~standard'].validate()` through a small helper that is declared once per generated file and needs no import. The flag is available on every `runtimeValidation` option and leaves the default output unchanged when off. It can be switched off again for a tag or an operation with `standardSchema: false`.
+Validate through the [Standard Schema](https://standardschema.dev) interface instead of Zod's `parse`/`safeParse`. Generated code calls `schema['~standard'].validate()` through a small helper that is declared once per generated file and needs no import. The flag is available on every `runtimeValidation` option and leaves the default output unchanged when off. It can be switched off again for a tag or an operation with `standardSchema: false`. A tag or operation `angular` block still resets `client` and `queryObjectSerialization` to their defaults unless restated, so repeat `retrievalClient` there.
 
 Which option each client reads:
 
@@ -3477,6 +3477,7 @@ A failure throws an `Error` named `StandardSchemaError` with the spec's `issues`
 
 Limitations:
 
+- The generated Zod schemas need Zod 3.24 or newer, the first release that implements Standard Schema. Older versions throw a `TypeError` naming this requirement.
 - Orval still generates Zod schemas (`schemas: { type: 'zod' }`). Calling a Valibot or ArkType value means supplying the schema values yourself.
 - An inline array response is validated through `zod.array(Item)`, and `useDatesTransform` wraps a mutator's schema with `zod.pipe(...)`. Zod therefore remains a runtime dependency of the generated client even with the flag on.
 - A custom mutator receives the schema value as before and has to validate it on its own, through `~standard` for a non-Zod schema.
