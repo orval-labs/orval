@@ -465,6 +465,24 @@ export const generateSharedRequestFunction = (
         : validation.schemaRef
       : undefined;
   const errorResponses = getMutatorErrorResponses(verbOptions, context);
+  // Inline reads a download's error body as text: JSON-parsed when every
+  // declared error type is JSON (or none is declared), by the Content-Type when
+  // they are mixed, and raw otherwise.
+  const errorContentTypes = response.types.errors
+    .map(({ contentType }) => contentType)
+    .filter(Boolean);
+  const errorHasJson = errorContentTypes.some(isContentTypeJson);
+  const errorHasNonJson = errorContentTypes.some(
+    (contentType) => !isContentTypeJson(contentType),
+  );
+  const errorResponseType =
+    responseType === 'blob' && override.fetch.forceSuccessResponse
+      ? errorHasJson && errorHasNonJson
+        ? 'auto'
+        : errorHasNonJson
+          ? 'text'
+          : undefined
+      : undefined;
   const { includeHttpResponseReturnType, forceSuccessResponse } =
     override.fetch;
 
@@ -499,6 +517,9 @@ export const generateSharedRequestFunction = (
             ? [`validateResponse: ${validateResponse}`]
             : []),
           ...(forceSuccessResponse ? ['throwOnError: true'] : []),
+          ...(errorResponseType
+            ? [`errorResponseType: '${errorResponseType}'`]
+            : []),
           ...(includeHttpResponseReturnType ? [] : ['returnData: true']),
           ...(includeHttpResponseReturnType &&
           override.fetch.serializeResponseHeaders

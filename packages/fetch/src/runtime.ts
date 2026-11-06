@@ -73,7 +73,8 @@ export interface ExecuteArgs<Options extends object = CallOptions> {
   returnData?: boolean;
   serializeResponseHeaders?: boolean;
   schema?: unknown;
-  errorResponses?: readonly ErrorResponseMeta[];
+  errorResponses?: ErrorResponseMeta[];
+  errorResponseType?: 'text' | 'auto';
   options?: Options & CallOptions;
 }
 
@@ -86,7 +87,7 @@ export interface ClientConfig {
   mutator?: <T>(
     url: string,
     init: RequestInit & { schema?: never },
-    meta: { errorResponses: readonly ErrorResponseMeta[] },
+    meta: { errorResponses: ErrorResponseMeta[] },
   ) => Promise<T>;
 }
 
@@ -352,8 +353,11 @@ export const execute = async <R>(
   if (args.throwOnError && !res.ok) {
     const err: globalThis.Error & { info?: unknown; status?: number } =
       new globalThis.Error();
+    // A download's error body is text, decoded by the declared error types.
     err.info = await decodeResponseBody(res, {
       ...args,
+      responseType:
+        args.responseType === 'blob' ? args.errorResponseType : args.responseType,
       deserializeResponseDates: undefined,
       validateResponse: undefined,
     });
@@ -409,7 +413,7 @@ export type CallOptions = ${hasSecondArg ? `Parameters<typeof ${mutatorName}>[1]
 ${hasSecondArg ? '\ntype MutatorOptions = RequestInit & Partial<NonNullable<CallOptions>>;\n' : ''}
 export const execute = <Result>(
   args: ExecuteArgs<NonNullable<CallOptions>>,
-  fetcher: (url: string${hasSecondArg ? ', options: MutatorOptions' : ''}${passesErrorResponses ? ', meta: { errorResponses: readonly ErrorResponseMeta[] }' : ''}) => Result,
+  fetcher: (url: string${hasSecondArg ? ', options: MutatorOptions' : ''}${passesErrorResponses ? ', meta: { errorResponses: ErrorResponseMeta[] }' : ''}) => Result,
 ) => {
   ${
     hasSecondArg

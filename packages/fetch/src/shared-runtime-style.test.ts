@@ -960,6 +960,41 @@ describe('shared runtime options', () => {
     expect(implementation).toContain('serializeResponseHeaders: true');
   });
 
+  it('decodes a download error by its declared media types', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        { forceSuccessResponse: true },
+        {
+          response: {
+            ...response,
+            isBlob: true,
+            contentTypes: ['application/octet-stream', 'text/plain'],
+            types: {
+              success: [
+                successType({
+                  key: '200',
+                  value: 'Blob',
+                  contentType: 'application/octet-stream',
+                }),
+              ],
+              errors: [
+                successType({
+                  key: '404',
+                  value: 'string',
+                  contentType: 'text/plain',
+                }),
+              ],
+            },
+          },
+        },
+      ),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain("responseType: 'blob'");
+    expect(implementation).toContain("errorResponseType: 'text'");
+  });
+
   it('passes the json reviver', () => {
     const implementation = generateSharedRequestFunction(
       verbOptions(
@@ -1135,6 +1170,25 @@ describe('shared runtime options', () => {
         ),
       ).toEqual({ validated: 'deserialized' });
     });
+
+    it.each([
+      [undefined, 'application/problem+json', { title: 'nope' }],
+      ['auto', 'application/problem+json', { title: 'nope' }],
+      ['auto', 'text/plain', '{"title":"nope"}'],
+      ['text', 'application/problem+json', '{"title":"nope"}'],
+    ])(
+      'decodes a download error (errorResponseType %s, %s) apart from the blob',
+      async (errorResponseType, contentType, info) => {
+        const failure = await call(
+          { responseType: 'blob', throwOnError: true, errorResponseType },
+          '{"title":"nope"}',
+          404,
+          contentType,
+        ).catch((error: unknown) => error);
+
+        expect(failure).toMatchObject({ info, status: 404 });
+      },
+    );
 
     it('throws the decoded error body without deserializing or validating it', async () => {
       const failure = await call(
@@ -1566,36 +1620,42 @@ void dataIsAny;
     },
   );
 
-  it('hands the error responses to a three-argument inferred mutator', async () => {
-    const { client, files } = await generateClient(false, {
-      hasThirdArg: true,
-      includeHttpErrorResponse: true,
-    });
-    files['/proj/src/custom-fetch.ts'] = `
+  it.each([
+    ['a readonly', 'readonly '],
+    ['a mutable', ''],
+  ])(
+    'hands the error responses to a three-argument inferred mutator taking %s array',
+    async (_, modifier) => {
+      const { client, files } = await generateClient(false, {
+        hasThirdArg: true,
+        includeHttpErrorResponse: true,
+      });
+      files['/proj/src/custom-fetch.ts'] = `
 export const customFetch = async <T>(
   url: string,
   options: RequestInit,
-  meta: { errorResponses: readonly { status: number; contentType: string }[] },
+  meta: { errorResponses: ${modifier}{ status: number; contentType: string }[] },
 ): Promise<T> => {
   void meta;
   return (await fetch(url, options)).json() as Promise<T>;
 };
 `;
 
-    expect(client.implementation).toContain(
-      'errorResponses: [{"status":404,"contentType":"application/json"}]',
-    );
-    expect(files['/proj/src/api/client-config.ts']).toContain(
-      'fetcher(args.url, mutatorOptions, { errorResponses: args.errorResponses ?? [] })',
-    );
-    expect(
-      typeCheckFiles(files, [
-        'lib.es2022.d.ts',
-        'lib.dom.d.ts',
-        'lib.dom.iterable.d.ts',
-      ]),
-    ).toEqual([]);
-  });
+      expect(client.implementation).toContain(
+        'errorResponses: [{"status":404,"contentType":"application/json"}]',
+      );
+      expect(files['/proj/src/api/client-config.ts']).toContain(
+        'fetcher(args.url, mutatorOptions, { errorResponses: args.errorResponses ?? [] })',
+      );
+      expect(
+        typeCheckFiles(files, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+    },
+  );
 
   it.each([false, true])(
     'passes request options through and preserves an asynchronous=%s result',
@@ -1746,15 +1806,21 @@ execute({ url: '/pets', method: 'GET' }, customFetchFetcher<object>);
     expect(typeCheck(optionsType)).toEqual([]);
   });
 
-  it('compiles for a mutator taking the error responses', () => {
-    expect(
-      typeCheck(
-        'RequestInit',
-        false,
-        '\n  meta: { errorResponses: readonly { status: number; contentType: string }[] },',
-      ),
-    ).toEqual([]);
-  });
+  it.each([
+    ['a readonly', 'readonly '],
+    ['a mutable', ''],
+  ])(
+    'compiles for a mutator taking the error responses as %s array',
+    (_, modifier) => {
+      expect(
+        typeCheck(
+          'RequestInit',
+          false,
+          `\n  meta: { errorResponses: ${modifier}{ status: number; contentType: string }[] },`,
+        ),
+      ).toEqual([]);
+    },
+  );
 
   // Operations without a validated response pass no schema, so a mutator
   // requiring one would receive `undefined` at runtime.
