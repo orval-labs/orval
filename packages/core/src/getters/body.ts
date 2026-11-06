@@ -98,6 +98,7 @@ function buildBody(
       ? {
           formData: filteredBodyTypes[0].formData,
           formUrlEncoded: filteredBodyTypes[0].formUrlEncoded,
+          formatTypeError: filteredBodyTypes[0].formatTypeError,
           contentType: filteredBodyTypes[0].contentType,
         }
       : {

@@ -2876,36 +2876,39 @@ describe('getResReqTypes (formatType form values)', () => {
       'eventRequestBody.reminders.forEach(value => formData.append(`reminders`, toIso(value)))',
     );
     expect(result.formData).not.toContain('toFormValue');
+    expect(result.formatTypeError).toBeUndefined();
   });
 
-  it('fails for a field without encode', () => {
-    expect(() =>
-      getResReqTypes(requestBody(event), 'Event', formatTypeContext()),
-    ).toThrow(
+  it('records the error for a field without encode', () => {
+    const [result] = getResReqTypes(
+      requestBody(event),
+      'Event',
+      formatTypeContext(),
+    );
+    expect(result.formatTypeError).toBe(
       'override.formatType.date-time (Dayjs): form field `startsAt` needs `encode`',
     );
   });
 
-  it('fails for a deepObject field it cannot reach', () => {
-    expect(() =>
-      getResReqTypes(
-        requestBody(
-          {
-            type: 'object',
-            properties: {
-              range: {
-                type: 'object',
-                properties: { from: { type: 'string', format: 'date-time' } },
-              },
+  it('records the error for a deepObject field it cannot reach', () => {
+    const [result] = getResReqTypes(
+      requestBody(
+        {
+          type: 'object',
+          properties: {
+            range: {
+              type: 'object',
+              properties: { from: { type: 'string', format: 'date-time' } },
             },
           },
-          'application/x-www-form-urlencoded',
-          { range: { style: 'deepObject' } },
-        ),
-        'Event',
-        formatTypeContext('toIso'),
+        },
+        'application/x-www-form-urlencoded',
+        { range: { style: 'deepObject' } },
       ),
-    ).toThrow(
+      'Event',
+      formatTypeContext('toIso'),
+    );
+    expect(result.formatTypeError).toBe(
       "override.formatType.date-time (Dayjs): the deepObject form field `range` can't encode it",
     );
   });

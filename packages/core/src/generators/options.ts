@@ -1083,6 +1083,7 @@ export function generateFormDataAndUrlEncodedFunction({
       return `const formData = ${formData.name}(${body.implementation})`;
     }
 
+    if (body.formatTypeError) throw new Error(body.formatTypeError);
     return body.formData;
   }
 
@@ -1091,6 +1092,7 @@ export function generateFormDataAndUrlEncodedFunction({
       return `const formUrlEncoded = ${formUrlEncoded.name}(${body.implementation})`;
     }
 
+    if (body.formatTypeError) throw new Error(body.formatTypeError);
     return body.formUrlEncoded;
   }
 

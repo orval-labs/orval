@@ -2688,6 +2688,11 @@ export interface GetterBody {
   schemas: GeneratorSchema[];
   formData?: string;
   formUrlEncoded?: string;
+  /**
+   * The error for a `formatType` value that `formData` / `formUrlEncoded`
+   * can't encode, raised where a client emits that code.
+   */
+  formatTypeError?: string;
   contentType: string;
   isOptional: boolean;
   isBlob: boolean;
@@ -2837,6 +2842,7 @@ export type ResolverValue = ScalarValue & {
 export type ResReqTypesValue = ScalarValue & {
   formData?: string;
   formUrlEncoded?: string;
+  formatTypeError?: string;
   isRef?: boolean;
   hasReadonlyProps?: boolean;
   key: string;

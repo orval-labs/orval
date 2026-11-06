@@ -256,6 +256,7 @@ export function getResReqTypes(
         const isRequestBodyOptional =
           !('required' in bodySchema) || bodySchema.required !== true;
 
+        const formatTypeErrors: string[] = [];
         const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
@@ -264,6 +265,7 @@ export function getResReqTypes(
               isRequestBodyOptional,
               isRef: true,
               encoding: mediaType.encoding,
+              formatTypeErrors,
             })
           : undefined;
 
@@ -276,6 +278,7 @@ export function getResReqTypes(
               isUrlEncoded: true,
               isRef: true,
               encoding: mediaType.encoding,
+              formatTypeErrors,
             })
           : undefined;
 
@@ -295,6 +298,7 @@ export function getResReqTypes(
             dependencies: [name],
             formData,
             formUrlEncoded,
+            formatTypeError: formatTypeErrors[0],
             isRef: true,
             originalSchema: mediaType.schema,
             example: mediaType.example,
@@ -404,6 +408,7 @@ export function getResReqTypes(
               };
             }
 
+            const formatTypeErrors: string[] = [];
             const formData = isFormData
               ? getSchemaFormDataAndUrlEncoded({
                   name: effectivePropName,
@@ -413,6 +418,7 @@ export function getResReqTypes(
                     !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
+                  formatTypeErrors,
                 })
               : undefined;
 
@@ -426,6 +432,7 @@ export function getResReqTypes(
                     !('required' in res) || res.required !== true,
                   isRef: true,
                   encoding: mediaType.encoding,
+                  formatTypeErrors,
                 })
               : undefined;
 
@@ -438,6 +445,7 @@ export function getResReqTypes(
               imports: [...resolvedValue.imports, ...additionalImports],
               formData,
               formUrlEncoded,
+              formatTypeError: formatTypeErrors[0],
               contentType,
               example: mediaType.example,
               examples: resolveExampleRefs(
@@ -619,6 +627,11 @@ interface GetSchemaFormDataAndUrlEncodedOptions {
   isUrlEncoded?: boolean;
   isRef?: boolean;
   encoding?: Record<string, OpenApiEncodingObject>;
+  /**
+   * Collects the errors for `formatType` values the form code can't encode,
+   * raised only by a client that emits that code.
+   */
+  formatTypeErrors: string[];
 }
 
 function getSchemaFormDataAndUrlEncoded({
@@ -629,6 +642,7 @@ function getSchemaFormDataAndUrlEncoded({
   isUrlEncoded,
   isRef,
   encoding,
+  formatTypeErrors,
 }: GetSchemaFormDataAndUrlEncodedOptions): string {
   const { schema, imports } = resolveSchemaRef(schemaObject, context);
   const propName = camel(
@@ -655,10 +669,12 @@ function getSchemaFormDataAndUrlEncoded({
           context,
         );
         if (variantFormatType) {
-          throw getFormatTypeError(
-            variantFormatType.format,
-            variantFormatType.config,
-            `the oneOf/anyOf form body \`${propName}\` can't encode it`,
+          formatTypeErrors.push(
+            getFormatTypeError(
+              variantFormatType.format,
+              variantFormatType.config,
+              `the oneOf/anyOf form body \`${propName}\` can't encode it`,
+            ).message,
           );
         }
         // If the outer schema also has direct properties, those are handled
@@ -763,6 +779,7 @@ function getSchemaFormDataAndUrlEncoded({
               context,
               isRequestBodyOptional,
               encoding,
+              formatTypeErrors,
             });
           })
           .filter(Boolean)
@@ -780,6 +797,7 @@ function getSchemaFormDataAndUrlEncoded({
         context,
         isRequestBodyOptional,
         encoding,
+        formatTypeErrors,
       });
 
       form += formDataValues;
@@ -795,7 +813,12 @@ function getSchemaFormDataAndUrlEncoded({
       const { schema: resolvedItem } = resolveSchemaRef(schemaItems, context);
       const itemSchema = unwrapNullableSchema(resolvedItem, context);
       const itemType = getSchemaType(resolvedItem);
-      const itemEncode = getFormValueEncode(itemSchema, context, 'data');
+      const itemEncode = getFormValueEncode(
+        itemSchema,
+        context,
+        'data',
+        formatTypeErrors,
+      );
       if (
         isEffectivelyObjectSchema(itemSchema, context) ||
         isEffectivelyArraySchema(itemSchema, context)
@@ -822,7 +845,7 @@ function getSchemaFormDataAndUrlEncoded({
     );
   }
 
-  const encode = getFormValueEncode(schema, context, 'data');
+  const encode = getFormValueEncode(schema, context, 'data', formatTypeErrors);
   if (encode) {
     return `${form}${variableName}.append('data', ${callFormatTypeFunction(encode, propName)})\n`;
   }
@@ -1019,20 +1042,24 @@ const isDateOnlySchema = (
 
 /**
  * The `encode` function of a form value that takes a `formatType`, or
- * undefined for any other value. Fails for such a value without `encode`.
+ * undefined for any other value. Records the error for such a value without
+ * `encode`.
  */
 const getFormValueEncode = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   field: string,
+  formatTypeErrors: string[],
 ) => {
   const { schema: resolved } = resolveSchemaRef(schema, context);
   const formatType = getModelFormatType(resolved, context);
   if (formatType && !formatType.encode) {
-    throw getFormatTypeError(
-      (resolved as OpenApiNonBooleanSchemaObject).format,
-      formatType,
-      `form field \`${field}\` needs \`encode\``,
+    formatTypeErrors.push(
+      getFormatTypeError(
+        (resolved as OpenApiNonBooleanSchemaObject).format,
+        formatType,
+        `form field \`${field}\` needs \`encode\``,
+      ).message,
     );
   }
   return formatType?.encode;
@@ -1174,6 +1201,7 @@ interface ResolveSchemaPropertiesToFormDataOptions {
   encoding?: Record<string, OpenApiEncodingObject>;
   // Schemas already being exploded further up, to stop on recursive models.
   ancestors?: Set<OpenApiSchemaObject>;
+  formatTypeErrors: string[];
 }
 
 function resolveSchemaPropertiesToFormData({
@@ -1186,6 +1214,7 @@ function resolveSchemaPropertiesToFormData({
   depth = 0,
   encoding,
   ancestors = new Set(),
+  formatTypeErrors,
 }: ResolveSchemaPropertiesToFormDataOptions): string {
   let formDataValues = '';
   const nestedAncestors = new Set(ancestors).add(schema);
@@ -1262,6 +1291,7 @@ function resolveSchemaPropertiesToFormData({
       valueSchema,
       context,
       `${keyPrefix}${key}`,
+      formatTypeErrors,
     );
 
     if (isUrlEncoded && (fileType || property.format === 'binary')) {
@@ -1287,10 +1317,12 @@ function resolveSchemaPropertiesToFormData({
       if (isDeepObject) {
         const nestedFormatType = findModelFormatType(valueSchema, context);
         if (nestedFormatType) {
-          throw getFormatTypeError(
-            nestedFormatType.format,
-            nestedFormatType.config,
-            `the deepObject form field \`${keyPrefix}${key}\` can't encode it`,
+          formatTypeErrors.push(
+            getFormatTypeError(
+              nestedFormatType.format,
+              nestedFormatType.config,
+              `the deepObject form field \`${keyPrefix}${key}\` can't encode it`,
+            ).message,
           );
         }
         // style: deepObject — emit each property as `key[subkey]=value`
@@ -1314,6 +1346,7 @@ function resolveSchemaPropertiesToFormData({
                 depth: depth + 1,
                 encoding,
                 ancestors: nestedAncestors,
+                formatTypeErrors,
               })
             : `${variableName}.append(\`${keyPrefix}${escapedKey}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       }
@@ -1351,6 +1384,7 @@ function resolveSchemaPropertiesToFormData({
                   keyPrefix: `${keyPrefix}${escapedKey}[\${index${depth > 0 ? depth : ''}}].`,
                   depth: depth + 1,
                   ancestors: nestedAncestors,
+                  formatTypeErrors,
                 })
               : '';
           if (resolvedValue) {
@@ -1369,6 +1403,7 @@ function resolveSchemaPropertiesToFormData({
             itemSchema,
             context,
             `${keyPrefix}${key}`,
+            formatTypeErrors,
           );
           if (itemEncode) {
             valueStr = callFormatTypeFunction(itemEncode, 'value');
