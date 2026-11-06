@@ -270,6 +270,7 @@ export const generateAngularHttpRequestFunction = (
       operationName,
       strategy: override.query.runtimeValidation?.strategy ?? 'throw',
       context: 'rxjs-map',
+      standardSchema: override.query.runtimeValidation?.standardSchema,
     })}`;
   }
 

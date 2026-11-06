@@ -646,6 +646,42 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     expect(implementation).not.toContain('Promise<Pets>');
   });
 
+  it('validates through the Standard Schema helper when opted in', () => {
+    const verbOptions = makeZodValidationVerbOptions();
+    verbOptions.override.fetch.runtimeValidation = {
+      enabled: true,
+      strategy: 'throw',
+      standardSchema: true,
+    };
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain('parseStandardSchema(Pets, parsedBody)');
+    expect(implementation).not.toContain('Pets.parse(');
+  });
+
+  it('logs through the safe helper under the both strategy', () => {
+    const verbOptions = makeZodValidationVerbOptions();
+    verbOptions.override.fetch.runtimeValidation = {
+      enabled: true,
+      strategy: 'both',
+      standardSchema: true,
+    };
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain(
+      'safeParseStandardSchema(Pets, parsedBody)',
+    );
+    expect(implementation).not.toContain('.safeParse(');
+  });
+
   it('uses the output alias for the data field with includeHttpResponseReturnType', () => {
     const verbOptions = makeZodValidationVerbOptions();
     verbOptions.override.fetch.includeHttpResponseReturnType = true;

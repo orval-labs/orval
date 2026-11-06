@@ -586,12 +586,14 @@ export const generateHttpClientImplementation = (
   // `PetsOutput`. We therefore drop the cast on the validation path and let the
   // inferred return type flow naturally.
   const validationStrategy = override.angular.runtimeValidation.strategy;
+  const standardSchema = override.angular.runtimeValidation.standardSchema;
   const validationPipe = shouldValidateResponse
     ? emitResponseValidation({
         schemaRef: schemaValueRef,
         operationName,
         strategy: validationStrategy,
         context: 'rxjs-map',
+        standardSchema,
       })
     : '';
   const responseValidationPipe = shouldValidateResponse
@@ -601,6 +603,7 @@ export const generateHttpClientImplementation = (
         strategy: validationStrategy,
         context: 'clone-expression',
         inputExpression: 'response.body',
+        standardSchema,
       })} })))`
     : '';
   const eventValidationPipe = shouldValidateResponse
@@ -611,6 +614,7 @@ export const generateHttpClientImplementation = (
           strategy: validationStrategy,
           context: 'clone-expression',
           inputExpression: 'event.body',
+          standardSchema,
         },
       )} }) : event))`
     : '';
@@ -726,6 +730,7 @@ export const generateHttpClientImplementation = (
         schemaRef: validatedBody.schemaRef,
         operationName,
         strategy: override.angular.runtimeValidation.strategy,
+        standardSchema: override.angular.runtimeValidation.standardSchema,
         inputExpression: body.implementation,
         isOptional: body.isOptional,
       })};
@@ -834,6 +839,7 @@ export const generateHttpClientImplementation = (
         operationName,
         strategy: validationStrategy,
         context: 'rxjs-map',
+        standardSchema,
       })
     : '';
   if (hasMultipleContentTypes && !shouldValidateResponse && jsonSchema) {
@@ -842,6 +848,7 @@ export const generateHttpClientImplementation = (
       operationName,
       strategy: validationStrategy,
       context: 'rxjs-map',
+      standardSchema,
     });
   }
 

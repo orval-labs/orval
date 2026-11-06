@@ -3355,6 +3355,42 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('parse: Pet.parse');
     });
 
+    it('wraps parse in the Standard Schema helper', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      verbOption.override.angular.runtimeValidation = {
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      };
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('parse: (raw) => parseStandardSchema(Pet, raw)');
+      expect(header).not.toContain('Pet.parse');
+    });
+
     it('does not add parse when schemas.type is not zod', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
