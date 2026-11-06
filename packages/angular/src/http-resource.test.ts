@@ -3386,6 +3386,44 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('parse: Pet.parse');
     });
 
+    it('wraps parse in the Standard Schema helper', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      output.override.angular.runtimeValidation = {
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      };
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'parse: (raw: unknown) => orvalParseStandardSchema(Pet, raw)',
+      );
+      expect(header).not.toContain('Pet.parse');
+    });
+
     it('does not add parse when schemas.type is not zod', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
@@ -4131,6 +4169,44 @@ describe('angular httpResource generator', () => {
       );
       expect(petsFile.content).not.toContain('export type GetPetByIdAccept');
       expect(petsFile.content).not.toContain('export const GetPetByIdAccept');
+    });
+
+    it('declares the Standard Schema helper in the sibling resource file', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({ imports: [{ name: 'Pet' }] }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: { ...angularOverride('both') },
+        },
+      });
+      output.override.angular.runtimeValidation = {
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      };
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const [file] = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      expect(file.content).toContain('orvalParseStandardSchema(Pet, raw)');
+      expect(file.content).toContain('function orvalParseStandardSchema');
+      expect(file.content).toContain('function orvalSafeParseStandardSchema');
     });
 
     it('imports Accept helpers from the target file in single mode', async () => {

@@ -35,6 +35,7 @@ describe('getQueryHeader', () => {
   it('emits filterParams helper for Angular when a non-tagged file has query params', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       verbOptions: {
         listPets: {
           tags: ['pets'],
@@ -53,6 +54,7 @@ describe('getQueryHeader', () => {
   it('does not emit filterParams helper for a tag file with no query params', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       tag: 'health',
       verbOptions: {
         listPets: {
@@ -72,6 +74,7 @@ describe('getQueryHeader', () => {
   it('emits filterParams helper for a tag file whose operations use query params', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       tag: 'pets',
       verbOptions: {
         listPets: {
@@ -91,6 +94,7 @@ describe('getQueryHeader', () => {
   it('matches tags using the same normalized pattern as the Angular generator', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       tag: 'pet-status',
       verbOptions: {
         listPetStatus: {
@@ -106,6 +110,7 @@ describe('getQueryHeader', () => {
   it('does not emit filterParams when the current tag is not the first operation tag', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       tag: 'pets',
       verbOptions: {
         healthCheck: {
@@ -121,6 +126,7 @@ describe('getQueryHeader', () => {
   it('emits filterParams when the current tag matches the first operation tag among multi-tag operations', () => {
     const header = getQueryHeader({
       output: { httpClient: OutputHttpClient.ANGULAR },
+      clientImplementation: '',
       tag: 'pets',
       verbOptions: {
         healthCheck: {
@@ -1251,6 +1257,25 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
     expect(implementation).toContain('): Promise<ItemOutput[]> =>');
     expect(implementation).toContain('http.get<ItemOutput[]>(url)');
     expect(implementation).toContain('zod.array(Item).parse(data)');
+  });
+
+  it('validates through the Standard Schema helper when opted in', () => {
+    const verbOptions = makeVerbOptions();
+    verbOptions.override.query.runtimeValidation = {
+      enabled: true,
+      strategy: 'throw',
+      standardSchema: true,
+    };
+
+    const implementation = generateAngularHttpRequestFunction(
+      verbOptions,
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain(
+      '.pipe(map(data => orvalParseStandardSchema(Pets, data)))',
+    );
+    expect(implementation).not.toContain('Pets.parse(');
   });
 
   it('keeps the schema (input) type when the schemas output is not zod', () => {

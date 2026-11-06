@@ -41,6 +41,8 @@ baseUrl: {
 
 See the [output `baseUrl` reference](/docs/reference/configuration/output#runtime) for `imports` and expressions such as `env.API_BASE_URL` from a shared module (for example `import { env } from '../../env'`). MSW mock host filtering uses the separate [`mock.baseUrl`](/docs/reference/configuration/output#mock-options) option.
 
+Set `runtimeValidation: { standardSchema: true }` to validate through Standard Schema; see [`standardSchema`](/docs/reference/configuration/output#standardschema).
+
 ## Generated Output
 
 Orval generates three things for each endpoint:

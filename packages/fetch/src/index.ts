@@ -853,6 +853,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     strategy: override.fetch.runtimeValidation.strategy,
     context: 'fetch-assign',
     inputExpression: 'parsedBody',
+    standardSchema: override.fetch.runtimeValidation.standardSchema,
   });
   // A custom mutator issues the request itself, so it cannot benefit from the
   // generated `Schema.parse()` call. Handing it the zod schema lets it validate

@@ -3979,4 +3979,44 @@ describe('single-file schema output combinations', () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  describe('output-level standardSchema flag', () => {
+    it('enables validation for fetch, query and angular', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        const specPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          specPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+        const flag = { runtimeValidation: { standardSchema: true } };
+        const normalized = await normalizeOptions(
+          {
+            input: { target: specPath },
+            output: {
+              target: './generated.ts',
+              override: { fetch: flag, query: flag, angular: flag },
+            },
+          },
+          workspace,
+        );
+        const { fetch, query, angular } = normalized.output.override;
+
+        expect(fetch.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(query.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(angular.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
 });

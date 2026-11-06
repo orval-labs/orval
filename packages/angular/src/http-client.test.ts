@@ -2455,6 +2455,7 @@ describe('angular HttpClient generator', () => {
             }),
           }),
         },
+        clientImplementation: '',
       } as never);
 
       expect(header).toContain('export type GetPetFileAccept');
@@ -3202,6 +3203,22 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     expect(impl).not.toContain('defer(');
     expect(impl).not.toContain('CreatePetsBody.parse');
     expect(impl).toMatch(/`\/api\/pets`,\s*createPetsBody,/);
+  });
+
+  it('validates request bodies through the Standard Schema helper when opted in', () => {
+    const standard = {
+      ...requestBodyValidation,
+      standardSchema: true,
+    } as const;
+    const impl = generate(
+      createPetsVerb({ runtimeValidation: standard }),
+      zodOutput(standard),
+    );
+
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = orvalParseStandardSchema(CreatePetsBody, createPetsBody);',
+    );
+    expect(impl).not.toContain('CreatePetsBody.parse');
   });
 
   it('logs and re-throws under the both strategy', () => {
