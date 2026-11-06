@@ -37,7 +37,6 @@ import {
   type OperationManifestOptions,
   type Mutator,
   NamingConvention,
-  type NormalizedAngularRuntimeValidation,
   type NormalizedEffectOptions,
   type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
@@ -58,8 +57,6 @@ import {
   type NormalizedSchemaOptions,
   normalizeAngularRuntimeValidation,
   normalizeRuntimeValidation,
-  resolveAngularRuntimeValidationOverride,
-  resolveRuntimeValidationOverride,
   type OperationOptions,
   operationZodOverrideKeys,
   type OperationZodOverrideKey,
@@ -829,10 +826,6 @@ export async function normalizeOptions(
 
   // `useQuery` / `useMutation` defaults are applied per-verb in
   // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
-  const globalAngularRuntimeValidation = normalizeAngularRuntimeValidation(
-    outputOptions.override?.angular?.runtimeValidation,
-  );
-
   const globalQueryOptions: NormalizedQueryOptions = {
     signal: true,
     shouldExportMutatorHooks: true,
@@ -935,7 +928,6 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
-            angularRuntimeValidation: globalAngularRuntimeValidation,
           },
           'operations',
           resolveTsconfigPath,
@@ -946,7 +938,6 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
-            angularRuntimeValidation: globalAngularRuntimeValidation,
           },
           'tags',
           resolveTsconfigPath,
@@ -1132,7 +1123,9 @@ export async function normalizeOptions(
             outputOptions.override?.angular?.retrievalClient ??
             outputOptions.override?.angular?.client ??
             'httpClient',
-          runtimeValidation: globalAngularRuntimeValidation,
+          runtimeValidation: normalizeAngularRuntimeValidation(
+            outputOptions.override?.angular?.runtimeValidation,
+          ),
           queryObjectSerialization:
             outputOptions.override?.angular?.queryObjectSerialization ?? 'spec',
           observeOverloads:
@@ -1603,7 +1596,6 @@ function normalizeOperationsAndTags(
   global: {
     query: NormalizedQueryOptions;
     angularProvideIn?: AngularOptions['provideIn'];
-    angularRuntimeValidation: NormalizedAngularRuntimeValidation;
   },
   source: 'operations' | 'tags',
   resolveTsconfigPath?: TsconfigPathsResolver,
@@ -1676,9 +1668,8 @@ function normalizeOperationsAndTags(
                       angular.provideIn ?? global.angularProvideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
-                    runtimeValidation: resolveAngularRuntimeValidationOverride(
+                    runtimeValidation: normalizeAngularRuntimeValidation(
                       angular.runtimeValidation,
-                      global.angularRuntimeValidation,
                     ),
                     queryObjectSerialization:
                       angular.queryObjectSerialization ?? 'spec',
@@ -2125,17 +2116,10 @@ function normalizeQueryOptions(
       : {}),
     // `globalOptions` is already a NormalizedQueryOptions, so an inherited value
     // is preserved as-is; only a per-operation/per-tag raw override is normalized.
-    // Without an inherited value this is the output-level setting, which is new
-    // configuration rather than an override of one.
     runtimeValidation: isNullish(queryOptions.runtimeValidation)
       ? (globalOptions.runtimeValidation ??
         normalizeRuntimeValidation(undefined))
-      : globalOptions.runtimeValidation
-        ? resolveRuntimeValidationOverride(
-            queryOptions.runtimeValidation,
-            globalOptions.runtimeValidation,
-          )
-        : normalizeRuntimeValidation(queryOptions.runtimeValidation),
+      : normalizeRuntimeValidation(queryOptions.runtimeValidation),
   };
 }
 

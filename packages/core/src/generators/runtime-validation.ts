@@ -269,42 +269,6 @@ export const normalizeAngularRuntimeValidation = (
 };
 
 /**
- * A tag or operation override that carries only an explicit `standardSchema`
- * flag leaves the enabled state and strategy to the value it overrides.
- */
-const isFlagOnlyOverride = (
-  value: RuntimeValidation | AngularRuntimeValidation,
-): value is { standardSchema: boolean } =>
-  typeof value === 'object' &&
-  value.standardSchema !== undefined &&
-  value.strategy === undefined &&
-  !('requestBodies' in value && value.requestBodies !== undefined);
-
-/**
- * Normalizes a per-tag or per-operation `runtimeValidation` override against
- * the value it overrides. A flag-only object keeps the inherited `enabled` and
- * `strategy`, so switching `standardSchema` does not alter the rest.
- */
-export const resolveRuntimeValidationOverride = (
-  value: RuntimeValidation | undefined,
-  inherited: NormalizedRuntimeValidation,
-): NormalizedRuntimeValidation =>
-  value !== undefined && isFlagOnlyOverride(value)
-    ? { ...inherited, standardSchema: value.standardSchema }
-    : normalizeRuntimeValidation(value);
-
-/**
- * Angular variant of {@link resolveRuntimeValidationOverride}.
- */
-export const resolveAngularRuntimeValidationOverride = (
-  value: AngularRuntimeValidation | undefined,
-  inherited: NormalizedAngularRuntimeValidation,
-): NormalizedAngularRuntimeValidation =>
-  value !== undefined && isFlagOnlyOverride(value)
-    ? { ...inherited, standardSchema: value.standardSchema }
-    : normalizeAngularRuntimeValidation(value);
-
-/**
  * Bare TypeScript definitions without a schema binding. When enabled, inline
  * scalar responses get named schemas before reaching the client generators;
  * `void`/`unknown` still have no schema to parse against.

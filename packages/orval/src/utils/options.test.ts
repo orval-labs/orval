@@ -3,11 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { mergeDeep, noopReporter, withReporter } from '@orval/core';
-import type {
-  NormalizedSchemaOptions,
-  OutputMocksConfig,
-  OverrideOutput,
-} from '@orval/core';
+import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -3984,8 +3980,8 @@ describe('single-file schema output combinations', () => {
     }
   });
 
-  describe('flag-only runtimeValidation overrides', () => {
-    const normalizeWithOverride = async (override: OverrideOutput) => {
+  describe('output-level standardSchema flag', () => {
+    it('enables validation for fetch, query and angular', async () => {
       const workspace = await createTempWorkspace();
       try {
         const specPath = path.join(workspace, 'petstore.yaml');
@@ -3993,82 +3989,34 @@ describe('single-file schema output combinations', () => {
           specPath,
           'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
         );
-        return await normalizeOptions(
+        const flag = { runtimeValidation: { standardSchema: true } };
+        const normalized = await normalizeOptions(
           {
             input: { target: specPath },
-            output: { target: './generated.ts', override },
+            output: {
+              target: './generated.ts',
+              override: { fetch: flag, query: flag, angular: flag },
+            },
           },
           workspace,
         );
+        const { fetch, query, angular } = normalized.output.override;
+
+        expect(fetch.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(query.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(angular.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
-    };
-
-    it('keeps the global strategy and enabled state of angular tags', async () => {
-      const normalized = await normalizeWithOverride({
-        angular: {
-          retrievalClient: 'httpResource',
-          runtimeValidation: {
-            strategy: 'both',
-            standardSchema: true,
-            requestBodies: true,
-          },
-        },
-        tags: {
-          pets: { angular: { runtimeValidation: { standardSchema: false } } },
-        },
-      });
-
-      expect(normalized.output.override.tags.pets?.angular).toMatchObject({
-        runtimeValidation: {
-          enabled: true,
-          strategy: 'both',
-          standardSchema: false,
-          requestBodies: true,
-        },
-      });
-    });
-
-    it('does not enable validation that is off globally', async () => {
-      const normalized = await normalizeWithOverride({
-        operations: {
-          listPets: {
-            angular: { runtimeValidation: { standardSchema: true } },
-            query: { runtimeValidation: { standardSchema: true } },
-          },
-        },
-      });
-      const operation = normalized.output.override.operations.listPets;
-
-      expect(operation?.angular?.runtimeValidation.enabled).toBe(false);
-      expect(operation?.query?.runtimeValidation?.enabled).toBe(false);
-    });
-
-    it('enables validation from an output-level standardSchema flag alone', async () => {
-      const normalized = await normalizeWithOverride({
-        query: { runtimeValidation: { standardSchema: true } },
-      });
-
-      expect(normalized.output.override.query.runtimeValidation).toEqual({
-        enabled: true,
-        strategy: 'throw',
-        standardSchema: true,
-      });
-    });
-
-    it('keeps the global strategy of query operations', async () => {
-      const normalized = await normalizeWithOverride({
-        query: { runtimeValidation: { strategy: 'both' } },
-        operations: {
-          listPets: { query: { runtimeValidation: { standardSchema: true } } },
-        },
-      });
-
-      expect(
-        normalized.output.override.operations.listPets?.query
-          ?.runtimeValidation,
-      ).toEqual({ enabled: true, strategy: 'both', standardSchema: true });
     });
   });
 });
