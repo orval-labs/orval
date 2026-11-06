@@ -25,6 +25,7 @@ import {
   GetterPropType,
   getOperationTagKey,
   getSchemasImportPath,
+  getStandardSchemaHelper,
   getTagKey,
   isObject,
   isSyntheticDefaultImportsAllow,
@@ -2195,8 +2196,12 @@ const buildHttpResourceExtraFile = (
         })
       : '';
 
+  // The sibling file has no generated client header, so it declares the
+  // helper its own parse calls need.
+  const standardSchemaHelper = getStandardSchemaHelper(implementation);
+
   return {
-    content: `${header}${importImplementation}${mutatorImports}${implementation}`,
+    content: `${header}${importImplementation}${mutatorImports}${standardSchemaHelper ? `${standardSchemaHelper}\n` : ''}${implementation}`,
     path: outputPath,
     // Part of the public client surface, so the `tags-split` barrel re-exports
     // it.
