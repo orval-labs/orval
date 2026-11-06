@@ -157,4 +157,74 @@ export default defineConfig({
     },
     input: { target: '../specifications/dates-transform.yaml' },
   },
+  // `standardSchema: true` swaps Zod's `parse`/`safeParse` for an inline helper
+  // that calls `schema['~standard'].validate()`.
+  fetchStandardSchema: {
+    output: {
+      target:
+        '../generated/runtime-validation/fetch-standard-schema/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/fetch-standard-schema/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: { strategy: 'throw', standardSchema: true },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  fetchStandardSchemaBoth: {
+    output: {
+      target:
+        '../generated/runtime-validation/fetch-standard-schema-both/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/fetch-standard-schema-both/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: { strategy: 'both', standardSchema: true },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  angularHttpClientStandardSchema: {
+    output: {
+      target:
+        '../generated/runtime-validation/angular-http-client-standard-schema/endpoints.ts',
+      schemas: {
+        path: '../generated/runtime-validation/angular-http-client-standard-schema/model',
+        type: 'zod',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          retrievalClient: 'httpClient',
+          runtimeValidation: {
+            strategy: 'both',
+            requestBodies: true,
+            standardSchema: true,
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
