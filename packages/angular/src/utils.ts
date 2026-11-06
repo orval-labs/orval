@@ -14,6 +14,7 @@ import {
 } from '@orval/core';
 
 import {
+  HTTP_CLIENT_BODY_OBSERVE_OPTIONS_TEMPLATE,
   HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE,
   HTTP_CLIENT_OPTIONS_TEMPLATE,
   THIRD_PARAMETER_TEMPLATE,
@@ -141,6 +142,7 @@ export const buildServiceClassOpen = ({
   hasQueryParams,
   baseUrlFieldInitializer,
   hasObjectParams = false,
+  hasObserveOverloads = true,
   acceptHelpers,
 }: {
   title: string;
@@ -160,6 +162,11 @@ export const buildServiceClassOpen = ({
    * (issue #3705). Only meaningful when `hasQueryParams` is `true`.
    */
   hasObjectParams?: boolean;
+  /**
+   * Whether any operation in the file keeps the `events` / `response` observe
+   * overloads. When none does, their option helper types would be unused (#4458).
+   */
+  hasObserveOverloads?: boolean;
   /** Emitted verbatim before the class; callers add their own trailing blank line. */
   acceptHelpers?: string;
 }): string => {
@@ -172,10 +179,12 @@ ${
   isRequestOptions && !isGlobalMutator
     ? `${HTTP_CLIENT_OPTIONS_TEMPLATE}
 
-${HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE}
+${hasObserveOverloads ? HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE : HTTP_CLIENT_BODY_OBSERVE_OPTIONS_TEMPLATE}
 
 ${hasQueryParams ? getAngularFilteredParamsHelperBody({ hasObjectParams }) : ''}`
-    : ''
+    : hasQueryParams
+      ? getAngularFilteredParamsHelperBody({ hasObjectParams })
+      : ''
 }
 
 ${isRequestOptions && isMutator ? THIRD_PARAMETER_TEMPLATE : ''}

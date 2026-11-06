@@ -69,6 +69,7 @@ import {
   buildClientResultAlias,
   getClientResultAliases,
 } from './http-client';
+import { logger } from './logger';
 import {
   buildAcceptJsonCondition,
   buildAcceptTextCondition,
@@ -1424,6 +1425,11 @@ export function ${resourceName}(
   // HttpClient-style mutators expect (config, httpClient) — incompatible with
   // standalone httpResource functions which have no HttpClient instance.
   // Only apply mutators that accept a single argument (request config only).
+  if (mutator?.hasSecondArg) {
+    logger.warn(
+      `${verbOption.operationName}: httpResource skipped the two-argument mutator ${mutator.name}; httpResource has no HttpClient instance to pass to it.`,
+    );
+  }
   const isResourceCompatibleMutator =
     mutator !== undefined && !mutator.hasSecondArg;
   const returnExpression = isResourceCompatibleMutator
@@ -1749,6 +1755,9 @@ ${buildServiceClassOpen({
     ? `private readonly baseUrl = inject(${getBaseUrlTokenName(baseUrlOption.apiId)});`
     : undefined,
   hasObjectParams: mutations.some(hasGatedObjectQueryParamStrategies),
+  hasObserveOverloads: mutations.some(
+    (v) => v.override.angular.observeOverloads !== false,
+  ),
 })}
 ${mutationImplementation}
 };
