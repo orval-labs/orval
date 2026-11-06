@@ -377,7 +377,7 @@ describe('rewriteImportsForResponseValidation', () => {
 });
 
 describe('standardSchema', () => {
-  it('emits parseStandardSchema for throw and safeParseStandardSchema for both', () => {
+  it('emits orvalParseStandardSchema for throw and orvalSafeParseStandardSchema for both', () => {
     const base = {
       schemaRef: 'Pets',
       operationName: 'listPets',
@@ -386,10 +386,10 @@ describe('standardSchema', () => {
       standardSchema: true,
     };
     expect(emitResponseValidation({ ...base, strategy: 'throw' })).toBe(
-      'parseStandardSchema(Pets, parsedBody)',
+      'orvalParseStandardSchema(Pets, parsedBody)',
     );
     expect(emitResponseValidation({ ...base, strategy: 'both' })).toContain(
-      'safeParseStandardSchema(Pets, parsedBody)',
+      'orvalSafeParseStandardSchema(Pets, parsedBody)',
     );
   });
 
@@ -417,11 +417,11 @@ describe('standardSchema', () => {
 
   it('declares only the helpers a file calls', () => {
     expect(getStandardSchemaHelper('Pets.parse(x)')).toBe('');
-    const both = getStandardSchemaHelper('safeParseStandardSchema(P, x)');
-    expect(both).toContain('function safeParseStandardSchema');
-    expect(both).not.toContain('function parseStandardSchema');
-    expect(getStandardSchemaHelper('parseStandardSchema(P, x)')).toContain(
-      'function parseStandardSchema',
+    const both = getStandardSchemaHelper('orvalSafeParseStandardSchema(P, x)');
+    expect(both).toContain('function orvalSafeParseStandardSchema');
+    expect(both).not.toContain('function orvalParseStandardSchema');
+    expect(getStandardSchemaHelper('orvalParseStandardSchema(P, x)')).toContain(
+      'function orvalParseStandardSchema',
     );
   });
 });
@@ -436,13 +436,13 @@ describe('standardSchema request bodies', () => {
 
   it('emits the throwing helper for the throw strategy', () => {
     expect(emitRequestBodyValidation({ ...base, strategy: 'throw' })).toBe(
-      'parseStandardSchema(CreatePetsBody, createPetsBody)',
+      'orvalParseStandardSchema(CreatePetsBody, createPetsBody)',
     );
   });
 
   it('IIFE-wraps the safe helper for the both strategy', () => {
     expect(emitRequestBodyValidation({ ...base, strategy: 'both' })).toBe(
-      "(() => { const result = safeParseStandardSchema(CreatePetsBody, createPetsBody); if (!result.success) { console.error('[orval] createPets request body validation failed', result.error); throw result.error; } return result.data; })()",
+      "(() => { const result = orvalSafeParseStandardSchema(CreatePetsBody, createPetsBody); if (!result.success) { console.error('[orval] createPets request body validation failed', result.error); throw result.error; } return result.data; })()",
     );
   });
 
@@ -454,7 +454,7 @@ describe('standardSchema request bodies', () => {
         isOptional: true,
       }),
     ).toBe(
-      'createPetsBody === undefined ? undefined : parseStandardSchema(CreatePetsBody, createPetsBody)',
+      'createPetsBody === undefined ? undefined : orvalParseStandardSchema(CreatePetsBody, createPetsBody)',
     );
   });
 });
@@ -473,7 +473,7 @@ describe('standardSchema contexts', () => {
         strategy: 'throw',
         context: 'rxjs-map',
       }),
-    ).toBe('.pipe(map(data => parseStandardSchema(Pets, data)))');
+    ).toBe('.pipe(map(data => orvalParseStandardSchema(Pets, data)))');
   });
 
   it('wraps parse-fn in an arrow instead of a bare reference', () => {
@@ -483,7 +483,7 @@ describe('standardSchema contexts', () => {
         strategy: 'throw',
         context: 'parse-fn',
       }),
-    ).toBe('(raw) => parseStandardSchema(Pets, raw)');
+    ).toBe('(raw) => orvalParseStandardSchema(Pets, raw)');
   });
 
   it('uses the safe helper in the both guard', () => {
@@ -493,7 +493,7 @@ describe('standardSchema contexts', () => {
         strategy: 'both',
         context: 'parse-fn',
       }),
-    ).toContain('safeParseStandardSchema(Pets, raw)');
+    ).toContain('orvalSafeParseStandardSchema(Pets, raw)');
   });
 });
 
@@ -522,11 +522,49 @@ describe('normalizeAngularRuntimeValidation standardSchema', () => {
   });
 });
 
+describe('standardSchema parse-fn with a composed schema', () => {
+  it('binds the schema once instead of rebuilding it per response', () => {
+    const snippet = emitResponseValidation({
+      schemaRef: 'zod.array(Item)',
+      operationName: 'listItems',
+      strategy: 'throw',
+      context: 'parse-fn',
+      standardSchema: true,
+    });
+
+    expect(snippet).toBe(
+      '((schema) => (raw) => orvalParseStandardSchema(schema, raw))(zod.array(Item))',
+    );
+  });
+
+  it('keeps the plain arrow for a named schema', () => {
+    expect(
+      emitResponseValidation({
+        schemaRef: 'Pet',
+        operationName: 'getPet',
+        strategy: 'throw',
+        context: 'parse-fn',
+        standardSchema: true,
+      }),
+    ).toBe('(raw) => orvalParseStandardSchema(Pet, raw)');
+  });
+});
+
+describe('getStandardSchemaHelper detection', () => {
+  it('ignores a longer identifier that ends in a helper name', () => {
+    expect(getStandardSchemaHelper('myorvalParseStandardSchema(P, x)')).toBe(
+      '',
+    );
+  });
+});
+
 describe('getStandardSchemaHelper output', () => {
   it('declares each helper once and types them without casts', () => {
-    const helper = getStandardSchemaHelper('parseStandardSchema(P, x)');
-    expect(helper.match(/function safeParseStandardSchema/g)).toHaveLength(1);
-    expect(helper.match(/function parseStandardSchema/g)).toHaveLength(1);
+    const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
+    expect(helper.match(/function orvalSafeParseStandardSchema/g)).toHaveLength(
+      1,
+    );
+    expect(helper.match(/function orvalParseStandardSchema/g)).toHaveLength(1);
     expect(helper).not.toContain(' as ');
   });
 });
@@ -583,7 +621,7 @@ describe('standardSchema override merging', () => {
 });
 
 describe('standard schema helper source', () => {
-  const helper = getStandardSchemaHelper('parseStandardSchema(P, x)');
+  const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
 
   it('parses as .tsx, where arrow generics do not', () => {
     const { diagnostics } = ts.transpileModule(helper, {

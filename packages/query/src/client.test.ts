@@ -1273,7 +1273,7 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
     );
 
     expect(implementation).toContain(
-      '.pipe(map(data => parseStandardSchema(Pets, data)))',
+      '.pipe(map(data => orvalParseStandardSchema(Pets, data)))',
     );
     expect(implementation).not.toContain('Pets.parse(');
   });

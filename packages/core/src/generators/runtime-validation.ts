@@ -8,6 +8,10 @@ import type {
   RuntimeValidation,
   RuntimeValidationStrategy,
 } from '../types';
+import {
+  STANDARD_SCHEMA_PARSE_NAME,
+  STANDARD_SCHEMA_SAFE_PARSE_NAME,
+} from './standard-schema-helper';
 
 /**
  * The syntactic shape a validation snippet has to take at the call site it is
@@ -64,37 +68,57 @@ export interface EmitResponseValidationOptions {
 const escapeSingleQuoted = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
+type ParseKind = 'parse' | 'safeParse';
+
+const STANDARD_SCHEMA_NAMES: Record<ParseKind, string> = {
+  parse: STANDARD_SCHEMA_PARSE_NAME,
+  safeParse: STANDARD_SCHEMA_SAFE_PARSE_NAME,
+};
+
+/**
+ * One validation call: the Zod method on the schema, or the matching Standard
+ * Schema helper taking the schema as its first argument.
+ */
 const parseCall = (
+  kind: ParseKind,
   schemaRef: string,
   input: string,
   standardSchema: boolean,
 ): string =>
   standardSchema
-    ? `parseStandardSchema(${schemaRef}, ${input})`
-    : `${schemaRef}.parse(${input})`;
+    ? `${STANDARD_SCHEMA_NAMES[kind]}(${schemaRef}, ${input})`
+    : `${schemaRef}.${kind}(${input})`;
 
-const safeParseCall = (
-  schemaRef: string,
-  input: string,
-  standardSchema: boolean,
-): string =>
-  standardSchema
-    ? `safeParseStandardSchema(${schemaRef}, ${input})`
-    : `${schemaRef}.safeParse(${input})`;
+interface GuardBodyOptions {
+  schemaRef: string;
+  operationName: string;
+  input: string;
+  subject: 'response' | 'request body';
+  standardSchema: boolean;
+}
 
-const buildGuardBody = (
-  schemaRef: string,
-  operationName: string,
-  input: string,
-  subject: 'response' | 'request body' = 'response',
-  standardSchema = false,
-): string =>
-  `const result = ${safeParseCall(schemaRef, input, standardSchema)}; ` +
+const buildGuardBody = ({
+  schemaRef,
+  operationName,
+  input,
+  subject,
+  standardSchema,
+}: GuardBodyOptions): string =>
+  `const result = ${parseCall('safeParse', schemaRef, input, standardSchema)}; ` +
   `if (!result.success) { ` +
   `console.error('[orval] ${escapeSingleQuoted(operationName)} ${subject} validation failed', result.error); ` +
   `throw result.error; ` +
   `} ` +
   `return result.data;`;
+
+/**
+ * A `parse:` function over a standard schema. A composed schema such as
+ * `zod.array(Item)` is bound once instead of being rebuilt per response.
+ */
+const bindSchemaOnce = (schemaRef: string): string =>
+  /^[\w$.]+$/.test(schemaRef)
+    ? `(raw) => ${parseCall('parse', schemaRef, 'raw', true)}`
+    : `((schema) => (raw) => ${parseCall('parse', 'schema', 'raw', true)})(${schemaRef})`;
 
 /**
  * Emits the response-validation snippet for a single call site.
@@ -110,9 +134,16 @@ export const emitResponseValidation = ({
   inputExpression,
   standardSchema = false,
 }: EmitResponseValidationOptions): string => {
-  const parse = (input: string) => parseCall(schemaRef, input, standardSchema);
+  const parse = (input: string) =>
+    parseCall('parse', schemaRef, input, standardSchema);
   const guard = (input: string) =>
-    buildGuardBody(schemaRef, operationName, input, 'response', standardSchema);
+    buildGuardBody({
+      schemaRef,
+      operationName,
+      input,
+      subject: 'response',
+      standardSchema,
+    });
 
   switch (context) {
     case 'rxjs-map':
@@ -136,7 +167,7 @@ export const emitResponseValidation = ({
       return strategy === 'both'
         ? `(raw) => { ${guard('raw')} }`
         : standardSchema
-          ? `(raw) => ${parse('raw')}`
+          ? bindSchemaOnce(schemaRef)
           : `${schemaRef}.parse`;
   }
 };
@@ -170,8 +201,8 @@ export const emitRequestBodyValidation = ({
 }: EmitRequestBodyValidationOptions): string => {
   const parse =
     strategy === 'both'
-      ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression, 'request body', standardSchema)} })()`
-      : parseCall(schemaRef, inputExpression, standardSchema);
+      ? `(() => { ${buildGuardBody({ schemaRef, operationName, input: inputExpression, subject: 'request body', standardSchema })} })()`
+      : parseCall('parse', schemaRef, inputExpression, standardSchema);
 
   return isOptional
     ? `${inputExpression} === undefined ? undefined : ${parse}`

@@ -3127,7 +3127,7 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     );
 
     expect(impl).toContain(
-      'const parsedCreatePetsBody = parseStandardSchema(CreatePetsBody, createPetsBody);',
+      'const parsedCreatePetsBody = orvalParseStandardSchema(CreatePetsBody, createPetsBody);',
     );
     expect(impl).not.toContain('CreatePetsBody.parse');
   });

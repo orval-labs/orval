@@ -57,7 +57,7 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-type StandardSchemaIssue = {
+type OrvalStandardSchemaIssue = {
   readonly message: string;
   readonly path?:
     | readonly (
@@ -68,28 +68,36 @@ type StandardSchemaIssue = {
       )[]
     | undefined;
 };
-type StandardSchemaResult<O> =
+type OrvalStandardSchemaResult<O> =
   | { readonly value: O; readonly issues?: undefined }
-  | { readonly issues: readonly StandardSchemaIssue[] };
-type StandardSchemaPending = {
+  | { readonly issues: readonly OrvalStandardSchemaIssue[] };
+type OrvalStandardSchemaPending = {
   readonly then: (onFulfilled: undefined, onRejected: () => void) => unknown;
 };
-type StandardSchemaLike<O> = {
+type OrvalStandardSchemaLike<O> = {
   readonly '~standard': {
     readonly validate: (
       value: unknown,
-    ) => StandardSchemaResult<O> | StandardSchemaPending;
+    ) => OrvalStandardSchemaResult<O> | OrvalStandardSchemaPending;
     readonly types?: { readonly output: O } | undefined;
   };
 };
-type StandardSchemaError = globalThis.Error & {
-  issues: readonly StandardSchemaIssue[];
+type OrvalStandardSchemaError = globalThis.Error & {
+  issues: readonly OrvalStandardSchemaIssue[];
 };
 
-function safeParseStandardSchema<O>(
-  schema: StandardSchemaLike<O>,
+function orvalSafeParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
   value: unknown,
-): { success: true; data: O } | { success: false; error: StandardSchemaError } {
+):
+  | { success: true; data: O }
+  | { success: false; error: OrvalStandardSchemaError } {
+  // Zod below 3.24 has no standard schema property.
+  if (!('~standard' in schema)) {
+    throw new globalThis.TypeError(
+      'Schema does not implement Standard Schema (Zod 3.24 or newer is required)',
+    );
+  }
   const result = schema['~standard'].validate(value);
   if ('then' in result) {
     // Swallow the rejection so only the error below reaches the caller.
@@ -173,7 +181,7 @@ export const listPets = async (
     : {};
   const data = contentType.includes('json')
     ? (() => {
-        const result = safeParseStandardSchema(Pets, parsedBody);
+        const result = orvalSafeParseStandardSchema(Pets, parsedBody);
         if (!result.success) {
           console.error(
             '[orval] listPets response validation failed',
@@ -271,7 +279,7 @@ export const createPets = async (
     : {};
   const data = contentType.includes('json')
     ? (() => {
-        const result = safeParseStandardSchema(Pet, parsedBody);
+        const result = orvalSafeParseStandardSchema(Pet, parsedBody);
         if (!result.success) {
           console.error(
             '[orval] createPets response validation failed',
@@ -336,7 +344,7 @@ export const showPetById = async (
     : {};
   const data = contentType.includes('json')
     ? (() => {
-        const result = safeParseStandardSchema(Pet, parsedBody);
+        const result = orvalSafeParseStandardSchema(Pet, parsedBody);
         if (!result.success) {
           console.error(
             '[orval] showPetById response validation failed',
@@ -501,7 +509,7 @@ export const showPetWithOwner = async (
     : {};
   const data = contentType.includes('json')
     ? (() => {
-        const result = safeParseStandardSchema(PetWithTag, parsedBody);
+        const result = orvalSafeParseStandardSchema(PetWithTag, parsedBody);
         if (!result.success) {
           console.error(
             '[orval] showPetWithOwner response validation failed',

@@ -659,7 +659,9 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
       makeOptions(makeZodContext()),
     );
 
-    expect(implementation).toContain('parseStandardSchema(Pets, parsedBody)');
+    expect(implementation).toContain(
+      'orvalParseStandardSchema(Pets, parsedBody)',
+    );
     expect(implementation).not.toContain('Pets.parse(');
   });
 
@@ -677,7 +679,7 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     );
 
     expect(implementation).toContain(
-      'safeParseStandardSchema(Pets, parsedBody)',
+      'orvalSafeParseStandardSchema(Pets, parsedBody)',
     );
     expect(implementation).not.toContain('.safeParse(');
   });

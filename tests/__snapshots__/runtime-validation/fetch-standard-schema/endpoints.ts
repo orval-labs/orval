@@ -57,7 +57,7 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
-type StandardSchemaIssue = {
+type OrvalStandardSchemaIssue = {
   readonly message: string;
   readonly path?:
     | readonly (
@@ -68,28 +68,36 @@ type StandardSchemaIssue = {
       )[]
     | undefined;
 };
-type StandardSchemaResult<O> =
+type OrvalStandardSchemaResult<O> =
   | { readonly value: O; readonly issues?: undefined }
-  | { readonly issues: readonly StandardSchemaIssue[] };
-type StandardSchemaPending = {
+  | { readonly issues: readonly OrvalStandardSchemaIssue[] };
+type OrvalStandardSchemaPending = {
   readonly then: (onFulfilled: undefined, onRejected: () => void) => unknown;
 };
-type StandardSchemaLike<O> = {
+type OrvalStandardSchemaLike<O> = {
   readonly '~standard': {
     readonly validate: (
       value: unknown,
-    ) => StandardSchemaResult<O> | StandardSchemaPending;
+    ) => OrvalStandardSchemaResult<O> | OrvalStandardSchemaPending;
     readonly types?: { readonly output: O } | undefined;
   };
 };
-type StandardSchemaError = globalThis.Error & {
-  issues: readonly StandardSchemaIssue[];
+type OrvalStandardSchemaError = globalThis.Error & {
+  issues: readonly OrvalStandardSchemaIssue[];
 };
 
-function safeParseStandardSchema<O>(
-  schema: StandardSchemaLike<O>,
+function orvalSafeParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
   value: unknown,
-): { success: true; data: O } | { success: false; error: StandardSchemaError } {
+):
+  | { success: true; data: O }
+  | { success: false; error: OrvalStandardSchemaError } {
+  // Zod below 3.24 has no standard schema property.
+  if (!('~standard' in schema)) {
+    throw new globalThis.TypeError(
+      'Schema does not implement Standard Schema (Zod 3.24 or newer is required)',
+    );
+  }
   const result = schema['~standard'].validate(value);
   if ('then' in result) {
     // Swallow the rejection so only the error below reaches the caller.
@@ -118,11 +126,11 @@ function safeParseStandardSchema<O>(
   return { success: true, data: result.value };
 }
 
-function parseStandardSchema<O>(
-  schema: StandardSchemaLike<O>,
+function orvalParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
   value: unknown,
 ): O {
-  const result = safeParseStandardSchema(schema, value);
+  const result = orvalSafeParseStandardSchema(schema, value);
   if (!result.success) throw result.error;
   return result.data;
 }
@@ -181,7 +189,7 @@ export const listPets = async (
       : body
     : {};
   const data = contentType.includes('json')
-    ? parseStandardSchema(Pets, parsedBody)
+    ? orvalParseStandardSchema(Pets, parsedBody)
     : parsedBody;
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
@@ -269,7 +277,7 @@ export const createPets = async (
       : body
     : {};
   const data = contentType.includes('json')
-    ? parseStandardSchema(Pet, parsedBody)
+    ? orvalParseStandardSchema(Pet, parsedBody)
     : parsedBody;
   return {
     data,
@@ -324,7 +332,7 @@ export const showPetById = async (
       : body
     : {};
   const data = contentType.includes('json')
-    ? parseStandardSchema(Pet, parsedBody)
+    ? orvalParseStandardSchema(Pet, parsedBody)
     : parsedBody;
   return {
     data,
@@ -479,7 +487,7 @@ export const showPetWithOwner = async (
       : body
     : {};
   const data = contentType.includes('json')
-    ? parseStandardSchema(PetWithTag, parsedBody)
+    ? orvalParseStandardSchema(PetWithTag, parsedBody)
     : parsedBody;
   return {
     data,

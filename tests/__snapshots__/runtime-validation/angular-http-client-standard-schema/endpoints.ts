@@ -25,7 +25,7 @@ import type { HttpHeaders } from '@angular/common/http';
 
 import { defer, map } from 'rxjs';
 
-type StandardSchemaIssue = {
+type OrvalStandardSchemaIssue = {
   readonly message: string;
   readonly path?:
     | readonly (
@@ -36,28 +36,36 @@ type StandardSchemaIssue = {
       )[]
     | undefined;
 };
-type StandardSchemaResult<O> =
+type OrvalStandardSchemaResult<O> =
   | { readonly value: O; readonly issues?: undefined }
-  | { readonly issues: readonly StandardSchemaIssue[] };
-type StandardSchemaPending = {
+  | { readonly issues: readonly OrvalStandardSchemaIssue[] };
+type OrvalStandardSchemaPending = {
   readonly then: (onFulfilled: undefined, onRejected: () => void) => unknown;
 };
-type StandardSchemaLike<O> = {
+type OrvalStandardSchemaLike<O> = {
   readonly '~standard': {
     readonly validate: (
       value: unknown,
-    ) => StandardSchemaResult<O> | StandardSchemaPending;
+    ) => OrvalStandardSchemaResult<O> | OrvalStandardSchemaPending;
     readonly types?: { readonly output: O } | undefined;
   };
 };
-type StandardSchemaError = globalThis.Error & {
-  issues: readonly StandardSchemaIssue[];
+type OrvalStandardSchemaError = globalThis.Error & {
+  issues: readonly OrvalStandardSchemaIssue[];
 };
 
-function safeParseStandardSchema<O>(
-  schema: StandardSchemaLike<O>,
+function orvalSafeParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
   value: unknown,
-): { success: true; data: O } | { success: false; error: StandardSchemaError } {
+):
+  | { success: true; data: O }
+  | { success: false; error: OrvalStandardSchemaError } {
+  // Zod below 3.24 has no standard schema property.
+  if (!('~standard' in schema)) {
+    throw new globalThis.TypeError(
+      'Schema does not implement Standard Schema (Zod 3.24 or newer is required)',
+    );
+  }
   const result = schema['~standard'].validate(value);
   if ('then' in result) {
     // Swallow the rejection so only the error below reaches the caller.
@@ -244,7 +252,10 @@ export class SwaggerPetstoreService {
             event instanceof AngularHttpResponse
               ? event.clone({
                   body: (() => {
-                    const result = safeParseStandardSchema(Pets, event.body);
+                    const result = orvalSafeParseStandardSchema(
+                      Pets,
+                      event.body,
+                    );
                     if (!result.success) {
                       console.error(
                         '[orval] listPets response validation failed',
@@ -271,7 +282,10 @@ export class SwaggerPetstoreService {
           map((response) =>
             response.clone({
               body: (() => {
-                const result = safeParseStandardSchema(Pets, response.body);
+                const result = orvalSafeParseStandardSchema(
+                  Pets,
+                  response.body,
+                );
                 if (!result.success) {
                   console.error(
                     '[orval] listPets response validation failed',
@@ -294,7 +308,7 @@ export class SwaggerPetstoreService {
       })
       .pipe(
         map((data) => {
-          const result = safeParseStandardSchema(Pets, data);
+          const result = orvalSafeParseStandardSchema(Pets, data);
           if (!result.success) {
             console.error(
               '[orval] listPets response validation failed',
@@ -334,7 +348,10 @@ export class SwaggerPetstoreService {
   > {
     return defer(() => {
       const parsedCreatePetsBody = (() => {
-        const result = safeParseStandardSchema(CreatePetsBody, createPetsBody);
+        const result = orvalSafeParseStandardSchema(
+          CreatePetsBody,
+          createPetsBody,
+        );
         if (!result.success) {
           console.error(
             '[orval] createPets request body validation failed',
@@ -361,7 +378,10 @@ export class SwaggerPetstoreService {
               event instanceof AngularHttpResponse
                 ? event.clone({
                     body: (() => {
-                      const result = safeParseStandardSchema(Pet, event.body);
+                      const result = orvalSafeParseStandardSchema(
+                        Pet,
+                        event.body,
+                      );
                       if (!result.success) {
                         console.error(
                           '[orval] createPets response validation failed',
@@ -388,7 +408,10 @@ export class SwaggerPetstoreService {
             map((response) =>
               response.clone({
                 body: (() => {
-                  const result = safeParseStandardSchema(Pet, response.body);
+                  const result = orvalSafeParseStandardSchema(
+                    Pet,
+                    response.body,
+                  );
                   if (!result.success) {
                     console.error(
                       '[orval] createPets response validation failed',
@@ -411,7 +434,7 @@ export class SwaggerPetstoreService {
         })
         .pipe(
           map((data) => {
-            const result = safeParseStandardSchema(Pet, data);
+            const result = orvalSafeParseStandardSchema(Pet, data);
             if (!result.success) {
               console.error(
                 '[orval] createPets response validation failed',
@@ -457,7 +480,10 @@ export class SwaggerPetstoreService {
             event instanceof AngularHttpResponse
               ? event.clone({
                   body: (() => {
-                    const result = safeParseStandardSchema(Pet, event.body);
+                    const result = orvalSafeParseStandardSchema(
+                      Pet,
+                      event.body,
+                    );
                     if (!result.success) {
                       console.error(
                         '[orval] showPetById response validation failed',
@@ -483,7 +509,7 @@ export class SwaggerPetstoreService {
           map((response) =>
             response.clone({
               body: (() => {
-                const result = safeParseStandardSchema(Pet, response.body);
+                const result = orvalSafeParseStandardSchema(Pet, response.body);
                 if (!result.success) {
                   console.error(
                     '[orval] showPetById response validation failed',
@@ -505,7 +531,7 @@ export class SwaggerPetstoreService {
       })
       .pipe(
         map((data) => {
-          const result = safeParseStandardSchema(Pet, data);
+          const result = orvalSafeParseStandardSchema(Pet, data);
           if (!result.success) {
             console.error(
               '[orval] showPetById response validation failed',
@@ -625,7 +651,7 @@ export class SwaggerPetstoreService {
             event instanceof AngularHttpResponse
               ? event.clone({
                   body: (() => {
-                    const result = safeParseStandardSchema(
+                    const result = orvalSafeParseStandardSchema(
                       PetWithTag,
                       event.body,
                     );
@@ -654,7 +680,7 @@ export class SwaggerPetstoreService {
           map((response) =>
             response.clone({
               body: (() => {
-                const result = safeParseStandardSchema(
+                const result = orvalSafeParseStandardSchema(
                   PetWithTag,
                   response.body,
                 );
@@ -679,7 +705,7 @@ export class SwaggerPetstoreService {
       })
       .pipe(
         map((data) => {
-          const result = safeParseStandardSchema(PetWithTag, data);
+          const result = orvalSafeParseStandardSchema(PetWithTag, data);
           if (!result.success) {
             console.error(
               '[orval] showPetWithOwner response validation failed',

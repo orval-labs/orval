@@ -64,26 +64,26 @@ describe('generateClientHeader standard schema helper', () => {
 
   it('declares each helper once ahead of the header when an operation calls it', async () => {
     const { implementation } = await header(
-      'parseStandardSchema(Pets, parsedBody)',
+      'orvalParseStandardSchema(Pets, parsedBody)',
     );
 
     expect(
-      implementation.match(/function safeParseStandardSchema/g),
+      implementation.match(/function orvalSafeParseStandardSchema/g),
     ).toHaveLength(1);
-    expect(implementation.match(/function parseStandardSchema/g)).toHaveLength(
-      1,
-    );
+    expect(
+      implementation.match(/function orvalParseStandardSchema/g),
+    ).toHaveLength(1);
     expect(implementation.endsWith('// header\n')).toBe(true);
   });
 
   it('finds a call the header itself emitted', async () => {
     const { implementation } = await header(
       '',
-      () => 'const x = safeParseStandardSchema(Pets, raw);',
+      () => 'const x = orvalSafeParseStandardSchema(Pets, raw);',
     );
 
-    expect(implementation).toContain('function safeParseStandardSchema');
-    expect(implementation).not.toContain('function parseStandardSchema');
+    expect(implementation).toContain('function orvalSafeParseStandardSchema');
+    expect(implementation).not.toContain('function orvalParseStandardSchema');
   });
 
   it('leaves the header untouched without a call', async () => {
