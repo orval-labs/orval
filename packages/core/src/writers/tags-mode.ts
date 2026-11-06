@@ -11,7 +11,6 @@ import {
   isString,
   isSyntheticDefaultImportsAllow,
   kebab,
-  pascal,
   hasSchemaDefinition,
   upath,
 } from '../utils';
@@ -36,6 +35,7 @@ import { collapseInlineMockOutputs } from './mock-outputs';
 import {
   assertUniqueMockHandlerNames,
   getMockDir,
+  getMockHandlersName,
   resolveMockSchemasPath,
 } from './mock-utils';
 import { generateTargetForTags } from './target-tags';
@@ -113,6 +113,23 @@ export async function writeTagsMode({
   const tagEntries = Object.entries(target).toSorted(([a], [b]) =>
     a.localeCompare(b),
   );
+
+  if (
+    shouldDeinlineMocks &&
+    output.mock.indexMockFiles &&
+    output.mock.generators.some(
+      (g) => isFunction(g) || g.type === OutputMockType.MSW,
+    )
+  ) {
+    assertUniqueMockHandlerNames(
+      new Map(
+        tagEntries.map(([tag, { mockHandlersName }]) => [
+          kebab(tag),
+          getMockHandlersName(kebab(tag), mockHandlersName),
+        ]),
+      ),
+    );
+  }
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -348,7 +365,7 @@ export async function writeTagsMode({
             }
             indexEntry.tags.set(
               kebabTag,
-              target.mockHandlersName ?? `get${pascal(kebabTag)}Mock`,
+              getMockHandlersName(kebabTag, target.mockHandlersName),
             );
           }
         }
@@ -371,9 +388,6 @@ export async function writeTagsMode({
     const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-      if (ext === OutputMockType.MSW) {
-        assertUniqueMockHandlerNames(indexPath, tags);
-      }
       const indexContent = [...tags]
         .toSorted(([a], [b]) => a.localeCompare(b))
         .map(([kebabTag, handlersName]) => {

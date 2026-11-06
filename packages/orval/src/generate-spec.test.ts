@@ -4942,7 +4942,7 @@ describe('generateSpec - MSW mock index with a custom title (#4432)', () => {
   };
 
   it.each(['tags', 'tags-split'] as const)(
-    'rejects two tags whose titles give one handler list name in %s mode',
+    'rejects two tags whose titles give one handler list name before writing them in %s mode',
     async (mode) => {
       const workspace = await createTempWorkspace();
 
@@ -4964,6 +4964,11 @@ describe('generateSpec - MSW mock index with a custom title (#4432)', () => {
         await expect(generateSpec(workspace, options)).rejects.toThrow(
           /for both tag 'pets' and tag 'stores'/,
         );
+        const clientDir = path.join(workspace, 'src/client');
+        const written = fs.existsSync(clientDir)
+          ? fs.readdirSync(clientDir, { recursive: true }).map(String)
+          : [];
+        expect(written.filter((file) => /pets|stores/.test(file))).toEqual([]);
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }

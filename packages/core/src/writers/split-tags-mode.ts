@@ -17,7 +17,6 @@ import {
   isFunction,
   isString,
   isSyntheticDefaultImportsAllow,
-  pascal,
   hasSchemaDefinition,
   upath,
 } from '../utils';
@@ -45,6 +44,7 @@ import {
 } from './mock-outputs';
 import {
   assertUniqueMockHandlerNames,
+  getMockHandlersName,
   getFakerEntry,
   getMockDir,
   resolveMockSchemasPath,
@@ -138,6 +138,22 @@ export async function writeSplitTagsMode({
     '/' +
     commonTypesBasename +
     (deduplicationEnabled ? commonTypesImportExtension : '');
+
+  if (
+    output.mock.indexMockFiles &&
+    output.mock.generators.some(
+      (g) => isFunction(g) || g.type === OutputMockType.MSW,
+    )
+  ) {
+    assertUniqueMockHandlerNames(
+      new Map(
+        tagEntries.map(([tag, { mockHandlersName }]) => [
+          tag,
+          getMockHandlersName(tag, mockHandlersName),
+        ]),
+      ),
+    );
+  }
 
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
@@ -401,7 +417,7 @@ export async function writeSplitTagsMode({
           }
           indexEntry.tags.set(
             tag,
-            target.mockHandlersName ?? `get${pascal(tag)}Mock`,
+            getMockHandlersName(tag, target.mockHandlersName),
           );
         }
 
@@ -423,9 +439,6 @@ export async function writeSplitTagsMode({
     const mockImportExtension = getImportExtension(extension, output.tsconfig);
     for (const { ext, mockDir, tags } of mockIndexEntries) {
       const indexPath = path.join(mockDir, `index.${ext}${extension}`);
-      if (ext === OutputMockType.MSW) {
-        assertUniqueMockHandlerNames(indexPath, tags);
-      }
       const indexContent = [...tags]
         .toSorted(([a], [b]) => a.localeCompare(b))
         .map(([tag, handlersName]) => {
