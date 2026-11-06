@@ -4840,7 +4840,7 @@ A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for tha
 - **`useDatesTransform`:** responses are decoded with `decode`. Request bodies are encoded with `encode`; without it the value is sent through its `toJSON`.
 - **Path parameters**, **query parameters** built by the fetch, solid-start and Angular (built-in `filterParams`) clients, and **form-data / url-encoded request bodies** a client builds: `encode`. The error names the operation and parameter, or the form field. Mapped values Orval can't reach (in `oneOf`/`anyOf` form bodies, `deepObject` form fields, path parameter arrays) are rejected.
 
-Axios `params`, a `paramsSerializer`, a `formData` / `formUrlEncoded` mutator and an Angular `paramsFilter` receive mapped values as they are, so the HTTP library or your function stringifies them, as with `Date`.
+Header parameters, Axios `params`, a `paramsSerializer`, a `formData` / `formUrlEncoded` mutator and an Angular `paramsFilter` receive mapped values as they are, so the HTTP library or your function stringifies them, as with `Date`.
 
 With `schemas: { type: 'zod' }` the generated model types are the Zod schemas' input, where a mapped value is still its wire string, so only the Zod schemas convert it. Only `type: string` schemas take a mapped type; enums and constants keep their literal types.
 
