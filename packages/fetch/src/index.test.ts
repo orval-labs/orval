@@ -1562,12 +1562,14 @@ describe('generateRequestFunction — useDatesTransform', () => {
       return verbOptions;
     };
 
-    const mappedContext = () => {
-      const context = makeContext([], false, {
-        path: './model',
-        type: 'zod',
-        splitByTags: false,
-      });
+    const mappedContext = (zodSchemas = false) => {
+      const context = zodSchemas
+        ? makeContext([], false, {
+            path: './model',
+            type: 'zod',
+            splitByTags: false,
+          })
+        : makeContext();
       context.output.override.formatType = {
         'date-time': { type: 'Dayjs', decode: 'dayjs' },
       };
@@ -1585,7 +1587,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
         mappedVerbOptions({
           runtimeValidation: { enabled: true, strategy: 'throw' },
         }),
-        mappedContext(),
+        mappedContext(true),
       );
       expect(implementation).toContain('Appointment.parse(parsedBody)');
       expect(implementation).not.toContain(

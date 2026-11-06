@@ -39,9 +39,9 @@ import type { FormDataContext } from './object';
 import { getPropertyNamingConvention } from './property-renames';
 import {
   callFormatTypeFunction,
-  findCustomFormatType,
-  getCustomFormatType,
+  findModelFormatType,
   getFormatTypeError,
+  getModelFormatType,
 } from './scalar';
 
 const getSchemaType = (s: OpenApiSchemaObject) =>
@@ -650,7 +650,7 @@ function getSchemaFormDataAndUrlEncoded({
       const shouldCast = !!getSchemaOneOf(schema) || !!getSchemaAnyOf(schema);
 
       if (shouldCast) {
-        const variantFormatType = findCustomFormatType(
+        const variantFormatType = findModelFormatType(
           { anyOf: combinedSchemas } as OpenApiSchemaObject,
           context,
         );
@@ -1027,7 +1027,7 @@ const getFormValueEncode = (
   field: string,
 ) => {
   const { schema: resolved } = resolveSchemaRef(schema, context);
-  const formatType = getCustomFormatType(resolved, context.output.override);
+  const formatType = getModelFormatType(resolved, context);
   if (formatType && !formatType.encode) {
     throw getFormatTypeError(
       (resolved as OpenApiNonBooleanSchemaObject).format,
@@ -1285,7 +1285,7 @@ function resolveSchemaPropertiesToFormData({
         isUrlEncoded && fieldEncoding?.style === 'deepObject';
 
       if (isDeepObject) {
-        const nestedFormatType = findCustomFormatType(valueSchema, context);
+        const nestedFormatType = findModelFormatType(valueSchema, context);
         if (nestedFormatType) {
           throw getFormatTypeError(
             nestedFormatType.format,

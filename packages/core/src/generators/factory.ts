@@ -2,7 +2,7 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   callFormatTypeFunction,
-  getCustomFormatType,
+  getModelFormatType,
   getFormatTypeError,
   isDateFormatType,
 } from '../getters/scalar';
@@ -529,7 +529,7 @@ function buildDefaultPayload(
   imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return formatValue(undefined);
-  const formatType = getCustomFormatType(schema, context.output.override);
+  const formatType = getModelFormatType(schema, context);
   if (formatType) {
     return buildFormatTypePayload(
       schema.format,
@@ -584,7 +584,7 @@ function buildPrimitivePayload(
     const isDateFormat =
       schema.format === 'date' || schema.format === 'date-time';
     const wireValue = isDateFormat ? `'${new Date(0).toISOString()}'` : "''";
-    const formatType = getCustomFormatType(schema, context.output.override);
+    const formatType = getModelFormatType(schema, context);
     if (formatType) {
       return buildFormatTypePayload(
         schema.format,

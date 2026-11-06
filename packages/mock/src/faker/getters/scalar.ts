@@ -4,7 +4,7 @@ import {
   EnumGeneration,
   type GeneratorImport,
   callFormatTypeFunction,
-  getCustomFormatType,
+  getModelFormatType,
   getFormatTypeConfig,
   getFormatTypeError,
   getRefInfo,
@@ -261,9 +261,9 @@ export function getMockScalar({
   // truthy non-strings that get interpolated into the generated mock (emitting
   // uncompilable TypeScript) or crash the `.startsWith` check in combine.ts.
   // Mirrors the guard on the media-type map in core's `body.ts`.
-  const customFormatType = getCustomFormatType(
+  const customFormatType = getModelFormatType(
     item as OpenApiSchemaObject,
-    context.output.override,
+    context,
   );
   if (item.format && Object.hasOwn(ALL_FORMAT, item.format)) {
     let value = ALL_FORMAT[item.format];

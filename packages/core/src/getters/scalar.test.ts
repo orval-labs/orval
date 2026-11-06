@@ -6,6 +6,7 @@ import type { FormDataContext } from './object';
 import {
   findCustomFormatType,
   getFormatTypeFunctionImports,
+  getModelFormatType,
   getScalar,
   isBinaryScalarSchema,
   resolveFormatType,
@@ -851,6 +852,20 @@ describe('findCustomFormatType', () => {
         ctx,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('getModelFormatType', () => {
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const dayjs = { type: 'Dayjs', decode: 'dayjs' };
+
+  it('keeps mapped values as strings under Zod schema output', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': dayjs } },
+    });
+    expect(getModelFormatType(dateTime, ctx)).toEqual(dayjs);
+    ctx.output.schemas = { path: './model', type: 'zod', splitByTags: false };
+    expect(getModelFormatType(dateTime, ctx)).toBeUndefined();
   });
 });
 

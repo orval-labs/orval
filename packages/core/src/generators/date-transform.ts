@@ -2,9 +2,9 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   callFormatTypeFunction,
-  getCustomFormatType,
   getFormatTypeConfig,
   getFormatTypeError,
+  getModelFormatType,
   hasNarrowedPropertyNames,
   isSchemaParameter,
 } from '../getters';
@@ -537,10 +537,7 @@ const writesToAccessorItself = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (
-    isDateSchema(schema) ||
-    getCustomFormatType(schema, context.output.override)
-  ) {
+  if (isDateSchema(schema) || getModelFormatType(schema, context)) {
     return true;
   }
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
@@ -778,9 +775,9 @@ const buildInPlaceMapStatements = ({
 const responseMode: DateTransformMode = {
   isLeaf: (schema, context) =>
     isDateTypedSchema(schema, context) ||
-    getCustomFormatType(schema, context.output.override) !== undefined,
+    getModelFormatType(schema, context) !== undefined,
   leafStatement: (read, write, schema, context) => {
-    const formatType = getCustomFormatType(schema, context.output.override);
+    const formatType = getModelFormatType(schema, context);
     if (!formatType) return `${write} = new Date(${read});`;
     if (!formatType.decode) {
       throw getFormatTypeError(
@@ -1482,12 +1479,6 @@ const buildUnionStatements = (params: {
     ? buildMappedUnionStatements(params)
     : buildUndiscriminatedUnionStatements(params);
 
-/** For a payload a Zod schema validates next, which decodes `formatType` values. */
-const datesOnlyResponseMode: DateTransformMode = {
-  ...responseMode,
-  isLeaf: isDateTypedSchema,
-};
-
 export interface BuildDateTransformParams {
   schema: SchemaOrRef;
   /** Expression the statements mutate in place, e.g. `data.log` */
@@ -1496,8 +1487,6 @@ export interface BuildDateTransformParams {
   visitedRefs?: Set<string>;
   /** Nesting level, used for unique loop index names (i0, i1, …) */
   depth?: number;
-  /** False to leave `formatType` values as strings. */
-  formatTypes?: boolean;
 }
 
 export const buildDateTransformStatements = ({
@@ -1506,7 +1495,6 @@ export const buildDateTransformStatements = ({
   context,
   visitedRefs = new Set(),
   depth = 0,
-  formatTypes = true,
 }: BuildDateTransformParams): string[] =>
   buildStatements({
     schema,
@@ -1514,7 +1502,7 @@ export const buildDateTransformStatements = ({
     context,
     visitedRefs,
     depth,
-    mode: formatTypes ? responseMode : datesOnlyResponseMode,
+    mode: responseMode,
   }).statements;
 
 const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
@@ -1720,11 +1708,11 @@ const buildCopyingMapStatements = ({
 const requestMode: DateTransformMode = {
   isLeaf: (schema, context) =>
     (isDateOnlySchema(schema) && isDateTypedSchema(schema, context)) ||
-    getCustomFormatType(schema, context.output.override)?.encode !== undefined,
+    getModelFormatType(schema, context)?.encode !== undefined,
   // A `formatType` value without `encode` is left to its `toJSON`. A string
   // is encoded already, see `serializeLeafStatement`.
   leafStatement: (read, write, schema, context) => {
-    const encode = getCustomFormatType(schema, context.output.override)?.encode;
+    const encode = getModelFormatType(schema, context)?.encode;
     return encode
       ? `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`
       : serializeLeafStatement(read, write);
@@ -1790,9 +1778,9 @@ export const getQueryParamsFormatTypeEncoding = ({
     const mode: DateTransformMode = {
       ...requestMode,
       isLeaf: (schema, context) =>
-        getCustomFormatType(schema, context.output.override) !== undefined,
+        getModelFormatType(schema, context) !== undefined,
       leafStatement: (read, write, schema, context) => {
-        const formatType = getCustomFormatType(schema, context.output.override);
+        const formatType = getModelFormatType(schema, context);
         if (formatType && !formatType.encode) {
           error ??= getFormatTypeError(
             (schema as OpenApiNonBooleanSchemaObject).format,
@@ -1968,13 +1956,10 @@ export const generateResponseDateDeserializer = ({
   operationName,
   response,
   context,
-  formatTypes,
 }: {
   operationName: string;
   response: GetterResponse;
   context: ContextSpec;
-  /** False when a Zod schema validates the result, decoding these itself. */
-  formatTypes?: boolean;
 }): GeneratedDateDeserializer | undefined => {
   if (response.isBlob) return undefined;
 
@@ -1995,7 +1980,6 @@ export const generateResponseDateDeserializer = ({
     schema: successType.originalSchema,
     accessor: 'data',
     context,
-    formatTypes,
   });
   if (statements.length === 0) return undefined;
 

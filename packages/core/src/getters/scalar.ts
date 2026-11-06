@@ -15,6 +15,7 @@ import type {
 import {
   escapeRegExp,
   getComponentBaseNames,
+  isObject,
   sanitize,
   toJsLiteral,
 } from '../utils';
@@ -144,6 +145,35 @@ export function findCustomFormatType(
   }
   return undefined;
 }
+
+/**
+ * With Zod schema output the generated types are the schemas' input, where a
+ * mapped value is still its wire string: only the schemas convert it.
+ */
+const hasZodSchemaTypes = (context: Pick<ContextSpec, 'output'>) =>
+  isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+
+/**
+ * {@link getCustomFormatType} for code that handles the values the generated
+ * types describe (mocks, factories, `useDatesTransform`, query and form
+ * values).
+ */
+export const getModelFormatType = (
+  schema: OpenApiSchemaObject,
+  context: Pick<ContextSpec, 'output'>,
+) =>
+  hasZodSchemaTypes(context)
+    ? undefined
+    : getCustomFormatType(schema, context.output.override);
+
+/** {@link findCustomFormatType} for such code, see {@link getModelFormatType}. */
+export const findModelFormatType = (
+  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+) =>
+  hasZodSchemaTypes(context)
+    ? undefined
+    : findCustomFormatType(schemaOrRef, context);
 
 /**
  * The `formatType` imports among `imports` that generated `code` references,

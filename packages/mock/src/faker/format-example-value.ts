@@ -2,7 +2,7 @@ import {
   callFormatTypeFunction,
   type ContextSpec,
   type GeneratorImport,
-  getCustomFormatType,
+  getModelFormatType,
   getFormatTypeConfig,
   getFormatTypeError,
   isDateFormatType,
@@ -233,10 +233,7 @@ function formatLiteralValue(
 
   const format = getEffectiveScalarFormat(resolved, context);
   if (typeof example === 'string' && resolved && format) {
-    const formatType = getCustomFormatType(
-      { ...resolved, format },
-      context.output.override,
-    );
+    const formatType = getModelFormatType({ ...resolved, format }, context);
     // The example is a specific wire value: `decode` keeps it, `mock` only
     // stands in for it.
     if (formatType?.decode) {

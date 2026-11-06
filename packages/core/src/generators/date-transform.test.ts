@@ -6437,22 +6437,27 @@ describe('formatType values', () => {
     );
   });
 
-  it('leaves the values to a schema that decodes them', () => {
-    expect(
-      buildDateTransformStatements({
-        schema: {
-          type: 'object',
-          required: ['startsAt', 'day'],
-          properties: {
-            startsAt: dateTime,
-            day: { type: 'string', format: 'date' },
-          },
-        },
-        accessor: 'data',
-        context: dayjs,
-        formatTypes: false,
-      }),
-    ).toEqual(['data.day = new Date(data.day);']);
+  it('leaves the values to Zod schemas whose input types hold the strings', () => {
+    const context = contextWith({
+      'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    });
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'day'],
+      properties: {
+        startsAt: dateTime,
+        day: { type: 'string', format: 'date' },
+      },
+    };
+    expect(deserialize(schema, context)).toBe('data.day = new Date(data.day);');
+    expect(serialize(schema, context)).toBe(
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    );
   });
 
   it('encodes a request value with encode and leaves the rest to toJSON', () => {
