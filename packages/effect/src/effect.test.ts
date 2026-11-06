@@ -1274,3 +1274,163 @@ describe('content types', () => {
     expect(implementation).not.toContain('CreatePetsBody');
   });
 });
+
+describe('formatType', () => {
+  const dayjs = {
+    type: 'Dayjs',
+    effect: {
+      schema: 'DayjsFromString',
+      schemaImport: { name: 'DayjsFromString', importPath: './dayjs' },
+    },
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const render = (
+    schema: OpenApiSchemaObject,
+    formatType: ContextSpec['output']['override']['formatType'],
+    isEffectV4 = false,
+  ) => {
+    const context = createTestContextSpec({ override: { formatType } });
+    const definition = generateEffectValidationSchemaDefinition(
+      schema,
+      context,
+      'test',
+      false,
+      { required: true },
+    );
+    return parseEffectValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      undefined,
+      false,
+      isEffectV4,
+    );
+  };
+
+  it('replaces the string schema and its checks with effect.schema', () => {
+    expect(
+      render(
+        { ...dateTime, minLength: 1, pattern: '^2', description: 'Start' },
+        { 'date-time': dayjs },
+      ).effect,
+    ).toBe("DayjsFromString.annotations({ description: 'Start' })");
+    expect(
+      render(
+        {
+          type: 'object',
+          properties: { startsAt: { ...dateTime, type: ['string', 'null'] } },
+        },
+        { 'date-time': dayjs },
+        true,
+      ).effect,
+    ).toContain('"startsAt": S.optional(S.NullOr(DayjsFromString))');
+  });
+
+  it('fails for a mapped format without effect.schema', () => {
+    expect(() => render(dateTime, { 'date-time': { type: 'Dayjs' } })).toThrow(
+      'override.formatType.date-time (Dayjs): Effect schemas need `effect.schema`',
+    );
+  });
+
+  it('keeps enums and unmapped formats as strings', () => {
+    const formatType = { 'date-time': { type: 'Dayjs' } };
+    expect(
+      render({ ...dateTime, enum: ['2025-01-01T00:00:00Z'] }, formatType)
+        .effect,
+    ).toBe("S.Literal('2025-01-01T00:00:00Z')");
+    expect(
+      render({ type: 'string', format: 'date' }, formatType).effect,
+    ).toContain('S.String.pipe(S.pattern(');
+  });
+
+  it('types a `Date` mapping like useDates', () => {
+    expect(render(dateTime, { 'date-time': { type: 'Date' } }).effect).toBe(
+      'S.DateFromString',
+    );
+  });
+
+  it('decodes a default that holds a mapped format', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        startsAt: { ...dateTime, default: '2025-01-01T00:00:00Z' },
+      },
+    };
+    const formatType = { 'date-time': dayjs };
+    const v3 = render(schema, formatType);
+    expect(v3.consts).toContain(
+      "export const testStartsAtDefault = '2025-01-01T00:00:00Z';",
+    );
+    expect(v3.effect).toContain(
+      '"startsAt": S.optionalWith(DayjsFromString, { default: () => S.decodeSync(DayjsFromString)(testStartsAtDefault) })',
+    );
+    expect(render(schema, formatType, true).effect).toContain(
+      '"startsAt": DayjsFromString.pipe(S.withDecodingDefault(Effect.succeed(testStartsAtDefault)))',
+    );
+    expect(
+      render(
+        {
+          type: 'object',
+          properties: {
+            event: {
+              type: 'object',
+              properties: { startsAt: dateTime },
+              default: { startsAt: '2025-01-01T00:00:00Z' },
+            },
+          },
+        },
+        formatType,
+        true,
+      ).effect,
+    ).toContain('S.withDecodingDefault(Effect.succeed(testEventDefault))');
+  });
+
+  it('imports the schemas the emitted code references', async () => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/events': {
+            get: {
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: { 'application/json': { schema: dateTime } },
+                },
+              },
+            },
+          },
+        },
+      },
+      output: {
+        override: {
+          effect: { generate: { response: true } },
+          formatType: {
+            'date-time': dayjs,
+            date: {
+              type: 'Temporal.PlainDate',
+              effect: {
+                schema: 'PlainDateFromString',
+                schemaImport: {
+                  name: 'PlainDateFromString',
+                  importPath: './temporal',
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const { imports } = await generateEffect(
+      {
+        typeName: 'listEvents',
+        verb: 'get',
+        override: context.output.override,
+      } as GeneratorVerbOptions,
+      { pathRoute: '/events', context } as GeneratorOptions,
+      'effect',
+    );
+    expect(imports).toEqual([
+      { name: 'DayjsFromString', importPath: './dayjs', values: true },
+    ]);
+  });
+});

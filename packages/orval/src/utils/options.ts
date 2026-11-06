@@ -104,6 +104,11 @@ export function normalizeFormatType(
         `override.formatType.${format}.zod: codec and transform are mutually exclusive`,
       );
     }
+    if (config.effect && !config.effect.schema) {
+      throw new Error(
+        `override.formatType.${format}.effect.schema is required`,
+      );
+    }
     normalized[format] = {
       type: config.type,
       import: normalizeImport(config.import),
@@ -115,6 +120,12 @@ export function normalizeFormatType(
             transformImport: normalizeImport(config.zod.transformImport),
             codec: config.zod.codec,
             codecImport: normalizeImport(config.zod.codecImport),
+          }
+        : undefined,
+      effect: config.effect
+        ? {
+            schema: config.effect.schema,
+            schemaImport: normalizeImport(config.effect.schemaImport),
           }
         : undefined,
       mock: config.mock,

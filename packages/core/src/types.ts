@@ -1473,6 +1473,13 @@ export interface FormatTypeConfig {
     /** Import for the codec */
     codecImport?: FormatTypeImport;
   };
+  /** Effect schema config */
+  effect?: {
+    /** Effect schema decoding the wire string into `type` */
+    schema: string;
+    /** Import for the schema */
+    schemaImport?: FormatTypeImport;
+  };
   /** Faker mock expression override */
   mock?: string;
   /** Import for the mock expression's runtime dependency */
@@ -1491,6 +1498,10 @@ export interface NormalizedFormatTypeConfig {
     transformImport?: GeneratorImport;
     codec?: string;
     codecImport?: GeneratorImport;
+  };
+  effect?: {
+    schema: string;
+    schemaImport?: GeneratorImport;
   };
   mock?: string;
   mockImport?: GeneratorImport;

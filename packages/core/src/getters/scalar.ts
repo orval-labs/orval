@@ -12,7 +12,12 @@ import type {
   OpenApiSchemaObject,
   ScalarValue,
 } from '../types';
-import { getComponentBaseNames, sanitize, toJsLiteral } from '../utils';
+import {
+  escapeRegExp,
+  getComponentBaseNames,
+  sanitize,
+  toJsLiteral,
+} from '../utils';
 import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
 import {
   getFormDataFieldFileType,
@@ -138,6 +143,22 @@ export function findCustomFormatType(
   }
   return undefined;
 }
+
+/**
+ * The `formatType` imports among `imports` that generated `code` references,
+ * as value imports.
+ */
+export const getReferencedFormatTypeImports = (
+  code: string,
+  imports: (GeneratorImport | undefined)[],
+): GeneratorImport[] =>
+  imports
+    .filter(
+      (imp): imp is GeneratorImport =>
+        !!imp &&
+        new RegExp(String.raw`\b${escapeRegExp(imp.name)}\b`).test(code),
+    )
+    .map((imp) => ({ ...imp, values: true }));
 
 /** A call of a `formatType` function expression such as `decode`. */
 export const callFormatTypeFunction = (fn: string, argument: string) =>

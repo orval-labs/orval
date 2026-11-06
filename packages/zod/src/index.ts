@@ -11,7 +11,6 @@ import {
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
-  escapeRegExp,
   findCustomFormatType,
   generateMutator,
   type GeneratorDependency,
@@ -26,6 +25,7 @@ import {
   getKey,
   getNumberWord,
   getPropertyNamingConvention,
+  getReferencedFormatTypeImports,
   getRefInfo,
   getRenamedPropertyKeys,
   getRequiredKeys,
@@ -5034,18 +5034,14 @@ export const getFormatTypeZodImports = (
   code: string,
   override: Pick<NormalizedOverrideOutput, 'formatType'>,
 ): GeneratorImport[] =>
-  Object.values(override.formatType ?? {})
-    .flatMap((config) => [
+  getReferencedFormatTypeImports(
+    code,
+    Object.values(override.formatType ?? {}).flatMap((config) => [
       config?.zod?.transformImport,
       config?.zod?.codecImport,
       config?.decodeImport,
-    ])
-    .filter(
-      (imp): imp is GeneratorImport =>
-        !!imp &&
-        new RegExp(String.raw`\b${escapeRegExp(imp.name)}\b`).test(code),
-    )
-    .map((imp) => ({ ...imp, values: true }));
+    ]),
+  );
 
 // Request-side (params, query, header, body) and response-side schemas as
 // separate blocks, for clients that interleave their own schemas between them.

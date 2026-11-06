@@ -63,6 +63,31 @@ describe('normalizeFormatType', () => {
     ).toThrow('codec and transform are mutually exclusive');
   });
 
+  it('throws when effect.schema is missing', () => {
+    expect(() =>
+      normalizeFormatType({
+        'date-time': { type: 'Dayjs', effect: { schema: '' } },
+      }),
+    ).toThrow('override.formatType.date-time.effect.schema is required');
+  });
+
+  it('normalizes the effect schema and its import', () => {
+    expect(
+      normalizeFormatType({
+        'date-time': {
+          type: 'Dayjs',
+          effect: {
+            schema: 'DayjsFromString',
+            schemaImport: { name: 'DayjsFromString', importPath: './dayjs' },
+          },
+        },
+      })?.['date-time']?.effect,
+    ).toEqual({
+      schema: 'DayjsFromString',
+      schemaImport: { name: 'DayjsFromString', importPath: './dayjs' },
+    });
+  });
+
   it('normalizes imports', () => {
     const result = normalizeFormatType({
       'date-time': {
