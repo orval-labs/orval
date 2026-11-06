@@ -20,7 +20,6 @@ describe('generateTargetMutatorImports', () => {
   // or not the operation's code calls it, so each kind must follow usage.
   const kinds: (keyof TargetMutators)[] = [
     'mutators',
-    'clientMutators',
     'formData',
     'formUrlEncoded',
     'paramsSerializer',
@@ -88,5 +87,16 @@ describe('generateTargetMutatorImports', () => {
         true,
       ),
     ).toBe("import { serialize } from '../../mutators/serialize';\n");
+  });
+
+  it('always imports client mutators', () => {
+    // A client may call them from code outside `implementation`: the zod
+    // client's params mutator is called from inline component schemas.
+    expect(
+      generateTargetMutatorImports(
+        { clientMutators: [makeMutator('zodParams')] },
+        'export const listPets = () => fetch(url);',
+      ),
+    ).toBe("import { zodParams } from '../mutators/zodParams';\n");
   });
 });

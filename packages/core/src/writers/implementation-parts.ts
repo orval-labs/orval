@@ -81,10 +81,13 @@ export interface TargetMutators {
 
 /**
  * Import statements for every mutator kind a target carries, in the order
- * the generated file declares them. Every kind is matched against
- * `implementation`: a configured `paramsSerializer`, `paramsFilter`,
- * `formUrlEncoded` or `fetch.jsonReviver` is attached to every operation, so
- * a file whose operations never call it would otherwise import it unused.
+ * the generated file declares them. A configured `paramsSerializer`,
+ * `paramsFilter`, `formData`, `formUrlEncoded` or `fetch.jsonReviver` is
+ * attached to every operation, so those kinds are matched against
+ * `implementation` and a file whose operations never call one does not
+ * import it. Client mutators are always imported: a client may call them
+ * from code outside `implementation`, as the zod client does for its params
+ * mutator in inline component schemas.
  */
 export function generateTargetMutatorImports(
   target: TargetMutators,
@@ -101,8 +104,14 @@ export function generateTargetMutatorImports(
     });
   }
 
+  if (target.clientMutators) {
+    data += generateMutatorImports({
+      mutators: target.clientMutators,
+      oneMore,
+    });
+  }
+
   const optionalMutators = [
-    target.clientMutators,
     target.formData,
     target.formUrlEncoded,
     target.paramsSerializer,
