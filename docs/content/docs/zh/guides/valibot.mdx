@@ -46,7 +46,44 @@ export const CreatePetsBody = v.object({
 
 - `strict` - 按位置（`param`、`query`、`header`、`body`、`response`）生成 `v.strictObject` 而不是 `v.object`。默认全部为 `false`。
 - `generate` - 按位置选择是否生成 schema。默认全部为 `true`。
-- `exactOptional` - 可选属性使用 `v.exactOptional`，适用于启用了 `exactOptionalPropertyTypes` 的项目。默认 `false`。
+- `exactOptional` - 可选属性使用 `v.exactOptional`，适用于启用了 `exactOptionalPropertyTypes` 的项目。默认 `false`。也可以按 operation 或按 tag 设置。
+- `generateReusableSchemas` - 每个组件 schema 只生成一次并通过引用复用，而不是内联每个 `$ref`。默认 `false`。参见[可复用 Schema](#可复用-schema)。
+
+## 可复用 Schema
+
+默认情况下每个 `$ref` 都会被内联，共享组件很多的规范会让输出变得很大。设置 `generateReusableSchemas` 后，每个 `#/components/schemas/*` 条目都会生成一个导出的常量：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      target: './src/api/schemas.ts',
+      override: { valibot: { generateReusableSchemas: true } },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+```ts
+export const Pet = v.object({
+  name: v.string(),
+  friends: v.optional(v.array(v.lazy((): v.GenericSchema => Pet))),
+});
+
+export const ListPetsResponse = v.array(Pet);
+```
+
+常量写在 operation 旁边：`single` 模式写入 target，其他模式写入 `*.schemas.ts` 文件。闭合循环的引用通过 `v.lazy` 读取，该字段的类型为 `unknown`。
+
+### 限制
+
+- 目前不能与 `output.schemas` 同时使用：生成时会报错。
+- 当常量的校验结果可能不同时，`$ref` 仍会被内联，例如表单请求体、`readOnly` 和 `writeOnly` 属性，以及部分 `allOf`、`oneOf` 和 `anyOf` 成员。
+- 常量保留所有属性，只有在所有位置都是 `strict` 时才是 `strict`。`strict` 不同的位置，或按 operation 覆盖 `exactOptional` 时，其 schema 会被内联。
+- 带 `discriminator` 的 `oneOf` 或 `anyOf`，当选项是引用时生成 `v.union`。
+- 名为 `Date` 或 `RegExp` 的组件会加上 `Schema` 后缀。两个同名组件会让生成报错并停止。
 
 ## 用法
 
@@ -97,9 +134,9 @@ if (result.success) {
 
 ## 限制
 
-- 递归 schema（循环 `$ref`）按 `unknown` 校验，并给出警告。
+- 循环 `$ref` 在被内联的位置按 `unknown` 校验，并给出警告。设置 `generateReusableSchemas` 后，组件常量通过 `v.lazy` 递归校验。
 - `prefixItems` 元组按 `unknown[]` 校验，并给出警告。
-- 每个 `$ref` 都会被内联，因此组件不会生成为可复用的常量，共享的 schema 可能让输出变得很大。
+- 除非设置 [`generateReusableSchemas`](#可复用-schema)，否则每个 `$ref` 都会被内联，共享的 schema 可能让输出变得很大。内联单个 schema 超过 250,000 个 schema 节点时会报错并停止。
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
 - 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。与对象成员并列的开放成员（`additionalProperties: true`）会被省略，多余的键同样会被去掉。
 - Valibot schema 暂未接入 HTTP client：目前不支持 `schemas: { type: 'valibot' }`，也不支持对响应做运行时校验。
