@@ -128,8 +128,8 @@ describe('generated fetch clients', () => {
       ),
     );
 
-  const goodPets = [{ id: 1, name: 'Rex', type: 'cat' }];
-  const badPets = [{ id: 'one', name: 'Rex', type: 'cat' }];
+  const goodItems = [{ id: 1, name: 'Rex' }];
+  const badItems = [{ id: 'one', name: 'Rex' }];
 
   it('declares the helper once and no longer calls Zod parse', () => {
     const source = readFileSync(
@@ -141,24 +141,24 @@ describe('generated fetch clients', () => {
     );
 
     expect(source.match(/function orvalParseStandardSchema/g)).toHaveLength(1);
-    expect(source).toContain('orvalParseStandardSchema(Pets, parsedBody)');
-    expect(source).not.toContain('Pets.parse(');
+    expect(source).toContain(
+      'orvalParseStandardSchema(zod.array(Item), parsedBody)',
+    );
+    expect(source).not.toContain('Item.parse(');
   });
 
   it('returns validated data for the throw strategy', async () => {
-    respondWith(goodPets);
+    respondWith(goodItems);
 
-    const res = await throwing.listPets({ limit: '10', sort: 'name' });
+    const res = await throwing.listItems();
 
-    expect(res.data).toEqual(goodPets);
+    expect(res.data).toEqual(goodItems);
   });
 
   it('rejects an invalid response with a StandardSchemaError', async () => {
-    respondWith(badPets);
+    respondWith(badItems);
 
-    const error = await throwing
-      .listPets({ limit: '10', sort: 'name' })
-      .catch((e: unknown) => e);
+    const error = await throwing.listItems().catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(Error);
     expect(error instanceof Error ? error.message : '').toMatch(/^0\.id: /);
@@ -167,23 +167,21 @@ describe('generated fetch clients', () => {
   });
 
   it('logs the error before re-throwing for the both strategy', async () => {
-    respondWith(badPets);
+    respondWith(badItems);
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    await expect(both.listPets({ limit: '10', sort: 'name' })).rejects.toThrow(
-      /^0\.id: /,
-    );
+    await expect(both.listItems()).rejects.toThrow(/^0\.id: /);
     expect(spy).toHaveBeenCalledWith(
-      '[orval] listPets response validation failed',
+      '[orval] listItems response validation failed',
       expect.objectContaining({ name: 'StandardSchemaError' }),
     );
   });
 
   it('returns validated data for the both strategy', async () => {
-    respondWith(goodPets);
+    respondWith(goodItems);
 
-    const res = await both.listPets({ limit: '10', sort: 'name' });
+    const res = await both.listItems();
 
-    expect(res.data).toEqual(goodPets);
+    expect(res.data).toEqual(goodItems);
   });
 });
