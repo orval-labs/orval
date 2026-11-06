@@ -27,6 +27,7 @@ import {
   getSchemasImportPath,
   getStandardSchemaHelper,
   getTagKey,
+  filterUsedMutators,
   isObject,
   isSyntheticDefaultImportsAllow,
   isTextContentType,
@@ -2167,7 +2168,7 @@ const buildHttpResourceExtraFile = (
     isSyntheticDefaultImportsAllow(output.tsconfig),
   );
 
-  const mutators = Object.values(verbOptions)
+  const candidateMutators = Object.values(verbOptions)
     .filter((verbOption) =>
       isRetrievalVerb(
         verbOption.verb,
@@ -2193,6 +2194,12 @@ const buildHttpResourceExtraFile = (
         (value): value is NonNullable<typeof value> => value !== undefined,
       );
     });
+
+  // Only the mutators the file references are imported. A configured
+  // `paramsSerializer` or `paramsFilter` is attached to every operation, so a
+  // resource file without query params would otherwise import it unused; the
+  // same filter covers the resource mutator, `formData` and `formUrlEncoded`.
+  const mutators = filterUsedMutators(candidateMutators, implementation);
 
   const mutatorImports =
     mutators.length > 0

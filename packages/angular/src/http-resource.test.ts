@@ -4014,6 +4014,68 @@ describe('angular httpResource generator', () => {
       expect(content).toContain('.map((item) =>');
     });
 
+    it('imports paramsSerializer only when a resource calls it', async () => {
+      // A configured `paramsSerializer` is attached to every operation, but
+      // only operations with query params call it. A resource file without
+      // any such operation must not import it, or `noUnusedLocals` fails.
+      const paramsSerializer = {
+        name: 'customParamsSerializer',
+        path: '../serializer',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: 'ErrorType',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      };
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+      const importLine =
+        "import { customParamsSerializer } from '../serializer';";
+
+      const [withoutQueryParams] = await generateHttpResourceExtraFiles(
+        { getPetById: createVerbOption({ paramsSerializer }) },
+        output,
+        context,
+      );
+      expect(withoutQueryParams.content).not.toContain(importLine);
+
+      const [withQueryParams] = await generateHttpResourceExtraFiles(
+        {
+          getPetById: createVerbOption({
+            paramsSerializer,
+            queryParams: {
+              schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+              deps: [],
+              isOptional: true,
+              name: 'params',
+              definition: 'params: GetPetByIdParams',
+              implementation: 'params: GetPetByIdParams',
+              default: false,
+              required: false,
+              type: GetterPropType.QUERY_PARAM,
+            } as never,
+          }),
+        },
+        output,
+        context,
+      );
+      expect(withQueryParams.content).toContain(importLine);
+      expect(withQueryParams.content).toContain('customParamsSerializer(');
+    });
+
     it('generates per-tag .resource.ts files in both tags-split mode', async () => {
       const petsVerb = createVerbOption({
         tags: ['Pets'],

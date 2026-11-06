@@ -342,5 +342,24 @@ export type MyError = Error;
         }),
       ).toBe('');
     });
+
+    it('matches a mutator name that contains non-ASCII letters', () => {
+      const mutator = { ...makeMutator('./serializer'), name: 'sérialiser' };
+
+      expect(
+        generateMutatorImports({
+          mutators: [mutator],
+          implementation:
+            'export const getPets = (params) => sérialiser(params);',
+        }),
+      ).toBe("import { sérialiser } from './serializer';\n");
+      expect(
+        generateMutatorImports({
+          mutators: [{ ...mutator, name: 'rialiser' }],
+          implementation:
+            'export const getPets = (params) => sérialiser(params);',
+        }),
+      ).toBe('');
+    });
   });
 });
