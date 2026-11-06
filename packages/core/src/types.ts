@@ -2701,6 +2701,11 @@ export interface GetterBody {
    * so its Zod schema's parsed output no longer has the wire keys.
    */
   renamesKeys?: boolean;
+  /**
+   * The body schema holds `formatType` values and each has a `zod.codec`, so
+   * `zod.encode` turns its Zod schema's parsed output back into wire values.
+   */
+  formatTypeCodecs?: boolean;
 }
 
 export interface GetterParameters {

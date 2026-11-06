@@ -93,12 +93,13 @@ export function getCustomFormatType(
 }
 
 /**
- * The first schema in a tree whose values take a custom `formatType`, for
- * paths that can only pass such values through unconverted.
+ * The first schema in a tree whose values take a custom `formatType` that
+ * `matches`, for paths that can only pass such values through unconverted.
  */
 export function findCustomFormatType(
   schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
+  matches: (config: NormalizedFormatTypeConfig) => boolean = () => true,
   seenRefs = new Set<string>(),
 ):
   | { format: string | undefined; config: NormalizedFormatTypeConfig }
@@ -119,12 +120,13 @@ export function findCustomFormatType(
         context,
       ).schema,
       context,
+      matches,
       seenRefs,
     );
   }
   const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
   const config = getCustomFormatType(schema, context.output.override);
-  if (config) return { format: schema.format, config };
+  if (config && matches(config)) return { format: schema.format, config };
   const children: unknown[] = [
     ...Object.values(schema.properties ?? {}),
     ...(Array.isArray(schema.items) ? schema.items : [schema.items]),
@@ -139,6 +141,7 @@ export function findCustomFormatType(
     const found = findCustomFormatType(
       child as OpenApiSchemaObject | OpenApiReferenceObject,
       context,
+      matches,
       seenRefs,
     );
     if (found) return found;

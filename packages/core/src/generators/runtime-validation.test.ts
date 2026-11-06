@@ -253,6 +253,19 @@ describe('emitRequestBodyValidation', () => {
       }),
     ).toBe('pet === undefined ? undefined : Pet.parse(pet)');
   });
+
+  it('encodes the parsed body back through the schema', () => {
+    expect(
+      emitRequestBodyValidation({
+        schemaRef: 'Pet',
+        operationName: 'patchPet',
+        strategy: 'throw',
+        inputExpression: 'pet',
+        isOptional: true,
+        encode: true,
+      }),
+    ).toBe('pet === undefined ? undefined : zod.encode(Pet, Pet.parse(pet))');
+  });
 });
 
 describe('normalizeAngularRuntimeValidation', () => {

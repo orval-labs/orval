@@ -3334,35 +3334,20 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     );
   });
 
-  it('rejects a body holding a mapped format, which its schema decodes', () => {
+  it('encodes the parsed body back through its formatType codecs', async () => {
     const output = zodOutput();
-    output.override.formatType = {
-      'date-time': { type: 'Dayjs', decode: 'dayjs' },
-    };
-    const body = jsonBody({
-      originalSchema: {
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: { startsAt: { type: 'string', format: 'date-time' } },
-            },
-          },
-        },
-      },
-    });
-
-    const run = (runtimeValidation?: AngularOverride['runtimeValidation']) =>
-      generateAngular(
-        createPetsVerb({ body, runtimeValidation }),
-        generatorOptions(output),
-        'angular',
-        output,
-      );
-
-    expect(() => run()).toThrow(
-      'override.formatType.date-time (Dayjs): `runtimeValidation.requestBodies` cannot parse the createPets request body',
+    const { implementation, imports } = await generateAngular(
+      createPetsVerb({ body: jsonBody({ formatTypeCodecs: true }) }),
+      generatorOptions(output),
+      'angular',
+      output,
     );
-    expect(() => run({ enabled: true, strategy: 'throw' })).not.toThrow();
+
+    expect(implementation).toContain(
+      'const parsedCreatePetsBody = zod.encode(CreatePetsBody, CreatePetsBody.parse(createPetsBody));',
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'zod', namespaceImport: true }),
+    );
   });
 });

@@ -10,8 +10,6 @@ import {
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
-  findCustomFormatType,
-  getFormatTypeError,
   getZodNamespaceImport,
   getArrayResponseSchema,
   generateBodyOptions,
@@ -27,10 +25,7 @@ import {
   getIsBodyVerb,
   getQueryParamsEncoding,
   type GetterProp,
-  isInlineSchema,
   isTextContentType,
-  type OpenApiRequestBodyObject,
-  resolveRef,
   GetterPropType,
   jsStringLiteralEscape,
   makeRouteSafe,
@@ -244,30 +239,6 @@ export const getRequestBodySchema = (
     importName: schema.elementName ?? definition,
     schemaRef: schema.schemaRef,
   };
-};
-
-/**
- * Fails for a parsed request body that holds a `formatType` value: the schema
- * decodes the format's wire string, so it rejects the value the caller passes.
- */
-export const assertRequestBodyParsable = (
-  { body, operationName }: Pick<GeneratorVerbOptions, 'body' | 'operationName'>,
-  context: ContextSpec,
-) => {
-  const requestBody = isInlineSchema(body.originalSchema)
-    ? body.originalSchema
-    : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema;
-  const found = findCustomFormatType(
-    requestBody.content[body.contentType]?.schema,
-    context,
-  );
-  if (found) {
-    throw getFormatTypeError(
-      found.format,
-      found.config,
-      `\`runtimeValidation.requestBodies\` cannot parse the ${operationName} request body`,
-    );
-  }
 };
 
 /** `rxjs`'s `defer`, which a method that parses its request body returns. */
@@ -755,6 +726,7 @@ export const generateHttpClientImplementation = (
         strategy: override.angular.runtimeValidation.strategy,
         inputExpression: body.implementation,
         isOptional: body.isOptional,
+        encode: body.formatTypeCodecs,
       })};
     ${statements}
     });`
@@ -1305,7 +1277,6 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     verbOptions,
     options.context.output,
   );
-  if (validatedBody) assertRequestBodyParsable(verbOptions, options.context);
   const verbImports = generateVerbImports(
     validatedBody
       ? withValueBodyImport(normalizedVerbOptions, validatedBody.importName)
@@ -1324,9 +1295,10 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),
     ...(validatedBody ? [DEFER_IMPORT] : []),
-    // Only a composed array expression references the `zod` namespace; a named
-    // schema calls `Schema.parse` on its own binding.
-    ...(implementation.includes('zod.array(')
+    // Only a composed array expression and `zod.encode` reference the `zod`
+    // namespace; a named schema calls `Schema.parse` on its own binding.
+    ...(implementation.includes('zod.array(') ||
+    implementation.includes('zod.encode(')
       ? [getZodNamespaceImport(options.context.output.override)]
       : []),
     ...(baseUrl

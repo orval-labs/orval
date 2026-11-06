@@ -56,7 +56,6 @@ import {
   ANGULAR_HTTP_RESOURCE_DEPENDENCIES,
 } from './constants';
 import {
-  assertRequestBodyParsable,
   buildAcceptHelpers,
   DEFER_IMPORT,
   generateHttpClientImplementation,
@@ -1835,7 +1834,6 @@ export const generateHttpResourceClient: ClientBuilder = (
   const validatedBody = isMutation
     ? getRequestBodySchema(verbOptions, options.context.output)
     : undefined;
-  if (validatedBody) assertRequestBodyParsable(verbOptions, options.context);
   const mutationImports = isMutation
     ? [
         getAngularHttpResponseImport(
@@ -1846,7 +1844,8 @@ export const generateHttpResourceClient: ClientBuilder = (
   const bodyValidationImports = validatedBody
     ? [
         DEFER_IMPORT,
-        ...(validatedBody.schemaRef.startsWith('zod.')
+        ...(validatedBody.schemaRef.startsWith('zod.') ||
+        verbOptions.body.formatTypeCodecs
           ? [getZodNamespaceImport(options.context.output.override)]
           : []),
       ]

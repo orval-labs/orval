@@ -108,6 +108,35 @@ describe('getBody', () => {
     expect(renamesKeys('Owner')).toBeUndefined();
   });
 
+  it('flags a body whose formatType values all have a zod codec', () => {
+    const context = createContext();
+    context.output.override.formatType = {
+      date: { type: 'Temporal.PlainDate', decode: 'Temporal.PlainDate.from' },
+      'date-time': { type: 'Dayjs', zod: { codec: 'isoDatetimeCodec' } },
+    };
+    const formatTypeCodecs = (properties: OpenApiSchemaObject['properties']) =>
+      getBody({
+        requestBody: {
+          content: {
+            'application/json': { schema: { type: 'object', properties } },
+          },
+        },
+        operationName: 'createEvent',
+        context,
+      }).formatTypeCodecs;
+
+    expect(
+      formatTypeCodecs({ startsAt: { type: 'string', format: 'date-time' } }),
+    ).toBe(true);
+    expect(
+      formatTypeCodecs({
+        startsAt: { type: 'string', format: 'date-time' },
+        day: { type: 'string', format: 'date' },
+      }),
+    ).toBeUndefined();
+    expect(formatTypeCodecs({ name: { type: 'string' } })).toBeUndefined();
+  });
+
   it('removes readonly request-body modifiers by default', () => {
     const result = getBody({
       requestBody,

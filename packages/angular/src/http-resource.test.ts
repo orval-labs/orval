@@ -489,7 +489,7 @@ describe('angular httpResource generator', () => {
     const generateMutationImports = async (
       requestBodies: boolean,
       bodyName = 'CreatePetsBody',
-      formatType?: NormalizedOutputOptions['override']['formatType'],
+      formatTypeCodecs?: boolean,
     ) => {
       const angular = {
         ...angularOverride('httpResource'),
@@ -507,7 +507,6 @@ describe('angular httpResource generator', () => {
         override: {
           ...createOutput().override,
           angular,
-          formatType,
         } as NormalizedOutputOptions['override'],
       });
       const verbOption = createVerbOption({
@@ -519,23 +518,13 @@ describe('angular httpResource generator', () => {
           definition: bodyName,
           imports: [{ name: bodyName }],
           schemas: [],
-          originalSchema: {
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    startsAt: { type: 'string', format: 'date-time' },
-                  },
-                },
-              },
-            },
-          },
+          originalSchema: { content: {} },
           contentType: 'application/json',
           formData: '',
           formUrlEncoded: '',
           isBlob: false,
           isOptional: false,
+          formatTypeCodecs,
         },
         override: {
           ...createVerbOption().override,
@@ -586,17 +575,16 @@ describe('angular httpResource generator', () => {
       expect(imports).not.toContainEqual({ name: 'Error', values: true });
     });
 
-    it('rejects a parsed body holding a mapped format', async () => {
-      const formatType = { 'date-time': { type: 'Dayjs', decode: 'dayjs' } };
+    it('imports the zod namespace to encode a parsed body back through its formatType codecs', async () => {
+      const zodImport = expect.objectContaining({
+        name: 'zod',
+        namespaceImport: true,
+      });
 
-      await expect(
-        generateMutationImports(true, 'CreatePetsBody', formatType),
-      ).rejects.toThrow(
-        'override.formatType.date-time (Dayjs): `runtimeValidation.requestBodies` cannot parse the createPets request body',
-      );
-      await expect(
-        generateMutationImports(false, 'CreatePetsBody', formatType),
-      ).resolves.toBeDefined();
+      expect(
+        await generateMutationImports(true, 'CreatePetsBody', true),
+      ).toContainEqual(zodImport);
+      expect(await generateMutationImports(true)).not.toContainEqual(zodImport);
     });
   });
 

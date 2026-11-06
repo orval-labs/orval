@@ -122,6 +122,8 @@ export interface EmitRequestBodyValidationOptions {
   inputExpression: string;
   /** An omitted optional body is passed through instead of parsed. */
   isOptional?: boolean;
+  /** Encode the parsed body back through the schema's codecs. */
+  encode?: boolean;
 }
 
 /**
@@ -135,15 +137,17 @@ export const emitRequestBodyValidation = ({
   strategy,
   inputExpression,
   isOptional = false,
+  encode = false,
 }: EmitRequestBodyValidationOptions): string => {
   const parse =
     strategy === 'both'
       ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression, 'request body')} })()`
       : `${schemaRef}.parse(${inputExpression})`;
+  const parsed = encode ? `zod.encode(${schemaRef}, ${parse})` : parse;
 
   return isOptional
-    ? `${inputExpression} === undefined ? undefined : ${parse}`
-    : parse;
+    ? `${inputExpression} === undefined ? undefined : ${parsed}`
+    : parsed;
 };
 
 /**
