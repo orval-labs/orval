@@ -5,6 +5,7 @@ import {
   type OpenApiSchemaObject,
 } from '@orval/core';
 
+import { ALTERNATIVE_KEYS } from './schema-keys';
 import {
   hasProperties,
   isNonBoolean,
@@ -101,7 +102,7 @@ const strip = (
   if (schema.additionalProperties) {
     result.additionalProperties = nested(schema.additionalProperties);
   }
-  for (const key of ['oneOf', 'anyOf'] as const) {
+  for (const key of ALTERNATIVE_KEYS) {
     const members = schema[key];
     if (Array.isArray(members)) {
       result[key] = members.map((member) => nested(member, hidden));

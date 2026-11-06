@@ -145,6 +145,7 @@ export const createAngularOutput = (
           response: true,
         },
         exactOptional: false,
+        generateReusableSchemas: false,
       },
       axios: {
         includeHttpResponseReturnType: false,

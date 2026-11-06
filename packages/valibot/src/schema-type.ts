@@ -5,6 +5,8 @@ import {
   type OpenApiSchemaObject,
 } from '@orval/core';
 
+import { COMPOSITION_KEYS, type CompositionKey } from './schema-keys';
+
 type SchemaType =
   | 'integer'
   | 'number'
@@ -58,10 +60,6 @@ export const resolveType = (
 
 export const hasProperties = (schema: OpenApiNonBooleanSchemaObject): boolean =>
   isObject(schema.properties) && Object.keys(schema.properties).length > 0;
-
-export type CompositionKey = 'allOf' | 'oneOf' | 'anyOf';
-
-const COMPOSITION_KEYS: readonly CompositionKey[] = ['allOf', 'oneOf', 'anyOf'];
 
 export const getCompositionKeys = (
   schema: OpenApiNonBooleanSchemaObject,

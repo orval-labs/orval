@@ -14,8 +14,8 @@ import {
   type ValibotEntry,
   type ValibotNode,
 } from './nodes';
+import { type CompositionKey } from './schema-keys';
 import {
-  type CompositionKey,
   getCompositionKeys,
   getMultiTypes,
   hasProperties,
@@ -282,7 +282,7 @@ const isAnnotationOnly = (node: ValibotNode): boolean =>
 // not merge with a date the others transform. Such members are left out: an
 // unknown one always, an open record when an object member already checks the
 // type.
-const allOfMembers = (members: ValibotNode[]): ValibotNode[] => {
+export const allOfMembers = (members: ValibotNode[]): ValibotNode[] => {
   // A nullable object member accepts null, which the record rejects.
   const hasObject = members.some(
     (member) => isObjectNode(member) && !member.nullable,
