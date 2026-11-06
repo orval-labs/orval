@@ -12,8 +12,7 @@
  * cannot collide with it.
  *
  * Validation must be synchronous: an async schema fails loudly.
- */
-/**
+ *
  * Names of the emitted functions. Call sites and the declarations are both
  * built from these, and the helper is detected by them.
  */
@@ -100,7 +99,9 @@ const callPattern = (name: string): RegExp =>
   new RegExp(`(?<![A-Za-z0-9_$])${name}\\(`);
 
 // An operation description is emitted as a JSDoc block and may quote a call.
-const JSDOC_BLOCK = /\/\*\*[\s\S]*?\*\//g;
+// Anchored to a line start so a `/**` inside a string literal (a route glob)
+// is not mistaken for a comment.
+const JSDOC_BLOCK = /^[ \t]*\/\*\*[\s\S]*?\*\//gm;
 
 /**
  * The helper declarations a generated file needs, from the calls its source
@@ -108,6 +109,9 @@ const JSDOC_BLOCK = /\/\*\*[\s\S]*?\*\//g;
  * the throwing variant only when called, so no unused local is emitted.
  */
 export const getStandardSchemaHelper = (implementation: string): string => {
+  // Cheap exit for the common case where the feature is unused.
+  if (!implementation.includes('StandardSchema')) return '';
+
   const code = implementation.replaceAll(JSDOC_BLOCK, '');
   const callsParse = callPattern(PARSE_NAME).test(code);
   const callsSafeParse = callPattern(SAFE_NAME).test(code);
