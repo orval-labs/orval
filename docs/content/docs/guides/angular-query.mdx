@@ -393,7 +393,7 @@ const request$ = http.get<PetsOutput>(url, { params: httpParams }).pipe(
 ```
 
 Use `runtimeValidation: true` to keep the existing `Schema.parse()` behavior.
-Add `standardSchema: true` to validate through the Standard Schema interface instead; see [`standardSchema`](/docs/reference/configuration/output#standardschema).
+Add `standardSchema: true` to validate through the Standard Schema interface; see [`standardSchema`](/docs/reference/configuration/output#standardschema).
 Validation is automatically skipped for primitive response types (`string`,
 `void`, etc.) and for operations using a custom mutator.
 
