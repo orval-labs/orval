@@ -153,9 +153,32 @@ export default defineConfig({
 });
 ```
 
-当设置了 `tags` 且没有设置 `schemas` 时，orval 会自动将输出限制为匹配操作直接或传递性引用到的 schemas。这可以避免无关 schema 出现在生成结果中。
+当设置了 `tags` 或 `operationIds` 且没有设置 `schemas` 时，orval 会自动将输出限制为匹配操作直接或传递性引用到的 schemas。这可以避免无关 schema 出现在生成结果中。
 
 如果你同时指定了 `schemas`，则会以 `schemas` 为准，并跳过自动推断。如果你想按 tags 过滤 endpoint，但仍然输出**所有** schemas，请设置 [`includeUnreferencedSchemas: true`](#includeunreferencedschemas)。它在 `include` 和 `exclude` 模式下都有效。
+
+### operationIds
+
+**类型：** `(String | RegExp)[]`
+
+按 `operationId` 过滤：
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        operationIds: ['deletePetById', /^legacy/],
+      },
+    },
+  },
+});
+```
+
+`operationIds` 与 `tags` 共用同一个 `mode`。两者同时设置时，操作必须同时通过两个过滤条件：`include` 模式下需要同时匹配某个 tag 和某个 `operationId`；`exclude` 模式下只要匹配其中任意一个就会被排除。没有 `operationId` 的操作永远不会匹配。和 `tags` 一样，除非设置了 `schemas` 或 `includeUnreferencedSchemas`，输出只包含剩余操作所引用的 schemas。
 
 ### schemas
 
@@ -182,7 +205,7 @@ export default defineConfig({
 **类型：** `Boolean`
 **默认值：** `false`
 
-当设置了 `tags` 且没有设置 `schemas` 时，orval 默认只会输出匹配操作所引用到的 schemas。设置 `includeUnreferencedSchemas: true` 后，即使某些 schema 没有被任何操作引用，也会保留 `#/components/schemas` 下的**所有**条目，同时仍然按 `tags` 过滤 endpoint。其他组件部分（`responses`、`parameters`、`requestBodies`）仍会裁剪为匹配操作实际使用到的内容。它在 `include` 和 `exclude` 模式下都有效；如果设置了 `schemas`，则会忽略该选项。
+当设置了 `tags` 或 `operationIds` 且没有设置 `schemas` 时，orval 默认只会输出匹配操作所引用到的 schemas。设置 `includeUnreferencedSchemas: true` 后，即使某些 schema 没有被任何操作引用，也会保留 `#/components/schemas` 下的**所有**条目，同时仍然按 `tags` 或 `operationIds` 过滤 endpoint。其他组件部分（`responses`、`parameters`、`requestBodies`）仍会裁剪为匹配操作实际使用到的内容。它在 `include` 和 `exclude` 模式下都有效；如果设置了 `schemas`，则会忽略该选项。
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

@@ -355,6 +355,24 @@ export default defineConfig({
       target: '../specifications/nullable-oneof-enums.yaml',
     },
   },
+  // `generateXor` emits `oneOf` as `zod.xor`; it is opt-in because
+  // non-strict object branches can overlap (#4395).
+  'generate-xor': {
+    output: {
+      target: '../generated/zod/generate-xor/generate-xor.ts',
+      client: 'zod',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        zod: {
+          generateXor: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/nullable-oneof-enums.yaml',
+    },
+  },
   'multiline-default': {
     output: {
       target: '../generated/zod/multiline-default/multiline-default.ts',

@@ -729,6 +729,20 @@ describe('generateAxiosHeader', () => {
     expect(header).not.toContain('axiosInstance');
   });
 
+  it('should include SecondParameter type when an operation override references it (#4388)', () => {
+    const header = generateAxiosHeader({
+      ...baseMockParams,
+      isRequestOptions: false,
+      isMutator: true,
+      isGlobalMutator: true,
+      noFunction: false,
+      clientImplementation:
+        'const listItems = (options?: SecondParameter<typeof customInstance<string>>) => {};',
+    });
+
+    expect(header).toContain('type SecondParameter<T extends (...args: never)');
+  });
+
   it('should not include axiosInstance when tags-level mutator is present', () => {
     const header = generateAxiosHeader({
       ...baseMockParams,

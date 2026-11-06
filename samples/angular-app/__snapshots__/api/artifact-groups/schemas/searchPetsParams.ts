@@ -7,21 +7,13 @@
 import type { SearchPetsStatus } from './searchPetsStatus';
 
 export type SearchPetsParams = {
-  /**
-   * @nullable
-   */
+  /** @nullable */
   requirednullableString: string | null;
-  /**
-   * @nullable
-   */
+  /** @nullable */
   requirednullableStringTwo: string | null;
-  /**
-   * @nullable
-   */
+  /** @nullable */
   nonRequirednullableString?: string | null;
-  /**
-   * Filter by adoption status
-   */
+  /** Filter by adoption status */
   status?: SearchPetsStatus;
   /**
    * Maximum number of results to return

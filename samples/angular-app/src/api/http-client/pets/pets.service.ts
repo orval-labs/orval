@@ -230,54 +230,17 @@ export class PetsService {
   /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {
+  listPets<TData = Pets>(
+    params?: ListPetsParams,
+    version: number = 1,
+    accept: ListPetsAccept = 'application/json',
+  ) {
     return listPetsMutator<TData>(
       {
         url: `/v${version}/pets`,
         method: 'GET',
-        params: (() => {
-          const filteredParams: Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          > = {};
-          for (const [key, value] of Object.entries(params ?? {})) {
-            if (Array.isArray(value)) {
-              const filtered = value
-                .filter(
-                  (item) =>
-                    item != null &&
-                    (typeof item === 'string' ||
-                      typeof item === 'number' ||
-                      typeof item === 'boolean' ||
-                      ((item as unknown) instanceof Date &&
-                        !Number.isNaN((item as unknown as Date).getTime()))),
-                )
-                .map((item) =>
-                  (item as unknown) instanceof Date
-                    ? (item as unknown as Date).toISOString()
-                    : item,
-                ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (
-              (value as unknown) instanceof Date &&
-              !Number.isNaN((value as unknown as Date).getTime())
-            ) {
-              // useDates produces Date query params; serialize to ISO so they reach
-              // the wire instead of being dropped by the primitive check below. See #3856.
-              filteredParams[key] = (value as unknown as Date).toISOString();
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value;
-            }
-          }
-          return filteredParams;
-        })(),
+        headers: { Accept: accept },
+        params: filterParams(params ?? {}, new Set<string>([])),
       },
       this.http,
     );

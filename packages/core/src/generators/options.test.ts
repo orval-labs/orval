@@ -1384,14 +1384,11 @@ describe('generateMutatorConfig', () => {
       });
 
       expect(result).toContain(
+        'params: filterParams(params ?? {}, new Set<string>([]))',
+      );
+      expect(result).not.toContain(
         'for (const [key, value] of Object.entries(params ?? {}))',
       );
-      expect(result).toContain(
-        'const filteredParams: Record<string, string | number | boolean | Array<string | number | boolean>> = {};',
-      );
-      expect(result).toContain('Array.isArray(value)');
-      expect(result).toContain("typeof item === 'string'");
-      expect(result).not.toContain('false &&');
     });
   });
 

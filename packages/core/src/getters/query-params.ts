@@ -284,20 +284,23 @@ function getQueryParamsTypes(
       type?: string | string[];
       pattern?: string;
     };
+    // Match schema property docs: one-line `/** ... */` when possible, and
+    // indent the comment's opening line(s) to the member's indentation (the
+    // block's continuation lines are already indented by `tryOneLine`).
     const doc = jsDoc(
       {
         description: parameter.description,
         ...schemaForDoc,
       },
-      void 0,
+      true,
       context,
-    );
+    ).replaceAll(/^\//gm, '  /');
 
     if (parameterImports.length > 0) {
       return {
         name,
         required,
-        definition: `${doc}${key}${!required || hasSchemaDefault ? '?' : ''}: ${
+        definition: `${doc}  ${key}${!required || hasSchemaDefault ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
@@ -341,7 +344,7 @@ function getQueryParamsTypes(
       return {
         name,
         required,
-        definition: `${doc}${key}${
+        definition: `${doc}  ${key}${
           !required || hasSchemaDefault ? '?' : ''
         }: ${enumType};`,
         imports: [{ name: enumName }],
@@ -359,7 +362,7 @@ function getQueryParamsTypes(
       };
     }
 
-    const definition = `${doc}${key}${
+    const definition = `${doc}  ${key}${
       !required || hasSchemaDefault ? '?' : ''
     }: ${resolvedValue.value};`;
 

@@ -25,7 +25,7 @@ export default defineConfig({
 
 **Type:** `String | Function`
 **Default:** `'axios-functions'`
-**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `pinia-colada`, `swr`, `zod`, `effect`, `hono`, `fetch`, `mcp`
+**Options:** `angular`, `angular-query`, `axios`, `axios-functions`, `react-query`, `solid-start`, `solid-query`, `svelte-query`, `vue-query`, `pinia-colada`, `swr`, `zod`, `effect`, `valibot`, `hono`, `fetch`, `mcp`
 
 See the [Pinia Colada guide](/docs/guides/pinia-colada) for generated Vue
 queries, mutations, query keys, and options.
@@ -1152,7 +1152,7 @@ export type OperationTypes = {
 - `pathParams` pairs each placeholder's spec name with the identifier the client takes.
 - `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat` (only for clients whose URLs are built by the fetch client: `fetch`, `mcp`, and the query, SWR and Pinia Colada clients over `httpClient: 'fetch'`), and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
-- `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod` and `effect` clients and for Zod schemas.
+- `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. It's left out for the `zod`, `effect` and `valibot` clients and for Zod schemas.
 
 The manifest isn't re-exported from the workspace `index.ts`.
 
@@ -1788,6 +1788,43 @@ Hold a query whose params are not resolved yet with [`skipToken`](https://tansta
 Unlike `enabled`, this also covers `refetch()`: no request is sent with an unresolved param, and the query rejects with `Missing queryFn` instead (TanStack also logs a console error in development). It leaves `enabled` free for the caller too — the caller's `...queryOptions` is spread last, so their own `enabled` would otherwise replace the generated param check.
 
 React Query v5 only. Suspense queries are unaffected — TanStack excludes `SkipToken` from their `queryFn`.
+
+### docs
+
+**Type:** `Object`
+
+Generated query and mutation hooks always carry the operation's JSDoc (description, `@summary` and `@deprecated`), on every overload signature so it shows up on hover. A doc with a single line is written as `/** @summary ... */`. Use `docs` to add more to that block.
+
+#### route
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Add the HTTP method and the OpenAPI path of the operation as an `@route` line.
+
+```ts
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          docs: { route: true },
+        },
+      },
+    },
+  },
+});
+```
+
+```ts
+/**
+ * Info for a specific pet
+ * @summary Info for a specific pet
+ * @route GET /pets/{petId}
+ */
+export function useShowPetById<...>(...)
+```
 
 ### mutationInvalidates
 
@@ -2469,6 +2506,33 @@ Behavior:
 - **Inheritance (`allOf`).** Branches composed with `allOf` are flattened into a single object so they remain valid discriminated-union options — this is the case that previously forced the feature to be reverted ([#2085](https://github.com/orval-labs/orval/issues/2085)). With [`generateReusableSchemas`](#generatereusableschemas), a branch that references an `allOf` schema stays a plain union (the referenced schema can't be guaranteed to be an object from the reference alone).
 - Works with both Zod v3 (>= 3.20) and v4, and with the [`mini`](#variant) variant.
 
+### generateXor
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit `oneOf` as [`zod.xor([...])`](https://zod.dev/api#exclusive-unions-xor) instead of `zod.union([...])`, so a value that matches more than one branch is rejected, as JSON Schema `oneOf` requires.
+
+```ts
+// override: { zod: { generateXor: true } }
+export const Id = zod.xor([zod.string(), zod.number()]);
+```
+
+Behavior:
+
+- **Opt-in.** Left `false`, `oneOf` is emitted as `zod.union([...])` exactly as before.
+- **Overlapping branches fail.** Non-strict object branches strip unknown keys, so a payload for a subtype also matches its supertype (`oneOf: [Pet, Dog]` where `Dog` extends `Pet` via `allOf`), and so does any payload when every field of a branch is optional. `zod.xor` rejects those payloads, so enable this only when your `oneOf` branches are disjoint (distinct primitive types, literals, or [`strict`](#strict) objects).
+- **Zod 4.2+ only.** Zod 3 and Zod 4.0/4.1 have no `xor`, so `oneOf` stays `zod.union([...])` there. The check follows the `zod` version, not the `version` override:
+  - When `zod` is installed, its version is read from `node_modules/zod/package.json`.
+  - Otherwise the range declared in `package.json` is used, and only its lower bound counts: `^4.2.0` or `>=4.3.0 <5` emit `zod.xor`, while `^4.1.0`, `4.x` and `<5` may still resolve to 4.0/4.1 and keep `zod.union([...])`, as does a specifier without a semver lower bound (`workspace:*`, `link:`, a dist-tag). Output can therefore differ before and after `zod` is installed; declare `^4.2.0` or later to keep it stable.
+  - When no `zod` version can be detected (no `package.json` found for the output, a hoisted install, or a programmatic `generate()` call), `oneOf` also stays `zod.union([...])`, since the installed release might predate `xor`.
+- **Not with coerced branches.** [Coercion](#coerce) can make branches overlap (`"42"` passes both `zod.string()` and `zod.coerce.number()`), so a `oneOf` stays `zod.union([...])` when any branch, including its nested properties, is coerced. A coerce list that matches no branch (`coerce: ['date']` with `oneOf: [string, number]`) keeps `zod.xor`. A branch that references a [reusable schema](#generatereusableschemas) counts as coerced whenever coercion is enabled.
+- **Not when a branch renders looser than the spec.** Orval drops keywords it cannot express (`not`, `if`/`then`/`else`, `patternProperties`, `dependentRequired`, …), and `{}` or a `required`-only branch with no sibling `properties` renders as `zod.unknown()`. Two such branches both match, so `zod.xor` would reject valid input (`oneOf: [{ required: ['x'] }, { required: ['y'] }]` would reject everything). A `oneOf` with any such branch stays `zod.union([...])`.
+- **Not with a `discriminator`.** The discriminator picks the branch by value, and branches sharing a value would both match, so such a `oneOf` stays `zod.union([...])`, or `zod.discriminatedUnion(...)` when [`generateDiscriminatedUnion`](#generatediscriminatedunion) is enabled.
+- `anyOf`, type arrays (`type: ['integer', 'number']`) and mixed-type `enum`s (`enum: [1, 'a']`) always stay `zod.union([...])`.
+- Works with the [`mini`](#variant) variant.
+
 ### exactOptional
 
 **Type:** `boolean`
@@ -2590,6 +2654,36 @@ Pin the Effect major version that generated output targets, instead of inferring
 | `'auto'` | Infer from the resolved `effect` version; fall back to Effect 4 when none is found. |
 
 `version` is output-wide: an operation or tag override cannot change it.
+
+---
+
+## override.valibot
+
+Valibot schema generation options. `strict` and `generate` take the same keys as `override.zod`, and can also be set per operation or tag.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        valibot: {
+          strict: { response: true },
+          generate: { header: false },
+          exactOptional: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### exactOptional
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit optional object properties with `v.exactOptional(schema)` instead of `v.optional(schema)`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
 
 ---
 
@@ -2988,9 +3082,9 @@ file that does not exist yet is always generated fresh.
 - `smart` (default) — non-destructively reconcile only the parts orval owns: its
   own imports (names, module paths, casing) and the `zValidator(...)` arguments,
   and append handlers for new operations. Your custom imports, middleware,
-  handler bodies, and top-level helpers are preserved. Requires the optional
-  `typescript` peer dependency (see note below); if it is absent, smart falls
-  back to `skip` with a warning.
+  handler bodies, and top-level helpers are preserved. Requires the TypeScript
+  compiler API (see note below); if it cannot be loaded, generation fails and
+  existing handler files are left unchanged.
 - `skip` — leave an existing handler file byte-for-byte unchanged. New operations
   still get fresh files (in `split` mode).
 - `full` — rebuild the file header, imports, and validator chain from the spec,
@@ -3000,8 +3094,9 @@ file that does not exist yet is always generated fresh.
 
 <Callout type="info">
   `smart` and `full` use the TypeScript compiler API to parse existing handler
-  files. `typescript` is an optional peer dependency — virtually every orval
-  project already has it, so nothing extra is installed.
+  files. `@orval/hono` ships its own `typescript` dependency for this, so it
+  works regardless of the TypeScript version your project uses (including
+  TypeScript 7, whose package no longer exposes the JS compiler API).
 </Callout>
 
 <Callout type="warn">
@@ -4788,7 +4883,9 @@ is handed to the caller unparsed, and a blob has no parsed fields to walk.
 **Type:** `Boolean`
 **Default:** `false`
 
-Convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
+Type OpenAPI `int64` and `uint64` formats as `bigint` instead of `number` in generated TypeScript types.
+
+This changes types only; Orval does not convert values at runtime. Plain `JSON.parse` returns these fields as `number` and loses precision beyond `Number.MAX_SAFE_INTEGER`, so preserving exact 64-bit values requires a bigint-aware JSON parser. Zod schemas (`schemas: { type: 'zod' }` or the `zod` client) keep validating these fields with `zod.int()`, so their inferred types stay `number`.
 
 ```ts title="orval.config.ts"
 export default defineConfig({

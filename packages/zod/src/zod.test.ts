@@ -3,6 +3,7 @@ import type {
   GeneratorMutator,
   GeneratorOptions,
   NormalizedMutator,
+  ZodCoerceType,
   ZodVariantOption,
   OpenApiDocument,
   OpenApiReferenceObject,
@@ -64,6 +65,7 @@ import {
   getZodDateFormat,
   getZodDateTimeFormat,
   getZodTimeFormat,
+  supportsZodXor,
 } from './compatible-v4';
 
 const testOutput = OutputClient.ZOD;
@@ -174,6 +176,47 @@ describe.each([
     });
   },
 );
+
+describe.each([
+  { version: 3, variant: 'classic' },
+  { version: 4, variant: 'classic' },
+  { version: 4, variant: 'mini' },
+] as const)('time-local (Zod $version, $variant)', ({ version, variant }) => {
+  const render = (format: string) => {
+    const context = makeContextSpec();
+    context.output.override.zod.timeOptions = { precision: 3 };
+    const definition = generateZodValidationSchemaDefinition(
+      { type: 'string', format },
+      context,
+      'localTime',
+      false,
+      version === 4,
+      { required: true },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      false,
+      false,
+      version === 4,
+      undefined,
+      undefined,
+      variant,
+    ).zod;
+  };
+
+  it('generates the same time validation as time', () => {
+    const validator =
+      variant === 'mini'
+        ? '/*#__PURE__*/ zod.iso.time({"precision":3})'
+        : version === 4
+          ? 'zod.iso.time({"precision":3})'
+          : 'zod.string().time({"precision":3})';
+
+    expect(render('time-local')).toBe(validator);
+    expect(render('time')).toBe(validator);
+  });
+});
 
 // A `const` renders as `zod.literal(...)`. Chaining bound or pattern checks
 // onto it did not compile with Zod 3 or Zod 4 classic (TS2339), nor with Zod 4
@@ -1682,6 +1725,121 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).not.toContain('.optional()');
   });
 
+  it('applies a required array from an outer allOf member to properties of a nested allOf (issue #4402)', () => {
+    const base: OpenApiSchemaObject = {
+      type: 'object',
+      properties: { a: { type: 'string' }, b: { type: 'string' } },
+    };
+    const mid: OpenApiSchemaObject = {
+      allOf: [base, { type: 'object', properties: { c: { type: 'string' } } }],
+    };
+    const leaf: OpenApiSchemaObject = {
+      allOf: [
+        mid,
+        {
+          type: 'object',
+          required: ['a', 'c'],
+          properties: { d: { type: 'string' } },
+        },
+      ],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        leaf,
+        createTestContextSpec({ output: { override: { useDates: false } } }),
+        'leaf',
+        false,
+        false,
+        { required: true },
+      ),
+      createTestContextSpec({ output: { override: { useDates: false } } }),
+      false,
+      false,
+      false,
+    );
+
+    // `a` (two levels down) and `c` (one level down) are required by Leaf.
+    expect(parsed.zod).toContain('"a": zod.string()');
+    expect(parsed.zod).not.toContain('"a": zod.string().optional()');
+    expect(parsed.zod).toContain('"c": zod.string()');
+    expect(parsed.zod).not.toContain('"c": zod.string().optional()');
+    expect(parsed.zod).toContain('"b": zod.string().optional()');
+    expect(parsed.zod).toContain('"d": zod.string().optional()');
+  });
+
+  describe.each([false, true])(
+    'outer allOf required at the same object level (issue #4402, isZodV4: %s)',
+    (isZodV4) => {
+      const render = (schema: OpenApiSchemaObject) => {
+        const context = createTestContextSpec({
+          output: { override: { useDates: false } },
+        });
+        return parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            schema,
+            context,
+            'leaf',
+            false,
+            isZodV4,
+            { required: true },
+          ),
+          context,
+          false,
+          false,
+          isZodV4,
+        ).zod;
+      };
+
+      it('reaches the branches of a nested oneOf', () => {
+        const zod = render({
+          allOf: [
+            {
+              oneOf: [
+                { type: 'object', properties: { a: { type: 'string' } } },
+                { type: 'object', properties: { a: { type: 'number' } } },
+              ],
+            },
+            { required: ['a'] },
+          ],
+        });
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).toContain('"a": zod.number()');
+        expect(zod).not.toContain('.optional()');
+      });
+
+      it('applies a required array nested in an allOf member to a sibling', () => {
+        const zod = render({
+          allOf: [
+            { type: 'object', properties: { x: { type: 'string' } } },
+            { allOf: [{ required: ['x'] }] },
+          ],
+        });
+        expect(zod).toContain('"x": zod.string()');
+        expect(zod).not.toContain('"x": zod.string().optional()');
+      });
+
+      it('leaves the spec required array untouched', () => {
+        const required = ['a'];
+        const schema: OpenApiSchemaObject = {
+          required,
+          allOf: [
+            {
+              type: 'object',
+              required: ['b'],
+              properties: { a: { type: 'string' }, b: { type: 'string' } },
+            },
+          ],
+        };
+        const first = render(schema);
+        const second = render(schema);
+        expect(second).toBe(first);
+        expect(schema.required).toBe(required);
+        expect(required).toEqual(['a']);
+      });
+    },
+  );
+
   it('handles allOf with number type', () => {
     const numberWithConstraints: OpenApiSchemaObject = {
       type: 'number',
@@ -2152,6 +2310,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     const expectedZodFormatByOpenApiFormat = new Map([
       ['date', getZodDateFormat(true)],
       ['time', getZodTimeFormat(true)],
+      ['time-local', getZodTimeFormat(true)],
       ['date-time', getZodDateTimeFormat(true)],
       ['date-time-local', getZodDateTimeFormat(true)],
       ['email', 'email'],
@@ -3506,7 +3665,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4108,7 +4267,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4154,7 +4313,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', 1]], consts: [] },
               { functions: [['literal', 2]], consts: [] },
@@ -4195,7 +4354,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', true]], consts: [] },
               { functions: [['literal', false]], consts: [] },
@@ -4235,7 +4394,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['oneOf', [{ functions: [['literal', 1]], consts: [] }]],
+          ['anyOf', [{ functions: [['literal', 1]], consts: [] }]],
           ['optional', undefined],
         ],
         consts: [],
@@ -4268,7 +4427,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           [
-            'oneOf',
+            'anyOf',
             [
               { functions: [['literal', "'cat'"]], consts: [] },
               { functions: [['literal', 1]], consts: [] },
@@ -5831,6 +5990,157 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ]);
     });
 
+    describe('allOf $ref whose properties a sibling member requires (issue #4402)', () => {
+      const context = makeContextSpec({
+        spec: {
+          components: {
+            schemas: {
+              Base: {
+                type: 'object',
+                required: ['b'],
+                properties: { a: { type: 'string' }, b: { type: 'string' } },
+              },
+              Node: {
+                type: 'object',
+                properties: {
+                  a: { type: 'string' },
+                  next: { $ref: '#/components/schemas/Node' },
+                },
+              },
+              Mid: {
+                allOf: [
+                  { $ref: '#/components/schemas/Base' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
+              Cat: { type: 'object', properties: { meow: { type: 'string' } } },
+              Dog: { type: 'object', properties: { bark: { type: 'string' } } },
+              Pet: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                oneOf: [
+                  { $ref: '#/components/schemas/Cat' },
+                  { $ref: '#/components/schemas/Dog' },
+                ],
+              },
+              Choice: {
+                oneOf: [
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                  { type: 'object', properties: { a: { type: 'number' } } },
+                ],
+              },
+              SelfAllOf: {
+                allOf: [
+                  { $ref: '#/components/schemas/SelfAllOf' },
+                  { type: 'object', properties: { a: { type: 'string' } } },
+                ],
+              },
+              BadBase: {
+                type: 'object',
+                required: true,
+                properties: { a: { type: 'string' } },
+              } as unknown as OpenApiSchemaObject,
+              BadMid: {
+                allOf: [
+                  { $ref: '#/components/schemas/BadBase' },
+                  { type: 'object', properties: { c: { type: 'string' } } },
+                ],
+              },
+            },
+          },
+        },
+      });
+      const render = (required: string[], ref = 'Base', isZodV4 = false) =>
+        parseZodValidationSchemaDefinition(
+          generateZodValidationSchemaDefinition(
+            {
+              allOf: [
+                { $ref: `#/components/schemas/${ref}` },
+                {
+                  type: 'object',
+                  required,
+                  properties: { d: { type: 'string' } },
+                },
+              ],
+            },
+            context,
+            'child',
+            false,
+            isZodV4,
+            { required: true, useReusableSchemas: true },
+          ),
+          context,
+          false,
+          false,
+          isZodV4,
+        );
+
+      it('inlines the $ref so the required key is enforced', () => {
+        const { zod, usedRefs } = render(['a']);
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs.size).toBe(0);
+      });
+
+      it('inlines a $ref to a nested allOf', () => {
+        const { zod, usedRefs } = render(['c'], 'Mid');
+        expect(zod).toContain('"c": zod.string()');
+        expect(zod).not.toContain('"c": zod.string().optional()');
+        // Only `Mid` is inlined; its `Base` member does not hold `c`.
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it('keeps nested refs named when inlining a recursive schema', () => {
+        const { zod, usedRefs } = render(['a'], 'Node');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(zod).toContain('"next": __REF_Node__.optional()');
+        expect(usedRefs).toEqual(new Set(['Node']));
+      });
+
+      it('keeps the named schema when it already requires the key', () => {
+        const { zod, usedRefs } = render(['b', 'd']);
+        expect(zod).toContain('__REF_Base__');
+        expect(usedRefs).toEqual(new Set(['Base']));
+      });
+
+      it.each([false, true])(
+        'requires a common property of an inlined oneOf $ref (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['name'], 'Pet', isZodV4);
+          expect(zod).toContain('"name": zod.string()');
+          expect(zod).not.toContain('"name": zod.string().optional()');
+          // The branches do not declare `name`, so they stay named.
+          expect(usedRefs).toEqual(new Set(['Cat', 'Dog']));
+        },
+      );
+
+      it.each([false, true])(
+        'inlines a $ref to a oneOf whose branches declare the key (isZodV4: %s)',
+        (isZodV4) => {
+          const { zod, usedRefs } = render(['a'], 'Choice', isZodV4);
+          expect(zod).toContain('"a": zod.string()');
+          expect(zod).toContain('"a": zod.number()');
+          expect(zod).not.toContain('"a": zod.string().optional()');
+          expect(zod).not.toContain('"a": zod.number().optional()');
+          expect(usedRefs.size).toBe(0);
+        },
+      );
+
+      it('keeps a self-referential allOf named after inlining it once', () => {
+        const { zod, usedRefs } = render(['a'], 'SelfAllOf');
+        expect(zod).toContain('"a": zod.string()');
+        expect(zod).not.toContain('"a": zod.string().optional()');
+        expect(usedRefs).toEqual(new Set(['SelfAllOf']));
+      });
+
+      it('names the $ref member that has a boolean required', () => {
+        expect(() => render(['c'], 'BadMid')).toThrow(
+          'schema "#/components/schemas/BadBase" has `required: true`',
+        );
+      });
+    });
+
     describe.each([
       { useReusableSchemas: false, variant: 'classic' },
       { useReusableSchemas: true, variant: 'classic' },
@@ -6067,7 +6377,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
     describe.each(['classic', 'mini'] as const)(
       'discriminator narrowed from an allOf $ref (%s)',
       (variant) => {
-        const render = (kindRef: string) => {
+        // `generateXor` also passes `hasZodXor`, so the result cannot depend
+        // on whether the test context resolves a zod version.
+        const render = (kindRef: string, generateXor = false) => {
           const context = makeContextSpec({
             spec: {
               components: {
@@ -6081,6 +6393,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           context.output.override.zod = {
             ...context.output.override.zod,
             generateDiscriminatedUnion: true,
+            generateXor,
           };
           const branch = (value: string): OpenApiSchemaObject => ({
             type: 'object',
@@ -6112,6 +6425,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
             undefined,
             undefined,
             variant,
+            false,
+            generateXor,
           ).zod;
         };
 
@@ -6123,6 +6438,15 @@ describe('generateZodValidationSchemaDefinition`', () => {
           const zod = render('PatternKind');
           expect(zod).not.toContain('discriminatedUnion');
           expect(zod).toContain('zod.union([');
+        });
+
+        // A `oneOf` with a `discriminator` never becomes `zod.xor`: branches
+        // sharing a discriminator value would both match. (#4395)
+        it('keeps the fallback a plain union with generateXor', () => {
+          const zod = render('PatternKind', true);
+          expect(zod).not.toContain('discriminatedUnion');
+          expect(zod).toContain('zod.union([');
+          expect(zod).not.toContain('zod.xor(');
         });
       },
     );
@@ -6142,13 +6466,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      // default emits a const + a .default(<constName>) call. Match shape, not exact const.
+      // Composite defaults keep their contextual type from the referenced schema.
       expect(result.functions[0]).toEqual([
         'namedRef',
         { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
       expect(result.functions.at(-1)?.[0]).toBe('default');
-      expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
+      expect(result.consts).toEqual([]);
     });
 
     it('emits empty-object values in a $ref default as `{}` (#4244)', () => {
@@ -6166,8 +6490,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      expect(result.consts).toEqual([
-        'export const parametersStateDefault = { items: {}, };',
+      expect(result.consts).toEqual([]);
+      expect(result.functions.at(-1)).toEqual([
+        'default',
+        '{ ...{ items: {}, } }',
       ]);
     });
 
@@ -13536,7 +13862,7 @@ describe('enum/const value escaping (#3505)', () => {
     );
 
     expect(result.functions).toContainEqual([
-      'oneOf',
+      'anyOf',
       [
         {
           functions: [['literal', String.raw`'App\\Models\\Document'`]],
@@ -14092,7 +14418,7 @@ describe('exactOptional (opt-in)', () => {
     );
   });
 
-  it('narrows only optional, leaving .nullish() untouched', () => {
+  describe('optional nullable properties', () => {
     const nullishString: ZodValidationSchemaDefinition = {
       functions: [
         ['string', undefined],
@@ -14100,9 +14426,27 @@ describe('exactOptional (opt-in)', () => {
       ],
       consts: [],
     };
-    expect(parse(nullishString, { exactOptional: true })).toBe(
-      'zod.string().nullish()',
-    );
+
+    it('emits .nullable().exactOptional() on zod v4 classic when enabled', () => {
+      expect(parse(nullishString, { exactOptional: true })).toBe(
+        'zod.string().nullable().exactOptional()',
+      );
+    });
+
+    it('emits zod.exactOptional(zod.nullable()) on zod mini when enabled', () => {
+      expect(
+        parse(nullishString, { variant: 'mini', exactOptional: true }),
+      ).toBe(
+        '/*#__PURE__*/ zod.exactOptional(/*#__PURE__*/ zod.nullable(/*#__PURE__*/ zod.string()))',
+      );
+    });
+
+    it('keeps .nullish() by default and on zod v3', () => {
+      expect(parse(nullishString)).toBe('zod.string().nullish()');
+      expect(
+        parse(nullishString, { isZodV4: false, exactOptional: true }),
+      ).toBe('zod.string().nullish()');
+    });
   });
 });
 
@@ -15383,5 +15727,280 @@ describe('object schemas narrowed by an enum (#4351)', () => {
 
     expect(zodSchema).not.toContain('looseObject');
     expect(zodSchema).toContain('zod.literal(null)');
+  });
+});
+
+describe('oneOf as zod.xor', () => {
+  const ctx = createTestContextSpec({
+    output: { override: { useDates: false, zod: { generateXor: true } } },
+  });
+
+  const render = (
+    schema: OpenApiSchemaObject,
+    isZodV4: boolean,
+    variant: ZodVariantOption = 'classic',
+    coerceTypes: boolean | ZodCoerceType[] = false,
+    hasZodXor = true,
+  ) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        ctx,
+        'Pet',
+        false,
+        isZodV4,
+        { required: true },
+      ),
+      ctx,
+      coerceTypes,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+      false,
+      hasZodXor,
+    ).zod;
+
+  const pet: OpenApiSchemaObject = {
+    oneOf: [{ type: 'string' }, { type: 'number' }],
+  };
+
+  it('keeps zod.union for oneOf unless generateXor is enabled (#4395)', () => {
+    // Non-strict object branches overlap (`oneOf: [Pet, Dog]`), so `xor` is
+    // opt-in to keep payloads that matched `zod.union` validating.
+    const defaultCtx = createTestContextSpec({
+      output: { override: { useDates: false } },
+    });
+
+    expect(
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          pet,
+          defaultCtx,
+          'Pet',
+          false,
+          true,
+          {
+            required: true,
+          },
+        ),
+        defaultCtx,
+        false,
+        false,
+        true,
+        undefined,
+        undefined,
+        'classic',
+        false,
+        true,
+      ).zod,
+    ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('emits zod.xor for oneOf on zod v4', () => {
+    expect(render(pet, true)).toBe('zod.xor([zod.string(),zod.number()])');
+  });
+
+  it('emits zod.xor for oneOf on zod mini', () => {
+    expect(render(pet, true, 'mini')).toBe(
+      '/*#__PURE__*/ zod.xor([/*#__PURE__*/ zod.string(),/*#__PURE__*/ zod.number()])',
+    );
+  });
+
+  it('keeps zod.union for oneOf on zod v3', () => {
+    expect(render(pet, false)).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps zod.union for oneOf when coercion can make branches overlap', () => {
+    expect(render(pet, true, 'classic', true)).toBe(
+      'zod.union([zod.coerce.string(),zod.coerce.number()])',
+    );
+    expect(render(pet, true, 'classic', ['number'])).toBe(
+      'zod.union([zod.string(),zod.coerce.number()])',
+    );
+    expect(render(pet, true, 'mini', ['number'])).toContain('zod.union([');
+  });
+
+  it('emits zod.xor for oneOf when no branch is coerced (#4395)', () => {
+    // `coerce: ['date']` coerces nothing in `oneOf: [string, number]`.
+    expect(render(pet, true, 'classic', ['date'])).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+    expect(render(pet, true, 'mini', ['boolean'])).toContain('zod.xor([');
+  });
+
+  it('keeps zod.union for oneOf when a nested property is coerced (#4395)', () => {
+    const objects: OpenApiSchemaObject = {
+      oneOf: [
+        { type: 'object', properties: { a: { type: 'string' } } },
+        { type: 'object', properties: { a: { type: 'number' } } },
+      ],
+    };
+
+    for (const variant of ['classic', 'mini'] as const) {
+      const zod = render(objects, true, variant, ['number']);
+      expect(zod).toContain('zod.coerce.number(');
+      expect(zod).not.toContain('zod.xor(');
+    }
+  });
+
+  it('emits zod.xor for oneOf when coercion is an empty list', () => {
+    expect(render(pet, true, 'classic', [])).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+  });
+
+  it('takes xor support from the caller, not the context (#4395)', () => {
+    const union = 'zod.union([zod.string(),zod.number()])';
+
+    expect(render(pet, true, 'classic', false, false)).toBe(union);
+    expect(render(pet, true, 'mini', false, false)).toContain('zod.union([');
+    // Zod 3 output never uses `xor`, whatever the installed version.
+    expect(render(pet, false, 'classic', false, true)).toBe(union);
+  });
+
+  it('keeps zod.union unless supportsZodXor detects Zod 4.2+ (#4395)', () => {
+    const renderWith = (
+      packageJson: Parameters<typeof supportsZodXor>[0],
+      variant: ZodVariantOption = 'classic',
+    ) => render(pet, true, variant, false, supportsZodXor(packageJson));
+    const withZod = (zod: string) => ({ dependencies: { zod } });
+
+    expect(renderWith(withZod('^4.0.0'))).toContain('zod.union([');
+    expect(renderWith(withZod('4.1.13'))).toContain('zod.union([');
+    expect(renderWith(withZod('4.1.13'), 'mini')).toContain('zod.union([');
+    // Non-semver specifiers and an unknown version must not throw or assume
+    // `xor`, which is undefined on Zod 4.0/4.1.
+    expect(renderWith(withZod('workspace:*'))).toContain('zod.union([');
+    expect(renderWith(undefined)).toContain('zod.union([');
+
+    expect(renderWith(withZod('4.2.0'))).toBe(
+      'zod.xor([zod.string(),zod.number()])',
+    );
+    expect(renderWith(withZod('^4.4.0'), 'mini')).toContain('zod.xor([');
+  });
+
+  it('keeps zod.union for anyOf', () => {
+    expect(
+      render({ anyOf: [{ type: 'string' }, { type: 'number' }] }, true),
+    ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps zod.union for a mixed-type enum, which is not exclusive (#4395)', () => {
+    // `enum` means "equals one of the values"; repeated values are deduped.
+    expect(render({ enum: [1, 'a', 1] } as OpenApiSchemaObject, true)).toBe(
+      `zod.union([zod.literal(1),zod.literal('a')])`,
+    );
+    expect(
+      render({ enum: [1, 'a'] } as OpenApiSchemaObject, true, 'mini'),
+    ).toContain('zod.union([');
+  });
+
+  it('keeps zod.union for type arrays, whose members can overlap', () => {
+    expect(
+      render({ type: ['integer', 'number'] } as OpenApiSchemaObject, true),
+    ).toBe('zod.union([zod.int(),zod.number()])');
+  });
+
+  it('emits zod.xor intersected with sibling properties', () => {
+    expect(
+      render(
+        {
+          type: 'object',
+          oneOf: [{ type: 'string' }, { type: 'number' }],
+          properties: { id: { type: 'string' } },
+        } as OpenApiSchemaObject,
+        true,
+      ),
+    ).toContain('zod.xor([');
+  });
+
+  describe('keeps zod.union when a branch renders looser than the spec (#4395)', () => {
+    const variants: ZodVariantOption[] = ['classic', 'mini'];
+
+    it.each(variants)(
+      'for required-only branches without sibling properties (%s)',
+      (variant) => {
+        const zod = render(
+          { oneOf: [{ required: ['x'] }, { required: ['y'] }] },
+          true,
+          variant,
+        );
+        expect(zod).toContain('zod.union([');
+        expect(zod).not.toContain('zod.xor(');
+      },
+    );
+
+    it('for an empty branch', () => {
+      expect(render({ oneOf: [{ type: 'string' }, {}] }, true)).toBe(
+        'zod.union([zod.string(),zod.unknown()])',
+      );
+    });
+
+    it('for a nested union with a permissive member', () => {
+      expect(
+        render(
+          {
+            oneOf: [{ type: 'string' }, { anyOf: [{ type: 'number' }, {}] }],
+          },
+          true,
+        ),
+      ).toContain('zod.union([zod.string(),');
+    });
+
+    it('for a branch carrying a keyword the generator drops', () => {
+      for (const branch of [
+        {
+          type: 'object',
+          properties: { a: { type: 'string', not: { pattern: '^x' } } },
+        },
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          patternProperties: { '^x': { type: 'number' } },
+        },
+      ] as OpenApiSchemaObject[]) {
+        const zod = render({ oneOf: [branch, { type: 'number' }] }, true);
+        expect(zod).not.toContain('zod.xor(');
+      }
+    });
+
+    it('for a discriminator, whose branches may share a value', () => {
+      const kind = (value: string): OpenApiSchemaObject => ({
+        type: 'object',
+        required: ['kind'],
+        properties: { kind: { type: 'string', enum: [value] } },
+      });
+
+      expect(
+        render(
+          {
+            oneOf: [kind('a'), kind('a')],
+            discriminator: { propertyName: 'kind' },
+          } as OpenApiSchemaObject,
+          true,
+        ),
+      ).not.toContain('zod.xor(');
+    });
+  });
+
+  it('emits zod.xor for required-only branches rewritten against sibling properties', () => {
+    expect(
+      render(
+        {
+          type: 'object',
+          properties: { x: { type: 'string' }, y: { type: 'string' } },
+          oneOf: [{ required: ['x'] }, { required: ['y'] }],
+        } as OpenApiSchemaObject,
+        true,
+      ),
+    ).toContain('zod.xor([');
+  });
+
+  it('keeps zod.xor for an empty `not`, which renders as zod.never()', () => {
+    expect(render({ oneOf: [{ type: 'string' }, { not: {} }] }, true)).toBe(
+      'zod.xor([zod.string(),zod.never()])',
+    );
   });
 });

@@ -13,6 +13,7 @@ import { createFrameworkAdapter } from './frameworks';
 import {
   allowUndefinedParam,
   getBuilderQueryFnProperty,
+  getHookDoc,
   getInfinitePageParamType,
   getInfiniteQueryBody,
   getMutationInvalidatesConflictWarning,
@@ -435,6 +436,17 @@ describe('wrapPropsBodyWithMutatorBodyType', () => {
       isOptional: true,
       isBlob: false,
     }) satisfies GetterBody;
+
+  // Solid hook parameters are `MaybeAccessor<…>` (#3195).
+  it('wraps a body inside a solid MaybeAccessor', () => {
+    expect(
+      wrapPropsBodyWithMutatorBodyType({
+        propsString: 'createPetsBody: MaybeAccessor<CreatePetsBody>',
+        body: bodyOf('CreatePetsBody'),
+        mutator: mutatorWithBodyType,
+      }),
+    ).toBe('createPetsBody: MaybeAccessor<BodyType<CreatePetsBody>>');
+  });
 
   it('returns propsString unchanged when mutator is undefined', () => {
     expect(
@@ -1197,5 +1209,54 @@ describe('infinite query page param in the request body', () => {
         "http, {...params, ...(pageParam != null ? { 'before': pageParam } : {})}",
       );
     });
+  });
+});
+
+describe('getHookDoc', () => {
+  it('returns an empty string when the operation has no docs', () => {
+    expect(getHookDoc({})).toBe('');
+  });
+
+  it('renders a single-line comment when there is only the route', () => {
+    expect(getHookDoc({ route: 'GET /pets' })).toBe(
+      '/** @route GET /pets */\n',
+    );
+  });
+
+  it('renders a single-line comment when there is only a summary', () => {
+    expect(getHookDoc({ summary: 'List pets' })).toBe(
+      '/** @summary List pets */\n',
+    );
+  });
+
+  it('keeps a multi-line description in a block comment', () => {
+    expect(getHookDoc({ description: 'Line one.\nLine two.' })).toBe(
+      '/**\n * Line one.\n * Line two.\n */\n',
+    );
+  });
+
+  it('appends the route after description, deprecated and summary', () => {
+    expect(
+      getHookDoc({
+        description: 'Lists pets.',
+        summary: 'List pets',
+        deprecated: true,
+        route: 'GET /pets/{petId}',
+      }),
+    ).toBe(
+      '/**\n * Lists pets.\n * @deprecated\n * @summary List pets\n * @route GET /pets/{petId}\n */\n',
+    );
+  });
+
+  it('inserts the route literally, without replacement patterns', () => {
+    expect(getHookDoc({ summary: 'Odd', route: 'GET /foo/$&' })).toBe(
+      '/**\n * @summary Odd\n * @route GET /foo/$&\n */\n',
+    );
+  });
+
+  it('escapes a comment terminator in the route', () => {
+    expect(getHookDoc({ route: 'GET /a*/b' })).toContain(
+      String.raw`@route GET /a*\/b`,
+    );
   });
 });

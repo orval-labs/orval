@@ -137,6 +137,7 @@ function createMockContext(): ContextSpec {
           generateReusableSchemas: false,
           generateMeta: false,
           generateDiscriminatedUnion: false,
+          generateXor: false,
           exactOptional: false,
           generateCompanionTypes: false,
           dateTimeOptions: {},
@@ -161,6 +162,23 @@ function createMockContext(): ContextSpec {
           useBrandedTypes: false,
           exactOptional: false,
           version: 'auto',
+        },
+        valibot: {
+          strict: {
+            param: false,
+            query: false,
+            header: false,
+            body: false,
+            response: false,
+          },
+          generate: {
+            param: true,
+            query: true,
+            header: true,
+            body: true,
+            response: true,
+          },
+          exactOptional: false,
         },
         axios: {
           includeHttpResponseReturnType: false,

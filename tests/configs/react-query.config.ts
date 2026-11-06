@@ -2049,4 +2049,25 @@ export default defineConfig({
       target: '../specifications/issue-4223.yaml',
     },
   },
+  // Hook JSDoc carries the operation's method and path (#4399).
+  docsRoute: {
+    output: {
+      target: '../generated/react-query/docs-route/endpoints.ts',
+      schemas: '../generated/react-query/docs-route/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        query: {
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+          docs: { route: true },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

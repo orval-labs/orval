@@ -41,11 +41,47 @@ import {
   requiresUserSuppliedQueryOptions,
 } from './query-options';
 import {
+  escapeRegExpMetaChars,
   getHasSignal,
   getOperationMetaLiteral,
   getPrefetchCall,
   shouldUseOptionsHook,
 } from './utils';
+
+/**
+ * JSDoc for the generated hooks of an operation: the operation's description,
+ * `@summary` and `@deprecated` (the same block the plain request function
+ * gets), plus an optional `@route METHOD /path` line.
+ */
+export const getHookDoc = ({
+  description,
+  summary,
+  deprecated,
+  route,
+}: {
+  description?: string;
+  summary?: string;
+  deprecated?: boolean;
+  route?: string;
+}): string => {
+  const baseDoc = jsDoc({ description, summary, deprecated });
+  const routeLine = route
+    ? ` * @route ${route.replaceAll('*/', String.raw`*\/`)}\n`
+    : '';
+
+  let doc = baseDoc;
+  if (routeLine) {
+    doc = baseDoc
+      ? // A callback keeps `$&`-style patterns in the path literal.
+        baseDoc.replace(/ \*\/\n$/, () => `${routeLine} */\n`)
+      : `/**\n${routeLine} */\n`;
+  }
+
+  // A block with a single line reads better as `/** ... */`.
+  const singleLine = /^\/\*\*\n \* (.*)\n \*\/\n$/.exec(doc);
+
+  return singleLine ? `/** ${singleLine[1]} */\n` : doc;
+};
 
 /**
  * Decide whether the current operation's configuration conflicts with a
@@ -319,9 +355,6 @@ export const getSuppressedInfiniteQueryWarning = ({
   );
 };
 
-const escapeRegExpMetaChars = (value: string): string =>
-  value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-
 /**
  * Wraps the body parameter's type in a property string with the mutator's
  * `BodyType<T>` envelope so that user-facing Query helpers (hook signature,
@@ -337,6 +370,8 @@ const escapeRegExpMetaChars = (value: string): string =>
  *   - `name: T`                — required body
  *   - `name?: T`               — optional body
  *   - `name: undefined | T`    — `definedInitialData` overload transform
+ *
+ * Each may also be wrapped as `name: MaybeAccessor<…>` by the Solid adapter.
  *
  * `body.definition` is fully regex-escaped so types containing metachars
  * (e.g. `Pet[]`, `Foo | Bar`, anonymous object types) are matched
@@ -358,7 +393,7 @@ export const wrapPropsBodyWithMutatorBodyType = ({
   const bodyDefinitionPattern = escapeRegExpMetaChars(body.definition);
   return propsString.replace(
     new RegExp(
-      String.raw`(\w+\??:\s*(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
+      String.raw`(\w+\??:\s*(?:MaybeAccessor<)?(?:undefined\s*\|\s*)?)${bodyDefinitionPattern}`,
     ),
     `$1${mutator.bodyTypeName}<${body.definition}>`,
   );
@@ -800,7 +835,7 @@ const generateQueryImplementation = ({
   // The override-type overloads end in the same mandatory `options` parameter as
   // the hook, so their props need the same widening (TS1016).
   const queryPropDefinitions = wrapPropsBodyWithMutatorBodyType({
-    propsString: toObjectString(
+    propsString: adapter.getHookPropsDefinitions(
       requiresUserQueryOptions
         ? widenOptionalPropsToUndefined(props, 'definition')
         : props,
@@ -811,7 +846,7 @@ const generateQueryImplementation = ({
   });
   const definedInitialDataQueryPropsDefinitions =
     wrapPropsBodyWithMutatorBodyType({
-      propsString: toObjectString(
+      propsString: adapter.getHookPropsDefinitions(
         widenOptionalPropsToUndefined(props, 'definition'),
         'definition',
       ),
@@ -1135,10 +1170,11 @@ ${hookOptions}
     deprecated,
   });
 
+  // Callers only ever see the overloads, so each one carries the docs.
   const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
   const prefetchContext = {
     usePrefetch,
@@ -1253,7 +1289,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   // Generate query init (e.g. const queryOptions = fn(...) or const http = inject(HttpClient))
   const queryInit = adapter.generateQueryInit({
+    props,
     queryOptionsFnName,
+    queryOptionsVarName,
     queryProperties,
     isRequestOptions,
     mutator,
@@ -1269,6 +1307,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     operationPrefix,
     type,
     queryOptionsVarName,
+    queryOptionsType: queryOptionFnReturnType,
     optionalQueryClientArgument,
   });
 
@@ -1283,8 +1322,7 @@ export type ${pascal(
 export type ${pascal(optionTypeName)}QueryError = ${errorType}
 
 ${adapter.shouldGenerateOverrideTypes() ? overrideTypes : ''}
-${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
+${doc}export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${wrapPropsBodyWithMutatorBodyType(
     {
       propsString: adapter.getHookPropsDefinitions(signatureProps),
       body,
@@ -1365,7 +1403,9 @@ export const generateQueryHook = async (
     response,
     operationId,
     summary,
+    description,
     deprecated,
+    pathRoute,
   } = verbOptions;
   const {
     route,
@@ -1384,7 +1424,14 @@ export const generateQueryHook = async (
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   const httpClient = context.output.httpClient;
-  const doc = jsDoc({ summary, deprecated });
+  const doc = getHookDoc({
+    description,
+    summary,
+    deprecated,
+    route: override.query.docs?.route
+      ? `${verb.toUpperCase()} ${pathRoute}`
+      : undefined,
+  });
 
   let implementation = '';
   let mutators: GeneratorMutator[] | undefined;

@@ -110,21 +110,21 @@ export function applyOrvalRequestExtension(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchPetsResource(
-  searchPetsBody: Signal<SearchPetsBody> | undefined,
+  searchPetsBody: Signal<SearchPetsBody | undefined> | undefined,
   options: OrvalHttpResourceOptions<Pets, unknown> & {
     defaultValue: NoInfer<Pets>;
   },
 ): HttpResourceRef<Pets>;
 export function searchPetsResource(
-  searchPetsBody?: Signal<SearchPetsBody>,
+  searchPetsBody?: Signal<SearchPetsBody | undefined>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined>;
 export function searchPetsResource(
-  searchPetsBody?: Signal<SearchPetsBody>,
+  searchPetsBody?: Signal<SearchPetsBody | undefined>,
   options?: OrvalHttpResourceOptions<Pets, unknown>,
 ): HttpResourceRef<Pets | undefined> {
   return httpResource<Pets>(() => {
-    if (!searchPetsBody) return undefined;
+    if (searchPetsBody?.() === undefined) return undefined;
     const request = {
       url: `/search`,
       method: 'POST',

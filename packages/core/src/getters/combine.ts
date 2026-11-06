@@ -25,7 +25,7 @@ import {
 import { getCombinedEnumValue, hasEnumMetadata, getEnumMembers } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey, getStringLiteralTypeUnion } from './keys';
-import type { FormDataContext } from './object';
+import { type FormDataContext, isClosedEmptyObjectSchema } from './object';
 import { getRefInfo, isComponentRef } from './ref';
 import { getScalar } from './scalar';
 
@@ -60,6 +60,43 @@ function isScalarConst(value: unknown): boolean {
     typeof value === 'number' ||
     typeof value === 'boolean'
   );
+}
+
+/**
+ * A schema part that is intersected with composition siblings — an `allOf`
+ * member (inline or `$ref`), or the parent's own `properties` resolved next to its
+ * `allOf`/`oneOf`/`anyOf` — and that has no declared properties plus
+ * `additionalProperties: false` (or `unevaluatedProperties: false`) would
+ * otherwise render as `{ [key: string]: never }`. Intersecting that with the
+ * siblings turns every sibling property into `never`, although the siblings
+ * are where the real keys come from (and `unevaluatedProperties` counts them
+ * as evaluated). Drop the closed flag for that part and keep the permissive
+ * `{ [key: string]: unknown }` intersection. See #4429.
+ */
+function openClosedEmptyCompositionPart(
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiSchemaObject | OpenApiReferenceObject {
+  // A `$ref` member pointing at a standalone closed empty component would
+  // otherwise intersect with that component's `never` type. Open it locally
+  // by inlining the referenced schema without its closed flag; the component
+  // itself keeps its `never` signature wherever it is used on its own.
+  const target = isInlineSchema(schema)
+    ? schema
+    : derefComponentSchema(schema.$ref, context, new Set());
+  if (
+    target === undefined ||
+    isBooleanJsonSchema(target) ||
+    !isClosedEmptyObjectSchema(target)
+  ) {
+    return schema;
+  }
+  const {
+    additionalProperties: _additionalProperties,
+    unevaluatedProperties: _unevaluatedProperties,
+    ...rest
+  } = target;
+  return rest as OpenApiSchemaObject;
 }
 
 function isMergeableAllOfObject(schema: OpenApiSchemaObject): boolean {
@@ -816,7 +853,10 @@ export function combineSchemas({
     }
 
     const resolvedValue = resolveObject({
-      schema: subSchema,
+      schema:
+        separator === 'allOf'
+          ? openClosedEmptyCompositionPart(subSchema, context)
+          : subSchema,
       propName,
       combined: true,
       context,
@@ -1073,9 +1113,15 @@ export function combineSchemas({
 
   if (normalizedProperties && !isDiscriminatedRefCycle) {
     resolvedValue = getScalar({
-      item: Object.fromEntries(
-        Object.entries(normalizedSchema).filter(([key]) => key !== separator),
-      ),
+      // The parent's own (possibly empty) properties are intersected with the
+      // composition members, which contribute the real keys, so a closed flag
+      // on an empty parent must not render as `{ [key: string]: never }`.
+      item: openClosedEmptyCompositionPart(
+        Object.fromEntries(
+          Object.entries(normalizedSchema).filter(([key]) => key !== separator),
+        ) as OpenApiSchemaObject,
+        context,
+      ) as OpenApiSchemaObject,
       name,
       context,
       formDataContext,

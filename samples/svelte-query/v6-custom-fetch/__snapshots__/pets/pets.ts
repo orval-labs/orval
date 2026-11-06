@@ -179,10 +179,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = unknown;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
@@ -208,9 +205,7 @@ export function createListPets<
   return query;
 }
 
-/**
- * @summary List all pets
- */
+/** @summary List all pets */
 export const prefetchListPetsQuery = async <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
@@ -358,9 +353,7 @@ export type CreatePetsMutationBody = CreatePetsBodyItem[];
 export type CreatePetsMutationError = Error;
 export type CreatePetsMutationVariables = { data: CreatePetsBodyItem[] };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const createCreatePets = <TError = Error, TContext = unknown>(
   options?: () => {
     mutation?: CreateMutationOptions<
@@ -496,9 +489,7 @@ export type UpdatePetsMutationBody = NonReadonly<Pet>;
 export type UpdatePetsMutationError = Error;
 export type UpdatePetsMutationVariables = { data: NonReadonly<Pet> };
 
-/**
- * @summary Update a pet
- */
+/** @summary Update a pet */
 export const createUpdatePets = <TError = Error, TContext = unknown>(
   options?: () => {
     mutation?: CreateMutationOptions<
@@ -600,10 +591,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -629,9 +617,7 @@ export function createShowPetById<
   return query;
 }
 
-/**
- * @summary Info for a specific pet
- */
+/** @summary Info for a specific pet */
 export const prefetchShowPetByIdQuery = async <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,

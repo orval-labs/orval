@@ -6,6 +6,6 @@
  */
 
 export type ListPetsParams = {
-search?: string;
-tags?: string[];
+  search?: string;
+  tags?: string[];
 };

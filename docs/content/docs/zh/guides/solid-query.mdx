@@ -87,6 +87,32 @@ Solid Query 使用 `create` 前缀，而不是 `use`：
 
 生成的 Primitives（原语）遵循 SolidJS 约定，并可与 Solid 的响应式系统无缝协作。
 
+## Signal 响应式
+
+生成的查询原语的每个参数（包括 `options`）都既可以接收普通值，也可以接收访问器（`MaybeAccessor<T>`，即 `T | (() => T)`）。传入 signal 后，它变化时查询会重新执行。Solid 组件函数体只运行一次，因此普通值只会被读取一次，之后不会更新：
+
+```tsx
+const PetDetail = (props: { petId: string }) => {
+  const [enabled, setEnabled] = createSignal(false);
+
+  // props.petId 变化时重新请求
+  const pet = useShowPetById(() => props.petId);
+
+  // 动态启用/禁用
+  const conditionalPet = useShowPetById(
+    () => props.petId,
+    () => ({ query: { enabled: enabled() } }),
+  );
+
+  // 返回的 queryKey 也会跟随当前参数
+  const key = () => pet.queryKey;
+};
+```
+
+使用 `useNamedParameters: true` 时，将整个路径参数对象作为一个访问器传入：`useShowPetById(() => ({ petId: props.petId }))`。
+
+查询键工厂、查询选项工厂及其他辅助函数仍使用普通参数，请传入已解析的值。Mutation 选项同样是普通值。
+
 ## Infinite Queries（无限查询）
 
 生成 Infinite Query Primitives（无限查询原语）：

@@ -395,6 +395,7 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
   noFunction,
   output,
   verbOptions,
+  clientImplementation,
 }) => {
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     output.tsconfig,
@@ -410,7 +411,10 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
 
   const implementation = `
 ${
-  isRequestOptions && isMutator
+  // An operation-level `requestOptions` override can reference the helper
+  // even when the global default is `false` (#4388).
+  (isRequestOptions && isMutator) ||
+  clientImplementation.includes('SecondParameter<')
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }

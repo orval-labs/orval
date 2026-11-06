@@ -67,6 +67,13 @@ const usesClientConfig = (
   mutator: GeneratorVerbOptions['mutator'],
 ) => !!output.override.mutator && !!mutator && !mutator.isHook;
 
+/**
+ * Keeps default-export callbacks stable across operations and distinct from the
+ * operation-local names that trigger the writer's direct mutator imports.
+ */
+const getSharedMutatorAlias = (output: NormalizedOutputOptions) =>
+  `${output.override.mutator?.name ?? 'orval'}Fetcher`;
+
 const getRuntimeImportPath = (
   importer: string,
   output: NormalizedOutputOptions,
@@ -75,6 +82,7 @@ const getRuntimeImportPath = (
   upath.getRelativeImportPath(importer, target) +
   getImportExtension(output.fileExtension, output.tsconfig);
 
+/** Imports the inferred mutator itself so endpoints can specialize its generics. */
 export const getSharedRuntimeImports = (
   { mutator, override, response }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
@@ -97,11 +105,25 @@ export const getSharedRuntimeImports = (
     : runtimePath;
   const hasEnvelope = override.fetch.includeHttpResponseReturnType;
   const hasStream = response.contentTypes.some(isContentTypeNdJson);
+  const inferredMutator =
+    mutator?.inferred && usesClientConfig(output, mutator);
 
   return [
     { name: 'execute', values: true, importPath: executePath },
+    ...(inferredMutator
+      ? [
+          {
+            name: getSharedMutatorAlias(output),
+            values: true,
+            importPath: executePath,
+          },
+        ]
+      : []),
     { name: 'serializeQuery', values: true, importPath: runtimePath },
-    { name: 'CallOptions', importPath: runtimePath },
+    {
+      name: 'CallOptions',
+      importPath: inferredMutator ? executePath : runtimePath,
+    },
     ...(hasEnvelope ? [{ name: 'ResponseOf', importPath: runtimePath }] : []),
     ...(hasEnvelope && hasStream
       ? [{ name: 'Stream', importPath: runtimePath }]
@@ -242,6 +264,10 @@ const getResponseType = ({
   return undefined;
 };
 
+/**
+ * Emits an operation using shared request preparation. Inferred mutators receive
+ * a concrete response type here rather than an unconstrained executor generic.
+ */
 export const generateSharedRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
@@ -496,10 +522,13 @@ export const generateSharedRequestFunction = (
         : `.then(${dateDeserializer.name})`
       : '';
 
+  // An inferred mutator is specialized per operation through the adapter's
+  // fetcher argument instead of `execute`'s type argument.
+  const inferredMutator = hasClientMutator && !!mutator?.inferred;
   const fetchImplementation = `export const ${operationName} = (${toObjectString(props, 'implementation')} options?: CallOptions) =>
-  execute<${resultType}>({
+  execute${inferredMutator ? '' : `<${resultType}>`}({
     ${executeArgs.join(',\n    ')},
-  })${mutatorDateTransform};
+  }${inferredMutator ? `, ${getSharedMutatorAlias(context.output)}<${resultType}>` : ''})${mutatorDateTransform};
 `;
 
   const dateTransformImplementations = [dateDeserializer, requestSerializer]
@@ -540,6 +569,10 @@ export const generateSharedClient = (
   };
 };
 
+/**
+ * Emits the shared runtime and global-mutator adapter, rejecting conflicting
+ * inference settings before endpoints can reference incompatible adapter types.
+ */
 export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
   verbOptions,
   output,
@@ -565,10 +598,21 @@ export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
     },
   ];
 
-  const mutator = Object.values(verbOptions).find(
-    (verb) => verb.mutator,
+  const mutator = Object.values(verbOptions).find((verb) =>
+    usesClientConfig(output, verb.mutator),
   )?.mutator;
   if (output.override.mutator && mutator && !mutator.isHook) {
+    if (
+      Object.values(verbOptions).some(
+        ({ mutator: operationMutator }) =>
+          usesClientConfig(output, operationMutator) &&
+          !!operationMutator?.inferred !== !!mutator.inferred,
+      )
+    ) {
+      throw new Error(
+        'Shared fetch runtime requires consistent mutator inferred settings across operations.',
+      );
+    }
     const mutatorPath = getImport(
       clientConfigOutputPath,
       output.override.mutator,
@@ -586,6 +630,9 @@ export const generateFetchExtraFiles: ClientExtraFilesBuilder = (
           ),
           mutatorImport: `import ${mutator.default ? mutator.name : `{ ${mutator.name} }`} from '${mutatorPath}';\n`,
           mutatorName: mutator.name,
+          inferred: mutator.inferred,
+          hasSecondArg: mutator.hasSecondArg,
+          mutatorAlias: getSharedMutatorAlias(output),
         }),
     });
   }

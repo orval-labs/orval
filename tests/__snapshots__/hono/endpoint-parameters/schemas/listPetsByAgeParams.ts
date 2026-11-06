@@ -6,9 +6,7 @@
  */
 
 export type ListPetsByAgeParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: string;
   /**
    * Filter by latest birthdate.

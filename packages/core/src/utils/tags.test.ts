@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { kebab } from './case';
-import { getOperationTagKey, getTagKey, isOperationInTagBucket } from './tags';
+import {
+  getOperationTagKey,
+  getTagKey,
+  getTagOverride,
+  isOperationInTagBucket,
+} from './tags';
 
 describe('getTagKey', () => {
   it('kebab-cases a simple tag', () => {
@@ -89,5 +94,33 @@ describe('isOperationInTagBucket', () => {
   it('places untagged operations in the default bucket', () => {
     expect(isOperationInTagBucket({ tags: [] }, 'default')).toBe(true);
     expect(isOperationInTagBucket({ tags: [] }, 'pets')).toBe(false);
+  });
+});
+
+describe('getTagOverride', () => {
+  it('matches spec-spelled config keys against the canonical bucket key', () => {
+    const adminUsers = {};
+    expect(
+      getTagOverride(
+        { 'Admin Users': adminUsers },
+        getOperationTagKey({ tags: ['Admin Users'] }),
+      ),
+    ).toBe(adminUsers);
+  });
+
+  it('does not match a punctuation-only tag bucket to the `default` entry', () => {
+    const defaultOverride = {};
+    const dashOverride = {};
+    const bucketKey = getOperationTagKey({ tags: ['-'] });
+
+    expect(getTagOverride({ default: defaultOverride }, bucketKey)).toBe(
+      undefined,
+    );
+    expect(
+      getTagOverride(
+        { default: defaultOverride, '-': dashOverride },
+        bucketKey,
+      ),
+    ).toBe(dashOverride);
   });
 });

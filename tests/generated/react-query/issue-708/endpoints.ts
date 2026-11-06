@@ -234,7 +234,6 @@ export function useGetListInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetListInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof getList>>,
@@ -365,7 +364,6 @@ export function useGetList<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetList<
   TData = Awaited<ReturnType<typeof getList>>,
   TError = unknown,

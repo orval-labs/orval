@@ -885,7 +885,10 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) => {
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
   }
   ${
-    params.isRequestOptions && params.isMutator
+    // An operation-level `requestOptions` override can reference the helper
+    // even when the global default is `false` (#4388).
+    (params.isRequestOptions && params.isMutator) ||
+    params.clientImplementation.includes('SecondParameter<')
       ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
       : ''
   }

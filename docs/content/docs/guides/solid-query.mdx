@@ -87,6 +87,38 @@ Solid Query uses the `create` prefix instead of `use`:
 
 The generated primitives follow SolidJS conventions and work seamlessly with Solid's reactivity system.
 
+## Signal Reactivity
+
+Every parameter of a generated query primitive, including `options`, accepts either a
+plain value or an accessor (`MaybeAccessor<T>`, i.e. `T | (() => T)`). Pass a signal and
+the query re-runs when it changes. A Solid component body runs only once, so a plain
+value is read once and never updates:
+
+```tsx
+const PetDetail = (props: { petId: string }) => {
+  const [enabled, setEnabled] = createSignal(false);
+
+  // Refetches whenever props.petId changes
+  const pet = useShowPetById(() => props.petId);
+
+  // Dynamic enabled/disabled
+  const conditionalPet = useShowPetById(
+    () => props.petId,
+    () => ({ query: { enabled: enabled() } }),
+  );
+
+  // The returned queryKey follows the current parameters too
+  const key = () => pet.queryKey;
+};
+```
+
+With `useNamedParameters: true`, pass the whole path parameters object as one accessor:
+`useShowPetById(() => ({ petId: props.petId }))`.
+
+The query key factories, query options factories and the other helpers keep plain
+parameters, so call them with already-resolved values. Mutation options are plain values
+too.
+
 ## Infinite Queries
 
 Generate infinite query primitives:

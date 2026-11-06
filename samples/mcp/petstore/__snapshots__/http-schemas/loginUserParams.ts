@@ -14,12 +14,8 @@
  */
 
 export type LoginUserParams = {
-  /**
-   * The user name for login
-   */
+  /** The user name for login */
   username?: string;
-  /**
-   * The password for login in clear text
-   */
+  /** The password for login in clear text */
   password?: string;
 };

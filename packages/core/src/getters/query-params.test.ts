@@ -135,7 +135,7 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.schema.model.trim()).toBe(
-        `export type Params = {\n${parameter.name}${
+        `export type Params = {\n  ${parameter.name}${
           optional ? '?' : ''
         }: string;\n};`,
       );
@@ -201,7 +201,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      'export type Params = {\nfilter?: string;\n};',
+      'export type Params = {\n  filter?: string;\n};',
     );
   });
 
@@ -226,10 +226,40 @@ describe('getQueryParams getter', () => {
     expect(result?.schema.model.trim()).toBe(
       [
         'export type Params = {',
-        '/**',
-        ' * Parameter description.',
-        ' */',
-        'queryParamWithDescription?: string;',
+        '  /** Parameter description. */',
+        '  queryParamWithDescription?: string;',
+        '};',
+      ].join('\n'),
+    );
+  });
+
+  it('renders multi-line query param docs indented like schema properties (issue #4385)', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'limit',
+            in: 'query',
+            description: 'How many items to return.',
+            schema: {
+              type: 'integer',
+              minimum: 1,
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+    expect(result?.schema.model.trim()).toBe(
+      [
+        'export type Params = {',
+        '  /**',
+        '   * How many items to return.',
+        '   * @minimum 1',
+        '   */',
+        '  limit?: number;',
         '};',
       ].join('\n'),
     );
@@ -289,10 +319,8 @@ describe('getQueryParams getter', () => {
     expect(result?.schema.model.trim()).toBe(
       [
         'export type GetItemsParams = {',
-        '/**',
-        ' * Complex filtering criteria',
-        ' */',
-        'where?: WhereParameter;',
+        '  /** Complex filtering criteria */',
+        '  where?: WhereParameter;',
         '};',
       ].join('\n'),
     );
@@ -326,7 +354,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\naffiliations?: string | null;\n};`,
+      `export type Params = {\n  affiliations?: string | null;\n};`,
     );
   });
 
@@ -355,7 +383,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\nstatus?: Status;\n};`,
+      `export type Params = {\n  status?: Status;\n};`,
     );
 
     const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
@@ -393,7 +421,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\nstatus?: Status;\n};`,
+      `export type Params = {\n  status?: Status;\n};`,
     );
 
     const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
@@ -436,7 +464,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\n/**\n * @nullable\n */\nstatus?: Status | null;\n};`,
+      `export type Params = {\n  /** @nullable */\n  status?: Status | null;\n};`,
     );
 
     const statusEnum = result?.deps.find((schema) => schema.name === 'Status');
@@ -467,7 +495,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\npriority?: Priority;\n};`,
+      `export type Params = {\n  priority?: Priority;\n};`,
     );
 
     const priorityEnum = result?.deps.find((s) => s.name === 'Priority');
@@ -516,7 +544,7 @@ describe('getQueryParams getter', () => {
     // The param should reference the existing Status type (with null), not
     // a freshly extracted inline enum named after the parameter.
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\nstatus?: Status | null;\n};`,
+      `export type Params = {\n  status?: Status | null;\n};`,
     );
     // No parameter-scoped enum should be emitted.
     expect(result?.deps.find((s) => s.name === 'Status')).toBeUndefined();
@@ -545,7 +573,7 @@ describe('getQueryParams getter', () => {
     });
 
     expect(result?.schema.model.trim()).toBe(
-      `export type Params = {\nstatus?: 'new' | 'in_progress' | string;\n};`,
+      `export type Params = {\n  status?: 'new' | 'in_progress' | string;\n};`,
     );
     // No named Status type should be emitted for this case.
     expect(result?.deps.find((s) => s.name === 'Status')).toBeUndefined();
@@ -1127,7 +1155,7 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.schema.model.trim()).toBe(
-        `export type Headers = {\n'Content-Type'?: ContentTypeHeader;\n};`,
+        `export type Headers = {\n  'Content-Type'?: ContentTypeHeader;\n};`,
       );
     });
 
@@ -1153,7 +1181,7 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.schema.model.trim()).toBe(
-        `export type Headers = {\n'Content-Type'?: string;\n};`,
+        `export type Headers = {\n  'Content-Type'?: string;\n};`,
       );
     });
   });

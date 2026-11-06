@@ -16,10 +16,12 @@ import type * as TS from 'typescript';
  */
 
 /**
- * `typescript` is an optional peer dependency, imported lazily. Consumers who do
- * not have it installed — and every non-hono or `skip` code path — never trigger
- * the import; `smart`/`full` fall back to `skip` when it is unavailable. Loading
- * the consumer's own typescript also avoids shipping a second copy of it.
+ * `typescript` is a regular dependency (pinned to a release that still ships the
+ * JS compiler API, like `@orval/zod`), imported lazily so every non-hono or
+ * `skip` code path never pays for loading it. It is not resolved from the
+ * consumer's project: TypeScript 7 (the native port) no longer exposes
+ * `createSourceFile`/`ScriptTarget` from its main entry. If the resolved module
+ * still lacks the compiler API, `smart`/`full` fail generation.
  */
 let ts!: typeof TS;
 let typeScriptAvailable: boolean | undefined;
@@ -29,7 +31,10 @@ export const ensureTypeScript = async (): Promise<boolean> => {
     try {
       const mod = await import('typescript');
       ts = (mod as unknown as { default?: typeof TS }).default ?? mod;
-      typeScriptAvailable = true;
+      const api = ts as Partial<typeof TS>;
+      typeScriptAvailable =
+        typeof api.createSourceFile === 'function' &&
+        api.ScriptTarget !== undefined;
     } catch {
       typeScriptAvailable = false;
     }

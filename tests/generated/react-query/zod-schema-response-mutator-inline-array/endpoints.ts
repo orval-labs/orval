@@ -158,7 +158,6 @@ export function useListItems<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListItems<
   TData = Awaited<ReturnType<typeof listItems>>,
   TError = unknown,
@@ -299,7 +298,6 @@ export function useListNamedItems<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListNamedItems<
   TData = Awaited<ReturnType<typeof listNamedItems>>,
   TError = unknown,
@@ -438,7 +436,6 @@ export function useListStrings<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListStrings<
   TData = Awaited<ReturnType<typeof listStrings>>,
   TError = unknown,
@@ -579,7 +576,6 @@ export function useGetItem<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetItem<
   TData = Awaited<ReturnType<typeof getItem>>,
   TError = unknown,
@@ -738,7 +734,6 @@ export function useListMultiContent<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListMultiContent<
   TData = Awaited<ReturnType<typeof listMultiContent>>,
   TError = unknown,

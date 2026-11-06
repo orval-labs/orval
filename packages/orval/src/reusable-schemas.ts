@@ -82,6 +82,8 @@ export interface GenerateReusableSchemaSetOptions {
   generateMeta?: boolean;
   /** Emit `.exactOptional()` for optional properties (zod v4). See `ZodOptions.exactOptional`. */
   exactOptional?: boolean;
+  /** Whether the installed Zod has `zod.xor` (see `supportsZodXor`), for `generateXor`. */
+  hasZodXor?: boolean;
   /** Custom validators matched by OpenAPI schema type and format. */
   schemaExtension?: SchemaExtension;
   /**
@@ -180,6 +182,7 @@ export const generateReusableSchemaSet = (
         : undefined,
       options.variant,
       options.exactOptional,
+      options.hasZodXor,
     );
 
     entries.push({

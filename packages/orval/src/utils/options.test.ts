@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { noopReporter, withReporter } from '@orval/core';
+import { mergeDeep, noopReporter, withReporter } from '@orval/core';
 import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
 import {
   afterEach,
@@ -1300,6 +1300,49 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('keeps only explicit query docs fields on tag and operation overrides (#4399)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              query: { docs: { route: true } },
+              tags: {
+                pets: { query: { docs: { route: false } } },
+              },
+              operations: {
+                listPets: { query: { useInfinite: true } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query.docs).toEqual({ route: true });
+      expect(normalized.output.override.tags.pets?.query?.docs).toEqual({
+        route: false,
+      });
+      // Not copied from the output level, so the later output → tag →
+      // operation merge keeps the tag's `route: false`.
+      expect(
+        normalized.output.override.operations.listPets?.query?.docs,
+      ).toBeUndefined();
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('normalizes an explicit angular queryObjectSerialization: legacy override', async () => {
     const workspace = await createTempWorkspace();
 
@@ -1453,6 +1496,110 @@ describe('normalizeOptions', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  it('falls back to the global angular provideIn on tag overrides that omit it (issue #4425)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              angular: {
+                provideIn: 'any',
+              },
+              tags: {
+                Public: {
+                  angular: {
+                    provideIn: false,
+                  },
+                },
+                Users: {
+                  angular: {
+                    queryObjectSerialization: 'legacy',
+                  },
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.tags.Public?.angular?.provideIn).toBe(
+        false,
+      );
+      expect(normalized.output.override.tags.Users?.angular?.provideIn).toBe(
+        'any',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  describe('override.tags keys that resolve to the same tag bucket', () => {
+    const normalizeWithTags = async (
+      client: 'angular' | 'fetch',
+      mode: 'single' | 'tags' | 'tags-split' | 'tags-operations',
+    ) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              target: './generated.ts',
+              client,
+              mode,
+              override: {
+                tags: {
+                  'Pet Store': { angular: { provideIn: false } },
+                  'pet-store': { angular: { provideIn: 'root' } },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it.each(['tags', 'tags-split', 'tags-operations'] as const)(
+      'rejects them for the angular client in %s mode',
+      async (mode) => {
+        await expect(normalizeWithTags('angular', mode)).rejects.toThrow(
+          /`override\.tags\["Pet Store"\]` and `override\.tags\["pet-store"\]` both resolve to the "pet-store" tag/,
+        );
+      },
+    );
+
+    it('accepts them outside tag modes', async () => {
+      await expect(
+        normalizeWithTags('angular', 'single'),
+      ).resolves.toBeDefined();
+    });
+
+    it('accepts them for other clients', async () => {
+      await expect(normalizeWithTags('fetch', 'tags')).resolves.toBeDefined();
+    });
   });
 
   it('normalizes schemas: false to undefined', async () => {
@@ -3206,6 +3353,52 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.effect.strict.body).toBe(false);
       expect(normalized.output.override.effect.useBrandedTypes).toBe(false);
       expect(normalized.output.override.effect.version).toBe('auto');
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps global valibot settings when an operation override sets only some', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'valibot',
+            override: {
+              valibot: { exactOptional: true, generate: { body: false } },
+              operations: {
+                listPets: { valibot: { strict: { query: true } } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      const { override } = normalized.output;
+      expect(override.valibot.exactOptional).toBe(true);
+      expect(override.valibot.generate.body).toBe(false);
+      expect(override.valibot.generate.response).toBe(true);
+      expect(override.operations.listPets?.valibot).toEqual({
+        strict: { query: true },
+      });
+
+      const merged = mergeDeep(override, override.operations.listPets ?? {});
+      expect(merged.valibot).toEqual({
+        strict: { ...override.valibot.strict, query: true },
+        generate: override.valibot.generate,
+        exactOptional: true,
+      });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }

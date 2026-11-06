@@ -566,7 +566,7 @@ function isNamedReExportOf(line: string, specifier: string): boolean {
 function isSchemaValidatorClient(
   client: NormalizedOptions['output']['client'],
 ): boolean {
-  return client === 'zod' || client === 'effect';
+  return client === 'zod' || client === 'effect' || client === 'valibot';
 }
 
 function shouldGenerateZodSchemasInline(
@@ -627,6 +627,11 @@ function getImplementationPathsForIndex(
   // should not be re-exported — the implementation already imports from it.
   // Only exclude the auto-generated sibling derived from the target stem;
   // a user-configured output.schemas dir is a separate concern.
+  // A schemas-only output has no target and so no target-derived files.
+  if (!output.target) {
+    return paths;
+  }
+
   const isSplitModeWithColocatedTarget =
     shouldExcludeSelf &&
     output.mode === OutputMode.SPLIT &&

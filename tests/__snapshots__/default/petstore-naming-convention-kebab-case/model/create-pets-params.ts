@@ -7,9 +7,7 @@
 import type { CreatePetsSort } from './create-pets-sort';
 
 export type CreatePetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
+  /** How many items to return at one time (max 100) */
   limit?: string;
   /**
    * Which property to sort by?

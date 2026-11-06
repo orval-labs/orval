@@ -6,12 +6,15 @@ import { styleText } from 'node:util';
 
 import {
   type AngularBaseUrlOptions,
+  type AngularOptions,
   type ConfigExternal,
   type EffectOptions,
+  type ValibotOptions,
   FormDataArrayHandling,
   type FakerMockOptions,
   type GlobalMockOptions,
   getFileInfo,
+  getTagKey,
   type GlobalOptions,
   type HonoOptions,
   type Hook,
@@ -35,6 +38,7 @@ import {
   type Mutator,
   NamingConvention,
   type NormalizedEffectOptions,
+  type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
@@ -533,6 +537,28 @@ function isPackageSpecifierCandidate(
   }
 }
 
+function normalizeValibotOptions(
+  valibot?: ValibotOptions,
+): NormalizedValibotOptions {
+  return {
+    strict: {
+      param: valibot?.strict?.param ?? false,
+      query: valibot?.strict?.query ?? false,
+      header: valibot?.strict?.header ?? false,
+      body: valibot?.strict?.body ?? false,
+      response: valibot?.strict?.response ?? false,
+    },
+    generate: {
+      param: valibot?.generate?.param ?? true,
+      query: valibot?.generate?.query ?? true,
+      header: valibot?.generate?.header ?? true,
+      body: valibot?.generate?.body ?? true,
+      response: valibot?.generate?.response ?? true,
+    },
+    exactOptional: valibot?.exactOptional ?? false,
+  };
+}
+
 function normalizeEffectOptions(
   effect?: EffectOptions,
 ): NormalizedEffectOptions {
@@ -843,7 +869,9 @@ export async function normalizeOptions(
       parserOptions: inputOptions.parserOptions,
     },
     output: {
-      target: outputTarget,
+      // Unset only for schemas-only outputs (validated below); the API builder
+      // and writers check for it before generating operations.
+      target: outputTarget as string,
       schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
       operationSchemas: outputOptions.operationSchemas
         ? normalizePath(outputOptions.operationSchemas, outputWorkspace)
@@ -899,6 +927,7 @@ export async function normalizeOptions(
           outputWorkspace,
           {
             query: globalQueryOptions,
+            angularProvideIn: outputOptions.override?.angular?.provideIn,
           },
           'operations',
           resolveTsconfigPath,
@@ -908,6 +937,7 @@ export async function normalizeOptions(
           outputWorkspace,
           {
             query: globalQueryOptions,
+            angularProvideIn: outputOptions.override?.angular?.provideIn,
           },
           'tags',
           resolveTsconfigPath,
@@ -1072,6 +1102,7 @@ export async function normalizeOptions(
           generateMeta: outputOptions.override?.zod?.generateMeta ?? false,
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
+          generateXor: outputOptions.override?.zod?.generateXor ?? false,
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
           generateCompanionTypes:
             outputOptions.override?.zod?.generateCompanionTypes ?? false,
@@ -1081,6 +1112,7 @@ export async function normalizeOptions(
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         effect: normalizeEffectOptions(outputOptions.override?.effect),
+        valibot: normalizeValibotOptions(outputOptions.override?.valibot),
         swr: {
           generateErrorTypes: false,
           ...outputOptions.override?.swr,
@@ -1287,6 +1319,30 @@ export async function normalizeOptions(
           `\`override.tags["${offendingTag}"].paramsFilter\` is only supported by the Angular generator (the \`angular\` client, or \`angular-query\` with \`httpClient: 'angular'\`). It has no effect for other clients — use \`override.paramsSerializer\` instead.`,
         ),
       );
+    }
+  }
+
+  // In tag modes the Angular service class of a tag bucket reads its
+  // `provideIn` from the `override.tags` entry whose key maps to that bucket.
+  // Two keys mapping to the same bucket (`Pet Store` and `pet-store`) would
+  // make that pick depend on key order, so reject the config instead.
+  if (
+    normalizedOptions.output.client === OutputClient.ANGULAR &&
+    tagBucketModes.has(normalizedOptions.output.mode)
+  ) {
+    const tagKeyOwners = new Map<string, string>();
+    for (const tag of Object.keys(normalizedOptions.output.override.tags)) {
+      const tagKey = getTagKey(tag);
+      const owner = tagKeyOwners.get(tagKey);
+      if (owner !== undefined) {
+        throw new Error(
+          styleText(
+            'red',
+            `\`override.tags["${owner}"]\` and \`override.tags["${tag}"]\` both resolve to the "${tagKey}" tag. Keep a single entry per tag.`,
+          ),
+        );
+      }
+      tagKeyOwners.set(tagKey, tag);
     }
   }
 
@@ -1510,6 +1566,7 @@ const unsupportedZodKeys = [
   'generateReusableSchemas',
   'generateMeta',
   'generateDiscriminatedUnion',
+  'generateXor',
   'exactOptional',
 ] as const satisfies readonly Exclude<
   keyof ZodOptions,
@@ -1526,11 +1583,19 @@ const supportedZodKeysLabel = `${operationZodOverrideKeys
   .slice(0, -1)
   .join(', ')}, and ${operationZodOverrideKeys.at(-1)}`;
 
+const tagBucketModes = new Set<OutputMode>([
+  OutputMode.TAGS,
+  OutputMode.TAGS_SPLIT,
+  OutputMode.TAGS_OPERATIONS,
+  OutputMode.TAGS_OPERATIONS_SPLIT,
+]);
+
 function normalizeOperationsAndTags(
   operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
   global: {
     query: NormalizedQueryOptions;
+    angularProvideIn?: AngularOptions['provideIn'];
   },
   source: 'operations' | 'tags',
   resolveTsconfigPath?: TsconfigPathsResolver,
@@ -1550,6 +1615,7 @@ function normalizeOperationsAndTags(
           angular,
           zod,
           effect,
+          valibot,
           ...rest
         },
       ]) => {
@@ -1596,7 +1662,10 @@ function normalizeOperationsAndTags(
             ...(angular
               ? {
                   angular: {
-                    provideIn: angular.provideIn ?? 'root',
+                    // Fall back to the output-level value rather than 'root',
+                    // so a tag block that omits it keeps the global setting.
+                    provideIn:
+                      angular.provideIn ?? global.angularProvideIn ?? 'root',
                     client:
                       angular.retrievalClient ?? angular.client ?? 'httpClient',
                     runtimeValidation: normalizeAngularRuntimeValidation(
@@ -1716,6 +1785,8 @@ function normalizeOperationsAndTags(
                 }
               : {}),
             ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
+            // Kept partial so the deep merge only overrides what is set.
+            ...(valibot ? { valibot } : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
@@ -1894,6 +1965,12 @@ function normalizeQueryOptions(
     ...(isNullish(queryOptions.useSkipToken)
       ? {}
       : { useSkipToken: queryOptions.useSkipToken }),
+    // Only explicit fields: tag and operation overrides inherit through the
+    // output → tag → operation deep merge, so copying `globalOptions.docs`
+    // here would let the output value override a tag-level setting.
+    ...(isNullish(queryOptions.docs?.route)
+      ? {}
+      : { docs: { route: queryOptions.docs.route } }),
     ...(isNullish(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),

@@ -3,6 +3,7 @@ import {
   buildSchemaTagMap,
   createSchemaOutputPlanForOutput,
   type ContextSpec,
+  generateVerbImports,
   generateVerbsOptions,
   getOperationUrlHelperNames,
   type GeneratorApiBuilder,
@@ -84,12 +85,12 @@ export async function getApiBuilder({
   }> = [];
   const reservedOperationNames = new Set<string>();
   const reservedTypeNames = new Set<string>();
-  // Angular `httpClient` in `tags`/`tags-split` mode renders one service
-  // class per tag, so its method names only need per-tag uniqueness. Every
-  // other client/mode emits module-level names and keeps the global set.
+  // Angular in `tags`/`tags-split` mode renders one service class per tag, so
+  // its method names only need per-tag uniqueness. Its module-level
+  // `httpResource` functions are named from the globally reserved `typeName`.
+  // Every other client/mode emits module-level names and keeps the global set.
   const reservedMethodNamesByTag =
     output.client === OutputClient.ANGULAR &&
-    output.override.angular.client === 'httpClient' &&
     (output.mode === OutputMode.TAGS || output.mode === OutputMode.TAGS_SPLIT)
       ? new Map<string, Set<string>>()
       : undefined;
@@ -197,8 +198,16 @@ export async function getApiBuilder({
         resolvedVerbs.servers ?? context.spec.servers,
         output.baseUrl,
       );
+      acc.schemas.push(...schemas);
+      for (const verbOption of resolvedVerbOptions) {
+        acc.verbOptions[verbOption.operationId] = verbOption;
+        acc.operationVerbOptions?.push(verbOption);
+      }
+
+      // `schemas` without `target` is a schemas-only output: keep the
+      // operation-derived schemas and verb options but emit no operations.
       if (!output.target) {
-        throw new Error('Output does not have a target');
+        return acc;
       }
       const pathOperations = await generateOperations(
         output.client,
@@ -213,11 +222,6 @@ export async function getApiBuilder({
         output,
       );
 
-      for (const verbOption of resolvedVerbOptions) {
-        acc.verbOptions[verbOption.operationId] = verbOption;
-        acc.operationVerbOptions?.push(verbOption);
-      }
-      acc.schemas.push(...schemas);
       for (const [key, value] of Object.entries(pathOperations)) {
         let operationKey = key;
         let counter = 1;
@@ -242,10 +246,17 @@ export async function getApiBuilder({
   const schemaTagMap =
     isObject(output.schemas) && output.schemas.splitByTags
       ? buildSchemaTagMap(
-          Object.values(api.operations).map((operation) => ({
-            imports: operation.imports,
-            tags: operation.tags,
-          })),
+          // A schemas-only output has no operations; their verb imports carry
+          // the same schema references.
+          output.target
+            ? Object.values(api.operations).map((operation) => ({
+                imports: operation.imports,
+                tags: operation.tags,
+              }))
+            : (api.operationVerbOptions ?? []).map((verbOption) => ({
+                imports: generateVerbImports(verbOption),
+                tags: verbOption.tags,
+              })),
           [...componentSchemas, ...api.schemas],
         )
       : undefined;
@@ -259,14 +270,18 @@ export async function getApiBuilder({
     schemaTagMap,
   );
 
-  const extraFiles = await generateExtraFiles(
-    output.client,
-    api.verbOptions,
-    output,
-    context,
-    schemaTagMap,
-    schemaOutputPlan,
-  );
+  // Client extra files sit next to the operations, which a schemas-only
+  // output does not emit.
+  const extraFiles = output.target
+    ? await generateExtraFiles(
+        output.client,
+        api.verbOptions,
+        output,
+        context,
+        schemaTagMap,
+        schemaOutputPlan,
+      )
+    : [];
 
   return {
     operations: api.operations,

@@ -229,24 +229,25 @@ export const PatchPetByIdAccept = {
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function searchPetsResource(
-  params: Signal<SearchPetsParams>,
+  params: Signal<SearchPetsParams | undefined>,
   version: Signal<number> | undefined,
   options: OrvalHttpResourceOptions<PetsOutput, unknown, true> & {
     defaultValue: NoInfer<PetsOutput>;
   },
 ): HttpResourceRef<PetsOutput>;
 export function searchPetsResource(
-  params: Signal<SearchPetsParams>,
+  params: Signal<SearchPetsParams | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined>;
 export function searchPetsResource(
-  params: Signal<SearchPetsParams>,
+  params: Signal<SearchPetsParams | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<PetsOutput, unknown, true>,
 ): HttpResourceRef<PetsOutput | undefined> {
   return httpResource<PetsOutput>(
     () => {
+      if (params() === undefined) return undefined;
       const request = {
         url: `/v${version?.() ?? 1}/search`,
         params: filterParams(
@@ -397,28 +398,30 @@ export function showPetByIdResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function showPetTextResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   version: Signal<number> | undefined,
   options: OrvalHttpResourceOptions<string, string, true> & {
     defaultValue: NoInfer<string>;
   },
 ): HttpResourceRef<string>;
 export function showPetTextResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<string, string, true>,
 ): HttpResourceRef<string | undefined>;
 export function showPetTextResource(
-  petId: Signal<string>,
+  petId: Signal<string | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<string, string, true>,
 ): HttpResourceRef<string | undefined> {
   return httpResource.text<string>(
     () =>
-      applyOrvalRequestExtension(
-        `/v${version?.() ?? 1}/pets/${petId()}/text`,
-        options,
-      ),
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(
+            `/v${version?.() ?? 1}/pets/${petId()}/text`,
+            options,
+          ),
     options,
   );
 }
@@ -427,28 +430,30 @@ export function showPetTextResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function downloadFileResource(
-  petId: Signal<number>,
+  petId: Signal<number | undefined>,
   version: Signal<number> | undefined,
   options: OrvalHttpResourceOptions<Blob, Blob, true> & {
     defaultValue: NoInfer<Blob>;
   },
 ): HttpResourceRef<Blob>;
 export function downloadFileResource(
-  petId: Signal<number>,
+  petId: Signal<number | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<Blob, Blob, true>,
 ): HttpResourceRef<Blob | undefined>;
 export function downloadFileResource(
-  petId: Signal<number>,
+  petId: Signal<number | undefined>,
   version?: Signal<number>,
   options?: OrvalHttpResourceOptions<Blob, Blob, true>,
 ): HttpResourceRef<Blob | undefined> {
   return httpResource.blob<Blob>(
     () =>
-      applyOrvalRequestExtension(
-        `/v${version?.() ?? 1}/pet/${petId()}/downloadImage`,
-        options,
-      ),
+      petId() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(
+            `/v${version?.() ?? 1}/pet/${petId()}/downloadImage`,
+            options,
+          ),
     options,
   );
 }

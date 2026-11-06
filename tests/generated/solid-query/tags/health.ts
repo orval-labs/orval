@@ -63,6 +63,11 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
+type MaybeAccessor<T> = T | (() => T);
+
+const resolveAccessor = <T>(value: MaybeAccessor<T>): T =>
+  typeof value === 'function' ? (value as () => T)() : value;
+
 export type healthCheckResponse200 = {
   data: string;
   status: 200;
@@ -146,11 +151,12 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  options: {
+  options: MaybeAccessor<{
     query: Omit<
       Partial<
         SolidQueryOptions<
@@ -172,16 +178,17 @@ export function useHealthCheck<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  options?: {
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -203,16 +210,17 @@ export function useHealthCheck<
         'initialData'
       >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  options?: {
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -224,20 +232,17 @@ export function useHealthCheck<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary health check
- */
-
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
 >(
-  options?: {
+  options?: MaybeAccessor<{
     query?: Omit<
       Partial<
         SolidQueryOptions<
@@ -249,17 +254,19 @@ export function useHealthCheck<
       'initialData'
     >;
     fetch?: RequestInit;
-  },
+  }>,
   queryClient?: () => QueryClient,
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getHealthCheckQueryOptions(options);
+  const queryOptions = () =>
+    getHealthCheckQueryOptions(resolveAccessor(options));
 
-  const query = useQuery(
-    () => getHealthCheckQueryOptions(options),
-    queryClient,
-  );
+  const query = useQuery(queryOptions, queryClient);
 
-  return mergeProps(query, { queryKey: queryOptions.queryKey }) as any;
+  return mergeProps(query, {
+    get queryKey() {
+      return queryOptions().queryKey;
+    },
+  }) as any;
 }

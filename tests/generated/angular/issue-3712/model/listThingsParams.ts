@@ -6,13 +6,9 @@
  */
 
 export type ListThingsParams = {
-  /**
-   * @nullable
-   */
+  /** @nullable */
   cursor: string | null;
-  /**
-   * @nullable
-   */
+  /** @nullable */
   optionalNullable?: string | null;
   limit: number;
 };

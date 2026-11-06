@@ -327,6 +327,7 @@ ${lines.join('\n')}
 const UNTYPED_CLIENTS = new Set<string>([
   OutputClient.ZOD,
   OutputClient.EFFECT,
+  OutputClient.VALIBOT,
 ]);
 
 /**

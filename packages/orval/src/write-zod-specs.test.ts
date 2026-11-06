@@ -1336,6 +1336,59 @@ describe('writeZodSchemas with generateReusableSchemas', () => {
     await fs.promises.rm(root, { recursive: true, force: true });
   });
 
+  it('keeps int64 as number in the recursive TS type when useBigInt is on (#4390)', async () => {
+    // The zod generator maps every integer to `zod.int()`, so the pinned TS
+    // type must say `number` too or `zod.ZodType<Node>` fails to typecheck.
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reuse-bigint-'),
+    );
+    const schemasPath = path.join(root, 'schemas');
+
+    const builder = {
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+        components: {
+          schemas: {
+            Node: {
+              type: 'object',
+              properties: {
+                id: { type: 'integer', format: 'int64' },
+                child: { $ref: '#/components/schemas/Node' },
+              },
+            },
+          },
+        },
+      },
+      target: '',
+      schemas: [
+        { name: 'Node', schema: { $ref: '#/components/schemas/Node' } },
+      ],
+    } satisfies Parameters<typeof writeZodSchemas>[0];
+
+    const options = {
+      ...createOutputOptions(),
+      schemas: { path: schemasPath, type: 'zod' },
+    } as Parameters<typeof writeZodSchemas>[4];
+    options.override.zod.generateReusableSchemas = true;
+    Object.assign(options.override, { useBigInt: true });
+
+    try {
+      await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+
+      const nodeContent = await fs.promises.readFile(
+        path.join(schemasPath, 'Node.ts'),
+        'utf8',
+      );
+
+      expect(nodeContent).toContain('export const Node: zod.ZodType<Node> = ');
+      expect(nodeContent).toMatch(/id\?: number;/);
+      expect(nodeContent).not.toContain('bigint');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('emits the implicit sub-model an inline nested object hoists in a recursive schema', async () => {
     // A recursive schema (self-loop via `next`) takes the explicit
     // `zod.ZodType<T>` path, whose TS body is hand-written from

@@ -1390,7 +1390,9 @@ function resolveSchemaPropertiesToFormData({
     const propType = getSchemaType(property);
     if (
       (Array.isArray(propType) && propType.includes('null')) ||
-      existSubSchemaNullable
+      existSubSchemaNullable ||
+      // `useNullForOptional` types optional properties as `T | null`.
+      (!isRequired && context.output.override.useNullForOptional === true)
     ) {
       if (isRequired) {
         formDataValues += `if(${valueKey} !== null) {\n ${formDataValue} }\n`;

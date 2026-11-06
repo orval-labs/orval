@@ -224,7 +224,6 @@ export function useSearchElementsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useSearchElementsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof searchElements>>,
@@ -354,7 +353,6 @@ export function useSearchElements<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useSearchElements<
   TData = Awaited<ReturnType<typeof searchElements>>,
   TError = ErrorType<unknown>,
@@ -506,7 +504,6 @@ export function useSearchElementsSuspenseInfinite<
 ): UseSuspenseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useSearchElementsSuspenseInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof searchElements>>,
@@ -724,7 +721,6 @@ export function useSearchGroupElementsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useSearchGroupElementsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof searchGroupElements>>,
@@ -935,7 +931,6 @@ export function useSearchTaggedElementsInfinite<
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useSearchTaggedElementsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof searchTaggedElements>>,

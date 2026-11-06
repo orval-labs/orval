@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "8.45.0",
+  "version": "8.46.0",
   "homepage": "https://orval.dev/docs/guides/hono",
   "bugs": {
     "url": "https://github.com/orval-labs/orval/issues"
@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "@orval/zod": "workspace:*"
+    "@orval/zod": "workspace:*",
+    "typescript": "catalog:"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",
@@ -33,13 +34,5 @@
     "typescript": "catalog:",
     "vite-plus": "catalog:",
     "zod": "catalog:zod4"
-  },
-  "peerDependencies": {
-    "typescript": ">=5"
-  },
-  "peerDependenciesMeta": {
-    "typescript": {
-      "optional": true
-    }
   }
 }

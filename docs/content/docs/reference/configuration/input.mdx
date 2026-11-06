@@ -166,6 +166,29 @@ When `tags` is set and `schemas` is not, orval automatically limits the output t
 
 If you also specify `schemas`, it takes precedence and the automatic inference is skipped. To filter endpoints by tags while still outputting **all** schemas, set [`includeUnreferencedSchemas: true`](#includeunreferencedschemas) — it works in both `include` and `exclude` mode.
 
+### operationIds
+
+**Type:** `(String | RegExp)[]`
+
+Filter by `operationId`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        operationIds: ['deletePetById', /^legacy/],
+      },
+    },
+  },
+});
+```
+
+`operationIds` uses the same `mode` as `tags`. When both are set, an operation must pass both filters: in `include` mode it must match a tag and an `operationId`, in `exclude` mode it is dropped if it matches either. Operations without an `operationId` never match. As with `tags`, the output is limited to the schemas referenced by the remaining operations unless `schemas` or `includeUnreferencedSchemas` is set.
+
 ### schemas
 
 **Type:** `(String | RegExp)[]`
@@ -191,7 +214,7 @@ export default defineConfig({
 **Type:** `Boolean`
 **Default:** `false`
 
-When `tags` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components/schemas` entry — including schemas referenced by no operation — while still filtering endpoints by `tags`. The other component sections (`responses`, `parameters`, `requestBodies`) remain pruned to what the matching operations use. This works in both `include` and `exclude` mode, and is ignored when `schemas` is set.
+When `tags` or `operationIds` is set (and `schemas` is not), orval emits only the schemas referenced by the matching operations. Set `includeUnreferencedSchemas: true` to keep **every** `#/components/schemas` entry — including schemas referenced by no operation — while still filtering endpoints by `tags` or `operationIds`. The other component sections (`responses`, `parameters`, `requestBodies`) remain pruned to what the matching operations use. This works in both `include` and `exclude` mode, and is ignored when `schemas` is set.
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';

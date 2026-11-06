@@ -122,55 +122,13 @@ export const searchPets = (
     {
       url: `/search`,
       method: 'GET',
-      params: (() => {
-        const requiredNullableParamKeys = new Set<string>([
+      params: filterParams(
+        params ?? {},
+        new Set<string>([
           'requirednullableString',
           'requirednullableStringTwo',
-        ]);
-        const filteredParams: Record<
-          string,
-          string | number | boolean | Array<string | number | boolean>
-        > = {};
-        for (const [key, value] of Object.entries(params ?? {})) {
-          if (Array.isArray(value)) {
-            const filtered = value
-              .filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean' ||
-                    ((item as unknown) instanceof Date &&
-                      !Number.isNaN((item as unknown as Date).getTime()))),
-              )
-              .map((item) =>
-                (item as unknown) instanceof Date
-                  ? (item as unknown as Date).toISOString()
-                  : item,
-              ) as Array<string | number | boolean>;
-            if (filtered.length) {
-              filteredParams[key] = filtered;
-            }
-          } else if (value === null && requiredNullableParamKeys.has(key)) {
-            filteredParams[key] = '';
-          } else if (
-            (value as unknown) instanceof Date &&
-            !Number.isNaN((value as unknown as Date).getTime())
-          ) {
-            // useDates produces Date query params; serialize to ISO so they reach
-            // the wire instead of being dropped by the primitive check below. See #3856.
-            filteredParams[key] = (value as unknown as Date).toISOString();
-          } else if (
-            value != null &&
-            (typeof value === 'string' ||
-              typeof value === 'number' ||
-              typeof value === 'boolean')
-          ) {
-            filteredParams[key] = value;
-          }
-        }
-        return filteredParams;
-      })(),
+        ]),
+      ),
       signal,
     },
     options,
@@ -214,10 +172,7 @@ export type SearchPetsQueryResult = NonNullable<
 >;
 export type SearchPetsQueryError = ErrorType<Error>;
 
-/**
- * @summary search by query params
- */
-
+/** @summary search by query params */
 export function injectSearchPets<
   TData = Awaited<ReturnType<typeof searchPets>>,
   TError = ErrorType<Error>,
@@ -267,49 +222,7 @@ export const listPets = (
     {
       url: `/pets`,
       method: 'GET',
-      params: (() => {
-        const filteredParams: Record<
-          string,
-          string | number | boolean | Array<string | number | boolean>
-        > = {};
-        for (const [key, value] of Object.entries(params ?? {})) {
-          if (Array.isArray(value)) {
-            const filtered = value
-              .filter(
-                (item) =>
-                  item != null &&
-                  (typeof item === 'string' ||
-                    typeof item === 'number' ||
-                    typeof item === 'boolean' ||
-                    ((item as unknown) instanceof Date &&
-                      !Number.isNaN((item as unknown as Date).getTime()))),
-              )
-              .map((item) =>
-                (item as unknown) instanceof Date
-                  ? (item as unknown as Date).toISOString()
-                  : item,
-              ) as Array<string | number | boolean>;
-            if (filtered.length) {
-              filteredParams[key] = filtered;
-            }
-          } else if (
-            (value as unknown) instanceof Date &&
-            !Number.isNaN((value as unknown as Date).getTime())
-          ) {
-            // useDates produces Date query params; serialize to ISO so they reach
-            // the wire instead of being dropped by the primitive check below. See #3856.
-            filteredParams[key] = (value as unknown as Date).toISOString();
-          } else if (
-            value != null &&
-            (typeof value === 'string' ||
-              typeof value === 'number' ||
-              typeof value === 'boolean')
-          ) {
-            filteredParams[key] = value;
-          }
-        }
-        return filteredParams;
-      })(),
+      params: filterParams(params ?? {}, new Set<string>([])),
       signal,
     },
     options,
@@ -353,10 +266,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = ErrorType<Error>;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function injectListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
@@ -464,9 +374,7 @@ export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = ErrorType<Error>;
 export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const injectCreatePets = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -542,10 +450,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = ErrorType<Error>;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = ErrorType<Error>,
@@ -647,9 +552,7 @@ export type DeletePetMutationResult = NonNullable<
 export type DeletePetMutationError = ErrorType<Error>;
 export type DeletePetMutationVariables = { petId: string };
 
-/**
- * @summary Delete a pet
- */
+/** @summary Delete a pet */
 export const injectDeletePet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -740,9 +643,7 @@ export type UpdatePetMutationBody = Pet;
 export type UpdatePetMutationError = ErrorType<Error>;
 export type UpdatePetMutationVariables = { petId: string; data: Pet };
 
-/**
- * @summary Update a pet
- */
+/** @summary Update a pet */
 export const injectUpdatePet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -833,9 +734,7 @@ export type PatchPetMutationBody = PatchPetBody;
 export type PatchPetMutationError = ErrorType<Error>;
 export type PatchPetMutationVariables = { petId: string; data: PatchPetBody };
 
-/**
- * @summary Partially update a pet
- */
+/** @summary Partially update a pet */
 export const injectPatchPet = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -911,10 +810,7 @@ export type ShowPetTextQueryResult = NonNullable<
 >;
 export type ShowPetTextQueryError = ErrorType<Error>;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function injectShowPetText<
   TData = Awaited<ReturnType<typeof showPetText>>,
   TError = ErrorType<Error>,
@@ -1024,6 +920,7 @@ export type UploadFileMutationError = ErrorType<void | Error>;
 export type UploadFileMutationVariables = { petId: number; data?: Blob };
 
 /**
+ * Upload image of the pet.
  * @summary Uploads an image.
  */
 export const injectUploadFile = <
@@ -1127,6 +1024,7 @@ export type UploadFormDataMutationVariables = {
 };
 
 /**
+ * Upload a file for a pet using multipart/form-data.
  * @summary Upload a file via multipart form data.
  */
 export const injectUploadFormData = <
@@ -1217,9 +1115,9 @@ export type DownloadFileQueryResult = NonNullable<
 export type DownloadFileQueryError = ErrorType<void | Error>;
 
 /**
+ * Download image of the pet.
  * @summary Download an image.
  */
-
 export function injectDownloadFile<
   TData = Awaited<ReturnType<typeof downloadFile>>,
   TError = ErrorType<void | Error>,
@@ -1306,10 +1204,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = ErrorType<Error>;
 
-/**
- * @summary Health check
- */
-
+/** @summary Health check */
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<Error>,

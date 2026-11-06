@@ -656,21 +656,24 @@ export function getItemReportResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function getItemScanResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<Blob, Blob> & {
     defaultValue: NoInfer<Blob>;
   },
 ): HttpResourceRef<Blob>;
 export function getItemScanResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Blob, Blob>,
 ): HttpResourceRef<Blob | undefined>;
 export function getItemScanResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Blob, Blob>,
 ): HttpResourceRef<Blob | undefined> {
   return httpResource.blob<Blob>(
-    () => applyOrvalRequestExtension(`/items/${id()}/scan`, options),
+    () =>
+      id() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`/items/${id()}/scan`, options),
     options,
   );
 }
@@ -679,21 +682,24 @@ export function getItemScanResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function getItemSettingsResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<Item, unknown> & {
     defaultValue: NoInfer<Item>;
   },
 ): HttpResourceRef<Item>;
 export function getItemSettingsResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Item, unknown>,
 ): HttpResourceRef<Item | undefined>;
 export function getItemSettingsResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Item, unknown>,
 ): HttpResourceRef<Item | undefined> {
   return httpResource<Item>(
-    () => applyOrvalRequestExtension(`/items/${id()}/settings`, options),
+    () =>
+      id() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`/items/${id()}/settings`, options),
     options,
   );
 }
@@ -702,21 +708,24 @@ export function getItemSettingsResource(
  * @remarks httpResource is available in Angular 19.2 and later.
  */
 export function getLatestItemResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options: OrvalHttpResourceOptions<Item | void, unknown> & {
     defaultValue: NoInfer<Item | void>;
   },
 ): HttpResourceRef<Item | void>;
 export function getLatestItemResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Item | void, unknown>,
 ): HttpResourceRef<Item | void | undefined>;
 export function getLatestItemResource(
-  id: Signal<string>,
+  id: Signal<string | undefined>,
   options?: OrvalHttpResourceOptions<Item | void, unknown>,
 ): HttpResourceRef<Item | void | undefined> {
   return httpResource<Item | void>(
-    () => applyOrvalRequestExtension(`/items/${id()}/latest`, options),
+    () =>
+      id() === undefined
+        ? undefined
+        : applyOrvalRequestExtension(`/items/${id()}/latest`, options),
     options,
   );
 }

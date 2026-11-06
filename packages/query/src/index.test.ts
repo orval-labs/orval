@@ -6,7 +6,7 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { builder, generateQuery } from './index';
+import { builder, generateQuery, generateQueryHeader } from './index';
 
 const successType = (
   overrides: Partial<ResReqTypesValue> & Pick<ResReqTypesValue, 'value'>,
@@ -592,4 +592,165 @@ describe('generateQuery — prefetch through queryClient.query() (#4030)', () =>
       expect(implementation).not.toContain('queryClient.query(');
     },
   );
+});
+
+describe('generateQueryHeader SecondParameter helper (#4388)', () => {
+  const clientImplementation =
+    'export const listItems = (options?: SecondParameter<typeof customFetch>) => {};';
+  const params = {
+    title: 'Api',
+    isMutator: true,
+    isGlobalMutator: true,
+    provideIn: false as const,
+    hasAwaitedType: true,
+    output: { httpClient: OutputHttpClient.AXIOS },
+    verbOptions: {},
+  };
+
+  it('declares the helper when an operation override references it', () => {
+    const header = generateQueryHeader({
+      ...params,
+      isRequestOptions: false,
+      clientImplementation,
+    } as never);
+    const implementation =
+      typeof header === 'string' ? header : header.implementation;
+
+    expect(implementation).toContain('type SecondParameter<');
+  });
+
+  it('omits the helper when nothing references it', () => {
+    const header = generateQueryHeader({
+      ...params,
+      isRequestOptions: false,
+      clientImplementation: '',
+    } as never);
+    const implementation =
+      typeof header === 'string' ? header : header.implementation;
+
+    expect(implementation).not.toContain('type SecondParameter<');
+  });
+});
+
+describe('generateQuery — operation docs on hooks (#4399)', () => {
+  const makeVerbOptions = ({
+    verb = 'get',
+    route = false,
+    useQuery = true,
+    useMutation = false,
+  }: {
+    verb?: 'get' | 'post';
+    route?: boolean;
+    useQuery?: boolean;
+    useMutation?: boolean;
+  } = {}): GeneratorVerbOptions =>
+    createTestGeneratorVerbOptions({
+      verb,
+      route: '/facilities/operator',
+      pathRoute: '/facilities/operator',
+      operationId: 'getOperatorFacility',
+      operationName: 'getOperatorFacility',
+      typeName: 'getOperatorFacility',
+      summary: 'Get operator facility',
+      description: 'Retrieves the unique operator facility.',
+      response: {
+        definition: { success: 'Facility', errors: '' },
+        imports: [{ name: 'Facility' }],
+        types: {
+          success: [
+            successType({ value: 'Facility', imports: [{ name: 'Facility' }] }),
+          ],
+          errors: [],
+        },
+        contentTypes: ['application/json'],
+      },
+      override: {
+        requestOptions: true,
+        query: {
+          useQuery,
+          useMutation,
+          ...(route ? { docs: { route: true } } : {}),
+        },
+      },
+    });
+
+  const options = createTestGeneratorOptions({
+    route: '/facilities/operator',
+    pathRoute: '/facilities/operator',
+    context: {
+      output: {
+        client: OutputClient.REACT_QUERY,
+        httpClient: OutputHttpClient.FETCH,
+      },
+    },
+  });
+
+  const expectedDoc = `/**
+ * Retrieves the unique operator facility.
+ * @summary Get operator facility
+ */
+`;
+
+  const countOccurrences = (haystack: string, needle: string) =>
+    haystack.split(needle).length - 1;
+
+  it('documents every overload of the query hook with description and summary', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions(),
+      options,
+      'react-query',
+    );
+
+    const hookSignature = 'export function useGetOperatorFacility<';
+    // three overloads plus the implementation signature
+    expect(countOccurrences(implementation, hookSignature)).toBe(4);
+    expect(
+      countOccurrences(implementation, `${expectedDoc}${hookSignature}`),
+    ).toBe(4);
+  });
+
+  it('omits the route line by default', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions(),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).not.toContain('@route');
+  });
+
+  it('adds the method and path when docs.route is enabled', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions({ route: true }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain(`/**
+ * Retrieves the unique operator facility.
+ * @summary Get operator facility
+ * @route GET /facilities/operator
+ */
+export function useGetOperatorFacility<`);
+  });
+
+  it('documents mutation hooks with description, summary and route', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions({
+        verb: 'post',
+        route: true,
+        useQuery: false,
+        useMutation: true,
+      }),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain(`/**
+ * Retrieves the unique operator facility.
+ * @summary Get operator facility
+ * @route POST /facilities/operator
+ */
+export const useGetOperatorFacility = <`);
+  });
 });

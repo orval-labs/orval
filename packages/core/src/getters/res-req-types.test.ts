@@ -1130,6 +1130,81 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
     });
   });
 
+  describe('useNullForOptional', () => {
+    const nullForOptionalContext = extendContext({
+      override: { useNullForOptional: true },
+    });
+    const licenseSchema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['number'],
+      properties: {
+        number: { type: 'string' },
+        licenseState: { type: 'string' },
+        count: { type: 'integer' },
+      },
+    };
+    const requestBody = (
+      contentType: string,
+    ): [string, OpenApiRequestBodyObject][] => [
+      [
+        'requestBody',
+        {
+          content: { [contentType]: { schema: licenseSchema } },
+          required: true,
+        },
+      ],
+    ];
+
+    it('guards optional fields against null in url-encoded bodies', () => {
+      const [result] = getResReqTypes(
+        requestBody('application/x-www-form-urlencoded'),
+        'License',
+        nullForOptionalContext,
+      );
+
+      expect(result.formUrlEncoded).toContain(
+        'formUrlEncoded.append(`number`, licenseRequestBody.number);',
+      );
+      expect(result.formUrlEncoded).toContain(
+        'if(licenseRequestBody.licenseState !== undefined && licenseRequestBody.licenseState !== null) {',
+      );
+      expect(result.formUrlEncoded).toContain(
+        'if(licenseRequestBody.count !== undefined && licenseRequestBody.count !== null) {',
+      );
+    });
+
+    it('guards optional fields against null in multipart bodies', () => {
+      const [result] = getResReqTypes(
+        requestBody('multipart/form-data'),
+        'License',
+        nullForOptionalContext,
+      );
+
+      expect(result.formData).toContain(
+        'formData.append(`number`, licenseRequestBody.number);',
+      );
+      expect(result.formData).toContain(
+        'if(licenseRequestBody.licenseState !== undefined && licenseRequestBody.licenseState !== null) {',
+      );
+      expect(result.formData).toContain(
+        'if(licenseRequestBody.count !== undefined && licenseRequestBody.count !== null) {',
+      );
+    });
+
+    it('keeps the undefined-only guard without useNullForOptional', () => {
+      const [result] = getResReqTypes(
+        requestBody('multipart/form-data'),
+        'License',
+        context,
+      );
+
+      expect(result.formData).toContain(
+        'if(licenseRequestBody.count !== undefined) {',
+      );
+      expect(result.formData).not.toContain('!== null');
+    });
+  });
+
   describe('FormData with schema composition (oneOf/anyOf/allOf)', () => {
     // Covers: anyOf at root, nested oneOf, allOf with $ref (#2873)
     it('anyOf at root with scalar, array, oneOf, and allOf branches', () => {

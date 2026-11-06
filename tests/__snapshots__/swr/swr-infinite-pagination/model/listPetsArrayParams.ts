@@ -7,12 +7,8 @@
  */
 
 export type ListPetsArrayParams = {
-  /**
-   * How many items to return at one time
-   */
+  /** How many items to return at one time */
   limit?: number;
-  /**
-   * Page number
-   */
+  /** Page number */
   page?: number;
 };

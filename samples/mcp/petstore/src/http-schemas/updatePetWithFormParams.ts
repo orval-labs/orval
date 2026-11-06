@@ -14,12 +14,8 @@
  */
 
 export type UpdatePetWithFormParams = {
-  /**
-   * Name of pet that needs to be updated
-   */
+  /** Name of pet that needs to be updated */
   name?: string;
-  /**
-   * Status of pet that needs to be updated
-   */
+  /** Status of pet that needs to be updated */
   status?: string;
 };

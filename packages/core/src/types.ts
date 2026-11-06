@@ -189,6 +189,7 @@ export interface NormalizedOverrideOutput {
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   effect: NormalizedEffectOptions;
+  valibot: NormalizedValibotOptions;
   axios: NormalizedAxiosOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
@@ -277,6 +278,7 @@ export interface NormalizedOperationOptions {
   swr?: SwrOptions;
   zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -491,7 +493,8 @@ export interface OutputOptions {
   workspace?: string;
   /** Filter or extend the exports written to the workspace `index.ts`. */
   workspaceExports?: WorkspaceExportsFn;
-  target: string;
+  /** Operation output file. Optional when `schemas` is set: only schemas are generated. */
+  target?: string;
   schemas?: string | SchemaOptions | false;
   /**
    * Separate path for operation-derived types (params, bodies, responses).
@@ -554,10 +557,15 @@ export interface InputFiltersOptions {
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
   /**
-   * When `tags` is set, orval limits the output to only the schemas referenced
-   * by the matching operations. Set this to `true` to keep every
-   * `#/components/schemas` entry (including unreferenced ones) while still
-   * filtering endpoints by `tags`. The other component sections (`responses`,
+   * Filter operations by `operationId`. Uses the same `mode` as `tags`; when
+   * both are set, an operation must pass both filters.
+   */
+  operationIds?: (string | RegExp)[];
+  /**
+   * When `tags` or `operationIds` is set, orval limits the output to only the
+   * schemas referenced by the matching operations. Set this to `true` to keep
+   * every `#/components/schemas` entry (including unreferenced ones) while
+   * still filtering endpoints by `tags` or `operationIds`. The other component sections (`responses`,
    * `parameters`, `requestBodies`) remain pruned to what the matching
    * operations use. Ignored when `schemas` is set.
    *
@@ -597,6 +605,7 @@ export const OutputClient = {
   PINIA_COLADA: 'pinia-colada',
   ZOD: 'zod',
   EFFECT: 'effect',
+  VALIBOT: 'valibot',
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
@@ -962,6 +971,7 @@ export interface OverrideOutput {
   angular?: AngularOptions;
   zod?: ZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -1089,7 +1099,7 @@ export type ZodVersionOption = 3 | 4 | 'auto';
 
 export type ZodVariantOption = 'classic' | 'mini';
 
-interface BaseZodOptions {
+interface BaseZodOptions<TVersion extends ZodVersionOption = ZodVersionOption> {
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -1144,10 +1154,12 @@ interface BaseZodOptions {
    * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
    * validatorsGenerator may return either a single validator or a list, or null if evaluation indicates that
    * no refinements should be added. */
-  schemaExtension?: SchemaExtension;
+  schemaExtension?: SchemaExtension<TVersion>;
 }
 
-export interface ZodOptions extends BaseZodOptions {
+interface ZodOptionsBase<
+  TVersion extends ZodVersionOption,
+> extends BaseZodOptions<TVersion> {
   /**
    * Select the generated Zod API style. `classic` imports from `zod`; `mini`
    * imports from `zod/mini` and emits the functional/check-based Zod Mini API.
@@ -1160,7 +1172,7 @@ export interface ZodOptions extends BaseZodOptions {
    * infers from the detected package and otherwise falls back to Zod 4 output.
    * See {@link ZodVersionOption}.
    */
-  version?: ZodVersionOption;
+  version?: TVersion;
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
@@ -1187,6 +1199,19 @@ export interface ZodOptions extends BaseZodOptions {
    */
   generateDiscriminatedUnion?: boolean;
   /**
+   * When true (Zod 4.2+ only), emits `oneOf` as `zod.xor([...])` instead of
+   * `zod.union([...])`, so a value matching more than one branch is rejected.
+   * Non-strict object branches strip unknown keys, so a subtype payload also
+   * matches its supertype (`oneOf: [Pet, Dog]`) and fails `xor`; enable this
+   * only when the `oneOf` branches are disjoint. Kept as `zod.union` on Zod 3,
+   * Zod 4.0/4.1, when no `zod` version can be detected, when a branch is
+   * coerced, for a `oneOf` with a `discriminator`, and when a branch renders
+   * looser than the spec (`{}`,
+   * `required`-only branches, or keywords such as `not`/`if` that Orval drops).
+   * Default `false` (opt-in), so existing output is unchanged.
+   */
+  generateXor?: boolean;
+  /**
    * When true (zod v4 only), emits optional object properties with
    * `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of
    * `.optional()`, so consumers with `exactOptionalPropertyTypes` infer
@@ -1200,8 +1225,18 @@ export interface ZodOptions extends BaseZodOptions {
    * to append additional .refine() callbacks. These .refine() callbacks are generated
    * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
    * validatorsGenerator may return either a single validator or a list. */
-  schemaExtension?: SchemaExtension;
+  schemaExtension?: SchemaExtension<TVersion>;
 }
+
+/**
+ * Make version: 3 / 4 a discriminator so schemaExtension options are checked
+ * against the selected Zod major. `auto` cannot be resolved at type-check time,
+ * so it intentionally accepts either version's options.
+ */
+export type ZodOptions =
+  | (ZodOptionsBase<3> & { version: 3 })
+  | (ZodOptionsBase<4> & { version: 4 })
+  | (ZodOptionsBase<'auto'> & { version?: 'auto' });
 
 /**
  * Per-operation/tag Zod overrides only include settings that are actually
@@ -1272,6 +1307,16 @@ export interface EffectOptions {
   version?: EffectVersionOption;
 }
 
+export interface ValibotOptions {
+  strict?: ZodOptions['strict'];
+  generate?: ZodOptions['generate'];
+  /**
+   * When true, optional object properties use `v.exactOptional(schema)` so
+   * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
+   */
+  exactOptional?: boolean;
+}
+
 export type ZodCoerceType =
   | 'string'
   | 'number'
@@ -1285,16 +1330,76 @@ export type ZodCoerceType =
 
 type SchemaExtensionFormat = string;
 
-/** Function signature expected by the applicable Zod version's "check" validation method */
+/** Predicate accepted by a Zod `.refine()` call. */
 export type RefinementFunction<TValue = never> = (value: TValue) => boolean;
 
+/** Options accepted by the second argument of Zod 3's `.refine()`. */
+export type Zod3RefinementParams = {
+  message?: string;
+  path?: (string | number)[];
+  params?: object;
+};
+
+/** Zod 3 also permits producing the options from the validated value. */
+export type Zod3RefinementOptions<TValue> =
+  | string
+  | Zod3RefinementParams
+  | ((value: TValue) => Zod3RefinementParams);
+
+/** The custom issue handed to Zod 4's `error` callback. */
+export interface Zod4RefinementIssue {
+  readonly code: 'custom';
+  readonly input: unknown;
+  readonly path?: Array<string | number>;
+  readonly message?: string;
+  readonly params?: Record<string, unknown>;
+}
+
+/** Options accepted by Zod 4's `.refine()` / `zod.refine()`. */
+export type Zod4RefinementOptions =
+  | string
+  | {
+      error?:
+        | string
+        | ((
+            issue: Zod4RefinementIssue,
+          ) => string | { message: string } | undefined | null);
+      /** @deprecated Zod 4 prefers `error`. */
+      message?: string;
+      path?: Array<string | number>;
+      abort?: boolean;
+      when?: (payload: {
+        value: unknown;
+        issues: readonly unknown[];
+      }) => boolean;
+      params?: Record<string, unknown>;
+    };
+
 /**
- * A Callable to be inserted into a refinement, along with bindings to all variables referenced
- * in its scope. Anything referencing beyond the callable itself must be declared as a binding.
- * If no bindings are needed, null is an acceptable value.
+ * Match `.refine()` options to the generated Zod version. When version is
+ * `'auto'` (or not supplied), both forms remain available because the installed
+ * Zod major is only determined during generation.
  */
-export type BoundRefinement<TValue = never> = {
+export type ZodRefinementOptions<
+  TValue = never,
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = TVersion extends 3
+  ? Zod3RefinementOptions<TValue>
+  : TVersion extends 4
+    ? Zod4RefinementOptions
+    : Zod3RefinementOptions<TValue> | Zod4RefinementOptions;
+
+/**
+ * A refinement plus its optional Zod `.refine()` second argument. Both the
+ * validator and any functions nested inside `options` can capture values from
+ * `bindings`. If no bindings are needed, null is an acceptable value.
+ */
+export type BoundRefinement<
+  TValue = never,
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = {
   callable: RefinementFunction<TValue>;
+  options?: ZodRefinementOptions<TValue, TVersion>;
   bindings: Readonly<Record<string, unknown>> | null;
 };
 
@@ -1315,12 +1420,17 @@ type SchemaExtensionValue<T extends PrimitiveSchemaType> = T extends 'string'
 export type SchemaExtensionEntry<
   T extends PrimitiveSchemaType,
   TValue = SchemaExtensionValue<T>,
+  TVersion extends ZodVersionOption = ZodVersionOption,
 > = {
   type: T;
   format: SchemaExtensionFormat;
   validatorsGenerator: (
     openapi_object: Exclude<SchemaObject, boolean>,
-  ) => null | undefined | BoundRefinement<TValue> | BoundRefinement<TValue>[];
+  ) =>
+    | null
+    | undefined
+    | BoundRefinement<TValue, TVersion>
+    | BoundRefinement<TValue, TVersion>[];
 };
 
 /**
@@ -1333,14 +1443,17 @@ export type SchemaExtensionEntry<
 export const defineSchemaExtension = <
   T extends PrimitiveSchemaType,
   TValue = SchemaExtensionValue<T>,
+  TVersion extends ZodVersionOption = ZodVersionOption,
 >(
-  entry: SchemaExtensionEntry<T, TValue>,
-): SchemaExtensionEntry<T, TValue> => entry;
+  entry: SchemaExtensionEntry<T, TValue, TVersion>,
+): SchemaExtensionEntry<T, TValue, TVersion> => entry;
 
 /** Additional validation checks to append to validation chains for properties of type SchemaType
  * (excluding null and unknown types) and any format SchemaExtensionFormat.  */
-export type SchemaExtension = {
-  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never>;
+export type SchemaExtension<
+  TVersion extends ZodVersionOption = ZodVersionOption,
+> = {
+  [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never, TVersion>;
 }[PrimitiveSchemaType][];
 
 export interface NormalizedZodOptions {
@@ -1381,6 +1494,7 @@ export interface NormalizedZodOptions {
   generateReusableSchemas: boolean;
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
+  generateXor: boolean;
   exactOptional: boolean;
   generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
@@ -1391,6 +1505,12 @@ export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
   OperationZodOverrideKey
 >;
+
+export interface NormalizedValibotOptions {
+  strict: NormalizedZodOptions['strict'];
+  generate: NormalizedZodOptions['generate'];
+  exactOptional: boolean;
+}
 
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];
@@ -1537,6 +1657,15 @@ export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeVal
 
 export type InfiniteQueryParamLocation = 'query' | 'body';
 
+export interface QueryDocsOptions {
+  /**
+   * Add an `@route METHOD /path` line to the JSDoc of generated hooks.
+   *
+   * @default false
+   */
+  route?: boolean;
+}
+
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
@@ -1562,6 +1691,10 @@ export interface NormalizedQueryOptions {
    * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
    */
   useSkipToken?: boolean;
+  /**
+   * Extra JSDoc emitted on generated query and mutation hooks.
+   */
+  docs?: QueryDocsOptions;
 
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
@@ -1605,6 +1738,10 @@ export interface QueryOptions {
    * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
    */
   useSkipToken?: boolean;
+  /**
+   * Extra JSDoc emitted on generated query and mutation hooks.
+   */
+  docs?: QueryDocsOptions;
 
   options?: Record<string, unknown>;
   queryKey?: Mutator;
@@ -1847,6 +1984,7 @@ export interface OperationOptions {
   swr?: SwrOptions;
   zod?: OperationZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -2285,6 +2423,7 @@ export interface GeneratorVerbOptions {
   route: string;
   pathRoute: string;
   summary?: string;
+  description?: string;
   doc: string;
   tags: string[];
   operationId: string;

@@ -12,6 +12,7 @@ import {
   getZodTimeFormat,
   isZodVersionV4,
   resolveIsZodV4,
+  supportsZodXor,
 } from './compatible-v4';
 
 describe('zod target helpers', () => {
@@ -282,5 +283,89 @@ describe('getLooseObjectFunctionName', () => {
   it('should return "object" when isZodV4 is false', () => {
     const result = getLooseObjectFunctionName(false);
     expect(result).toBe('object');
+  });
+});
+
+describe('supportsZodXor', () => {
+  const withZod = (zod: string) => ({ dependencies: { zod } });
+
+  it('returns false without a detectable zod version (#4395)', () => {
+    // Zod 4.0/4.1 has no `zod.xor`, so an unknown version must not assume it.
+    expect(supportsZodXor(undefined)).toBe(false);
+    expect(supportsZodXor({ dependencies: { 'other-package': '1.0.0' } })).toBe(
+      false,
+    );
+  });
+
+  it('returns false for zod 3 and zod 4 releases before 4.2', () => {
+    expect(supportsZodXor(withZod('^3.25.0'))).toBe(false);
+    expect(supportsZodXor(withZod('^4.0.0'))).toBe(false);
+    expect(supportsZodXor(withZod('4.1.13'))).toBe(false);
+  });
+
+  it('returns true from zod 4.2.0', () => {
+    expect(supportsZodXor(withZod('4.2.0'))).toBe(true);
+    expect(supportsZodXor(withZod('^4.4.0'))).toBe(true);
+  });
+
+  it('reads a declared range by its lower bound (#4395)', () => {
+    // Without an install, xor needs every version the range allows to have it.
+    expect(supportsZodXor(withZod('~4.2.1'))).toBe(true);
+    expect(supportsZodXor(withZod('>=4.3.0 <5'))).toBe(true);
+    expect(supportsZodXor(withZod('npm:zod@^4.2.0'))).toBe(true);
+
+    expect(supportsZodXor(withZod('^4.1.0'))).toBe(false);
+    expect(supportsZodXor(withZod('>=4.0.0 <5'))).toBe(false);
+    expect(supportsZodXor(withZod('>4.1.0'))).toBe(false);
+  });
+
+  it('returns false for declared ranges without a readable lower bound', () => {
+    for (const zod of [
+      '4.x',
+      '4',
+      '<5',
+      '^3 || ^4.2.0',
+      '4.0.0 - 4.4.0',
+      'latest',
+    ]) {
+      expect(supportsZodXor(withZod(zod))).toBe(false);
+    }
+  });
+
+  it('keeps prerelease builds of 4.2.0 on the union fallback', () => {
+    expect(supportsZodXor(withZod('4.2.0-canary.20250911T052041'))).toBe(false);
+    expect(supportsZodXor(withZod('4.2.0-beta.1'))).toBe(false);
+    expect(supportsZodXor(withZod('4.3.0-canary.1'))).toBe(true);
+  });
+
+  it('returns false for specifiers that are not semver (#4395)', () => {
+    for (const zod of [
+      'workspace:*',
+      'link:../zod',
+      'file:../zod',
+      'github:colinhacks/zod',
+      'next',
+    ]) {
+      expect(() => supportsZodXor(withZod(zod))).not.toThrow();
+      expect(supportsZodXor(withZod(zod))).toBe(false);
+    }
+  });
+
+  it('uses the resolved version over a non-semver specifier', () => {
+    expect(
+      supportsZodXor({
+        dependencies: { zod: 'workspace:*' },
+        resolvedVersions: { zod: '4.4.2' },
+      }),
+    ).toBe(true);
+  });
+
+  it('prefers resolvedVersions over declared ranges', () => {
+    expect(
+      supportsZodXor({
+        dependencies: { zod: '^4.0.0' },
+        resolvedVersions: { zod: '4.4.2' },
+      }),
+    ).toBe(true);
   });
 });

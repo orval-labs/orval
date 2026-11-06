@@ -26,8 +26,8 @@ export interface Pet {
 }
 
 export type ListPetsParams = {
-search?: string;
-tags?: string[];
+  search?: string;
+  tags?: string[];
 };
 
 export type CreatePetBody = {

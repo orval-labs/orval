@@ -1370,3 +1370,42 @@ describe('getQueryErrorType with response envelopes', () => {
     ).toBe('ErrorType<NotFound | Invalid>');
   });
 });
+
+describe('fetch request function with requestOptions: false (#4387)', () => {
+  const adapter = createFrameworkAdapter({ outputClient: 'react-query' });
+  const options = createTestGeneratorOptions({
+    route: '/items',
+    pathRoute: '/items',
+    context: { output: { httpClient: OutputHttpClient.FETCH } },
+  });
+  const makeVerbOptions = (signal: boolean) =>
+    createTestGeneratorVerbOptions({
+      verb: 'get',
+      route: '/items',
+      pathRoute: '/items',
+      operationId: 'listItems',
+      operationName: 'listItems',
+      typeName: 'listItems',
+      override: { requestOptions: false, query: { signal } },
+    });
+
+  it('accepts a signal-only options argument so queries can cancel', () => {
+    const result = adapter.generateRequestFunction(
+      makeVerbOptions(true),
+      options,
+    );
+
+    expect(result).toContain("options?: Pick<RequestInit, 'signal'>");
+    expect(result).toContain('...options,');
+  });
+
+  it('keeps the request function argument-free when query.signal is off', () => {
+    const result = adapter.generateRequestFunction(
+      makeVerbOptions(false),
+      options,
+    );
+
+    expect(result).not.toContain('options?:');
+    expect(result).not.toContain('...options');
+  });
+});

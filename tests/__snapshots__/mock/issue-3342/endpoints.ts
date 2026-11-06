@@ -217,9 +217,7 @@ export type UpdateProfileWithJsonMutationVariables = {
   data: UpdateProfileBody;
 };
 
-/**
- * @summary Update a profile
- */
+/** @summary Update a profile */
 export const useUpdateProfileWithJson = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -353,9 +351,7 @@ export type UpdateProfileWithFormDataMutationVariables = {
   data: UpdateProfileBody;
 };
 
-/**
- * @summary Update a profile
- */
+/** @summary Update a profile */
 export const useUpdateProfileWithFormData = <
   TError = Error,
   TContext = unknown,
@@ -488,9 +484,7 @@ export type UploadAvatarWithFormDataMutationBody = AvatarUpload;
 export type UploadAvatarWithFormDataMutationError = Error;
 export type UploadAvatarWithFormDataMutationVariables = { data: AvatarUpload };
 
-/**
- * @summary Upload an avatar
- */
+/** @summary Upload an avatar */
 export const useUploadAvatarWithFormData = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -639,9 +633,7 @@ export type UploadAvatarWithBlobMutationBody = Blob;
 export type UploadAvatarWithBlobMutationError = Error;
 export type UploadAvatarWithBlobMutationVariables = { data: Blob };
 
-/**
- * @summary Upload an avatar
- */
+/** @summary Upload an avatar */
 export const useUploadAvatarWithBlob = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -733,6 +725,7 @@ export type ListProfilesQueryResult = NonNullable<
 >;
 export type ListProfilesQueryError = unknown;
 
+/** @summary List profiles */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -755,6 +748,7 @@ export function useListProfiles<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary List profiles */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -777,6 +771,7 @@ export function useListProfiles<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary List profiles */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
@@ -791,10 +786,7 @@ export function useListProfiles<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary List profiles
- */
-
+/** @summary List profiles */
 export function useListProfiles<
   TData = Awaited<ReturnType<typeof listProfiles>>,
   TError = unknown,
