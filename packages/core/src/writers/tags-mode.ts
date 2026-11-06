@@ -109,6 +109,9 @@ export async function writeTagsMode({
     a.localeCompare(b),
   );
 
+  // Every tag shares one schemas file, so it is generated and written once.
+  let sharedSchemasWrite: Promise<void> | undefined;
+
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
@@ -216,11 +219,13 @@ export async function writeTagsMode({
             : undefined;
 
         if (schemasPath) {
-          const schemasData = generateSchemasInline
-            ? header + generateSchemasInline()
-            : header + generateModelsInline(builder.schemas);
-
-          await writeGeneratedFile(schemasPath, schemasData);
+          sharedSchemasWrite ??= writeGeneratedFile(
+            schemasPath,
+            generateSchemasInline
+              ? header + generateSchemasInline()
+              : header + generateModelsInline(builder.schemas),
+          );
+          await sharedSchemasWrite;
         }
 
         data += generateTargetMutatorImports(target, implementation);

@@ -137,6 +137,9 @@ export async function writeSplitTagsMode({
     commonTypesBasename +
     (deduplicationEnabled ? commonTypesImportExtension : '');
 
+  // Every tag shares one schemas file, so it is generated and written once.
+  let sharedSchemasWrite: Promise<void> | undefined;
+
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
@@ -236,11 +239,13 @@ export async function writeSplitTagsMode({
             : undefined;
 
         if (schemasPath) {
-          const schemasData = generateSchemasInline
-            ? header + generateSchemasInline()
-            : header + generateModelsInline(builder.schemas);
-
-          await writeGeneratedFile(schemasPath, schemasData);
+          sharedSchemasWrite ??= writeGeneratedFile(
+            schemasPath,
+            generateSchemasInline
+              ? header + generateSchemasInline()
+              : header + generateModelsInline(builder.schemas),
+          );
+          await sharedSchemasWrite;
         }
 
         implementationData += generateTargetMutatorImports(

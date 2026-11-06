@@ -920,3 +920,40 @@ describe('writeSplitTagsMode — paramsSerializer import follows usage', () => {
     expect(others).not.toContain(importLine);
   });
 });
+
+describe('writeSplitTagsMode — shared schemas file is generated once', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('calls generateSchemasInline once for several tags', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const generateSchemasInline = vi.fn(() => 'export const Pet = 1;\n');
+
+    await writeSplitTagsMode({
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation(),
+          healthCheck: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'healthCheck',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS_SPLIT }),
+      needSchema: true,
+      generateSchemasInline,
+    });
+
+    expect(generateSchemasInline).toHaveBeenCalledTimes(1);
+  });
+});
