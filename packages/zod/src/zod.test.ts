@@ -6466,13 +6466,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      // default emits a const + a .default(<constName>) call. Match shape, not exact const.
+      // Composite defaults keep their contextual type from the referenced schema.
       expect(result.functions[0]).toEqual([
         'namedRef',
         { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
       expect(result.functions.at(-1)?.[0]).toBe('default');
-      expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
+      expect(result.consts).toEqual([]);
     });
 
     it('emits empty-object values in a $ref default as `{}` (#4244)', () => {
@@ -6490,8 +6490,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      expect(result.consts).toEqual([
-        'export const parametersStateDefault = { items: {}, };',
+      expect(result.consts).toEqual([]);
+      expect(result.functions.at(-1)).toEqual([
+        'default',
+        '{ ...{ items: {}, } }',
       ]);
     });
 

@@ -15,7 +15,35 @@ export const Demo = zod.object({
 export type Demo = zod.input<typeof Demo>;
 export type DemoOutput = zod.output<typeof Demo>;
 
+export const ParameterRange = zod.tuple([zod.int(), zod.int()]);
+
+export type ParameterRange = zod.input<typeof ParameterRange>;
+export type ParameterRangeOutput = zod.output<typeof ParameterRange>;
+
+export const Method = zod.enum(['option_a', 'option_b']);
+
+export type Method = zod.input<typeof Method>;
+export type MethodOutput = zod.output<typeof Method>;
+
+export const Parameters = zod.object({
+  method: Method.optional(),
+  range: ParameterRange.optional(),
+});
+
+export type Parameters = zod.input<typeof Parameters>;
+export type ParametersOutput = zod.output<typeof Parameters>;
+
 export const Test = zod.object({
+  range: ParameterRange.default([1, 300]),
+  parameters: Parameters.default({
+    ...{
+      method: 'option_a',
+      range: [2, 400],
+      extra: 42,
+      marker: '\u005f_REF_Method__',
+      __REF_Method__: 'literal-key',
+    },
+  }),
   attr: Demo.default({
     height: 100 as const,
     width: 200 as const,

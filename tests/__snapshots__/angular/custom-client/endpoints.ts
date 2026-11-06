@@ -23,6 +23,83 @@ import showPetByIdMutator from '../../../mutators/custom-client-angular';
 import deletePetByIdMutator from '../../../mutators/custom-client-angular';
 import healthCheckMutator from '../../../mutators/custom-client-angular';
 import showPetWithOwnerMutator from '../../../mutators/custom-client-angular';
+type AngularHttpParamValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>;
+type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
+
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys?: ReadonlySet<string>,
+  preserveRequiredNullables?: false,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValue>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: true,
+  passthroughKeys?: undefined,
+): Record<string, AngularHttpParamValueWithNullable>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> | undefined,
+  preserveRequiredNullables: boolean | undefined,
+  passthroughKeys: ReadonlySet<string>,
+): Record<string, unknown>;
+function filterParams(
+  params: Record<string, unknown>,
+  requiredNullableKeys: ReadonlySet<string> = new Set(),
+  preserveRequiredNullables = false,
+  passthroughKeys: ReadonlySet<string> = new Set(),
+): Record<string, unknown> {
+  const filteredParams: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (passthroughKeys.has(key)) {
+      if (value !== undefined) {
+        filteredParams[key] = value;
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      const filtered = value
+        .filter(
+          (item) =>
+            item != null &&
+            (typeof item === 'string' ||
+              typeof item === 'number' ||
+              typeof item === 'boolean' ||
+              (item instanceof Date && !Number.isNaN(item.getTime()))),
+        )
+        .map((item) =>
+          item instanceof Date ? item.toISOString() : item,
+        ) as Array<string | number | boolean>;
+      if (filtered.length) {
+        filteredParams[key] = filtered;
+      }
+    } else if (value === null && requiredNullableKeys.has(key)) {
+      // With a paramsSerializer (preserveRequiredNullables) the literal null
+      // is passed through for it to consume; without one, emit an empty
+      // string so the required key still reaches the wire as `?key=`
+      // instead of being silently dropped. See #3712.
+      filteredParams[key] = preserveRequiredNullables ? null : '';
+    } else if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      // useDates produces Date query params; serialize to ISO so they reach
+      // the wire instead of being dropped by the primitive check below. See #3856.
+      filteredParams[key] = value.toISOString();
+    } else if (
+      value != null &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean')
+    ) {
+      filteredParams[key] = value;
+    }
+  }
+  return filteredParams;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SwaggerPetstoreService {
   private readonly http = inject(HttpClient);
@@ -34,49 +111,7 @@ export class SwaggerPetstoreService {
       {
         url: `/v${version}/pets`,
         method: 'GET',
-        params: (() => {
-          const filteredParams: Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          > = {};
-          for (const [key, value] of Object.entries(params ?? {})) {
-            if (Array.isArray(value)) {
-              const filtered = value
-                .filter(
-                  (item) =>
-                    item != null &&
-                    (typeof item === 'string' ||
-                      typeof item === 'number' ||
-                      typeof item === 'boolean' ||
-                      ((item as unknown) instanceof Date &&
-                        !Number.isNaN((item as unknown as Date).getTime()))),
-                )
-                .map((item) =>
-                  (item as unknown) instanceof Date
-                    ? (item as unknown as Date).toISOString()
-                    : item,
-                ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (
-              (value as unknown) instanceof Date &&
-              !Number.isNaN((value as unknown as Date).getTime())
-            ) {
-              // useDates produces Date query params; serialize to ISO so they reach
-              // the wire instead of being dropped by the primitive check below. See #3856.
-              filteredParams[key] = (value as unknown as Date).toISOString();
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value;
-            }
-          }
-          return filteredParams;
-        })(),
+        params: filterParams(params ?? {}, new Set<string>([])),
       },
       this.http,
     );
@@ -96,49 +131,7 @@ export class SwaggerPetstoreService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: createPetsBody,
-        params: (() => {
-          const filteredParams: Record<
-            string,
-            string | number | boolean | Array<string | number | boolean>
-          > = {};
-          for (const [key, value] of Object.entries(params ?? {})) {
-            if (Array.isArray(value)) {
-              const filtered = value
-                .filter(
-                  (item) =>
-                    item != null &&
-                    (typeof item === 'string' ||
-                      typeof item === 'number' ||
-                      typeof item === 'boolean' ||
-                      ((item as unknown) instanceof Date &&
-                        !Number.isNaN((item as unknown as Date).getTime()))),
-                )
-                .map((item) =>
-                  (item as unknown) instanceof Date
-                    ? (item as unknown as Date).toISOString()
-                    : item,
-                ) as Array<string | number | boolean>;
-              if (filtered.length) {
-                filteredParams[key] = filtered;
-              }
-            } else if (
-              (value as unknown) instanceof Date &&
-              !Number.isNaN((value as unknown as Date).getTime())
-            ) {
-              // useDates produces Date query params; serialize to ISO so they reach
-              // the wire instead of being dropped by the primitive check below. See #3856.
-              filteredParams[key] = (value as unknown as Date).toISOString();
-            } else if (
-              value != null &&
-              (typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'boolean')
-            ) {
-              filteredParams[key] = value;
-            }
-          }
-          return filteredParams;
-        })(),
+        params: filterParams(params ?? {}, new Set<string>([])),
       },
       this.http,
     );

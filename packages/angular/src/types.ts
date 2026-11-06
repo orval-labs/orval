@@ -29,24 +29,39 @@ export const HTTP_CLIENT_OPTIONS_TEMPLATE = `interface HttpClientOptions {
   readonly timeout?: number;
 }`;
 
-/**
- * Code templates for reusable observe option helpers emitted into generated files.
- */
-export const HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE = `type HttpClientBodyOptions = HttpClientOptions & {
+const HTTP_CLIENT_BODY_OPTIONS_TEMPLATE = `type HttpClientBodyOptions = HttpClientOptions & {
   readonly observe?: 'body';
-};
+};`;
 
-type HttpClientEventOptions = HttpClientOptions & {
+const HTTP_CLIENT_EVENT_RESPONSE_OPTIONS_TEMPLATE = `type HttpClientEventOptions = HttpClientOptions & {
   readonly observe: 'events';
 };
 
 type HttpClientResponseOptions = HttpClientOptions & {
   readonly observe: 'response';
-};
+};`;
 
-type HttpClientObserveOptions = HttpClientOptions & {
+const HTTP_CLIENT_OBSERVE_UNION_OPTIONS_TEMPLATE = `type HttpClientObserveOptions = HttpClientOptions & {
   readonly observe?: 'body' | 'events' | 'response';
 };`;
+
+/**
+ * Code templates for reusable observe option helpers emitted into generated files.
+ */
+export const HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE = `${HTTP_CLIENT_BODY_OPTIONS_TEMPLATE}
+
+${HTTP_CLIENT_EVENT_RESPONSE_OPTIONS_TEMPLATE}
+
+${HTTP_CLIENT_OBSERVE_UNION_OPTIONS_TEMPLATE}`;
+
+/**
+ * Same as {@link HTTP_CLIENT_OBSERVE_OPTIONS_TEMPLATE} without the `events` and
+ * `response` helpers, which are only referenced by the observe overloads
+ * (`override.angular.observeOverloads`).
+ */
+export const HTTP_CLIENT_BODY_OBSERVE_OPTIONS_TEMPLATE = `${HTTP_CLIENT_BODY_OPTIONS_TEMPLATE}
+
+${HTTP_CLIENT_OBSERVE_UNION_OPTIONS_TEMPLATE}`;
 
 /**
  * Code template for the `ThirdParameter` utility type used with custom mutators.
