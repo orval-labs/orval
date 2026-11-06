@@ -1132,6 +1132,51 @@ describe('dereference', () => {
   });
 });
 
+describe('visit listener', () => {
+  // Each level references the next twice with a sibling, which keeps the
+  // reference out of the cache, so the expansion doubles at every level.
+  const siblingLadder = (depth: number): Schemas =>
+    Object.fromEntries(
+      Array.from({ length: depth }, (_, level) => [
+        `S${level}`,
+        level === depth - 1
+          ? { type: 'string' }
+          : {
+              type: 'object',
+              properties: {
+                left: { ...ref(`S${level + 1}`), description: 'left' },
+                right: { ...ref(`S${level + 1}`), description: 'right' },
+              },
+            },
+      ]),
+    );
+
+  it('is called for each schema started, with the refs around it', () => {
+    const context = createContext({
+      A: { type: 'object', properties: { b: ref('B') } },
+      B: { type: 'string' },
+    });
+    const seen: (readonly string[] | undefined)[] = [];
+    dereference(ref('A'), context, {}, (parents) => {
+      seen.push(parents);
+    });
+    expect(seen).toEqual([undefined, ['#/components/schemas/A']]);
+  });
+
+  it('abandons an exponential expansion by throwing', () => {
+    const context = createContext(siblingLadder(60));
+    let visits = 0;
+    const start = performance.now();
+    expect(() =>
+      dereference(ref('S0'), context, {}, () => {
+        if (++visits > 1000) throw new Error('too large');
+      }),
+    ).toThrow('too large');
+    expect(visits).toBe(1001);
+    expect(performance.now() - start).toBeLessThan(5000);
+  });
+});
+
 describe('ref sets', () => {
   const setup = (count: number) => {
     const cache = createExpansionCache();
