@@ -131,6 +131,24 @@ export async function writeTagsMode({
     );
   }
 
+  // Every tag shares one schemas file, so it is written once. Without tags it
+  // is written only for schemas the client generates itself.
+  const schemasPath =
+    !output.schemas &&
+    needSchema &&
+    (tagEntries.length > 0 || generateSchemasInline !== undefined)
+      ? path.join(dirname, filename + '.schemas' + output.schemaFileExtension)
+      : undefined;
+
+  if (schemasPath) {
+    await writeGeneratedFile(
+      schemasPath,
+      generateSchemasInline
+        ? header + generateSchemasInline()
+        : header + generateModelsInline(builder.schemas),
+    );
+  }
+
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
@@ -227,22 +245,6 @@ export async function writeTagsMode({
               options: entry && !isFunction(entry) ? entry : undefined,
             });
           }
-        }
-
-        const schemasPath =
-          !output.schemas && needSchema
-            ? path.join(
-                dirname,
-                filename + '.schemas' + output.schemaFileExtension,
-              )
-            : undefined;
-
-        if (schemasPath) {
-          const schemasData = generateSchemasInline
-            ? header + generateSchemasInline()
-            : header + generateModelsInline(builder.schemas);
-
-          await writeGeneratedFile(schemasPath, schemasData);
         }
 
         data += generateTargetMutatorImports(target, implementation);
@@ -370,11 +372,7 @@ export async function writeTagsMode({
           }
         }
 
-        return [
-          implementationPath,
-          ...(schemasPath ? [schemasPath] : []),
-          ...extraPaths,
-        ];
+        return [implementationPath, ...extraPaths];
       } catch (error) {
         throw new Error(
           `Oups... 🍻. An Error occurred while writing tag ${tag} => ${String(error)}`,
@@ -406,5 +404,10 @@ export async function writeTagsMode({
     }
   }
 
-  return generatedFilePathsArray.flat();
+  return [
+    ...new Set([
+      ...generatedFilePathsArray.flat(),
+      ...(schemasPath ? [schemasPath] : []),
+    ]),
+  ];
 }

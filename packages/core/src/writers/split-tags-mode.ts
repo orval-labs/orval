@@ -155,6 +155,24 @@ export async function writeSplitTagsMode({
     );
   }
 
+  // Every tag shares one schemas file, so it is written once. Without tags it
+  // is written only for schemas the client generates itself.
+  const schemasPath =
+    !output.schemas &&
+    needSchema &&
+    (tagEntries.length > 0 || generateSchemasInline !== undefined)
+      ? path.join(dirname, filename + '.schemas' + output.schemaFileExtension)
+      : undefined;
+
+  if (schemasPath) {
+    await writeGeneratedFile(
+      schemasPath,
+      generateSchemasInline
+        ? header + generateSchemasInline()
+        : header + generateModelsInline(builder.schemas),
+    );
+  }
+
   const generatedFilePathsArray = await Promise.all(
     tagEntries.map(async ([tag, target]) => {
       try {
@@ -244,22 +262,6 @@ export async function writeSplitTagsMode({
           projectName,
           isAllowSyntheticDefaultImports,
         });
-
-        const schemasPath =
-          !output.schemas && needSchema
-            ? path.join(
-                dirname,
-                filename + '.schemas' + output.schemaFileExtension,
-              )
-            : undefined;
-
-        if (schemasPath) {
-          const schemasData = generateSchemasInline
-            ? header + generateSchemasInline()
-            : header + generateModelsInline(builder.schemas);
-
-          await writeGeneratedFile(schemasPath, schemasData);
-        }
 
         implementationData += generateTargetMutatorImports(
           target,
@@ -574,6 +576,7 @@ export async function writeSplitTagsMode({
       ...(commonTypesFilePath ? [commonTypesFilePath] : []),
       ...(indexFilePath ? [indexFilePath] : []),
       ...generatedFilePathsArray.flat(),
+      ...(schemasPath ? [schemasPath] : []),
     ]),
   ];
 }
