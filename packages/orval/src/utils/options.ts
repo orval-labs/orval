@@ -829,6 +829,10 @@ export async function normalizeOptions(
 
   // `useQuery` / `useMutation` defaults are applied per-verb in
   // `query-generator.ts` so we can tell "unset" from "explicit true" (#2376).
+  const globalAngularRuntimeValidation = normalizeAngularRuntimeValidation(
+    outputOptions.override?.angular?.runtimeValidation,
+  );
+
   const globalQueryOptions: NormalizedQueryOptions = {
     signal: true,
     shouldExportMutatorHooks: true,
@@ -931,9 +935,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
-            angularRuntimeValidation: normalizeAngularRuntimeValidation(
-              outputOptions.override?.angular?.runtimeValidation,
-            ),
+            angularRuntimeValidation: globalAngularRuntimeValidation,
           },
           'operations',
           resolveTsconfigPath,
@@ -944,9 +946,7 @@ export async function normalizeOptions(
           {
             query: globalQueryOptions,
             angularProvideIn: outputOptions.override?.angular?.provideIn,
-            angularRuntimeValidation: normalizeAngularRuntimeValidation(
-              outputOptions.override?.angular?.runtimeValidation,
-            ),
+            angularRuntimeValidation: globalAngularRuntimeValidation,
           },
           'tags',
           resolveTsconfigPath,
@@ -1132,9 +1132,7 @@ export async function normalizeOptions(
             outputOptions.override?.angular?.retrievalClient ??
             outputOptions.override?.angular?.client ??
             'httpClient',
-          runtimeValidation: normalizeAngularRuntimeValidation(
-            outputOptions.override?.angular?.runtimeValidation,
-          ),
+          runtimeValidation: globalAngularRuntimeValidation,
           queryObjectSerialization:
             outputOptions.override?.angular?.queryObjectSerialization ?? 'spec',
           observeOverloads:
