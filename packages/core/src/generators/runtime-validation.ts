@@ -42,15 +42,18 @@ export interface EmitResponseValidationOptions {
    * (always the arrow's `raw` parameter).
    */
   inputExpression?: string;
+  /** Call the Standard Schema helpers instead of Zod's `parse`/`safeParse`. */
+  standardSchema?: boolean;
 }
 
 /**
  * Builds the statement body shared by every `both` emission: `safeParse`, log
- * the raw `ZodError` for production visibility, then re-throw so the failure
- * still propagates through the client's native error channel.
+ * the raw error for production visibility, then re-throw so the failure still
+ * propagates through the client's native error channel.
  *
- * The raw `ZodError` is passed to `console.error` (no `prettifyError`/`flatten`)
- * to stay agnostic across Zod 3 and Zod 4.
+ * The raw error (a `ZodError`, or a `StandardSchemaError` carrying `issues` when
+ * `standardSchema` is on) is passed to `console.error` (no
+ * `prettifyError`/`flatten`) to stay agnostic across Zod 3 and Zod 4.
  *
  * `operationName` is interpolated into a single-quoted string literal. The
  * default is a sanitized camelCase identifier, but `override.operationName` can
@@ -61,13 +64,32 @@ export interface EmitResponseValidationOptions {
 const escapeSingleQuoted = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
+const parseCall = (
+  schemaRef: string,
+  input: string,
+  standardSchema: boolean,
+): string =>
+  standardSchema
+    ? `parseStandardSchema(${schemaRef}, ${input})`
+    : `${schemaRef}.parse(${input})`;
+
+const safeParseCall = (
+  schemaRef: string,
+  input: string,
+  standardSchema: boolean,
+): string =>
+  standardSchema
+    ? `safeParseStandardSchema(${schemaRef}, ${input})`
+    : `${schemaRef}.safeParse(${input})`;
+
 const buildGuardBody = (
   schemaRef: string,
   operationName: string,
   input: string,
   subject: 'response' | 'request body' = 'response',
+  standardSchema = false,
 ): string =>
-  `const result = ${schemaRef}.safeParse(${input}); ` +
+  `const result = ${safeParseCall(schemaRef, input, standardSchema)}; ` +
   `if (!result.success) { ` +
   `console.error('[orval] ${escapeSingleQuoted(operationName)} ${subject} validation failed', result.error); ` +
   `throw result.error; ` +
@@ -86,12 +108,17 @@ export const emitResponseValidation = ({
   strategy,
   context,
   inputExpression,
+  standardSchema = false,
 }: EmitResponseValidationOptions): string => {
+  const parse = (input: string) => parseCall(schemaRef, input, standardSchema);
+  const guard = (input: string) =>
+    buildGuardBody(schemaRef, operationName, input, 'response', standardSchema);
+
   switch (context) {
     case 'rxjs-map':
       return strategy === 'both'
-        ? `.pipe(map(data => { ${buildGuardBody(schemaRef, operationName, 'data')} }))`
-        : `.pipe(map(data => ${schemaRef}.parse(data)))`;
+        ? `.pipe(map(data => { ${guard('data')} }))`
+        : `.pipe(map(data => ${parse('data')}))`;
 
     case 'clone-expression':
     case 'fetch-assign': {
@@ -101,14 +128,16 @@ export const emitResponseValidation = ({
         );
       }
       return strategy === 'both'
-        ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression)} })()`
-        : `${schemaRef}.parse(${inputExpression})`;
+        ? `(() => { ${guard(inputExpression)} })()`
+        : parse(inputExpression);
     }
 
     case 'parse-fn':
       return strategy === 'both'
-        ? `(raw) => { ${buildGuardBody(schemaRef, operationName, 'raw')} }`
-        : `${schemaRef}.parse`;
+        ? `(raw) => { ${guard('raw')} }`
+        : standardSchema
+          ? `(raw) => ${parse('raw')}`
+          : `${schemaRef}.parse`;
   }
 };
 
@@ -122,12 +151,14 @@ export interface EmitRequestBodyValidationOptions {
   inputExpression: string;
   /** An omitted optional body is passed through instead of parsed. */
   isOptional?: boolean;
+  /** Call the Standard Schema helpers instead of Zod's `parse`/`safeParse`. */
+  standardSchema?: boolean;
 }
 
 /**
  * Emits an expression that parses a request body before it is sent. `throw`
- * is a bare `Schema.parse(...)`; `both` logs the raw `ZodError` and re-throws,
- * like its response counterpart.
+ * is a bare `Schema.parse(...)`; `both` logs the raw error and re-throws, like
+ * its response counterpart.
  */
 export const emitRequestBodyValidation = ({
   schemaRef,
@@ -135,11 +166,12 @@ export const emitRequestBodyValidation = ({
   strategy,
   inputExpression,
   isOptional = false,
+  standardSchema = false,
 }: EmitRequestBodyValidationOptions): string => {
   const parse =
     strategy === 'both'
-      ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression, 'request body')} })()`
-      : `${schemaRef}.parse(${inputExpression})`;
+      ? `(() => { ${buildGuardBody(schemaRef, operationName, inputExpression, 'request body', standardSchema)} })()`
+      : parseCall(schemaRef, inputExpression, standardSchema);
 
   return isOptional
     ? `${inputExpression} === undefined ? undefined : ${parse}`
@@ -168,8 +200,15 @@ export const normalizeRuntimeValidation = (
   if ('enabled' in value) {
     return value;
   }
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
-  return { enabled: true, strategy: value.strategy ?? 'throw' };
+  return {
+    enabled: true,
+    strategy: value.strategy ?? 'throw',
+    // An explicit `false` is kept so a tag or operation override can switch off
+    // a global `true` through the deep merge; absent stays absent.
+    ...(value.standardSchema === undefined
+      ? {}
+      : { standardSchema: value.standardSchema }),
+  };
 };
 
 /**
@@ -190,7 +229,10 @@ export const normalizeAngularRuntimeValidation = (
     return value;
   }
   return {
-    ...normalizeRuntimeValidation({ strategy: value.strategy ?? 'throw' }),
+    ...normalizeRuntimeValidation({
+      strategy: value.strategy ?? 'throw',
+      standardSchema: value.standardSchema,
+    }),
     requestBodies: value.requestBodies ?? false,
   };
 };

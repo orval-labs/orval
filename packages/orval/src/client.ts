@@ -20,6 +20,7 @@ import {
   asyncReduce,
   generateDependencyImports,
   getBaseUrlRuntimeImports,
+  getStandardSchemaHelper,
   isFunction,
   OutputClient,
   OutputMockType,
@@ -387,8 +388,16 @@ export const generateClientHeader: GeneratorClientHeader = async ({
   const normalizedHeader =
     typeof rawHeader === 'string' ? { implementation: rawHeader } : rawHeader;
 
+  // The helper is declared once, ahead of the header, whenever the header or
+  // the generated operations call it, whichever client emitted the call.
+  const standardSchemaHelper = getStandardSchemaHelper(
+    normalizedHeader.implementation + clientImplementation,
+  );
+
   return {
-    implementation: normalizedHeader.implementation,
+    implementation: standardSchemaHelper
+      ? `${standardSchemaHelper}\n${normalizedHeader.implementation}`
+      : normalizedHeader.implementation,
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
     sharedTypes: normalizedHeader.sharedTypes,
     sharedExports: normalizedHeader.sharedExports,

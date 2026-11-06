@@ -1605,9 +1605,10 @@ export interface NormalizedMcpOptions {
  *
  * - `throw`: call `Schema.parse(data)` and let it throw (identical to the legacy
  *   boolean `true` behaviour).
- * - `both`: `safeParse` the payload, `console.error` the raw `ZodError` for
+ * - `both`: `safeParse` the payload, `console.error` the raw error for
  *   production visibility, then re-throw so the failure still surfaces through
- *   the client's native error channel.
+ *   the client's native error channel. The error is a `ZodError`, or a
+ *   `StandardSchemaError` carrying `issues` when `standardSchema` is on.
  */
 export type RuntimeValidationStrategy = 'throw' | 'both';
 
@@ -1620,7 +1621,19 @@ export type RuntimeValidationStrategy = 'throw' | 'both';
  */
 export type RuntimeValidation =
   | boolean
-  | { strategy: RuntimeValidationStrategy };
+  | {
+      /** @default 'throw' */
+      strategy?: RuntimeValidationStrategy;
+      /**
+       * Validate through the Standard Schema interface (`schema['~standard']`)
+       * instead of Zod's `parse`/`safeParse`, so a Standard Schema compliant
+       * value works at the call site. Failures throw a `StandardSchemaError`
+       * with the spec's `issues`. Orval's generated schemas stay Zod, and an
+       * inline array response is still composed with `zod.array()`, so Zod
+       * remains a runtime dependency of the generated client.
+       */
+      standardSchema?: boolean;
+    };
 
 /**
  * Canonical, normalized runtime-validation configuration consumed by the client
@@ -1629,6 +1642,8 @@ export type RuntimeValidation =
 export interface NormalizedRuntimeValidation {
   enabled: boolean;
   strategy: RuntimeValidationStrategy;
+  /** Set only when configured, so default normalized values are unchanged. */
+  standardSchema?: boolean;
 }
 
 /**
@@ -1648,6 +1663,11 @@ export type AngularRuntimeValidation =
        * @default false
        */
       requestBodies?: boolean;
+      /**
+       * Validate through the Standard Schema interface (`schema['~standard']`)
+       * instead of Zod's `parse`/`safeParse`.
+       */
+      standardSchema?: boolean;
     };
 
 export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeValidation {
