@@ -42,6 +42,8 @@ import {
   findModelFormatType,
   getFormatTypeError,
   getModelFormatType,
+  getNamedValueContext,
+  getUnnamedValueContext,
 } from './scalar';
 
 const getSchemaType = (s: OpenApiSchemaObject) =>
@@ -424,7 +426,7 @@ export function getResReqTypes(
               ? getSchemaFormDataAndUrlEncoded({
                   name: effectivePropName,
                   schemaObject: mediaType.schema,
-                  context,
+                  context: getUnnamedValueContext(context),
                   isRequestBodyOptional:
                     !('required' in res) || res.required !== true,
                   isRef: true,
@@ -437,7 +439,7 @@ export function getResReqTypes(
               ? getSchemaFormDataAndUrlEncoded({
                   name: effectivePropName,
                   schemaObject: mediaType.schema,
-                  context,
+                  context: getUnnamedValueContext(context),
                   isUrlEncoded: true,
                   isRequestBodyOptional:
                     !('required' in res) || res.required !== true,
@@ -656,13 +658,17 @@ interface FormatTypeIssues {
 function getSchemaFormDataAndUrlEncoded({
   name,
   schemaObject,
-  context,
+  context: bodyContext,
   isRequestBodyOptional,
   isUrlEncoded,
   isRef,
   encoding,
   formatTypeIssues,
 }: GetSchemaFormDataAndUrlEncodedOptions): string {
+  // Only the body's own value and its items can be unnamed, see
+  // `getUnnamedValueContext`.
+  const context = getNamedValueContext(bodyContext);
+  const valueContext = isInlineSchema(schemaObject) ? bodyContext : context;
   const { schema, imports } = resolveSchemaRef(schemaObject, context);
   const propName = camel(
     !isRef && !isInlineSchema(schemaObject) ? imports[0].name : name,
@@ -834,7 +840,7 @@ function getSchemaFormDataAndUrlEncoded({
       const itemType = getSchemaType(resolvedItem);
       const itemEncode = getFormValueEncode(
         itemSchema,
-        context,
+        isInlineSchema(schemaItems) ? valueContext : context,
         'data',
         formatTypeIssues,
       );
@@ -864,7 +870,12 @@ function getSchemaFormDataAndUrlEncoded({
     );
   }
 
-  const encode = getFormValueEncode(schema, context, 'data', formatTypeIssues);
+  const encode = getFormValueEncode(
+    schema,
+    valueContext,
+    'data',
+    formatTypeIssues,
+  );
   if (encode) {
     const append = `${variableName}.append('data', ${callFormatTypeFunction(encode, propName)})\n`;
     return isRequestBodyOptional || isSchemaNullable(schema)

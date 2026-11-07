@@ -6483,6 +6483,54 @@ describe('formatType values', () => {
     );
   });
 
+  it("converts an operation's unnamed values, which keep the mapped type, with Zod schemas", () => {
+    const context = makeContext({
+      Event: { type: 'object', properties: { at: dateTime } },
+    });
+    context.output.override.formatType = {
+      'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    };
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const deserializer = (schema: OpenApiSchemaObject, isRef = false) =>
+      generateResponseDateDeserializer({
+        operationName: 'getEvents',
+        response: makeResponse({
+          successTypes: [{ originalSchema: schema, isRef }],
+        }),
+        context,
+      })?.implementation;
+    const serializer = (schema: OpenApiSchemaObject) =>
+      generateRequestDateSerializer({
+        operationName: 'putEvents',
+        body: makeJsonBody(schema),
+        context,
+      })?.implementation;
+    const unnamed: OpenApiSchemaObject = {
+      type: 'array',
+      items: { anyOf: [dateTime, { type: 'null' }] },
+    };
+
+    expect(deserializer(unnamed)).toContain(
+      "data[i0] = typeof data[i0]! === 'string' ? dayjs(data[i0]! as unknown as string) : data[i0]!;",
+    );
+    expect(serializer(unnamed)).toContain(
+      "value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
+    );
+    // An object, inline or not, and a `$ref` have named types.
+    for (const named of [
+      { type: 'object', properties: { at: dateTime } },
+      { type: 'array', items: { $ref: '#/components/schemas/Event' } },
+    ] satisfies OpenApiSchemaObject[]) {
+      expect(deserializer(named)).toBeUndefined();
+      expect(serializer(named)).toBeUndefined();
+    }
+    expect(deserializer(unnamed, true)).toBeUndefined();
+  });
+
   it('encodes a request value with encode and leaves the rest to toJSON', () => {
     expect(
       serialize({

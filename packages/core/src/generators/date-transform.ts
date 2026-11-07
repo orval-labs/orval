@@ -6,6 +6,8 @@ import {
   getFormatTypeConfig,
   getFormatTypeError,
   getModelFormatType,
+  getNamedValueContext,
+  getUnnamedValueContext,
   hasNarrowedPropertyNames,
   isSchemaParameter,
 } from '../getters';
@@ -338,7 +340,7 @@ const buildStatements = ({
       schema,
       ref,
       accessor,
-      context,
+      context: ref ? getNamedValueContext(context) : context,
       visitedRefs,
       depth,
       writeAccessor,
@@ -464,7 +466,7 @@ const buildResolvedStatements = ({
       ? mode.mapStatements({
           values: mapValue,
           accessor,
-          context,
+          context: getNamedValueContext(context),
           visitedRefs,
           depth,
           mode,
@@ -538,11 +540,12 @@ const writesToAccessorItself = (
     if (seenRefs.has(ref)) return false;
     seenRefs.add(ref);
   }
-  if (isDateSchema(schema) || getModelFormatType(schema, context)) {
+  const schemaContext = ref ? getNamedValueContext(context) : context;
+  if (isDateSchema(schema) || getModelFormatType(schema, schemaContext)) {
     return true;
   }
   return (schema.allOf ?? []).some((branch: SchemaOrRef) =>
-    writesToAccessorItself(branch, context, seenRefs),
+    writesToAccessorItself(branch, schemaContext, seenRefs),
   );
 };
 
@@ -807,7 +810,7 @@ const buildPropertiesStatements = ({
   properties,
   required,
   accessor,
-  context,
+  context: valueContext,
   visitedRefs,
   depth,
   mode,
@@ -827,6 +830,8 @@ const buildPropertiesStatements = ({
    */
   presenceGuarded?: boolean;
 }): BuildResult => {
+  // An object level has a named type.
+  const context = getNamedValueContext(valueContext);
   const requiredSet = new Set(required ?? []);
   return mergeResults(
     Object.entries(properties).map(([key, property]) => {
@@ -1923,7 +1928,9 @@ export const generateRequestDateSerializer = ({
   const statements = buildRequestDateSerializeStatements({
     schema,
     accessor: 'copy',
-    context,
+    context: isInlineSchema(body.originalSchema)
+      ? getUnnamedValueContext(context)
+      : context,
   });
   if (statements.length === 0) return undefined;
 
@@ -2006,7 +2013,7 @@ export const generateResponseDateDeserializer = ({
   const statements = buildDateTransformStatements({
     schema: successType.originalSchema,
     accessor: 'data',
-    context,
+    context: successType.isRef ? context : getUnnamedValueContext(context),
   });
   if (statements.length === 0) return undefined;
 

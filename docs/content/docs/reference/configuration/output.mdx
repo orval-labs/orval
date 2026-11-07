@@ -4946,7 +4946,7 @@ A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for tha
 
 Header parameters, Axios `params`, a `paramsSerializer`, a `formData` / `formUrlEncoded` mutator and an Angular `paramsFilter` receive mapped values as they are, so the HTTP library or your function stringifies them, as with `Date`.
 
-With `schemas: { type: 'zod' }` the generated model types are the Zod schemas' input, where a mapped value is still its wire string, so only the Zod schemas convert it. Only `type: string` schemas, nullable or not, take a mapped type: a union with other types stays unmapped, constants keep their literal types, and so do enums unless the format is typed `Date`. Zod, Effect and Valibot schemas reject a mapped string that also has `allOf`/`oneOf`/`anyOf`.
+With `schemas: { type: 'zod' }` the generated model types are the Zod schemas' input, where a mapped value is still its wire string, so only the Zod schemas convert it. A request body or response that is a bare value or an array of them has no model type and keeps the mapped type, so it is converted as above. Only `type: string` schemas, nullable or not, take a mapped type: a union with other types stays unmapped, constants keep their literal types, and so do enums unless the format is typed `Date`. Zod, Effect and Valibot schemas reject a mapped string that also has `allOf`/`oneOf`/`anyOf`.
 
 #### dayjs example
 

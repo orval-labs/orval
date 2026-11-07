@@ -185,17 +185,42 @@ export function findCustomFormatType(
   return undefined;
 }
 
+/** The contexts {@link getUnnamedValueContext} made, to their originals. */
+const unnamedValueContexts = new WeakMap<object, ContextSpec>();
+
 /**
  * With Zod schema output the generated types are the schemas' input, where a
  * mapped value is still its wire string: only the schemas convert it. The zod
  * client's `generateReusableSchemas` makes a string `schemas` path Zod too.
  */
-const hasZodSchemaTypes = ({ output }: Pick<ContextSpec, 'output'>) =>
-  isObject(output.schemas)
+const hasZodSchemaTypes = (context: Pick<ContextSpec, 'output'>) => {
+  const { output } = context;
+  if (unnamedValueContexts.has(context)) return false;
+  return isObject(output.schemas)
     ? output.schemas.type === 'zod'
     : !!output.schemas &&
-      output.client === 'zod' &&
-      output.override.zod.generateReusableSchemas;
+        output.client === 'zod' &&
+        output.override.zod.generateReusableSchemas;
+};
+
+/**
+ * The context for code handling an operation's own body or response value
+ * where its type is not named: a bare value or an array of them. getScalar
+ * types such a value with the mapped type even with Zod schema output, so the
+ * model format type there is the custom one. A `$ref` or an object level has a
+ * named type (an inline object gets an alias), from where
+ * {@link getNamedValueContext} gives the original context back.
+ */
+export const getUnnamedValueContext = (context: ContextSpec): ContextSpec => {
+  if (!hasZodSchemaTypes(context)) return context;
+  const unnamed = { ...context };
+  unnamedValueContexts.set(unnamed, context);
+  return unnamed;
+};
+
+/** The context for a named value, see {@link getUnnamedValueContext}. */
+export const getNamedValueContext = (context: ContextSpec): ContextSpec =>
+  unnamedValueContexts.get(context) ?? context;
 
 /**
  * {@link getCustomFormatType} for code that handles the values the generated

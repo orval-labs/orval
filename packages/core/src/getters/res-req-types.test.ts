@@ -2933,4 +2933,39 @@ describe('getResReqTypes (formatType form values)', () => {
       "override.formatType.date-time (Dayjs): operation `Event`, the deepObject form field `range` can't encode it",
     );
   });
+
+  it("encodes only an operation's unnamed values with Zod schemas", () => {
+    const context = extendContext({
+      spec: {
+        components: {
+          schemas: { At: { type: 'string', format: 'date-time' } },
+        },
+      },
+      override: {
+        formatType: { 'date-time': { type: 'Dayjs', encode: 'toIso' } },
+      },
+    });
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const formData = (schema: OpenApiSchemaObject) =>
+      getResReqTypes(requestBody(schema), 'Event', context)[0].formData;
+
+    expect(
+      formData({
+        type: 'array',
+        items: { type: 'string', format: 'date-time' },
+      }),
+    ).toContain("formData.append('data', toIso(value))");
+    expect(formData({ type: 'string', format: 'date-time' })).toContain(
+      "formData.append('data', toIso(eventRequestBody))",
+    );
+    // An object level and a `$ref` have named types, holding the strings.
+    expect(formData(event)).not.toContain('toIso');
+    expect(
+      formData({ type: 'array', items: { $ref: '#/components/schemas/At' } }),
+    ).not.toContain('toIso');
+  });
 });
