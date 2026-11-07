@@ -2,7 +2,6 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   callFormatTypeFunction,
-  findModelFormatType,
   getModelFormatType,
   getFormatTypeError,
   isDateFormatType,
@@ -537,6 +536,65 @@ function buildFormatTypePayload(
   return callFormatTypeFunction(formatType.decode, wireValue);
 }
 
+/** The mapped format of a value that `value` holds where `schema` maps one. */
+function findMappedValue(
+  schemaOrRef: unknown,
+  value: unknown,
+  context: ContextSpec,
+  seenRefs = new Set<string>(),
+):
+  | { format: string | undefined; config: NormalizedFormatTypeConfig }
+  | undefined {
+  if (
+    value === null ||
+    value === undefined ||
+    !schemaOrRef ||
+    typeof schemaOrRef !== 'object'
+  ) {
+    return undefined;
+  }
+  const target = schemaOrRef as OpenApiSchemaObject | OpenApiReferenceObject;
+  if (!isInlineSchema(target)) {
+    if (seenRefs.has(target.$ref)) return undefined;
+    seenRefs.add(target.$ref);
+    const { schema } = getResolvedRef(target, context);
+    return findMappedValue(schema, value, context, seenRefs);
+  }
+  const schema = target;
+  const config = getModelFormatType(schema, context);
+  if (config) return { format: schema.format, config };
+  const children: [unknown, unknown, Set<string>?][] = [
+    ...(schema.allOf ?? []),
+    ...(schema.oneOf ?? []),
+    ...(schema.anyOf ?? []),
+  ].map((branch) => [branch, value, seenRefs]);
+  if (Array.isArray(value)) {
+    const { prefixItems } = getExtendedProps(schema);
+    const items: unknown = getItems(schema);
+    for (const [index, item] of value.entries()) {
+      children.push([
+        prefixItems?.[index] ?? (Array.isArray(items) ? items[index] : items),
+        item,
+      ]);
+    }
+  } else if (typeof value === 'object') {
+    const properties = getProperties(schema);
+    for (const [key, item] of Object.entries(value)) {
+      children.push([
+        Object.hasOwn(properties, key)
+          ? properties[key]
+          : getAdditionalProperties(schema),
+        item,
+      ]);
+    }
+  }
+  for (const [child, item, seen] of children) {
+    const found = findMappedValue(child, item, context, seen);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 function buildDefaultPayload(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
@@ -553,7 +611,7 @@ function buildDefaultPayload(
       imports,
     );
   }
-  const nested = findModelFormatType(schema, context);
+  const nested = findMappedValue(schema, schema.default, context);
   if (nested) {
     throw getFormatTypeError(
       nested.format,

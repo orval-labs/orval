@@ -1029,4 +1029,71 @@ describe('generateFactory (formatType)', () => {
       "override.formatType.date-time (Dayjs): factory methods can't decode it inside a default",
     );
   });
+
+  it('keeps a default that holds no mapped value', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['reminders', 'byName', 'meta'],
+      properties: {
+        reminders: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+          default: [],
+        },
+        byName: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date-time' },
+          default: {},
+        },
+        meta: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              at: { type: 'string', format: 'date-time' },
+              note: { type: 'string' },
+            },
+          },
+          default: { first: { note: 'n' } },
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+    );
+
+    expect(result?.model).toContain('reminders: []');
+    expect(result?.model).toContain('byName: {}');
+    expect(result?.model).toContain('meta: {"first":{"note":"n"}}');
+  });
+
+  it('fails for a default holding a mapped value in a nested object', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['meta'],
+      properties: {
+        meta: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: { at: { type: 'string', format: 'date-time' } },
+          },
+          default: { first: { at: '2026-01-01T00:00:00Z' } },
+        },
+      },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): factory methods can't decode it inside a default",
+    );
+  });
 });
