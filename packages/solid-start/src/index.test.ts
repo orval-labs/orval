@@ -978,13 +978,20 @@ describe('generateSolidStart — multipart Content-Type', () => {
 describe('generateSolidStart — form bodies', () => {
   const generateCreatePet = (
     body: Partial<GeneratorVerbOptions['body']>,
-    formUrlEncoded = false,
+    {
+      formUrlEncoded = false,
+      headers,
+    }: {
+      formUrlEncoded?: boolean;
+      headers?: GeneratorVerbOptions['headers'];
+    } = {},
   ) =>
     generateImplementation(
       makeVerbOptions({
         verb: Verbs.POST,
         operationId: 'createPet',
         operationName: 'createPet',
+        headers,
         body: {
           definition: 'CreatePetBody',
           implementation: 'createPetBody',
@@ -1003,8 +1010,33 @@ describe('generateSolidStart — form bodies', () => {
     });
 
     expect(implementation).toContain('body: formData');
+    expect(implementation).toContain('headers: {}');
     expect(implementation).not.toContain('JSON.stringify');
     expect(implementation).not.toContain("'Content-Type'");
+  });
+
+  it('drops a caller Content-Type header from a multipart request', async () => {
+    const implementation = await generateCreatePet(
+      {
+        contentType: 'multipart/form-data',
+        formData: 'const formData = new FormData();\n',
+      },
+      {
+        headers: {
+          schema: {
+            name: 'CreatePetHeaders',
+            model: 'export type CreatePetHeaders = { [key: string]: string }',
+            imports: [],
+          },
+          deps: [],
+          isOptional: true,
+        },
+      },
+    );
+
+    expect(implementation).toContain(
+      "headers: Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))",
+    );
   });
 
   it('sends the URLSearchParams it builds with the declared Content-Type', async () => {
@@ -1013,7 +1045,7 @@ describe('generateSolidStart — form bodies', () => {
         contentType: 'application/x-www-form-urlencoded',
         formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
       },
-      true,
+      { formUrlEncoded: true },
     );
 
     expect(implementation).toContain('body: formUrlEncoded');

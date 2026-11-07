@@ -457,12 +457,11 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
   const isFormUrlEncodedBody = isFormUrlEncoded && !!body.formUrlEncoded;
 
   // Build headers object. The browser sets the multipart Content-Type itself,
-  // because only it knows the boundary.
+  // because only it knows the boundary, so a caller's one is dropped too.
   const contentTypeHeader = `'Content-Type': '${isFormUrlEncodedBody ? jsStringLiteralEscape(body.contentType) : 'application/json'}'`;
-  const headersCode = `headers: { ${[
-    ...(headers ? ['...headers'] : []),
-    ...(isFormDataBody ? [] : [contentTypeHeader]),
-  ].join(', ')} }`;
+  const headersCode = isFormDataBody
+    ? `headers: ${headers ? `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))` : '{}'}`
+    : `headers: { ${headers ? '...headers, ' : ''}${contentTypeHeader} }`;
 
   // Build body code
   const bodyCode =
