@@ -46,6 +46,7 @@ export function getFormatTypeConfig(
 const isDateFormat = (format: string | undefined) =>
   format === 'date' || format === 'date-time';
 
+/** The type of a format: its `formatType` entry, else `Date` under `useDates`. */
 export function resolveFormatType(
   format: string | undefined,
   override: NormalizedOverrideOutput,

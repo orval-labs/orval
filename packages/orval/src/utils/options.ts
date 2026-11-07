@@ -86,6 +86,7 @@ import {
   type TsconfigPathsResolver,
 } from './tsconfig';
 
+/** Validates `override.formatType` and normalizes its entries and imports. */
 export function normalizeFormatType(
   formatTypeConfig: FormatTypeMap | undefined,
 ): NormalizedFormatTypeMap | undefined {
