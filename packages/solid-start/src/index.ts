@@ -453,16 +453,22 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
     const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
     : `const url = \`${route}\`;`;
 
-  // Build headers object
-  const headersCode = headers
-    ? `headers: { ...headers, 'Content-Type': 'application/json' }`
-    : `headers: { 'Content-Type': 'application/json' }`;
+  const isFormDataBody = isFormData && !!body.formData;
+  const isFormUrlEncodedBody = isFormUrlEncoded && !!body.formUrlEncoded;
+
+  // Build headers object. The browser sets the multipart Content-Type itself,
+  // because only it knows the boundary.
+  const contentTypeHeader = `'Content-Type': '${isFormUrlEncodedBody ? jsStringLiteralEscape(body.contentType) : 'application/json'}'`;
+  const headersCode = `headers: { ${[
+    ...(headers ? ['...headers'] : []),
+    ...(isFormDataBody ? [] : [contentTypeHeader]),
+  ].join(', ')} }`;
 
   // Build body code
   const bodyCode =
     isBodyVerb && body.implementation
       ? `,
-      body: JSON.stringify(${body.implementation})`
+      body: ${isFormDataBody || isFormUrlEncodedBody ? generateBodyOptions(body, isFormData, isFormUrlEncoded) : `JSON.stringify(${body.implementation})`}`
       : '';
 
   const functionName = isGetVerb ? 'query' : 'action';

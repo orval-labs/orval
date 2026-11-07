@@ -975,6 +975,64 @@ describe('generateSolidStart — multipart Content-Type', () => {
   });
 });
 
+describe('generateSolidStart — form bodies', () => {
+  const generateCreatePet = (
+    body: Partial<GeneratorVerbOptions['body']>,
+    formUrlEncoded = false,
+  ) =>
+    generateImplementation(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        operationId: 'createPet',
+        operationName: 'createPet',
+        body: {
+          definition: 'CreatePetBody',
+          implementation: 'createPetBody',
+          isOptional: false,
+          ...body,
+        },
+        override: { formUrlEncoded },
+      }),
+      makeOptions(makeContext()),
+    );
+
+  it('sends the FormData it builds and leaves the Content-Type to the browser', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'multipart/form-data',
+      formData: 'const formData = new FormData();\n',
+    });
+
+    expect(implementation).toContain('body: formData');
+    expect(implementation).not.toContain('JSON.stringify');
+    expect(implementation).not.toContain("'Content-Type'");
+  });
+
+  it('sends the URLSearchParams it builds with the declared Content-Type', async () => {
+    const implementation = await generateCreatePet(
+      {
+        contentType: 'application/x-www-form-urlencoded',
+        formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+      },
+      true,
+    );
+
+    expect(implementation).toContain('body: formUrlEncoded');
+    expect(implementation).toContain(
+      "'Content-Type': 'application/x-www-form-urlencoded'",
+    );
+    expect(implementation).not.toContain('JSON.stringify');
+  });
+
+  it('keeps sending a JSON body as JSON', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'application/json',
+    });
+
+    expect(implementation).toContain('body: JSON.stringify(createPetBody)');
+    expect(implementation).toContain("'Content-Type': 'application/json'");
+  });
+});
+
 describe('generateSolidStart — Content-Type header escaping', () => {
   it('escapes single quotes in the request body media type key', async () => {
     const verbOptions = makeVerbOptions({
