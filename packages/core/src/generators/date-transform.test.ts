@@ -6571,4 +6571,27 @@ describe('query parameter formatType values', () => {
       }),
     ).toBeUndefined();
   });
+
+  it('encodes a readOnly property of a query object, which is sent', () => {
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [
+        parameter('range', {
+          type: 'object',
+          properties: { from: { ...dateTime, readOnly: true } },
+        }),
+      ],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs', encode: 'toIso' } }),
+    });
+    expect(encoding).toEqual({
+      statements: [
+        'if (encodedParams.range != null) {',
+        '  encodedParams.range = { ...encodedParams.range };',
+        '  if (encodedParams.range.from != null) {',
+        "    (encodedParams.range as { -readonly [K in keyof typeof encodedParams.range]: (typeof encodedParams.range)[K] }).from = typeof encodedParams.range.from === 'string' ? encodedParams.range.from : (toIso(encodedParams.range.from) as unknown as typeof encodedParams.range.from);",
+        '  }',
+        '}',
+      ],
+    });
+  });
 });

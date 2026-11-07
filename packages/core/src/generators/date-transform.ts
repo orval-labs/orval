@@ -1777,6 +1777,10 @@ export const getQueryParamsFormatTypeEncoding = ({
     if (!isSchemaParameter(parameter)) return [];
     const mode: DateTransformMode = {
       ...requestMode,
+      // Unlike a request body's, a query object's readOnly properties are in
+      // its type and sent.
+      propertyWriteAccessor: responseMode.propertyWriteAccessor,
+      skipProperty: () => false,
       isLeaf: (schema, context) =>
         getModelFormatType(schema, context) !== undefined,
       leafStatement: (read, write, schema, context) => {
