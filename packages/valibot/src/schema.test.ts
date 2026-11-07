@@ -1,6 +1,12 @@
-import type { OpenApiSchemaObject } from '@orval/core';
+import { runInNewContext } from 'node:vm';
+
+import type { ContextSpec, OpenApiSchemaObject } from '@orval/core';
+import * as v from 'valibot';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { createTestContextSpec } from '../../core/src/test-utils';
+import { renderValibot } from './render';
+import { generateValibotValidationSchemaDefinition } from './schema';
 import { gen } from './test-helpers';
 
 describe('scalars', () => {
@@ -314,5 +320,69 @@ describe('objects', () => {
       { required: false },
     );
     expect(valibot).toContain(', 5)');
+  });
+});
+
+describe('formatType', () => {
+  const render = (
+    schema: OpenApiSchemaObject,
+    formatType: NonNullable<ContextSpec['output']['override']['formatType']> = {
+      'date-time': { type: 'Day', decode: 'toDay' },
+    },
+    required = true,
+  ) => {
+    const context = createTestContextSpec({ override: { formatType } });
+    const valibot = renderValibot(
+      generateValibotValidationSchemaDefinition(schema, context, false, {
+        required,
+      }),
+    );
+    const instance = runInNewContext(valibot, {
+      v,
+      Date,
+      toDay: (value: string) => ({ day: value }),
+    }) as v.GenericSchema;
+    return { valibot, parse: (input: unknown) => v.parse(instance, input) };
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+
+  it('decodes a mapped format after checking the wire string', () => {
+    const { valibot, parse } = render(dateTime);
+    expect(valibot).toBe(
+      'v.pipe(v.string(), v.isoTimestamp(), v.transform((value) => toDay(value)))',
+    );
+    expect(parse('2025-01-01T09:00:00.000Z')).toEqual({
+      day: '2025-01-01T09:00:00.000Z',
+    });
+  });
+
+  it('decodes a default and keeps null for a nullable value', () => {
+    expect(
+      render(
+        { ...dateTime, default: '2025-01-01T09:00:00.000Z' },
+        undefined,
+        false,
+      ).parse(undefined),
+    ).toEqual({ day: '2025-01-01T09:00:00.000Z' });
+    expect(render({ ...dateTime, type: ['string', 'null'] }).parse(null)).toBe(
+      null,
+    );
+  });
+
+  it('fails for a mapped format without decode', () => {
+    expect(() => render(dateTime, { 'date-time': { type: 'Day' } })).toThrow(
+      'override.formatType.date-time (Day): Valibot schemas need `decode`',
+    );
+  });
+
+  it('types a `Date` mapping like useDates and leaves unions unmapped', () => {
+    expect(
+      render(dateTime, { 'date-time': { type: 'Date' } }).parse(
+        '2025-01-01T09:00:00.000Z',
+      ),
+    ).toBeInstanceOf(Date);
+    expect(render({ ...dateTime, type: ['string', 'number'] }).valibot).toBe(
+      'v.union([v.pipe(v.string(), v.isoTimestamp()), v.number()])',
+    );
   });
 });

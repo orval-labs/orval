@@ -56,4 +56,22 @@ export default defineConfig({
     },
     exactOptional: true,
   }),
+  'format-type': {
+    output: {
+      target: '../generated/valibot/format-type/format-type.ts',
+      client: 'valibot',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            decode: 'dayjs',
+            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+          },
+        },
+      },
+    },
+    input: { target: '../specifications/date-type.yaml' },
+  },
 });

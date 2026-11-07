@@ -49,6 +49,11 @@ const renderAction = (
       // A transformed member would not merge with its siblings.
       return inIntersection ? undefined : TO_DATE;
     }
+    case 'decode': {
+      return inIntersection
+        ? undefined
+        : `v.transform((value) => ${action.call})`;
+    }
     case 'regex': {
       return `v.regex(${action.pattern})`;
     }

@@ -4938,6 +4938,7 @@ A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for tha
 - **Mocks and examples:** `mock`, otherwise `decode` applied to the generated string. **Factory methods** apply `decode` to a fixed value: `'1970-01-01'` for `date`, the epoch for `date-time`, `''` otherwise.
 - **Zod schemas:** `zod.codec` (Zod 4 only), `zod.transform`, otherwise `decode`. Defaults are applied to the wire string. Angular `runtimeValidation.requestBodies` sends the parsed body, encoded back through the schema when each mapped value in it has a `zod.codec`, otherwise through the values' `toJSON`.
 - **Effect schemas:** `effect.schema`. Defaults are decoded through the schema.
+- **Valibot schemas:** `decode`, as a `v.transform` after the string checks. Defaults go through it too.
 - **`useDatesTransform`:** responses are decoded with `decode`. Request bodies are encoded with `encode`; without it the value is sent through its `toJSON`.
 - **Path parameters**, **query parameters** built by the fetch, solid-start and Angular (built-in `filterParams`) clients, and **form-data / url-encoded request bodies** a client builds: `encode`. The error names the operation and parameter, or the form field. Mapped values Orval can't reach (in `oneOf`/`anyOf` form bodies, `deepObject` form fields, path parameter arrays) are rejected.
 

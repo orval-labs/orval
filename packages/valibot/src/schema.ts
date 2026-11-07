@@ -1,7 +1,12 @@
 import {
+  callFormatTypeFunction,
   type ContextSpec,
+  getCustomFormatType,
   getEnumMembers,
+  getFormatTypeError,
+  getUnionMemberContext,
   isBoolean,
+  isDateFormatType,
   isObject,
   isSchemaNullable,
   isString,
@@ -251,8 +256,16 @@ const generateActions = (
   context: ContextSpec,
 ): ValibotAction[] => {
   const { kind } = base.schema;
-  const isDateString =
-    kind === 'string' && ['date', 'date-time'].includes(schema.format ?? '');
+  const { override } = context.output;
+  const formatType =
+    kind === 'string' ? getCustomFormatType(schema, override) : undefined;
+  if (formatType && !formatType.decode) {
+    throw getFormatTypeError(
+      schema.format,
+      formatType,
+      'Valibot schemas need `decode`',
+    );
+  }
   return [
     ...base.actions,
     ...(kind === 'number' ? numberActions(schema) : []),
@@ -261,8 +274,16 @@ const generateActions = (
       ? patternActions(schema.pattern)
       : []),
     // The transform runs after every check, which expect the string.
-    ...(isDateString && context.output.override.useDates
+    ...(kind === 'string' && isDateFormatType(schema.format, override)
       ? [{ kind: 'toDate' } as const]
+      : []),
+    ...(formatType?.decode
+      ? [
+          {
+            kind: 'decode',
+            call: callFormatTypeFunction(formatType.decode, 'value'),
+          } as const,
+        ]
       : []),
     ...(isString(schema.description) && schema.description
       ? [
@@ -414,8 +435,13 @@ export const generateValibotValidationSchemaDefinition = (
   const defaultValue =
     schema.default === undefined ? undefined : generateDefault(schema);
   const hasDefault = defaultValue !== undefined;
+  // The members of a `type: [...]` union keep the format unmapped.
+  const childContext =
+    getMultiTypes(schema).length > 1
+      ? getUnionMemberContext(context, schema.format)
+      : context;
   const child: ChildGenerator = (member, isRequired = true) =>
-    generateValibotValidationSchemaDefinition(member, context, strict, {
+    generateValibotValidationSchemaDefinition(member, childContext, strict, {
       required: isRequired,
       urlEncoded,
     });

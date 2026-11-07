@@ -79,7 +79,9 @@ export type ValibotAction =
   | { kind: ValueActionKind; value: string }
   | { kind: 'regex'; pattern: string }
   | { kind: 'describe'; text: string }
-  | { kind: 'toDate' };
+  | { kind: 'toDate' }
+  // A `formatType` `decode` call on the wire string.
+  | { kind: 'decode'; call: string };
 
 export interface ValibotNode {
   schema: ValibotSchema;
