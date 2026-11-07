@@ -95,12 +95,22 @@ export function addFormatTypeImports(
       String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
       'm',
     ).test(precedingContent);
+  const valueImports = getFormatTypeZodImports(content, override);
   const imports = [
-    ...getFormatTypeZodImports(content, override),
-    // The TypeScript type a recursive schema is pinned to names them.
+    ...valueImports,
+    // The TypeScript type a recursive schema is pinned to names them. A value
+    // import of the same binding, such as a `decodeImport`, covers the type.
     ...getReferencedFormatTypeImports(content, override, (config) => [
       config.import,
-    ]).map((imp) => ({ ...imp, values: false })),
+    ])
+      .filter(
+        (imp) =>
+          !valueImports.some(
+            (value) =>
+              value.name === imp.name && value.importPath === imp.importPath,
+          ),
+      )
+      .map((imp) => ({ ...imp, values: false })),
   ].filter(({ name }) => !isImported(name));
   if (imports.length === 0) return content;
   const statements = generateImports({ imports });

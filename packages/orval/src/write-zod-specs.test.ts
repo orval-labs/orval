@@ -2222,6 +2222,26 @@ describe('formatType imports', () => {
     );
   });
 
+  it('imports a type its decode also imports as a value once', () => {
+    const temporal = { name: 'Temporal', importPath: 'temporal-polyfill' };
+    const typed = {
+      ...override,
+      formatType: {
+        date: {
+          type: 'Temporal.PlainDate',
+          import: temporal,
+          decode: 'Temporal.PlainDate.from',
+          decodeImport: temporal,
+        },
+      },
+    };
+    const content =
+      'export const Event = zod.object({ "day": zod.iso.date().transform((value) => Temporal.PlainDate.from(value)) })\n';
+    expect(addFormatTypeImports(content, typed)).toBe(
+      `import { Temporal } from 'temporal-polyfill';\n\n${content}`,
+    );
+  });
+
   it('writes the imports into a schema file', async () => {
     const root = await fs.promises.mkdtemp(path.join(tmpdir(), 'orval-zod-'));
     const schemasPath = path.join(root, 'schemas');
