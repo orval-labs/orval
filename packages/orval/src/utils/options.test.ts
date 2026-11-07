@@ -3,7 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { mergeDeep, noopReporter, withReporter } from '@orval/core';
-import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
+import type {
+  FormatTypeMap,
+  NormalizedSchemaOptions,
+  OutputMocksConfig,
+} from '@orval/core';
 import {
   afterEach,
   beforeEach,
@@ -44,6 +48,14 @@ describe('normalizeFormatType', () => {
 
   it('returns empty object for empty config', () => {
     expect(normalizeFormatType({})).toEqual({});
+  });
+
+  it('keeps a __proto__ format as an own entry', () => {
+    const normalized = normalizeFormatType(
+      JSON.parse('{"__proto__": { "type": "Proto" }}') as FormatTypeMap,
+    );
+    expect(Object.hasOwn(normalized ?? {}, '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(normalized)).toBe(Object.prototype);
   });
 
   it('throws when type is missing', () => {

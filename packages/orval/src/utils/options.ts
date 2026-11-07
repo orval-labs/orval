@@ -111,30 +111,34 @@ export function normalizeFormatType(
         `override.formatType.${format}.effect.schema is required`,
       );
     }
-    normalized[format] = {
-      type: config.type,
-      import: normalizeImport(config.import),
-      decode: config.decode,
-      decodeImport: normalizeImport(config.decodeImport),
-      encode: config.encode,
-      encodeImport: normalizeImport(config.encodeImport),
-      zod: config.zod
-        ? {
-            transform: config.zod.transform,
-            transformImport: normalizeImport(config.zod.transformImport),
-            codec: config.zod.codec,
-            codecImport: normalizeImport(config.zod.codecImport),
-          }
-        : undefined,
-      effect: config.effect
-        ? {
-            schema: config.effect.schema,
-            schemaImport: normalizeImport(config.effect.schemaImport),
-          }
-        : undefined,
-      mock: config.mock,
-      mockImport: normalizeImport(config.mockImport),
-    };
+    // A defined property keeps a `__proto__` format as an own entry.
+    Object.defineProperty(normalized, format, {
+      enumerable: true,
+      value: {
+        type: config.type,
+        import: normalizeImport(config.import),
+        decode: config.decode,
+        decodeImport: normalizeImport(config.decodeImport),
+        encode: config.encode,
+        encodeImport: normalizeImport(config.encodeImport),
+        zod: config.zod
+          ? {
+              transform: config.zod.transform,
+              transformImport: normalizeImport(config.zod.transformImport),
+              codec: config.zod.codec,
+              codecImport: normalizeImport(config.zod.codecImport),
+            }
+          : undefined,
+        effect: config.effect
+          ? {
+              schema: config.effect.schema,
+              schemaImport: normalizeImport(config.effect.schemaImport),
+            }
+          : undefined,
+        mock: config.mock,
+        mockImport: normalizeImport(config.mockImport),
+      },
+    });
   }
   return normalized;
 }
