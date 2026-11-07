@@ -4935,7 +4935,7 @@ Map an OpenAPI string format (e.g. `date`, `date-time`, `time`, `uuid`) to a cus
 
 #### Where values are converted
 
-A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for that format. For any other type, every place Orval generates code that handles the value uses the entry, and generation fails with an error naming the format when what it needs is missing:
+A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for that format. For any other type, every place Orval generates code that handles the value uses the entry. A value sent without `encode` falls back to its own string conversion, with a warning; generation fails with an error naming the format only where generated code would otherwise be wrong:
 
 - **Mocks and examples:** `mock`, otherwise `decode` applied to the generated string. **Factory methods** apply `decode` to the schema's `default`, otherwise to `factoryDefault`.
 - **Zod schemas:** `zod.codec` (Zod 4 only), `zod.transform`, otherwise `decode`. Defaults are applied to the wire string. Angular `runtimeValidation.requestBodies` sends the parsed body, encoded back through the schema when each mapped value in it has a `zod.codec`, otherwise through the values' `toJSON`.
@@ -4964,7 +4964,8 @@ export default defineConfig({
             import: { name: 'Dayjs', importPath: 'dayjs' },
             decode: 'dayjs',
             decodeImport: dayjsImport,
-            encode: '(value) => value.toISOString()',
+            encode: 'encodeDayjs',
+            encodeImport: { name: 'encodeDayjs', importPath: '@/lib/dates' },
             mock: 'dayjs(faker.date.past())',
             mockImport: dayjsImport,
           },
@@ -4974,6 +4975,14 @@ export default defineConfig({
   },
 });
 ```
+
+```ts title="src/lib/dates.ts"
+import type { Dayjs } from 'dayjs';
+
+export const encodeDayjs = (value: Dayjs) => value.toISOString();
+```
+
+Import paths are written into the generated files as given. A named function keeps the generated calls readable (`encodeDayjs(endsAt)`), where an inline arrow is wrapped at every call.
 
 #### Temporal example
 
