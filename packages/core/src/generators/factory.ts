@@ -560,6 +560,7 @@ function findMappedValue(
     const { schema } = getResolvedRef(target, context);
     return findMappedValue(schema, value, context, seenRefs);
   }
+  if (isBooleanJsonSchema(target)) return undefined;
   const schema = target;
   const config = getModelFormatType(schema, context);
   if (config) return { format: schema.format, config };
