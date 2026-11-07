@@ -50,9 +50,8 @@ const renderAction = (
       return inIntersection ? undefined : TO_DATE;
     }
     case 'decode': {
-      return inIntersection
-        ? undefined
-        : `v.transform((value) => ${action.call})`;
+      if (inIntersection) throw new Error(action.intersectionError);
+      return `v.transform((value) => ${action.call})`;
     }
     case 'regex': {
       return `v.regex(${action.pattern})`;

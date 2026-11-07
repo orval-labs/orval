@@ -283,6 +283,12 @@ const generateActions = (
           {
             kind: 'decode',
             call: callFormatTypeFunction(formatType.decode, 'value'),
+            // A transformed member would not merge with its siblings.
+            intersectionError: getFormatTypeError(
+              schema.format,
+              formatType,
+              "Valibot schemas can't convert it inside allOf",
+            ).message,
           } as const,
         ]
       : []),

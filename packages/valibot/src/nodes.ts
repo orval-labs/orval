@@ -80,8 +80,9 @@ export type ValibotAction =
   | { kind: 'regex'; pattern: string }
   | { kind: 'describe'; text: string }
   | { kind: 'toDate' }
-  // A `formatType` `decode` call on the wire string.
-  | { kind: 'decode'; call: string };
+  // A `formatType` `decode` call on the wire string, and the generation error
+  // for an intersection member, where it can't run.
+  | { kind: 'decode'; call: string; intersectionError: string };
 
 export interface ValibotNode {
   schema: ValibotSchema;
