@@ -126,6 +126,11 @@ export const generateAngularHttpRequestFunction = (
   if (mutator) {
     const isExactOptionalPropertyTypes =
       !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    const isAngular = context.output.httpClient === OutputHttpClient.ANGULAR;
+    // The built-in Angular params filter would drop a mapped value.
+    const paramsEncoding = isAngular
+      ? getQueryParamsEncoding(queryParams, 'params')
+      : undefined;
 
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -139,7 +144,8 @@ export const generateAngularHttpRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isAngular: context.output.httpClient === OutputHttpClient.ANGULAR,
+      isAngular,
+      paramsExpression: paramsEncoding ? 'encodedParams' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -156,7 +162,7 @@ export const generateAngularHttpRequestFunction = (
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     } ${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
-      ${bodyForm}
+      ${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});

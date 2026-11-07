@@ -788,6 +788,37 @@ describe('angular HttpClient generator', () => {
       );
     });
 
+    it('filters an encoded copy of formatType query values for a mutator', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-instance.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain(
+        'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+      );
+      expect(impl).toContain('params: filterParams(encodedParams');
+    });
+
     it('replaces the built-in filter with the user-supplied paramsFilter', () => {
       const verbOption = createVerbOption({
         queryParams: {

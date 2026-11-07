@@ -629,6 +629,10 @@ export const generateHttpClientImplementation = (
     : undefined;
 
   if (mutator) {
+    // A `paramsFilter` takes the values as they are.
+    const paramsEncoding = paramsFilter
+      ? undefined
+      : getQueryParamsEncoding(queryParams, 'params');
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -643,6 +647,7 @@ export const generateHttpClientImplementation = (
       isAngular: true,
       paramsFilter,
       accept: mutatorAcceptTypeName ? 'accept' : undefined,
+      paramsExpression: paramsEncoding ? 'encodedParams' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -689,7 +694,7 @@ export const generateHttpClientImplementation = (
     const implementationParams =
       allParams.length > 0 ? `${allParams.join(',\n    ')},` : '';
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}
+    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
