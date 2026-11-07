@@ -311,6 +311,7 @@ export function extractBoundAliasInfo(
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
+  componentRef?: RefInfo,
 ): {
   refInfo: RefInfo;
   currentSchema: TSchema | undefined;
@@ -342,7 +343,11 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
     !isInlineSchema(schemaByRefPaths) &&
     !isBoundAlias(schemaByRefPaths)
   ) {
-    return getSchema(schemaByRefPaths, context);
+    return getSchema(
+      schemaByRefPaths,
+      context,
+      isComponentRef(schema.$ref) ? refInfo : componentRef,
+    );
   }
 
   let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject | undefined =
@@ -365,7 +370,10 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
   return {
     currentSchema: currentSchema as TSchema | undefined,
-    refInfo,
+    // An inline target has no emitted type of its own. Keep the closest
+    // named component while still using the target schema for its metadata.
+    refInfo:
+      componentRef && !isComponentRef(schema.$ref) ? componentRef : refInfo,
   };
 }
 
