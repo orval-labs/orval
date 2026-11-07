@@ -429,32 +429,38 @@ export const generateEffectValidationSchemaDefinition = (
     if (isDateType) {
       defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
-      const entries = Object.entries(schema.default)
-        .map(([key, value]) => {
-          const safeKey = JSON.stringify(key);
-          if (isString(value)) {
-            return `${safeKey}: ${JSON.stringify(value)} as const`;
-          }
-          if (Array.isArray(value)) {
-            const arrayItems = value.map((item) =>
-              isString(item)
-                ? `${JSON.stringify(item)} as const`
-                : JSON.stringify(item),
-            );
-            return `${safeKey}: [${arrayItems.join(', ')}]`;
-          }
-          if (
-            value === null ||
-            value === undefined ||
-            isNumber(value) ||
-            isBoolean(value)
-          )
-            return `${safeKey}: ${value}`;
-          return;
-        })
-        .filter((entry): entry is string => entry !== undefined)
-        .join(', ');
-      defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
+      const toObjectLiteral = (object: Record<string, unknown>): string => {
+        const entries = Object.entries(object)
+          .map(([key, value]) => {
+            const safeKey = JSON.stringify(key);
+            if (isString(value)) {
+              return `${safeKey}: ${JSON.stringify(value)} as const`;
+            }
+            if (Array.isArray(value)) {
+              const arrayItems = value.map((item) =>
+                isString(item)
+                  ? `${JSON.stringify(item)} as const`
+                  : JSON.stringify(item),
+              );
+              return `${safeKey}: [${arrayItems.join(', ')}]`;
+            }
+            if (isObject(value)) {
+              return `${safeKey}: ${toObjectLiteral(value)}`;
+            }
+            if (
+              value === null ||
+              value === undefined ||
+              isNumber(value) ||
+              isBoolean(value)
+            )
+              return `${safeKey}: ${value}`;
+            return;
+          })
+          .filter((entry): entry is string => entry !== undefined)
+          .join(', ');
+        return entries.length === 0 ? `{}` : `{ ${entries} }`;
+      };
+      defaultValue = toObjectLiteral(schema.default);
     } else {
       const rawStringified = stringify(schema.default);
       // `stringify` already escapes string leaves for the single-quoted

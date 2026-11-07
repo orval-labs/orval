@@ -434,6 +434,30 @@ describe('defaults', () => {
     expect(consts).toContain('{"id":1}');
     expect(consts).toContain('{"id":2}');
   });
+
+  it('keeps nested objects in object defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          required: ['retry'],
+          properties: {
+            name: { type: 'string' },
+            retry: {
+              type: 'object',
+              required: ['mode'],
+              properties: { mode: { enum: ['fast', 'slow'] } },
+            },
+          },
+          default: { name: 'x', retry: { mode: 'fast' } },
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { "name": "x" as const, "retry": { "mode": "fast" as const } };',
+    );
+  });
 });
 
 describe('formats', () => {
