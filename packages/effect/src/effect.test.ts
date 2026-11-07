@@ -458,6 +458,30 @@ describe('defaults', () => {
     );
   });
 
+  it('keeps literal types in array defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        modes: {
+          type: 'array',
+          items: { enum: ['fast', 'slow'] },
+          default: ['fast'],
+        },
+        grid: {
+          type: 'array',
+          items: { type: 'array', items: { enum: ['x', 'o'] } },
+          default: [['x', 'o']],
+        },
+      },
+    });
+    expect(consts).toContain(
+      'export const testModesDefault = ["fast" as const];',
+    );
+    expect(consts).toContain(
+      'export const testGridDefault = [["x" as const, "o" as const]];',
+    );
+  });
+
   it('keeps an own __proto__ key in object defaults as a property', () => {
     const { consts } = gen({
       type: 'object',

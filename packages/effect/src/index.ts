@@ -428,7 +428,7 @@ export const generateEffectValidationSchemaDefinition = (
 
     if (isDateType) {
       defaultValue = `new Date(${JSON.stringify(schema.default)})`;
-    } else if (isObject(schema.default)) {
+    } else if (isObject(schema.default) || Array.isArray(schema.default)) {
       const toLiteral = (value: unknown): string | undefined => {
         if (isString(value)) {
           return `${JSON.stringify(value)} as const`;
@@ -471,19 +471,6 @@ export const generateEffectValidationSchemaDefinition = (
       // backtick or `${...}` re-arms live interpolation in generated
       // source. Keep the delimiter `stringify` actually escaped for.
       defaultValue = rawStringified === undefined ? 'null' : rawStringified;
-
-      const isArrayWithEnumItems =
-        Array.isArray(schema.default) &&
-        type === 'array' &&
-        schema.items &&
-        typeof schema.items === 'object' &&
-        'enum' in schema.items &&
-        schema.default.length > 0;
-
-      if (isArrayWithEnumItems) {
-        defaultVarName = defaultValue;
-        defaultValue = undefined;
-      }
     }
     if (defaultValue) {
       consts.push(`export const ${defaultVarName} = ${defaultValue};`);
