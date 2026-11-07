@@ -429,38 +429,35 @@ export const generateEffectValidationSchemaDefinition = (
     if (isDateType) {
       defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
-      const toObjectLiteral = (object: Record<string, unknown>): string => {
-        const entries = Object.entries(object)
-          .map(([key, value]) => {
-            const safeKey = JSON.stringify(key);
-            if (isString(value)) {
-              return `${safeKey}: ${JSON.stringify(value)} as const`;
-            }
-            if (Array.isArray(value)) {
-              const arrayItems = value.map((item) =>
-                isString(item)
-                  ? `${JSON.stringify(item)} as const`
-                  : JSON.stringify(item),
-              );
-              return `${safeKey}: [${arrayItems.join(', ')}]`;
-            }
-            if (isObject(value)) {
-              return `${safeKey}: ${toObjectLiteral(value)}`;
-            }
-            if (
-              value === null ||
-              value === undefined ||
-              isNumber(value) ||
-              isBoolean(value)
-            )
-              return `${safeKey}: ${value}`;
-            return;
-          })
-          .filter((entry): entry is string => entry !== undefined)
-          .join(', ');
-        return entries.length === 0 ? `{}` : `{ ${entries} }`;
+      const toLiteral = (value: unknown): string | undefined => {
+        if (isString(value)) {
+          return `${JSON.stringify(value)} as const`;
+        }
+        if (Array.isArray(value)) {
+          return `[${value.map((item) => toLiteral(item)).join(', ')}]`;
+        }
+        if (isObject(value)) {
+          const entries = Object.entries(value)
+            .map(([key, entry]) => {
+              const literal = toLiteral(entry);
+              return literal === undefined
+                ? undefined
+                : `${JSON.stringify(key)}: ${literal}`;
+            })
+            .filter((entry): entry is string => entry !== undefined)
+            .join(', ');
+          return entries.length === 0 ? `{}` : `{ ${entries} }`;
+        }
+        if (
+          value === null ||
+          value === undefined ||
+          isNumber(value) ||
+          isBoolean(value)
+        )
+          return `${value}`;
+        return;
       };
-      defaultValue = toObjectLiteral(schema.default);
+      defaultValue = toLiteral(schema.default);
     } else {
       const rawStringified = stringify(schema.default);
       // `stringify` already escapes string leaves for the single-quoted

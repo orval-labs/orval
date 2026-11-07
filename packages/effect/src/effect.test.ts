@@ -431,8 +431,31 @@ describe('defaults', () => {
       },
     });
     expect(consts).not.toContain('[object Object]');
-    expect(consts).toContain('{"id":1}');
-    expect(consts).toContain('{"id":2}');
+    expect(consts).toContain('"items": [{ "id": 1 }, { "id": 2 }]');
+  });
+
+  it('keeps literal types in objects inside array defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { status: { enum: ['active', 'inactive'] } },
+              },
+            },
+          },
+          default: { items: [{ status: 'active' }, { status: 'inactive' }] },
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { "items": [{ "status": "active" as const }, { "status": "inactive" as const }] };',
+    );
   });
 
   it('keeps nested objects in object defaults', () => {
