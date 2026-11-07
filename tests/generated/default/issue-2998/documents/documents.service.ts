@@ -135,10 +135,16 @@ export class DocumentsService {
     addDocumentBody?: AddDocumentBody,
     options?: HttpClientObserveOptions,
   ): Observable<TData | HttpEvent<TData> | AngularHttpResponse<TData>> {
-    const formData = new FormData();
-    if (addDocumentBody?.file !== undefined) {
-      formData.append(`file`, addDocumentBody.file);
-    }
+    const formData =
+      addDocumentBody === undefined
+        ? undefined
+        : (() => {
+            const formData = new FormData();
+            if (addDocumentBody?.file !== undefined) {
+              formData.append(`file`, addDocumentBody.file);
+            }
+            return formData;
+          })();
 
     if (options?.observe === 'events') {
       return this.http.post<TData>(

@@ -100,4 +100,28 @@ export default defineConfig({
       },
     },
   },
+  formData: {
+    output: {
+      target: '../generated/solid-start/form-data/endpoints.ts',
+      schemas: '../generated/solid-start/form-data/model',
+      client: 'solid-start',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/form-data-optional-request.yaml',
+    },
+  },
+  formUrlEncoded: {
+    output: {
+      target: '../generated/solid-start/form-url-encoded/endpoints.ts',
+      schemas: '../generated/solid-start/form-url-encoded/model',
+      client: 'solid-start',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/form-url-encoded.yaml',
+    },
+  },
 });

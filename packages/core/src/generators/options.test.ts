@@ -16,6 +16,7 @@ import {
   generateAxiosOptions,
   generateAxiosUrl,
   generateBodyOptions,
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateOptions,
   getAngularFilteredParamsCallExpression,
@@ -1275,6 +1276,56 @@ describe('generateBodyOptions', () => {
         false,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('generateFormDataAndUrlEncodedFunction', () => {
+  const formBody: GetterBody = {
+    ...minimalBody,
+    implementation: 'pet',
+    formData: 'const formData = new FormData();\n',
+    formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+  };
+
+  it('returns the form of a required body unchanged', () => {
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body: formBody,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = new FormData();\n');
+  });
+
+  it('builds no form for an omitted optional body', () => {
+    const body = { ...formBody, isOptional: true };
+
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe(
+      'const formData = pet === undefined ? undefined : (() => {\nconst formData = new FormData();\nreturn formData;\n})();\n',
+    );
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        isFormData: false,
+        isFormUrlEncoded: true,
+      }),
+    ).toBe(
+      'const formUrlEncoded = pet === undefined ? undefined : (() => {\nconst formUrlEncoded = new URLSearchParams();\nreturn formUrlEncoded;\n})();\n',
+    );
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        formData: { ...minimalParamsSerializer, name: 'toFormData' },
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = pet === undefined ? undefined : toFormData(pet)');
   });
 });
 
