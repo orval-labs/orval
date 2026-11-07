@@ -835,7 +835,7 @@ describe('getScalar with formatType', () => {
       context: ctx,
     });
 
-    expect(value).toMatch(/^string | /);
+    expect(value).toMatch(/^string \| /);
     expect(value).toContain('at?: Dayjs');
   });
 });
