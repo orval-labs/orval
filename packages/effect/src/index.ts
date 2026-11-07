@@ -428,33 +428,40 @@ export const generateEffectValidationSchemaDefinition = (
 
     if (isDateType) {
       defaultValue = `new Date(${JSON.stringify(schema.default)})`;
-    } else if (isObject(schema.default)) {
-      const entries = Object.entries(schema.default)
-        .map(([key, value]) => {
-          const safeKey = JSON.stringify(key);
-          if (isString(value)) {
-            return `${safeKey}: ${JSON.stringify(value)} as const`;
-          }
-          if (Array.isArray(value)) {
-            const arrayItems = value.map((item) =>
-              isString(item)
-                ? `${JSON.stringify(item)} as const`
-                : JSON.stringify(item),
-            );
-            return `${safeKey}: [${arrayItems.join(', ')}]`;
-          }
-          if (
-            value === null ||
-            value === undefined ||
-            isNumber(value) ||
-            isBoolean(value)
-          )
-            return `${safeKey}: ${value}`;
-          return;
-        })
-        .filter((entry): entry is string => entry !== undefined)
-        .join(', ');
-      defaultValue = entries.length === 0 ? `{}` : `{ ${entries} }`;
+    } else if (isObject(schema.default) || Array.isArray(schema.default)) {
+      const toLiteral = (value: unknown): string | undefined => {
+        if (isString(value)) {
+          return `${JSON.stringify(value)} as const`;
+        }
+        if (Array.isArray(value)) {
+          return `[${value.map((item) => toLiteral(item)).join(', ')}]`;
+        }
+        if (isObject(value)) {
+          const entries = Object.entries(value)
+            .map(([key, entry]) => {
+              const literal = toLiteral(entry);
+              // A plain `__proto__` key sets the prototype; a computed one
+              // keeps it as a property.
+              const safeKey =
+                key === '__proto__' ? '["__proto__"]' : JSON.stringify(key);
+              return literal === undefined
+                ? undefined
+                : `${safeKey}: ${literal}`;
+            })
+            .filter((entry): entry is string => entry !== undefined)
+            .join(', ');
+          return entries.length === 0 ? `{}` : `{ ${entries} }`;
+        }
+        if (
+          value === null ||
+          value === undefined ||
+          isNumber(value) ||
+          isBoolean(value)
+        )
+          return `${value}`;
+        return;
+      };
+      defaultValue = toLiteral(schema.default);
     } else {
       const rawStringified = stringify(schema.default);
       // `stringify` already escapes string leaves for the single-quoted
@@ -464,19 +471,6 @@ export const generateEffectValidationSchemaDefinition = (
       // backtick or `${...}` re-arms live interpolation in generated
       // source. Keep the delimiter `stringify` actually escaped for.
       defaultValue = rawStringified === undefined ? 'null' : rawStringified;
-
-      const isArrayWithEnumItems =
-        Array.isArray(schema.default) &&
-        type === 'array' &&
-        schema.items &&
-        typeof schema.items === 'object' &&
-        'enum' in schema.items &&
-        schema.default.length > 0;
-
-      if (isArrayWithEnumItems) {
-        defaultVarName = defaultValue;
-        defaultValue = undefined;
-      }
     }
     if (defaultValue) {
       consts.push(`export const ${defaultVarName} = ${defaultValue};`);
@@ -1105,7 +1099,11 @@ export const parseEffectValidationSchemaDefinition = (
         }
       }
     } else {
-      if (isNullish) {
+      if (hasDefault) {
+        out = isEffectV4
+          ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
+          : `S.transform(S.UndefinedOr(${out}), S.typeSchema(${out}), { decode: (value) => (value === undefined ? ${defaultValue as string} : value), encode: (value) => value })`;
+      } else if (isNullish) {
         out = `S.UndefinedOr(${out})`;
       } else if (isOptional) {
         out = `S.UndefinedOr(${out})`;
@@ -1332,7 +1330,8 @@ export const parseEffectValidationSchemaDefinition = (
         if (!isEffectV4) {
           // S.extend takes pairs; chain via reduce. Effect 3 throws on a second
           // string index signature, so an open member adds only its fields and
-          // the merge adds the index signature once.
+          // the merge adds the index signature once. It also throws on the
+          // transformation a default renders, so a member's default is dropped.
           const members = args.map(
             (member) =>
               openMember(
@@ -1340,7 +1339,18 @@ export const parseEffectValidationSchemaDefinition = (
                 member.functions.filter(
                   ([fn]) => fn !== 'describe' && fn !== 'default',
                 ),
-              ) ?? { struct: renderSchema(member, false), open: false },
+              ) ?? {
+                struct: renderSchema(
+                  {
+                    ...member,
+                    functions: member.functions.filter(
+                      ([fn]) => fn !== 'default',
+                    ),
+                  },
+                  false,
+                ),
+                open: false,
+              },
           );
           return [
             ...members.flatMap(({ struct }) => (struct ? [struct] : [])),
