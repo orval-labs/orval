@@ -16097,6 +16097,17 @@ describe('formatType', () => {
     );
   });
 
+  it('fails for a mapped format next to allOf', () => {
+    expect(() =>
+      render(
+        { ...dateTime, allOf: [{ minLength: 1 }] },
+        { 'date-time': dayjs },
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): Zod schemas can't convert it next to allOf/oneOf/anyOf",
+    );
+  });
+
   it('keeps enums and unmapped formats as strings', () => {
     const formatType = { 'date-time': { type: 'Dayjs' } };
     expect(

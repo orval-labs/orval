@@ -375,6 +375,12 @@ describe('formatType', () => {
     );
   });
 
+  it('fails for a mapped format next to allOf', () => {
+    expect(() => render({ ...dateTime, allOf: [{ minLength: 1 }] })).toThrow(
+      "override.formatType.date-time (Day): Valibot schemas can't convert it next to allOf/oneOf/anyOf",
+    );
+  });
+
   it('types a `Date` mapping like useDates and leaves unions unmapped', () => {
     expect(
       render(dateTime, { 'date-time': { type: 'Date' } }).parse(

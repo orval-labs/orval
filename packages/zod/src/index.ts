@@ -1357,6 +1357,17 @@ export const generateZodValidationSchemaDefinition = (
   // This ensures these constraints work with any base type (string, number, object, etc.)
   let skipSwitchStatement = false;
   if ((schema.allOf || schema.oneOf || schema.anyOf) && !enumNarrowsAllOf) {
+    const composedFormatType = getCustomFormatType(
+      schema,
+      context.output.override,
+    );
+    if (composedFormatType) {
+      throw getFormatTypeError(
+        schema.format,
+        composedFormatType,
+        "Zod schemas can't convert it next to allOf/oneOf/anyOf",
+      );
+    }
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (

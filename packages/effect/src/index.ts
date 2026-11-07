@@ -348,6 +348,17 @@ export const generateEffectValidationSchemaDefinition = (
 
   let skipSwitchStatement = false;
   if (schema.allOf || schema.oneOf || schema.anyOf) {
+    const composedFormatType = getCustomFormatType(
+      schema,
+      context.output.override,
+    );
+    if (composedFormatType) {
+      throw getFormatTypeError(
+        schema.format,
+        composedFormatType,
+        "Effect schemas can't convert it next to allOf/oneOf/anyOf",
+      );
+    }
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (

@@ -35,6 +35,7 @@ import {
   type ValibotSchema,
 } from './nodes';
 import {
+  getCompositionKeys,
   getMultiTypes,
   hasProperties,
   isNonBoolean,
@@ -445,6 +446,18 @@ export const generateValibotValidationSchemaDefinition = (
       required: isRequired,
       urlEncoded,
     });
+
+  const composedFormatType =
+    getCompositionKeys(schema).length > 0
+      ? getCustomFormatType(schema, context.output.override)
+      : undefined;
+  if (composedFormatType) {
+    throw getFormatTypeError(
+      schema.format,
+      composedFormatType,
+      "Valibot schemas can't convert it next to allOf/oneOf/anyOf",
+    );
+  }
 
   const base = generateBase(schema, child, strict, nullable, urlEncoded);
 
