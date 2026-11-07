@@ -5035,14 +5035,11 @@ export const getFormatTypeZodImports = (
   code: string,
   override: Pick<NormalizedOverrideOutput, 'formatType'>,
 ): GeneratorImport[] =>
-  getReferencedFormatTypeImports(
-    code,
-    Object.values(override.formatType ?? {}).flatMap((config) => [
-      config?.zod?.transformImport,
-      config?.zod?.codecImport,
-      config?.decodeImport,
-    ]),
-  );
+  getReferencedFormatTypeImports(code, override, (config) => [
+    config.zod?.transformImport,
+    config.zod?.codecImport,
+    config.decodeImport,
+  ]);
 
 // Request-side (params, query, header, body) and response-side schemas as
 // separate blocks, for clients that interleave their own schemas between them.

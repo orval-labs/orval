@@ -2064,9 +2064,8 @@ export const generateEffect: ClientBuilder = (verbOptions, options) => {
     implementation: implementation ? `${implementation}\n\n` : '',
     imports: getReferencedFormatTypeImports(
       implementation,
-      Object.values(options.context.output.override.formatType ?? {}).map(
-        (config) => config?.effect?.schemaImport,
-      ),
+      options.context.output.override,
+      (config) => [config.effect?.schemaImport],
     ),
     mutators,
   };

@@ -213,14 +213,16 @@ export const findModelFormatType = (
     : findCustomFormatType(schemaOrRef, context);
 
 /**
- * The `formatType` imports among `imports` that generated `code` references,
- * as value imports.
+ * The `formatType` imports, picked from each entry by `pick`, that generated
+ * `code` references, as value imports.
  */
 export const getReferencedFormatTypeImports = (
   code: string,
-  imports: (GeneratorImport | undefined)[],
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+  pick: (config: NormalizedFormatTypeConfig) => (GeneratorImport | undefined)[],
 ): GeneratorImport[] =>
-  imports
+  Object.values(override.formatType ?? {})
+    .flatMap((config) => (config ? pick(config) : []))
     .filter(
       (imp): imp is GeneratorImport =>
         !!imp &&
@@ -235,13 +237,10 @@ export const getFormatTypeFunctionImports = (
   code: string,
   override: Pick<NormalizedOverrideOutput, 'formatType'>,
 ): GeneratorImport[] =>
-  getReferencedFormatTypeImports(
-    code,
-    Object.values(override.formatType ?? {}).flatMap((config) => [
-      config?.decodeImport,
-      config?.encodeImport,
-    ]),
-  );
+  getReferencedFormatTypeImports(code, override, (config) => [
+    config.decodeImport,
+    config.encodeImport,
+  ]);
 
 /** A call of a `formatType` function expression such as `decode`. */
 export const callFormatTypeFunction = (fn: string, argument: string) =>
