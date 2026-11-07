@@ -81,7 +81,7 @@ export const getGetSomeEndpointQueryOptions = <
     Awaited<ReturnType<typeof getSomeEndpoint>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetSomeEndpointQueryResult = NonNullable<
@@ -89,10 +89,7 @@ export type GetSomeEndpointQueryResult = NonNullable<
 >;
 export type GetSomeEndpointQueryError = AxiosError<unknown>;
 
-/**
- * @summary Get something with header parameters
- */
-
+/** @summary Get something with header parameters */
 export function useGetSomeEndpoint<
   TData = Awaited<ReturnType<typeof getSomeEndpoint>>,
   TError = AxiosError<unknown>,
@@ -114,10 +111,16 @@ export function useGetSomeEndpoint<
 } {
   const queryOptions = getGetSomeEndpointQueryOptions(headers, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof getSomeEndpoint>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

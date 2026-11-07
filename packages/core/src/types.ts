@@ -189,6 +189,7 @@ export interface NormalizedOverrideOutput {
   swr: SwrOptions;
   zod: NormalizedZodOptions;
   effect: NormalizedEffectOptions;
+  valibot: NormalizedValibotOptions;
   axios: NormalizedAxiosOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
@@ -277,6 +278,7 @@ export interface NormalizedOperationOptions {
   swr?: SwrOptions;
   zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -603,6 +605,7 @@ export const OutputClient = {
   PINIA_COLADA: 'pinia-colada',
   ZOD: 'zod',
   EFFECT: 'effect',
+  VALIBOT: 'valibot',
   HONO: 'hono',
   FETCH: 'fetch',
   MCP: 'mcp',
@@ -968,6 +971,7 @@ export interface OverrideOutput {
   angular?: AngularOptions;
   zod?: ZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -1303,6 +1307,16 @@ export interface EffectOptions {
   version?: EffectVersionOption;
 }
 
+export interface ValibotOptions {
+  strict?: ZodOptions['strict'];
+  generate?: ZodOptions['generate'];
+  /**
+   * When true, optional object properties use `v.exactOptional(schema)` so
+   * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
+   */
+  exactOptional?: boolean;
+}
+
 export type ZodCoerceType =
   | 'string'
   | 'number'
@@ -1492,6 +1506,12 @@ export type NormalizedOperationZodOptions = Pick<
   OperationZodOverrideKey
 >;
 
+export interface NormalizedValibotOptions {
+  strict: NormalizedZodOptions['strict'];
+  generate: NormalizedZodOptions['generate'];
+  exactOptional: boolean;
+}
+
 export interface NormalizedEffectOptions {
   strict: NormalizedZodOptions['strict'];
   generate: NormalizedZodOptions['generate'];
@@ -1585,9 +1605,10 @@ export interface NormalizedMcpOptions {
  *
  * - `throw`: call `Schema.parse(data)` and let it throw (identical to the legacy
  *   boolean `true` behaviour).
- * - `both`: `safeParse` the payload, `console.error` the raw `ZodError` for
+ * - `both`: `safeParse` the payload, `console.error` the raw error for
  *   production visibility, then re-throw so the failure still surfaces through
- *   the client's native error channel.
+ *   the client's native error channel. The error is a `ZodError`, or a
+ *   `StandardSchemaError` carrying `issues` when `standardSchema` is on.
  */
 export type RuntimeValidationStrategy = 'throw' | 'both';
 
@@ -1600,7 +1621,15 @@ export type RuntimeValidationStrategy = 'throw' | 'both';
  */
 export type RuntimeValidation =
   | boolean
-  | { strategy: RuntimeValidationStrategy };
+  | {
+      /** @default 'throw' */
+      strategy?: RuntimeValidationStrategy;
+      /**
+       * Validate through the Standard Schema interface instead of Zod's
+       * `parse`/`safeParse`. Failures throw a `StandardSchemaError` with `issues`.
+       */
+      standardSchema?: boolean;
+    };
 
 /**
  * Canonical, normalized runtime-validation configuration consumed by the client
@@ -1609,6 +1638,8 @@ export type RuntimeValidation =
 export interface NormalizedRuntimeValidation {
   enabled: boolean;
   strategy: RuntimeValidationStrategy;
+  /** Set only when configured, so default normalized values are unchanged. */
+  standardSchema?: boolean;
 }
 
 /**
@@ -1628,6 +1659,11 @@ export type AngularRuntimeValidation =
        * @default false
        */
       requestBodies?: boolean;
+      /**
+       * Validate through the Standard Schema interface (`schema['~standard']`)
+       * instead of Zod's `parse`/`safeParse`.
+       */
+      standardSchema?: boolean;
     };
 
 export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeValidation {
@@ -1636,6 +1672,15 @@ export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeVal
 }
 
 export type InfiniteQueryParamLocation = 'query' | 'body';
+
+export interface QueryDocsOptions {
+  /**
+   * Add an `@route METHOD /path` line to the JSDoc of generated hooks.
+   *
+   * @default false
+   */
+  route?: boolean;
+}
 
 export interface NormalizedQueryOptions {
   useQuery?: boolean;
@@ -1662,6 +1707,10 @@ export interface NormalizedQueryOptions {
    * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
    */
   useSkipToken?: boolean;
+  /**
+   * Extra JSDoc emitted on generated query and mutation hooks.
+   */
+  docs?: QueryDocsOptions;
 
   options?: Record<string, unknown>;
   queryKey?: NormalizedMutator;
@@ -1705,6 +1754,10 @@ export interface QueryOptions {
    * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
    */
   useSkipToken?: boolean;
+  /**
+   * Extra JSDoc emitted on generated query and mutation hooks.
+   */
+  docs?: QueryDocsOptions;
 
   options?: Record<string, unknown>;
   queryKey?: Mutator;
@@ -1947,6 +2000,7 @@ export interface OperationOptions {
   swr?: SwrOptions;
   zod?: OperationZodOptions;
   effect?: EffectOptions;
+  valibot?: ValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -2387,6 +2441,7 @@ export interface GeneratorVerbOptions {
   route: string;
   pathRoute: string;
   summary?: string;
+  description?: string;
   doc: string;
   tags: string[];
   operationId: string;

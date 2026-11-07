@@ -132,9 +132,7 @@ export type CreatePetsMutationBody = Pet;
 export type CreatePetsMutationError = Error;
 export type CreatePetsMutationVariables = { data: Pet };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<

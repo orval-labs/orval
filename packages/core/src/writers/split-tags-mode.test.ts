@@ -21,6 +21,7 @@ import {
   OutputClient,
   type ClientFileBuilder,
   type GeneratorDependency,
+  type GeneratorMutator,
   type GeneratorSchema,
   type WriteModeProps,
   OutputMockType,
@@ -849,5 +850,73 @@ describe('writeSplitTagsMode — routes mock schema imports through schemaOutput
     for (const dep of petTypeImports) {
       expect(dep.dependency).toContain('enums/petType');
     }
+  });
+});
+
+// A configured `paramsSerializer` is attached to every operation, so each tag
+// bucket carries it even when no operation in that bucket has query params.
+// The import must only be written to files whose code calls the serializer,
+// or `noUnusedLocals` fails on every service without query params.
+describe('writeSplitTagsMode — paramsSerializer import follows usage', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-split-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('imports the serializer only into tag files that call it', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const paramsSerializer: GeneratorMutator = {
+      name: 'customParamsSerializer',
+      path: '../serializer',
+      default: false,
+      hasErrorType: false,
+      errorTypeName: 'ErrorType',
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
+    };
+    const builder = {
+      ...createSplitModeBuilder(target),
+      operations: {
+        listThings: createSplitModeOperation({
+          tags: ['things'],
+          operationName: 'listThings',
+          implementation:
+            'export const listThings = (params) => customParamsSerializer(params);',
+          paramsSerializer,
+        }),
+        getOther: createSplitModeOperation({
+          tags: ['others'],
+          operationName: 'getOther',
+          implementation: 'export const getOther = (id) => id;',
+          paramsSerializer,
+        }),
+      },
+    };
+    const props = {
+      ...createSplitModeProps(target),
+      builder,
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS_SPLIT }),
+    };
+
+    await writeSplitTagsMode({ ...props, needSchema: false });
+
+    const importLine =
+      "import { customParamsSerializer } from '../../serializer';";
+    const things = fs.readFileSync(
+      path.join(tmpDir, 'things', 'things.ts'),
+      'utf8',
+    );
+    const others = fs.readFileSync(
+      path.join(tmpDir, 'others', 'others.ts'),
+      'utf8',
+    );
+    expect(things).toContain(importLine);
+    expect(others).not.toContain(importLine);
   });
 });

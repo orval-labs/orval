@@ -149,7 +149,6 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = AxiosError<unknown>,
@@ -291,7 +290,6 @@ export function useGetPet<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetPet<
   TData = Awaited<ReturnType<typeof getPet>>,
   TError = AxiosError<unknown>,

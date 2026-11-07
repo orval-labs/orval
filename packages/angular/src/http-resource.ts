@@ -25,7 +25,9 @@ import {
   GetterPropType,
   getOperationTagKey,
   getSchemasImportPath,
+  getStandardSchemaHelper,
   getTagKey,
+  filterUsedMutators,
   isObject,
   isSyntheticDefaultImportsAllow,
   isTextContentType,
@@ -68,6 +70,7 @@ import {
   buildClientResultAlias,
   getClientResultAliases,
 } from './http-client';
+import { logger } from './logger';
 import {
   buildAcceptJsonCondition,
   buildAcceptTextCondition,
@@ -909,6 +912,8 @@ const getParseExpression = (
         operationName,
         strategy: output.override.angular.runtimeValidation.strategy,
         context: 'parse-fn',
+        standardSchema:
+          output.override.angular.runtimeValidation.standardSchema,
       })
     : undefined;
 };
@@ -1423,6 +1428,11 @@ export function ${resourceName}(
   // HttpClient-style mutators expect (config, httpClient) — incompatible with
   // standalone httpResource functions which have no HttpClient instance.
   // Only apply mutators that accept a single argument (request config only).
+  if (mutator?.hasSecondArg) {
+    logger.warn(
+      `${verbOption.operationName}: httpResource skipped the two-argument mutator ${mutator.name}; httpResource has no HttpClient instance to pass to it.`,
+    );
+  }
   const isResourceCompatibleMutator =
     mutator !== undefined && !mutator.hasSecondArg;
   const returnExpression = isResourceCompatibleMutator
@@ -1748,6 +1758,9 @@ ${buildServiceClassOpen({
     ? `private readonly baseUrl = inject(${getBaseUrlTokenName(baseUrlOption.apiId)});`
     : undefined,
   hasObjectParams: mutations.some(hasGatedObjectQueryParamStrategies),
+  hasObserveOverloads: mutations.some(
+    (v) => v.override.angular.observeOverloads !== false,
+  ),
 })}
 ${mutationImplementation}
 };
@@ -2155,7 +2168,7 @@ const buildHttpResourceExtraFile = (
     isSyntheticDefaultImportsAllow(output.tsconfig),
   );
 
-  const mutators = Object.values(verbOptions)
+  const candidateMutators = Object.values(verbOptions)
     .filter((verbOption) =>
       isRetrievalVerb(
         verbOption.verb,
@@ -2182,6 +2195,12 @@ const buildHttpResourceExtraFile = (
       );
     });
 
+  // Only the mutators the file references are imported. A configured
+  // `paramsSerializer` or `paramsFilter` is attached to every operation, so a
+  // resource file without query params would otherwise import it unused; the
+  // same filter covers the resource mutator, `formData` and `formUrlEncoded`.
+  const mutators = filterUsedMutators(candidateMutators, implementation);
+
   const mutatorImports =
     mutators.length > 0
       ? generateMutatorImports({
@@ -2190,8 +2209,12 @@ const buildHttpResourceExtraFile = (
         })
       : '';
 
+  // The sibling file has no generated client header, so it declares the
+  // helper its own parse calls need.
+  const standardSchemaHelper = getStandardSchemaHelper(implementation);
+
   return {
-    content: `${header}${importImplementation}${mutatorImports}${implementation}`,
+    content: `${header}${importImplementation}${mutatorImports}${standardSchemaHelper ? `${standardSchemaHelper}\n` : ''}${implementation}`,
     path: outputPath,
     // Part of the public client surface, so the `tags-split` barrel re-exports
     // it.

@@ -4,14 +4,10 @@ import {
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
-  type ContextSpec,
   emitResponseValidation,
-  filterByContentType,
   generateBodyOptions,
-  type GeneratedDateDeserializer,
   generateFormDataAndUrlEncodedFunction,
   generateRequestDateSerializer,
-  generateResponseDateDeserializer,
   generateVerbImports,
   type GeneratorDependency,
   type GeneratorImport,
@@ -50,7 +46,6 @@ import {
   type NormalizedOverrideOutput,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
-  type OpenApiResponseObject,
   type OpenApiSchemaObject,
   toObjectSchema,
   OutputClient,
@@ -63,14 +58,20 @@ import {
   toObjectString,
 } from '@orval/core';
 
+import {
+  getIsDatesTransformEnabled,
+  getMutatorErrorResponses,
+  getResponseDateDeserializer,
+  isContentTypeNdJson,
+  passesZodSchemaToMutator,
+  wrapSchemaWithDateDeserializer,
+} from './response-helpers';
 import { GET_HEADERS_HELPER } from './runtime';
 import {
   generateFetchExtraFiles,
   generateSharedClient,
   generateSharedRequestFunction,
-  isContentTypeNdJson,
   isSharedRuntimeStyle,
-  passesZodSchemaToMutator,
 } from './shared-runtime-style';
 
 const resolveSchemaRef = (
@@ -122,63 +123,6 @@ const getRequestOptionsType = (mutator?: GeneratorMutator) => {
     : `options?: Parameters<typeof ${mutator.name}>[1]`;
 };
 
-const getMutatorErrorResponseArgument = (
-  {
-    response,
-    override,
-    mutator,
-    operationName,
-  }: Pick<
-    GeneratorVerbOptions,
-    'response' | 'override' | 'mutator' | 'operationName'
-  >,
-  context: GeneratorOptions['context'],
-) => {
-  if (!override.fetch.includeHttpErrorResponse) {
-    return '';
-  }
-  if (
-    !override.fetch.includeHttpResponseReturnType ||
-    !override.fetch.forceSuccessResponse ||
-    !mutator ||
-    mutator.isHook ||
-    !mutator.hasThirdArg
-  ) {
-    throw new Error(
-      'includeHttpErrorResponse requires includeHttpResponseReturnType, forceSuccessResponse, and a non-hook mutator accepting three arguments.',
-    );
-  }
-
-  // Type resolution may supply a default JSON media type or collapse
-  // referenced content. Runtime metadata must preserve the source declaration.
-  const errorResponses = Object.entries(response.originalSchema ?? {})
-    .filter(([key]) => response.types.errors.some((entry) => entry.key === key))
-    .flatMap(([key, declaredResponse]) => {
-      // Range/default responses need a runtime precedence contract. Reject them
-      // in this opt-in mode instead of emitting metadata that cannot match its types.
-      if (!/^[1-5]\d\d$/.test(key)) {
-        throw new Error(
-          `includeHttpErrorResponse requires explicit error status codes; received ${key} in ${operationName}.`,
-        );
-      }
-      const { schema } = resolveRef<OpenApiResponseObject>(
-        declaredResponse as OpenApiReferenceObject,
-        context,
-      );
-      const contentTypes = Object.keys(schema.content ?? {});
-      const status = Number(key);
-      if (contentTypes.length === 0) {
-        return [{ status, contentType: '' }];
-      }
-      return filterByContentType(
-        contentTypes.map((contentType) => ({ status, contentType })),
-        override.contentType,
-      );
-    });
-
-  return JSON.stringify({ errorResponses });
-};
-
 /**
  * Whether the fetch client is wrapped in an `httpClientInjection: 'factory'`
  * closure. Factory injection is output-scoped (the header and footer only see
@@ -188,74 +132,6 @@ const getMutatorErrorResponseArgument = (
 const isFetchFactoryMode = (output: NormalizedOutputOptions | undefined) =>
   output?.client === OutputClient.FETCH &&
   output.override.fetch.httpClientInjection === 'factory';
-
-// `useDatesTransform` converts only JSON bodies. MCP handlers forward the
-// result to the model as JSON, where a `Date` adds nothing and re-serializes
-// a `format: date` value as a full datetime, so MCP gets no transform.
-const getIsDatesTransformEnabled = (
-  override: GeneratorVerbOptions['override'],
-  context: ContextSpec,
-) => override.useDatesTransform && context.output.client !== OutputClient.MCP;
-
-/**
- * Builds the `deserialize{Op}Response` function for a verb's response, or
- * returns `undefined` when its dates are not converted.
- */
-const getResponseDateDeserializer = (
-  {
-    operationName,
-    response,
-    mutator,
-    override,
-  }: Pick<
-    GeneratorVerbOptions,
-    'operationName' | 'response' | 'mutator' | 'override'
-  >,
-  context: ContextSpec,
-) => {
-  // ndjson is excluded explicitly: its media type contains `json`, which the
-  // core deserializer's content-type check accepts.
-  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
-  // An inferred mutator's return type is unknown to orval — it may not even be
-  // a promise — so its response cannot be converted. Skipping the deserializer
-  // entirely (rather than generating it and simply never wiring it up) keeps
-  // the output free of an unreferenced const, which `tsc --noUnusedLocals`
-  // rejects. The request serializer still applies regardless.
-  return getIsDatesTransformEnabled(override, context) &&
-    !isNdJson &&
-    !mutator?.inferred
-    ? generateResponseDateDeserializer({ operationName, response, context })
-    : undefined;
-};
-
-/**
- * Wraps `schemaRef` so it converts dates with `deserializer` before it
- * validates. A value the deserializer can't walk, such as an error string,
- * passes through unchanged, so `safeParse` reports the mismatch instead of
- * throwing.
- *
- * `zod.preprocess` would type the schema's input as `unknown`, which zod v3
- * won't assign to the documented mutator option `schema?: ZodType<T>`.
- * `zod.custom<T>()` accepts any value but keeps the input typed as the
- * response. `zod/mini` has neither method chains nor `preprocess`.
- */
-const wrapSchemaWithDateDeserializer = (
-  schemaRef: string,
-  deserializer: GeneratedDateDeserializer,
-  responseType: string,
-  context: ContextSpec,
-) => {
-  const convert = `(value: unknown) => {
-      try {
-        return ${deserializer.name}(value as ${responseType});
-      } catch {
-        return value;
-      }
-    }`;
-  return context.output.override.zod.variant === 'mini'
-    ? `zod.pipe(zod.transform(${convert}), ${schemaRef})`
-    : `zod.custom<${responseType}>().transform(${convert}).pipe(${schemaRef})`;
-};
 
 /**
  * Generates the URL helper function and the fetch request function for a single
@@ -853,6 +729,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     strategy: override.fetch.runtimeValidation.strategy,
     context: 'fetch-assign',
     inputExpression: 'parsedBody',
+    standardSchema: override.fetch.runtimeValidation.standardSchema,
   });
   // A custom mutator issues the request itself, so it cannot benefit from the
   // generated `Schema.parse()` call. Handing it the zod schema lets it validate
@@ -886,10 +763,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 `;
   };
   const fetchFnOptions = getFetchFnOptions();
-  const errorResponseArgument = getMutatorErrorResponseArgument(
+  const errorResponses = getMutatorErrorResponses(
     { response, override, mutator, operationName },
     context,
   );
+  const errorResponseArgument = errorResponses
+    ? JSON.stringify({ errorResponses })
+    : '';
   const mutatorFetchFnOptions = `${getFetchFnOptions({ withSchema: true })}${errorResponseArgument ? `, ${errorResponseArgument}` : ''}`;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const fetchResponseType =

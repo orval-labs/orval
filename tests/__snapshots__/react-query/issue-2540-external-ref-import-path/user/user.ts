@@ -119,6 +119,7 @@ export type GetUserQueryResult = NonNullable<
 >;
 export type GetUserQueryError = InternalServerError500;
 
+/** @summary Get a user */
 export function useGetUser<
   TData = Awaited<ReturnType<typeof getUser>>,
   TError = InternalServerError500,
@@ -142,6 +143,7 @@ export function useGetUser<
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary Get a user */
 export function useGetUser<
   TData = Awaited<ReturnType<typeof getUser>>,
   TError = InternalServerError500,
@@ -165,6 +167,7 @@ export function useGetUser<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
+/** @summary Get a user */
 export function useGetUser<
   TData = Awaited<ReturnType<typeof getUser>>,
   TError = InternalServerError500,
@@ -180,10 +183,7 @@ export function useGetUser<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-/**
- * @summary Get a user
- */
-
+/** @summary Get a user */
 export function useGetUser<
   TData = Awaited<ReturnType<typeof getUser>>,
   TError = InternalServerError500,

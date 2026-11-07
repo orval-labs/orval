@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import {
   buildAcceptJsonCondition,
+  buildServiceClassOpen,
   createRouteRegistry,
   generateAngularTitle,
   getDefaultSuccessType,
@@ -144,6 +145,39 @@ describe('isMutationVerb', () => {
     expect(isMutationVerb('post' as Verbs, 'createPet', 'httpResource')).toBe(
       false,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildServiceClassOpen
+// ---------------------------------------------------------------------------
+
+describe('buildServiceClassOpen', () => {
+  it('emits filterParams when a global mutator handles query parameters', () => {
+    const result = buildServiceClassOpen({
+      title: 'PetsService',
+      isRequestOptions: true,
+      isMutator: true,
+      isGlobalMutator: true,
+      provideIn: 'root',
+      hasQueryParams: true,
+    });
+
+    expect(result).toContain('function filterParams');
+    expect(result).toContain('export class PetsService');
+  });
+
+  it('omits filterParams when no operation has query parameters', () => {
+    const result = buildServiceClassOpen({
+      title: 'PetsService',
+      isRequestOptions: true,
+      isMutator: true,
+      isGlobalMutator: true,
+      provideIn: 'root',
+      hasQueryParams: false,
+    });
+
+    expect(result).not.toContain('function filterParams');
   });
 });
 

@@ -88,10 +88,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -184,9 +181,7 @@ export type CreatePetsMutationVariables = {
   version?: number;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
@@ -266,10 +261,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,

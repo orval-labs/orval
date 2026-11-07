@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: Standard schema validation
+  version: 1.0.0
+paths:
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        '200':
+          description: Inline array of a component element.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+    post:
+      operationId: createItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewItem'
+      responses:
+        '201':
+          description: Created item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: Plain object response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    NewItem:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string

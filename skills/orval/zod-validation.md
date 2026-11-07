@@ -95,6 +95,7 @@ export const stripNill = (object: unknown) =>
 ```ts
 output: {
   client: 'fetch',
+  schemas: { path: 'src/model', type: 'zod' },
   override: {
     fetch: {
       runtimeValidation: true,  // Validate responses with Zod schemas

@@ -114,7 +114,7 @@ Generated code pipes through Zod:
 
 ```ts
 const request$ = http
-  .get<Pets>(url, { params: httpParams })
+  .get<PetsOutput>(url, { params: httpParams })
   .pipe(map((data) => Pets.parse(data)));
 ```
 

@@ -190,10 +190,7 @@ export type SearchPetsQueryResult = NonNullable<
 >;
 export type SearchPetsQueryError = Error;
 
-/**
- * @summary search by query params
- */
-
+/** @summary search by query params */
 export function injectSearchPets<
   TData = Awaited<ReturnType<typeof searchPets>>,
   TError = Error,
@@ -315,10 +312,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function injectListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -461,9 +455,7 @@ export type CreatePetsMutationVariables = {
   version?: number;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
@@ -553,10 +545,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -698,9 +687,7 @@ export type DeletePetMutationResult = NonNullable<
 export type DeletePetMutationError = Error;
 export type DeletePetMutationVariables = { petId: string; version?: number };
 
-/**
- * @summary Delete a pet
- */
+/** @summary Delete a pet */
 export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePet>>,
@@ -813,9 +800,7 @@ export type UpdatePetMutationVariables = {
   version?: number;
 };
 
-/**
- * @summary Update a pet
- */
+/** @summary Update a pet */
 export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePet>>,
@@ -928,9 +913,7 @@ export type PatchPetMutationVariables = {
   version?: number;
 };
 
-/**
- * @summary Partially update a pet
- */
+/** @summary Partially update a pet */
 export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof patchPet>>,
@@ -1020,10 +1003,7 @@ export type ShowPetTextQueryResult = NonNullable<
 >;
 export type ShowPetTextQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function injectShowPetText<
   TData = Awaited<ReturnType<typeof showPetText>>,
   TError = Error,
@@ -1169,6 +1149,7 @@ export type UploadFileMutationVariables = {
 };
 
 /**
+ * Upload image of the pet.
  * @summary Uploads an image.
  */
 export const injectUploadFile = <
@@ -1279,6 +1260,7 @@ export type UploadFormDataMutationVariables = {
 };
 
 /**
+ * Upload a file for a pet using multipart/form-data.
  * @summary Upload a file via multipart form data.
  */
 export const injectUploadFormData = <
@@ -1375,9 +1357,9 @@ export type DownloadFileQueryResult = NonNullable<
 export type DownloadFileQueryError = void | Error;
 
 /**
+ * Download image of the pet.
  * @summary Download an image.
  */
-
 export function injectDownloadFile<
   TData = Awaited<ReturnType<typeof downloadFile>>,
   TError = void | Error,
@@ -1494,10 +1476,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
-/**
- * @summary Health check
- */
-
+/** @summary Health check */
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,

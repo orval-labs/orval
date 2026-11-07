@@ -21,6 +21,7 @@
     "svelte-query",
     "swagger",
     "swr",
+    "valibot",
     "vue",
     "vue-query",
     "zod"
@@ -67,6 +68,7 @@
     "@orval/query": "workspace:*",
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
+    "@orval/valibot": "workspace:*",
     "@orval/zod": "workspace:*",
     "@scalar/json-magic": "^0.16.1",
     "@scalar/openapi-parser": "^0.29.15",

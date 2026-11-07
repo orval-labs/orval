@@ -54,6 +54,7 @@ export interface QueryInvocationContext {
   operationPrefix: string;
   type: (typeof QueryType)[keyof typeof QueryType];
   queryOptionsVarName: string;
+  queryOptionsType: string;
   optionalQueryClientArgument: string;
 }
 

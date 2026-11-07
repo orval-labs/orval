@@ -7,7 +7,7 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
-import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
 import {
@@ -19,6 +19,7 @@ import {
   getAngularHttpResourceOnlyDependencies,
   routeRegistry,
 } from './http-resource';
+import { logger } from './logger';
 import {
   angularOverride,
   createAngularOutput,
@@ -746,6 +747,33 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('httpResource<Pet>');
       expect(header).toContain("method: 'POST'");
       expect(header).toContain('body: searchPetsBody()');
+    });
+
+    it('omits event and response option types for mutations when observeOverloads is false (#4458)', () => {
+      const verbOption = createVerbOption({
+        operationId: 'deletePet',
+        operationName: 'deletePet',
+        verb: 'delete',
+      });
+      verbOption.override.angular.observeOverloads = false;
+      routeRegistry.set('deletePet', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { deletePet: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('export class PetService');
+      expect(header).toContain('type HttpClientBodyOptions');
+      expect(header).not.toContain('HttpClientEventOptions');
+      expect(header).not.toContain('HttpClientResponseOptions');
     });
 
     // Regression for #3700: an optional retrieval POST body maps to an optional
@@ -2616,6 +2644,36 @@ describe('angular httpResource generator', () => {
       );
     });
 
+    it('warns when a two-argument mutator is skipped', () => {
+      const verbOption = createVerbOption({
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-http.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+        } as GeneratorMutator,
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+      generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(warn).toHaveBeenCalledWith(
+        'getPetById: httpResource skipped the two-argument mutator customHttpRequest; httpResource has no HttpClient instance to pass to it.',
+      );
+    });
+
     it('supports caller-provided defaultValue overloads', () => {
       const verbOption = createVerbOption();
       routeRegistry.set('getPetById', '/api/pets/${petId}');
@@ -3328,6 +3386,44 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('parse: Pet.parse');
     });
 
+    it('wraps parse in the Standard Schema helper', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          imports: [{ name: 'Pet' }],
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const output = createOutput({
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      });
+      output.override.angular.runtimeValidation = {
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      };
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output,
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain(
+        'parse: (raw: unknown) => orvalParseStandardSchema(Pet, raw)',
+      );
+      expect(header).not.toContain('Pet.parse');
+    });
+
     it('does not add parse when schemas.type is not zod', () => {
       const verbOption = createVerbOption({
         response: baseResponse({
@@ -3918,6 +4014,68 @@ describe('angular httpResource generator', () => {
       expect(content).toContain('.map((item) =>');
     });
 
+    it('imports paramsSerializer only when a resource calls it', async () => {
+      // A configured `paramsSerializer` is attached to every operation, but
+      // only operations with query params call it. A resource file without
+      // any such operation must not import it, or `noUnusedLocals` fails.
+      const paramsSerializer = {
+        name: 'customParamsSerializer',
+        path: '../serializer',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: 'ErrorType',
+        hasSecondArg: false,
+        hasThirdArg: false,
+        isHook: false,
+      };
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        override: {
+          ...createOutput().override,
+          angular: {
+            ...angularOverride('both'),
+          },
+        },
+      });
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+      const importLine =
+        "import { customParamsSerializer } from '../serializer';";
+
+      const [withoutQueryParams] = await generateHttpResourceExtraFiles(
+        { getPetById: createVerbOption({ paramsSerializer }) },
+        output,
+        context,
+      );
+      expect(withoutQueryParams.content).not.toContain(importLine);
+
+      const [withQueryParams] = await generateHttpResourceExtraFiles(
+        {
+          getPetById: createVerbOption({
+            paramsSerializer,
+            queryParams: {
+              schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+              deps: [],
+              isOptional: true,
+              name: 'params',
+              definition: 'params: GetPetByIdParams',
+              implementation: 'params: GetPetByIdParams',
+              default: false,
+              required: false,
+              type: GetterPropType.QUERY_PARAM,
+            } as never,
+          }),
+        },
+        output,
+        context,
+      );
+      expect(withQueryParams.content).toContain(importLine);
+      expect(withQueryParams.content).toContain('customParamsSerializer(');
+    });
+
     it('generates per-tag .resource.ts files in both tags-split mode', async () => {
       const petsVerb = createVerbOption({
         tags: ['Pets'],
@@ -4073,6 +4231,44 @@ describe('angular httpResource generator', () => {
       );
       expect(petsFile.content).not.toContain('export type GetPetByIdAccept');
       expect(petsFile.content).not.toContain('export const GetPetByIdAccept');
+    });
+
+    it('declares the Standard Schema helper in the sibling resource file', async () => {
+      const verb = createVerbOption({
+        response: baseResponse({ imports: [{ name: 'Pet' }] }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+      const output = createOutput({
+        target: '/tmp/pets.ts',
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+        override: {
+          ...createOutput().override,
+          angular: { ...angularOverride('both') },
+        },
+      });
+      output.override.angular.runtimeValidation = {
+        enabled: true,
+        strategy: 'throw',
+        standardSchema: true,
+      };
+      const context = createContextSpec(output, {
+        workspace: '/tmp',
+        target: '/tmp/pets.ts',
+        projectName: 'pets',
+      });
+
+      const [file] = await generateHttpResourceExtraFiles(
+        { getPetById: verb },
+        output,
+        context,
+      );
+
+      expect(file.content).toContain('orvalParseStandardSchema(Pet, raw)');
+      expect(file.content).toContain('function orvalParseStandardSchema');
+      expect(file.content).toContain('function orvalSafeParseStandardSchema');
     });
 
     it('imports Accept helpers from the target file in single mode', async () => {

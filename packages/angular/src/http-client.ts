@@ -453,6 +453,9 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
       ? `private readonly baseUrl = inject(${getBaseUrlTokenName(output.override.angular.baseUrl.apiId)});`
       : undefined,
     hasObjectParams,
+    hasObserveOverloads: relevantVerbs.some(
+      (v) => v.override.angular.observeOverloads !== false,
+    ),
     acceptHelpers: `${acceptHelpers}\n\n`,
   });
 };
@@ -583,12 +586,14 @@ export const generateHttpClientImplementation = (
   // `PetsOutput`. We therefore drop the cast on the validation path and let the
   // inferred return type flow naturally.
   const validationStrategy = override.angular.runtimeValidation.strategy;
+  const standardSchema = override.angular.runtimeValidation.standardSchema;
   const validationPipe = shouldValidateResponse
     ? emitResponseValidation({
         schemaRef: schemaValueRef,
         operationName,
         strategy: validationStrategy,
         context: 'rxjs-map',
+        standardSchema,
       })
     : '';
   const responseValidationPipe = shouldValidateResponse
@@ -598,6 +603,7 @@ export const generateHttpClientImplementation = (
         strategy: validationStrategy,
         context: 'clone-expression',
         inputExpression: 'response.body',
+        standardSchema,
       })} })))`
     : '';
   const eventValidationPipe = shouldValidateResponse
@@ -608,9 +614,20 @@ export const generateHttpClientImplementation = (
           strategy: validationStrategy,
           context: 'clone-expression',
           inputExpression: 'event.body',
+          standardSchema,
         },
       )} }) : event))`
     : '';
+
+  const successContentTypes = getUniqueContentTypes(response.types.success);
+  const mutatorAcceptTypeName =
+    mutator && successContentTypes.length > 1
+      ? getAcceptHelperName(typeName)
+      : undefined;
+  const defaultMutatorAccept = mutatorAcceptTypeName
+    ? (successContentTypes.find(isJsonContentType) ??
+      getDefaultContentType(successContentTypes))
+    : undefined;
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -626,6 +643,7 @@ export const generateHttpClientImplementation = (
       isExactOptionalPropertyTypes,
       isAngular: true,
       paramsFilter,
+      accept: mutatorAcceptTypeName ? 'accept' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -653,11 +671,26 @@ export const generateHttpClientImplementation = (
       'implementation',
     );
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${propsImplementation}\n ${
-      isRequestOptions && mutator.hasThirdArg
-        ? `options?: ThirdParameter<typeof ${mutator.name}>`
-        : ''
-    }) {${bodyForm}
+    const extraParams = [
+      ...(mutatorAcceptTypeName && defaultMutatorAccept
+        ? [
+            `accept: ${mutatorAcceptTypeName} = '${jsStringLiteralEscape(defaultMutatorAccept)}'`,
+          ]
+        : []),
+      ...(isRequestOptions && mutator.hasThirdArg
+        ? [`options?: ThirdParameter<typeof ${mutator.name}>`]
+        : []),
+    ];
+
+    const cleanPropsImplementation = propsImplementation.replace(/,\s*$/, '');
+    const allParams = [cleanPropsImplementation, ...extraParams].filter(
+      Boolean,
+    );
+
+    const implementationParams =
+      allParams.length > 0 ? `${allParams.join(',\n    ')},` : '';
+
+    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
@@ -723,6 +756,7 @@ export const generateHttpClientImplementation = (
         schemaRef: validatedBody.schemaRef,
         operationName,
         strategy: override.angular.runtimeValidation.strategy,
+        standardSchema: override.angular.runtimeValidation.standardSchema,
         inputExpression: body.implementation,
         isOptional: body.isOptional,
       })};
@@ -831,6 +865,7 @@ export const generateHttpClientImplementation = (
         operationName,
         strategy: validationStrategy,
         context: 'rxjs-map',
+        standardSchema,
       })
     : '';
   if (hasMultipleContentTypes && !shouldValidateResponse && jsonSchema) {
@@ -839,6 +874,7 @@ export const generateHttpClientImplementation = (
       operationName,
       strategy: validationStrategy,
       context: 'rxjs-map',
+      standardSchema,
     });
   }
 
