@@ -1280,7 +1280,55 @@ describe('generateBodyOptions', () => {
 });
 
 describe('generateFormDataAndUrlEncodedFunction', () => {
-  const body: GetterBody = {
+  const formBody: GetterBody = {
+    ...minimalBody,
+    implementation: 'pet',
+    formData: 'const formData = new FormData();\n',
+    formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+  };
+
+  it('returns the form of a required body unchanged', () => {
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body: formBody,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = new FormData();\n');
+  });
+
+  it('builds no form for an omitted optional body', () => {
+    const body = { ...formBody, isOptional: true };
+
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe(
+      'const formData = pet === undefined ? undefined : (() => {\nconst formData = new FormData();\nreturn formData;\n})();\n',
+    );
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        isFormData: false,
+        isFormUrlEncoded: true,
+      }),
+    ).toBe(
+      'const formUrlEncoded = pet === undefined ? undefined : (() => {\nconst formUrlEncoded = new URLSearchParams();\nreturn formUrlEncoded;\n})();\n',
+    );
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        formData: { ...minimalParamsSerializer, name: 'toFormData' },
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = pet === undefined ? undefined : toFormData(pet)');
+  });
+
+  const mappedBody: GetterBody = {
     ...minimalBody,
     formData: 'const formData = new FormData();\n',
     formatTypeError: 'needs `encode`',
@@ -1289,7 +1337,7 @@ describe('generateFormDataAndUrlEncodedFunction', () => {
   it('raises the formatType error of the form code it emits', () => {
     expect(() =>
       generateFormDataAndUrlEncodedFunction({
-        body,
+        body: mappedBody,
         isFormData: true,
         isFormUrlEncoded: false,
       }),
@@ -1299,7 +1347,7 @@ describe('generateFormDataAndUrlEncodedFunction', () => {
   it('leaves the values to a formData mutator', () => {
     expect(
       generateFormDataAndUrlEncodedFunction({
-        body,
+        body: mappedBody,
         formData: { ...minimalParamsSerializer, name: 'customFormData' },
         isFormData: true,
         isFormUrlEncoded: false,

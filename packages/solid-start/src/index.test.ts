@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import type {
   ContextSpec,
   GeneratorOptions,
@@ -448,6 +450,75 @@ describe('generateSolidStart — path-level parameter merging', () => {
     expect(implementation).toContain('"status"');
     // 'country' must not appear twice in the explodeParameters array literal
     expect(implementation.split('"country"').length - 1).toBe(1);
+  });
+});
+
+describe('generateSolidStart — urlEncodeParameters', () => {
+  const route = '/pets/${petId}';
+  const generateGetPet = ({
+    urlEncodeParameters,
+    allowReserved = false,
+    mutator,
+  }: {
+    urlEncodeParameters: boolean;
+    allowReserved?: boolean;
+    mutator?: GeneratorVerbOptions['mutator'];
+  }) => {
+    const context = makeContext();
+    return generateImplementation(
+      makeVerbOptions({
+        route,
+        mutator,
+        params: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            allowReserved,
+            imports: [],
+          },
+        ],
+      }),
+      makeOptions(
+        { ...context, output: { ...context.output, urlEncodeParameters } },
+        { route, pathRoute: '/pets/{petId}' },
+      ),
+    );
+  };
+
+  it('encodes path parameters when urlEncodeParameters is true', async () => {
+    expect(await generateGetPet({ urlEncodeParameters: true })).toContain(
+      'const url = `/pets/${encodeURIComponent(String(petId))}`',
+    );
+    expect(
+      await generateGetPet({
+        urlEncodeParameters: true,
+        mutator: {
+          name: 'customInstance',
+          path: './custom-instance.ts',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      }),
+    ).toContain('url: `/pets/${encodeURIComponent(String(petId))}`');
+  });
+
+  it('skips allowReserved path parameters', async () => {
+    expect(
+      await generateGetPet({ urlEncodeParameters: true, allowReserved: true }),
+    ).not.toContain('encodeURIComponent');
+  });
+
+  it('leaves the route unchanged when urlEncodeParameters is false', async () => {
+    const implementation = await generateGetPet({ urlEncodeParameters: false });
+    expect(implementation).toContain('const url = `/pets/${petId}`');
+    expect(implementation).not.toContain('encodeURIComponent');
   });
 });
 
@@ -975,6 +1046,155 @@ describe('generateSolidStart — multipart Content-Type', () => {
   });
 });
 
+describe('generateSolidStart — form bodies', () => {
+  const headerParams = {
+    schema: {
+      name: 'CreatePetHeaders',
+      model: 'export type CreatePetHeaders = { [key: string]: string }',
+      imports: [],
+    },
+    deps: [],
+    isOptional: true,
+  } satisfies NonNullable<GeneratorVerbOptions['headers']>;
+
+  const generateCreatePet = (
+    body: Partial<GeneratorVerbOptions['body']>,
+    {
+      formUrlEncoded = false,
+      headers,
+    }: {
+      formUrlEncoded?: boolean;
+      headers?: GeneratorVerbOptions['headers'];
+    } = {},
+  ) =>
+    generateImplementation(
+      makeVerbOptions({
+        verb: Verbs.POST,
+        operationId: 'createPet',
+        operationName: 'createPet',
+        headers,
+        body: {
+          definition: 'CreatePetBody',
+          implementation: 'createPetBody',
+          isOptional: false,
+          ...body,
+        },
+        override: { formUrlEncoded },
+      }),
+      makeOptions(makeContext()),
+    );
+
+  it('sends the FormData it builds and leaves the Content-Type to the browser', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'multipart/form-data',
+      formData: 'const formData = new FormData();\n',
+    });
+
+    expect(implementation).toContain('body: formData');
+    expect(implementation).toContain('headers: {}');
+    expect(implementation).not.toContain('JSON.stringify');
+    expect(implementation).not.toContain("'Content-Type'");
+  });
+
+  it('drops a caller Content-Type header from a multipart request', async () => {
+    const implementation = await generateCreatePet(
+      {
+        contentType: 'multipart/form-data',
+        formData: 'const formData = new FormData();\n',
+      },
+      { headers: headerParams },
+    );
+
+    expect(implementation).toContain(
+      "headers: Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))",
+    );
+  });
+
+  it('sends no body when an optional form body is omitted', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'multipart/form-data',
+      formData: 'const formData = new FormData();\n',
+      isOptional: true,
+    });
+
+    expect(implementation).toContain(
+      'const formData = createPetBody === undefined ? undefined : (() => {',
+    );
+    expect(implementation).toContain('body: formData');
+  });
+
+  it('sends the URLSearchParams it builds with the declared Content-Type', async () => {
+    const implementation = await generateCreatePet(
+      {
+        contentType: 'application/x-www-form-urlencoded',
+        formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+      },
+      { formUrlEncoded: true },
+    );
+
+    expect(implementation).toContain('body: formUrlEncoded');
+    expect(implementation).toContain(
+      "'Content-Type': 'application/x-www-form-urlencoded'",
+    );
+    expect(implementation).not.toContain('JSON.stringify');
+  });
+
+  it('keeps sending a JSON body as JSON', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'application/json',
+    });
+
+    expect(implementation).toContain('body: JSON.stringify(createPetBody)');
+    expect(implementation).toContain(
+      "headers: { 'Content-Type': 'application/json' }",
+    );
+  });
+
+  const urlEncodedBody = {
+    contentType: 'application/x-www-form-urlencoded',
+    formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+  };
+
+  it.each([
+    ['JSON', {}, { 'X-Trace': 't' }, 'application/json'],
+    [
+      'JSON',
+      {},
+      { 'Content-Type': 'application/merge-patch+json' },
+      'application/merge-patch+json',
+    ],
+    [
+      'JSON',
+      {},
+      { 'content-type': 'application/merge-patch+json' },
+      'application/merge-patch+json',
+    ],
+    [
+      'url-encoded',
+      urlEncodedBody,
+      { 'content-type': 'application/json' },
+      'application/x-www-form-urlencoded',
+    ],
+  ])(
+    'resolves the Content-Type of a %s body with caller headers %o',
+    async (_kind, formBody, callerHeaders, contentType) => {
+      const implementation = await generateCreatePet(
+        { contentType: 'application/json', ...formBody },
+        { formUrlEncoded: 'formUrlEncoded' in formBody, headers: headerParams },
+      );
+      const headersExpression = /headers: (.+),$/m.exec(implementation)?.[1];
+
+      expect(
+        new Headers(
+          runInNewContext(`(${headersExpression})`, {
+            headers: callerHeaders,
+          }) as Record<string, string>,
+        ).get('content-type'),
+      ).toBe(contentType);
+    },
+  );
+});
+
 describe('generateSolidStart — Content-Type header escaping', () => {
   it('escapes single quotes in the request body media type key', async () => {
     const verbOptions = makeVerbOptions({
@@ -1138,6 +1358,6 @@ describe('formatType form bodies', () => {
     context.output.override.formatType = undefined;
     await expect(
       generateImplementation(verbOptions, makeOptions(context)),
-    ).resolves.toContain('JSON.stringify(addRemindersBody)');
+    ).resolves.toContain('body: formData');
   });
 });

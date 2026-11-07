@@ -1091,22 +1091,31 @@ export function generateFormDataAndUrlEncodedFunction({
   isFormData,
   isFormUrlEncoded,
 }: GenerateFormDataAndUrlEncodedFunctionOptions) {
+  // An omitted optional body is sent as no body, not as an empty form.
+  const guard = body.isOptional
+    ? `${body.implementation} === undefined ? undefined : `
+    : '';
+  const build = (name: string, form: string) =>
+    body.isOptional
+      ? `const ${name} = ${guard}(() => {\n${form}return ${name};\n})();\n`
+      : form;
+
   if (isFormData && body.formData) {
     if (formData) {
-      return `const formData = ${formData.name}(${body.implementation})`;
+      return `const formData = ${guard}${formData.name}(${body.implementation})`;
     }
 
     if (body.formatTypeError) throw new Error(body.formatTypeError);
-    return body.formData;
+    return build('formData', body.formData);
   }
 
   if (isFormUrlEncoded && body.formUrlEncoded) {
     if (formUrlEncoded) {
-      return `const formUrlEncoded = ${formUrlEncoded.name}(${body.implementation})`;
+      return `const formUrlEncoded = ${guard}${formUrlEncoded.name}(${body.implementation})`;
     }
 
     if (body.formatTypeError) throw new Error(body.formatTypeError);
-    return body.formUrlEncoded;
+    return build('formUrlEncoded', body.formUrlEncoded);
   }
 
   return '';

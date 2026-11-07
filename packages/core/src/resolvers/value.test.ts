@@ -44,6 +44,52 @@ describe('resolveValue', () => {
     expect(result.isRef).toBe(true);
   });
 
+  it('uses declared component names for aliases to nested definitions (#4465)', () => {
+    const context = createContext({
+      openapi: '3.1.0',
+      components: {
+        schemas: {
+          TextError: {
+            $ref: '#/components/schemas/TextError/$defs/Detail',
+            $defs: { Detail: { type: 'string' } },
+          },
+          NumericError: {
+            $ref: '#/components/schemas/NumericError/$defs/Detail',
+            $defs: { Detail: { type: 'number' } },
+          },
+        },
+      },
+    });
+
+    const textRef = { $ref: '#/components/schemas/TextError' };
+    const text = resolveValue({ schema: textRef, context });
+    expect(text).toMatchObject({
+      value: 'TextError',
+      type: 'string',
+      imports: [{ name: 'TextError', schemaName: 'TextError' }],
+    });
+
+    const numeric = resolveValue({
+      schema: { $ref: '#/components/schemas/NumericError' },
+      context,
+    });
+    expect(numeric).toMatchObject({
+      value: 'NumericError',
+      type: 'number',
+      imports: [{ name: 'NumericError', schemaName: 'NumericError' }],
+    });
+
+    const narrowed = resolveValue({
+      schema: { allOf: [textRef, { const: 'invalid' }] },
+      context,
+    });
+    expect(narrowed.value).toContain('TextError');
+    expect(narrowed.imports).toContainEqual({
+      name: 'TextError',
+      schemaName: 'TextError',
+    });
+  });
+
   it('keeps the non-null type of a nullable component ref', () => {
     const context = createContext({
       openapi: '3.1.0',

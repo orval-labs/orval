@@ -57,25 +57,37 @@ export const nullableWithMultipartFormRequest = (
   nullableObject?: NullableObject,
   options?: AxiosRequestConfig,
 ): Promise<AxiosResponse<NullableObject>> => {
-  const formData = new FormData();
-  if (nullableObject?.name !== undefined && nullableObject.name !== null) {
-    formData.append(`name`, nullableObject.name);
-  }
-  if (nullableObject?.age !== undefined && nullableObject.age !== null) {
-    formData.append(`age`, nullableObject.age.toString());
-  }
-  if (
-    nullableObject?.address !== undefined &&
-    nullableObject.address !== null
-  ) {
-    formData.append(`address`, nullableObject.address);
-  }
-  if (
-    nullableObject?.is_active !== undefined &&
-    nullableObject.is_active !== null
-  ) {
-    formData.append(`is_active`, nullableObject.is_active.toString());
-  }
+  const formData =
+    nullableObject === undefined
+      ? undefined
+      : (() => {
+          const formData = new FormData();
+          if (
+            nullableObject?.name !== undefined &&
+            nullableObject.name !== null
+          ) {
+            formData.append(`name`, nullableObject.name);
+          }
+          if (
+            nullableObject?.age !== undefined &&
+            nullableObject.age !== null
+          ) {
+            formData.append(`age`, nullableObject.age.toString());
+          }
+          if (
+            nullableObject?.address !== undefined &&
+            nullableObject.address !== null
+          ) {
+            formData.append(`address`, nullableObject.address);
+          }
+          if (
+            nullableObject?.is_active !== undefined &&
+            nullableObject.is_active !== null
+          ) {
+            formData.append(`is_active`, nullableObject.is_active.toString());
+          }
+          return formData;
+        })();
 
   return axios.post(`/nullable-with-multipart-form-data`, formData, options);
 };

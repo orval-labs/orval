@@ -431,8 +431,121 @@ describe('defaults', () => {
       },
     });
     expect(consts).not.toContain('[object Object]');
-    expect(consts).toContain('{"id":1}');
-    expect(consts).toContain('{"id":2}');
+    expect(consts).toContain('"items": [{ "id": 1 }, { "id": 2 }]');
+  });
+
+  it('keeps literal types in objects inside array defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { status: { enum: ['active', 'inactive'] } },
+              },
+            },
+          },
+          default: { items: [{ status: 'active' }, { status: 'inactive' }] },
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { "items": [{ "status": "active" as const }, { "status": "inactive" as const }] };',
+    );
+  });
+
+  it('keeps literal types in array defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        modes: {
+          type: 'array',
+          items: { enum: ['fast', 'slow'] },
+          default: ['fast'],
+        },
+        grid: {
+          type: 'array',
+          items: { type: 'array', items: { enum: ['x', 'o'] } },
+          default: [['x', 'o']],
+        },
+      },
+    });
+    expect(consts).toContain(
+      'export const testModesDefault = ["fast" as const];',
+    );
+    expect(consts).toContain(
+      'export const testGridDefault = [["x" as const, "o" as const]];',
+    );
+  });
+
+  it('keeps an own __proto__ key in object defaults as a property', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          default: JSON.parse(
+            '{ "__proto__": 1, "nested": { "__proto__": 2 }, "items": [{ "__proto__": 3 }] }',
+          ),
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { ["__proto__"]: 1, "nested": { ["__proto__"]: 2 }, "items": [{ ["__proto__"]: 3 }] };',
+    );
+  });
+
+  it('keeps nested objects in object defaults', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          required: ['retry'],
+          properties: {
+            name: { type: 'string' },
+            retry: {
+              type: 'object',
+              required: ['mode'],
+              properties: { mode: { enum: ['fast', 'slow'] } },
+            },
+          },
+          default: { name: 'x', retry: { mode: 'fast' } },
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { "name": "x" as const, "retry": { "mode": "fast" as const } };',
+    );
+  });
+
+  it('applies the default to a schema outside a Struct', () => {
+    expect(gen({ type: 'string', default: 'a' }).effect).toBe(
+      'S.transform(S.UndefinedOr(S.String), S.typeSchema(S.String), { decode: (value) => (value === undefined ? testDefault : value), encode: (value) => value })',
+    );
+    expect(genV4({ type: 'string', default: 'a' }).effect).toBe(
+      'S.String.pipe(S.withDecodingDefaultType(Effect.succeed(testDefault)))',
+    );
+  });
+
+  it('drops the default of an allOf member that S.extend merges', () => {
+    const { effect } = gen({
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          default: { a: 'x' },
+        },
+        { type: 'object', properties: { b: { type: 'string' } } },
+      ],
+    });
+    expect(effect).toBe(
+      'S.extend(S.Struct({\n  "a": S.optional(S.String)\n}), S.Struct({\n  "b": S.optional(S.String)\n}))',
+    );
   });
 });
 

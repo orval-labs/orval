@@ -375,7 +375,8 @@ export const generateSharedRequestFunction = (
   ${generateFormDataAndUrlEncodedFunction({
     formData,
     formUrlEncoded,
-    body,
+    // The runtime calls this only for a body that is present.
+    body: { ...body, isOptional: false },
     isFormData,
     isFormUrlEncoded,
   })}

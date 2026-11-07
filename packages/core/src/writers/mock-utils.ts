@@ -7,7 +7,7 @@ import {
   OutputMockType,
   type WriteModeProps,
 } from '../types';
-import { isFunction, SOURCE_FILE_EXTENSIONS, upath } from '../utils';
+import { isFunction, pascal, SOURCE_FILE_EXTENSIONS, upath } from '../utils';
 
 export function getMockDir(
   entry: GlobalMockOptions | ClientMockBuilder,
@@ -83,4 +83,34 @@ export function resolveMockSchemasPath(
     schemasTarget,
     !SOURCE_FILE_EXTENSIONS.has(targetExt),
   );
+}
+
+/** Name of a tag's MSW handler list, which the mock index re-exports. */
+export const getMockHandlersName = (
+  tag: string,
+  mockHandlersName: string | undefined,
+) => mockHandlersName ?? `get${pascal(tag)}Mock`;
+
+/**
+ * Throws when two tags would get the same MSW handler list name. The mock
+ * index re-exports each list by name and a repeated named export does not
+ * compile, so writers call this before they write any tag file.
+ */
+export function assertUniqueMockHandlerNames(
+  handlerNamesByTag: ReadonlyMap<string, string>,
+): void {
+  const tagsByName = new Map<string, string>();
+  const sorted = [...handlerNamesByTag].toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  for (const [tag, name] of sorted) {
+    const otherTag = tagsByName.get(name);
+    if (otherTag !== undefined) {
+      throw new Error(
+        `The MSW mock index would export '${name}' for both tag '${otherTag}' and tag '${tag}'. ` +
+          'Give each tag a distinct handler name, for example with `override.title`.',
+      );
+    }
+    tagsByName.set(name, tag);
+  }
 }

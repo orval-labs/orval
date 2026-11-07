@@ -2421,6 +2421,8 @@ export interface GeneratorTarget {
   fetchReviver?: GeneratorMutator[];
   sharedTypes?: SharedTypeDeclaration[];
   sharedExports?: SharedExports;
+  /** Name of the tag's MSW handler list (`get<Title>Mock`), re-exported by the mock index. */
+  mockHandlersName?: string;
 }
 
 export interface GeneratorTargetFull {

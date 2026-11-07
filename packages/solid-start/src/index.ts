@@ -199,7 +199,11 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
-  const route = encodeRouteParameters(_route, params);
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -505,16 +509,28 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
     const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
     : `const url = \`${route}\`;`;
 
-  // Build headers object
-  const headersCode = headers
-    ? `headers: { ...headers, 'Content-Type': 'application/json' }`
-    : `headers: { 'Content-Type': 'application/json' }`;
+  const isFormDataBody = isFormData && !!body.formData;
+  const isFormUrlEncodedBody = isFormUrlEncoded && !!body.formUrlEncoded;
+
+  // Build headers object. A form body fixes its Content-Type, so a caller's one
+  // is dropped: the browser sets the multipart one, because only it knows the
+  // boundary, and a url-encoded body sends the declared media type. For JSON,
+  // the default is only added when the caller sets no Content-Type in any
+  // casing, since fetch would combine both into one header.
+  const headersWithoutContentType = `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))`;
+  const headersCode = isFormDataBody
+    ? `headers: ${headers ? headersWithoutContentType : '{}'}`
+    : isFormUrlEncodedBody
+      ? `headers: { 'Content-Type': '${jsStringLiteralEscape(body.contentType)}'${headers ? `, ...${headersWithoutContentType}` : ''} }`
+      : headers
+        ? `headers: Object.keys(headers ?? {}).some((key) => key.toLowerCase() === 'content-type') ? headers : { 'Content-Type': 'application/json', ...headers }`
+        : `headers: { 'Content-Type': 'application/json' }`;
 
   // Build body code
   const bodyCode =
     isBodyVerb && body.implementation
       ? `,
-      body: JSON.stringify(${body.implementation})`
+      body: ${isFormDataBody || isFormUrlEncodedBody ? generateBodyOptions(body, isFormData, isFormUrlEncoded) : `JSON.stringify(${body.implementation})`}`
       : '';
 
   const functionName = isGetVerb ? 'query' : 'action';

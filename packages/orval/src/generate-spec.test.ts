@@ -4889,6 +4889,94 @@ const generateWithOutput = async (
   }
 };
 
+describe('generateSpec - MSW mock index with a custom title (#4432)', () => {
+  it.each(['tags', 'tags-split'] as const)(
+    're-exports the titled handler list in %s mode',
+    async (mode) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        await generateWithOutput(workspace, {
+          mode,
+          mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+          override: { title: (title) => `${title}Api` },
+        });
+
+        const handlers = await fs.promises.readFile(
+          path.join(workspace, 'src/client/default/default.msw.ts'),
+          'utf8',
+        );
+        expect(handlers).toContain('export const getDefaultApiMock = () => [');
+
+        const index = await fs.promises.readFile(
+          path.join(workspace, 'src/client/index.msw.ts'),
+          'utf8',
+        );
+        expect(index).toBe(
+          "export { getDefaultApiMock } from './default/default.msw'\n",
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  const TWO_TAGS_SPEC: OpenApiDocument = {
+    openapi: '3.1.0',
+    info: { title: 'Two tags', version: '1.0.0' },
+    paths: {
+      '/pets': {
+        get: {
+          operationId: 'listPets',
+          tags: ['pets'],
+          responses: { '204': { description: 'Listed' } },
+        },
+      },
+      '/stores': {
+        get: {
+          operationId: 'listStores',
+          tags: ['stores'],
+          responses: { '204': { description: 'Listed' } },
+        },
+      },
+    },
+  };
+
+  it.each(['tags', 'tags-split'] as const)(
+    'rejects two tags whose titles give one handler list name before writing them in %s mode',
+    async (mode) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: TWO_TAGS_SPEC },
+            output: {
+              target: './src/client/api.ts',
+              mode,
+              client: 'fetch',
+              mock: { indexMockFiles: true, generators: [{ type: 'msw' }] },
+              override: { title: () => 'Shared' },
+            },
+          },
+          workspace,
+        );
+
+        await expect(generateSpec(workspace, options)).rejects.toThrow(
+          /for both tag 'pets' and tag 'stores'/,
+        );
+        const clientDir = path.join(workspace, 'src/client');
+        const written = fs.existsSync(clientDir)
+          ? fs.readdirSync(clientDir, { recursive: true }).map(String)
+          : [];
+        expect(written.filter((file) => /pets|stores/.test(file))).toEqual([]);
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe('generateSpec - clean prunes configured mock directories', () => {
   /** Mock directories that sit outside `target` and `schemas`. */
   const separateMockDirectories: Partial<OutputOptions> = {

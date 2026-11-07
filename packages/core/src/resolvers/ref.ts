@@ -308,9 +308,15 @@ export function extractBoundAliasInfo(
   return { genericName, genericParams, typeArgs, imports, extraSchemas };
 }
 
+/**
+ * Resolves an alias chain to its target schema and generated type name.
+ * When the target is inline, reuse the closest named component so callers
+ * reference an emitted model instead of the inline schema's pointer name.
+ */
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
+  componentRef?: RefInfo,
 ): {
   refInfo: RefInfo;
   currentSchema: TSchema | undefined;
@@ -342,7 +348,11 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
     !isInlineSchema(schemaByRefPaths) &&
     !isBoundAlias(schemaByRefPaths)
   ) {
-    return getSchema(schemaByRefPaths, context);
+    return getSchema(
+      schemaByRefPaths,
+      context,
+      isComponentRef(schema.$ref) ? refInfo : componentRef,
+    );
   }
 
   let currentSchema: OpenApiSchemaObject | OpenApiReferenceObject | undefined =
@@ -365,7 +375,10 @@ function getSchema<TSchema extends object = OpenApiComponentsObject>(
 
   return {
     currentSchema: currentSchema as TSchema | undefined,
-    refInfo,
+    // An inline target has no emitted type of its own. Keep the closest
+    // named component while still using the target schema for its metadata.
+    refInfo:
+      componentRef && !isComponentRef(schema.$ref) ? componentRef : refInfo,
   };
 }
 
