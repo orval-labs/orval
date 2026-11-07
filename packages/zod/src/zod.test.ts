@@ -16097,6 +16097,12 @@ describe('formatType', () => {
     );
   });
 
+  it('decodes a mapped binary format from a wire string', () => {
+    expect(
+      render({ type: 'string', format: 'binary' }, { binary: dayjs }).zod,
+    ).toBe('zod.string().transform((value) => dayjs(value))');
+  });
+
   it('fails for a mapped format next to allOf', () => {
     expect(() =>
       render(

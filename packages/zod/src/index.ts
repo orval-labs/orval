@@ -1073,6 +1073,11 @@ export const generateZodValidationSchemaDefinition = (
       const suffix = counter ? pascal(getNumberWord(counter)) : '';
       const defaultVarName = `${name}Default${suffix}`;
       const defaultLiteral = stringify(siblingSchema.default);
+      // A wire default of a schema with mapped formats, see `isWireDefault`.
+      const defaultFn =
+        isZodV4 && findCustomFormatType(siblingSchema, context)
+          ? 'prefault'
+          : 'default';
       if (defaultLiteral !== undefined) {
         if (
           isObject(siblingSchema.default) ||
@@ -1085,14 +1090,14 @@ export const generateZodValidationSchemaDefinition = (
           );
           // Spreading object defaults preserves contextual types without excess-property checks.
           functions.push([
-            'default',
+            defaultFn,
             Array.isArray(siblingSchema.default)
               ? inlineDefault
               : `{ ...${inlineDefault} }`,
           ]);
         } else {
           consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
-          functions.push(['default', defaultVarName]);
+          functions.push([defaultFn, defaultVarName]);
         }
       }
     }
@@ -2059,8 +2064,9 @@ export const generateZodValidationSchemaDefinition = (
         }
 
         // url-encoded bodies serialize via URLSearchParams (strings only), so
-        // binary fields stay `string` rather than becoming `File` (#3664).
-        if (!urlEncoded && schema.format === 'binary') {
+        // binary fields stay `string` rather than becoming `File` (#3664). A
+        // mapped binary format is a wire string its conversion decodes.
+        if (!urlEncoded && schema.format === 'binary' && !formatTypeTransform) {
           functions.push(['instanceof', 'Blob']);
           break;
         }

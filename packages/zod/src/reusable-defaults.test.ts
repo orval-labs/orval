@@ -94,3 +94,43 @@ describe('defaults on reusable schema references', () => {
     },
   );
 });
+
+describe('defaults on reusable references with mapped formats', () => {
+  it.each([
+    [true, '.prefault(startsAtDefault)'],
+    [false, '.default(startsAtDefault)'],
+  ])(
+    'feeds the wire default through the schema (Zod 4: %s)',
+    (isZodV4, chain) => {
+      const context = createTestContextSpec({
+        spec: {
+          components: {
+            schemas: { Instant: { type: 'string', format: 'date-time' } },
+          },
+        },
+        override: {
+          formatType: { 'date-time': { type: 'Dayjs', decode: 'dayjs' } },
+        },
+      });
+      const definition = generateZodValidationSchemaDefinition(
+        {
+          $ref: '#/components/schemas/Instant',
+          default: '2025-01-01T00:00:00Z',
+        },
+        context,
+        'startsAt',
+        false,
+        isZodV4,
+        { useReusableSchemas: true },
+      );
+      const result = parseZodValidationSchemaDefinition(
+        definition,
+        context,
+        false,
+        false,
+        isZodV4,
+      );
+      expect(result.zod).toContain(chain);
+    },
+  );
+});
