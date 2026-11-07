@@ -451,6 +451,75 @@ describe('generateSolidStart — path-level parameter merging', () => {
   });
 });
 
+describe('generateSolidStart — urlEncodeParameters', () => {
+  const route = '/pets/${petId}';
+  const generateGetPet = ({
+    urlEncodeParameters,
+    allowReserved = false,
+    mutator,
+  }: {
+    urlEncodeParameters: boolean;
+    allowReserved?: boolean;
+    mutator?: GeneratorVerbOptions['mutator'];
+  }) => {
+    const context = makeContext();
+    return generateImplementation(
+      makeVerbOptions({
+        route,
+        mutator,
+        params: [
+          {
+            name: 'petId',
+            definition: 'petId: string',
+            implementation: 'petId: string',
+            default: false,
+            required: true,
+            allowReserved,
+            imports: [],
+          },
+        ],
+      }),
+      makeOptions(
+        { ...context, output: { ...context.output, urlEncodeParameters } },
+        { route, pathRoute: '/pets/{petId}' },
+      ),
+    );
+  };
+
+  it('encodes path parameters when urlEncodeParameters is true', async () => {
+    expect(await generateGetPet({ urlEncodeParameters: true })).toContain(
+      'const url = `/pets/${encodeURIComponent(String(petId))}`',
+    );
+    expect(
+      await generateGetPet({
+        urlEncodeParameters: true,
+        mutator: {
+          name: 'customInstance',
+          path: './custom-instance.ts',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: false,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      }),
+    ).toContain('url: `/pets/${encodeURIComponent(String(petId))}`');
+  });
+
+  it('skips allowReserved path parameters', async () => {
+    expect(
+      await generateGetPet({ urlEncodeParameters: true, allowReserved: true }),
+    ).not.toContain('encodeURIComponent');
+  });
+
+  it('leaves the route unchanged when urlEncodeParameters is false', async () => {
+    const implementation = await generateGetPet({ urlEncodeParameters: false });
+    expect(implementation).toContain('const url = `/pets/${petId}`');
+    expect(implementation).not.toContain('encodeURIComponent');
+  });
+});
+
 describe('generateSolidStart — deepObject query parameters', () => {
   it('generates bracket notation for a style:deepObject query param', async () => {
     const parameters = [
