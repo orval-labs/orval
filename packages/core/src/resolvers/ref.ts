@@ -308,6 +308,11 @@ export function extractBoundAliasInfo(
   return { genericName, genericParams, typeArgs, imports, extraSchemas };
 }
 
+/**
+ * Resolves an alias chain to its target schema and generated type name.
+ * When the target is inline, reuse the closest named component so callers
+ * reference an emitted model instead of the inline schema's pointer name.
+ */
 function getSchema<TSchema extends object = OpenApiComponentsObject>(
   schema: OpenApiReferenceObject,
   context: ContextSpec,
