@@ -3476,6 +3476,7 @@ Limits:
 - Generated schemas need Zod 3.24 or newer.
 - Orval still generates Zod schemas, so other validators need your own schema values.
 - Inline array responses still use `zod.array`, so Zod stays a runtime dependency there.
+- Angular `requestBodies` encodes a body with [`formatType`](#formattype) codecs back through `zod.encode`.
 
 ### arrayFormat
 

@@ -268,6 +268,16 @@ describe('emitRequestBodyValidation', () => {
         encode: true,
       }),
     ).toBe('pet === undefined ? undefined : zod.encode(Pet, Pet.parse(pet))');
+    expect(
+      emitRequestBodyValidation({
+        schemaRef: 'Pet',
+        operationName: 'patchPet',
+        strategy: 'throw',
+        inputExpression: 'pet',
+        standardSchema: true,
+        encode: true,
+      }),
+    ).toBe('zod.encode(Pet, orvalParseStandardSchema(Pet, pet))');
   });
 });
 

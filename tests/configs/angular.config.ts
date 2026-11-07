@@ -49,7 +49,7 @@ export default defineConfig({
       client: 'angular',
       override: {
         angular: {
-          runtimeValidation: { requestBodies: true },
+          runtimeValidation: { requestBodies: true, standardSchema: true },
         },
         formatType: {
           'date-time': {

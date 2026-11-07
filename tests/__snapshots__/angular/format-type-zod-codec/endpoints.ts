@@ -23,6 +23,84 @@ import { defer, map } from 'rxjs';
 
 import * as zod from 'zod';
 
+type OrvalStandardSchemaIssue = {
+  readonly message: string;
+  readonly path?:
+    | readonly (
+        | string
+        | number
+        | symbol
+        | { readonly key: string | number | symbol }
+      )[]
+    | undefined;
+};
+type OrvalStandardSchemaResult<O> =
+  | { readonly value: O; readonly issues?: undefined }
+  | { readonly issues: readonly OrvalStandardSchemaIssue[] };
+type OrvalStandardSchemaPending = {
+  readonly then: (onFulfilled: undefined, onRejected: () => void) => unknown;
+};
+type OrvalStandardSchemaLike<O> = {
+  readonly '~standard': {
+    readonly validate: (
+      value: unknown,
+    ) => OrvalStandardSchemaResult<O> | OrvalStandardSchemaPending;
+    readonly types?: { readonly output: O } | undefined;
+  };
+};
+type OrvalStandardSchemaError = globalThis.Error & {
+  issues: readonly OrvalStandardSchemaIssue[];
+};
+
+function orvalSafeParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
+  value: unknown,
+):
+  | { success: true; data: O }
+  | { success: false; error: OrvalStandardSchemaError } {
+  // Zod below 3.24 has no standard schema property.
+  if (!('~standard' in schema)) {
+    throw new globalThis.TypeError(
+      'Schema does not implement Standard Schema (Zod 3.24 or newer is required)',
+    );
+  }
+  const result = schema['~standard'].validate(value);
+  if ('then' in result) {
+    // Swallow the rejection so only the error below reaches the caller.
+    result.then(undefined, () => {});
+    throw new globalThis.TypeError(
+      'Async Standard Schema validation is not supported',
+    );
+  }
+  if (result.issues) {
+    const message = result.issues
+      .map(({ message, path }) => {
+        const keys = (path ?? []).map((k) =>
+          globalThis.String(typeof k === 'object' ? k.key : k),
+        );
+        return keys.length > 0 ? `${keys.join('.')}: ${message}` : message;
+      })
+      .join('; ');
+    return {
+      success: false,
+      error: globalThis.Object.assign(new globalThis.Error(message), {
+        name: 'StandardSchemaError',
+        issues: result.issues,
+      }),
+    };
+  }
+  return { success: true, data: result.value };
+}
+
+function orvalParseStandardSchema<O>(
+  schema: OrvalStandardSchemaLike<O>,
+  value: unknown,
+): O {
+  const result = orvalSafeParseStandardSchema(schema, value);
+  if (!result.success) throw result.error;
+  return result.data;
+}
+
 interface HttpClientOptions {
   readonly headers?: HttpHeaders | Record<string, string | string[]>;
   readonly context?: HttpContext;
@@ -178,7 +256,9 @@ export class DateTypeTestService {
         .pipe(
           map((event) =>
             event instanceof AngularHttpResponse
-              ? event.clone({ body: zod.array(Event).parse(event.body) })
+              ? event.clone({
+                  body: orvalParseStandardSchema(zod.array(Event), event.body),
+                })
               : event,
           ),
         );
@@ -193,7 +273,9 @@ export class DateTypeTestService {
         })
         .pipe(
           map((response) =>
-            response.clone({ body: zod.array(Event).parse(response.body) }),
+            response.clone({
+              body: orvalParseStandardSchema(zod.array(Event), response.body),
+            }),
           ),
         );
     }
@@ -204,7 +286,7 @@ export class DateTypeTestService {
         observe: 'body',
         params: filteredParams,
       })
-      .pipe(map((data) => zod.array(Event).parse(data)));
+      .pipe(map((data) => orvalParseStandardSchema(zod.array(Event), data)));
   }
 
   createEvent(
@@ -228,7 +310,7 @@ export class DateTypeTestService {
     return defer(() => {
       const parsedCreateEventBody = zod.encode(
         CreateEvent,
-        CreateEvent.parse(createEventBody),
+        orvalParseStandardSchema(CreateEvent, createEventBody),
       );
       if (options?.observe === 'events') {
         return this.http
@@ -239,7 +321,9 @@ export class DateTypeTestService {
           .pipe(
             map((event) =>
               event instanceof AngularHttpResponse
-                ? event.clone({ body: Event.parse(event.body) })
+                ? event.clone({
+                    body: orvalParseStandardSchema(Event, event.body),
+                  })
                 : event,
             ),
           );
@@ -253,7 +337,9 @@ export class DateTypeTestService {
           })
           .pipe(
             map((response) =>
-              response.clone({ body: Event.parse(response.body) }),
+              response.clone({
+                body: orvalParseStandardSchema(Event, response.body),
+              }),
             ),
           );
       }
@@ -263,7 +349,7 @@ export class DateTypeTestService {
           ...(options as Omit<NonNullable<typeof options>, 'observe'>),
           observe: 'body',
         })
-        .pipe(map((data) => Event.parse(data)));
+        .pipe(map((data) => orvalParseStandardSchema(Event, data)));
     });
   }
 
@@ -297,7 +383,9 @@ export class DateTypeTestService {
         .pipe(
           map((event) =>
             event instanceof AngularHttpResponse
-              ? event.clone({ body: Event.parse(event.body) })
+              ? event.clone({
+                  body: orvalParseStandardSchema(Event, event.body),
+                })
               : event,
           ),
         );
@@ -314,7 +402,9 @@ export class DateTypeTestService {
         )
         .pipe(
           map((response) =>
-            response.clone({ body: Event.parse(response.body) }),
+            response.clone({
+              body: orvalParseStandardSchema(Event, response.body),
+            }),
           ),
         );
     }
@@ -327,7 +417,7 @@ export class DateTypeTestService {
           observe: 'body',
         },
       )
-      .pipe(map((data) => Event.parse(data)));
+      .pipe(map((data) => orvalParseStandardSchema(Event, data)));
   }
 
   getEventUntil(
@@ -360,7 +450,9 @@ export class DateTypeTestService {
         .pipe(
           map((event) =>
             event instanceof AngularHttpResponse
-              ? event.clone({ body: Event.parse(event.body) })
+              ? event.clone({
+                  body: orvalParseStandardSchema(Event, event.body),
+                })
               : event,
           ),
         );
@@ -377,7 +469,9 @@ export class DateTypeTestService {
         )
         .pipe(
           map((response) =>
-            response.clone({ body: Event.parse(response.body) }),
+            response.clone({
+              body: orvalParseStandardSchema(Event, response.body),
+            }),
           ),
         );
     }
@@ -390,7 +484,7 @@ export class DateTypeTestService {
           observe: 'body',
         },
       )
-      .pipe(map((data) => Event.parse(data)));
+      .pipe(map((data) => orvalParseStandardSchema(Event, data)));
   }
 
   addReminders<TData = void>(
