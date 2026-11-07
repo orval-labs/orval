@@ -7,14 +7,20 @@ import {
   type ClientGeneratorsBuilder,
   type ContextSpec,
   type DereferenceOptions,
+  findCustomFormatType,
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getCustomFormatType,
   getEnumMembers,
+  getFormatTypeError,
   getFormDataFieldFileType,
   getNumberWord,
+  getReferencedFormatTypeImports,
   getRequiredKeys,
+  getUnionMemberContext,
   isBoolean,
+  isDateFormatType,
   isNumber,
   isObject,
   isSchemaNullable,
@@ -342,6 +348,17 @@ export const generateEffectValidationSchemaDefinition = (
 
   let skipSwitchStatement = false;
   if (schema.allOf || schema.oneOf || schema.anyOf) {
+    const composedFormatType = getCustomFormatType(
+      schema,
+      context.output.override,
+    );
+    if (composedFormatType) {
+      throw getFormatTypeError(
+        schema.format,
+        composedFormatType,
+        "Effect schemas can't convert it next to allOf/oneOf/anyOf",
+      );
+    }
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
@@ -421,12 +438,10 @@ export const generateEffectValidationSchemaDefinition = (
     defaultVarName = `${name}Default${constsCounterValue}`;
     let defaultValue: string | undefined;
 
-    const isDateType =
+    if (
       schema.type === 'string' &&
-      (schema.format === 'date' || schema.format === 'date-time') &&
-      context.output.override.useDates;
-
-    if (isDateType) {
+      isDateFormatType(schema.format, context.output.override)
+    ) {
       defaultValue = `new Date(${JSON.stringify(schema.default)})`;
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
@@ -487,13 +502,21 @@ export const generateEffectValidationSchemaDefinition = (
     const types = type.multiType;
     functions.push([
       'oneOf',
-      types.map((t) =>
-        generateEffectValidationSchemaDefinition(
+      types.map((t) => {
+        const memberContext =
+          t === 'string'
+            ? getUnionMemberContext(context, schema.format)
+            : context;
+        return generateEffectValidationSchemaDefinition(
           {
             ...(schema as Record<string, unknown>),
             type: t,
+            // An unmapped `binary` format would check a `File`, not the
+            // string the member is typed as.
+            ...(memberContext !== context &&
+              schema.format === 'binary' && { format: undefined }),
           } as OpenApiSchemaObject,
-          context,
+          memberContext,
           name,
           strict,
           {
@@ -501,8 +524,8 @@ export const generateEffectValidationSchemaDefinition = (
             constNameRegistry,
             urlEncoded,
           },
-        ),
-      ),
+        );
+      }),
     ]);
 
     if (!required && nullable) {
@@ -567,10 +590,21 @@ export const generateEffectValidationSchemaDefinition = (
           break;
         }
 
-        if (
-          context.output.override.useDates &&
-          (schema.format === 'date' || schema.format === 'date-time')
-        ) {
+        const formatType = getCustomFormatType(schema, context.output.override);
+        if (formatType) {
+          if (!formatType.effect) {
+            throw getFormatTypeError(
+              schema.format,
+              formatType,
+              'Effect schemas need `effect.schema`',
+            );
+          }
+          // The user schema replaces the string schema and its checks.
+          functions.push(['formatSchema', formatType.effect.schema]);
+          break;
+        }
+
+        if (isDateFormatType(schema.format, context.output.override)) {
           functions.push(['date', undefined]);
           break;
         }
@@ -706,7 +740,8 @@ export const generateEffectValidationSchemaDefinition = (
   }
 
   const hasFixedValue =
-    hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
+    hasNonArrayEnum ||
+    functions.some(([fn]) => fn === 'literal' || fn === 'formatSchema');
 
   if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
@@ -824,7 +859,12 @@ export const generateEffectValidationSchemaDefinition = (
   }
 
   if (hasDefault) {
-    functions.push(['default', defaultVarName]);
+    // The spec default is wire-shaped: one that holds a mapped format is
+    // decoded through the schema instead of being taken as the decoded value.
+    functions.push([
+      findCustomFormatType(schema, context) ? 'encodedDefault' : 'default',
+      defaultVarName,
+    ]);
   }
 
   if (schema.description) {
@@ -861,6 +901,7 @@ const CONSTRUCTORS = new Set([
   'instanceof',
   'fileOrString',
   'date',
+  'formatSchema',
 ]);
 
 const FILTERS = new Set([
@@ -1010,7 +1051,14 @@ export const parseEffectValidationSchemaDefinition = (
     let base = '';
     const filters: string[] = [];
     const wrappers: [
-      'nullable' | 'nullish' | 'optional' | 'default' | 'describe',
+      (
+        | 'nullable'
+        | 'nullish'
+        | 'optional'
+        | 'default'
+        | 'encodedDefault'
+        | 'describe'
+      ),
       unknown,
     ][] = [];
 
@@ -1028,6 +1076,7 @@ export const parseEffectValidationSchemaDefinition = (
         fn === 'nullish' ||
         fn === 'optional' ||
         fn === 'default' ||
+        fn === 'encodedDefault' ||
         fn === 'describe'
       ) {
         wrappers.push([fn, arg]);
@@ -1044,6 +1093,7 @@ export const parseEffectValidationSchemaDefinition = (
         : base;
 
     let hasDefault = false;
+    let isEncodedDefault = false;
     let defaultValue: unknown;
     let isOptional = false;
     let isNullable = false;
@@ -1052,8 +1102,10 @@ export const parseEffectValidationSchemaDefinition = (
 
     for (const [fn, arg] of wrappers) {
       switch (fn) {
-        case 'default': {
+        case 'default':
+        case 'encodedDefault': {
           hasDefault = true;
+          isEncodedDefault = fn === 'encodedDefault';
           defaultValue = arg;
 
           break;
@@ -1088,9 +1140,13 @@ export const parseEffectValidationSchemaDefinition = (
 
     if (isStructProperty) {
       if (hasDefault) {
-        out = isEffectV4
-          ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
-          : `S.optionalWith(${out}, { default: () => ${defaultValue as string} })`;
+        const value = defaultValue as string;
+        if (isEffectV4) {
+          out = `${out}.pipe(S.${isEncodedDefault ? 'withDecodingDefault' : 'withDecodingDefaultType'}(Effect.succeed(${value})))`;
+        } else {
+          // Effect 3 takes a decoded default only.
+          out = `S.optionalWith(${out}, { default: () => ${isEncodedDefault ? `S.decodeSync(${out})(${value})` : value} })`;
+        }
       } else if (isOptional || isNullish) {
         // `{ exact: true }` narrows an optional property to `{ x?: T }` for
         // `exactOptionalPropertyTypes` consumers instead of `{ x?: T | undefined }`.
@@ -1171,6 +1227,7 @@ export const parseEffectValidationSchemaDefinition = (
       ([fn]) =>
         fn !== 'describe' &&
         fn !== 'default' &&
+        fn !== 'encodedDefault' &&
         fn !== 'nullable' &&
         fn !== 'nullish',
     );
@@ -1253,6 +1310,9 @@ export const parseEffectValidationSchemaDefinition = (
       }
       case 'date': {
         return 'S.DateFromString';
+      }
+      case 'formatSchema': {
+        return arg as string;
       }
       case 'literal': {
         // Effect 4 has no `null` literal: `S.Null` takes its place.
@@ -1338,7 +1398,10 @@ export const parseEffectValidationSchemaDefinition = (
               openMember(
                 member,
                 member.functions.filter(
-                  ([fn]) => fn !== 'describe' && fn !== 'default',
+                  ([fn]) =>
+                    fn !== 'describe' &&
+                    fn !== 'default' &&
+                    fn !== 'encodedDefault',
                 ),
               ) ?? { struct: renderSchema(member, false), open: false },
           );
@@ -1945,7 +2008,11 @@ export const generateEffect: ClientBuilder = (verbOptions, options) => {
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
-    imports: [],
+    imports: getReferencedFormatTypeImports(
+      implementation,
+      options.context.output.override,
+      (config) => [config.effect?.schemaImport],
+    ),
     mutators,
   };
 };

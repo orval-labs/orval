@@ -8,6 +8,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   conventionName,
+  generateImports,
   generateMutatorImports,
   type GeneratorVerbOptions,
   getFileInfo,
@@ -597,16 +598,14 @@ const generateZodFiles = async (
   // One block per tool: request schemas, Input, response schemas, Output.
   const tools = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) => {
-      const { request, response, mutators } = await generateZodSections(
-        verbOption,
-        {
+      const { request, response, mutators, imports } =
+        await generateZodSections(verbOption, {
           route: verbOption.route,
           pathRoute: verbOption.pathRoute,
           override: output.override,
           context,
           output: output.target,
-        },
-      );
+        });
       const name = pascal(verbOption.typeName);
       const shape = getInputShape(verbOption, context);
       const inputSchema =
@@ -627,6 +626,7 @@ const generateZodFiles = async (
           .filter(Boolean)
           .join('\n\n'),
         mutators,
+        imports,
       };
     }),
   );
@@ -641,7 +641,11 @@ const generateZodFiles = async (
     mutators: allMutators,
   });
 
-  const content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n${tools
+  const formatTypeImports = generateImports({
+    imports: tools.flatMap((tool) => tool.imports),
+  });
+
+  const content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}${formatTypeImports ? `${formatTypeImports}\n` : ''}\n${tools
     .map((tool) => tool.implementation)
     .filter(Boolean)
     .join('\n\n')}\n`;

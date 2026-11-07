@@ -4,6 +4,7 @@ import {
   type ClientExtraFilesBuilder,
   type ClientFileBuilder,
   emitResponseValidation,
+  encodeRouteParameters,
   generateFormDataAndUrlEncodedFunction,
   generateRequestDateSerializer,
   generateVerbImports,
@@ -21,6 +22,7 @@ import {
   getFormObjectParameters,
   getExplodeParameters,
   getOperationParameters,
+  getQueryParamsEncoding,
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -33,7 +35,6 @@ import {
   isPrimitiveResponseType,
   jsDoc,
   jsStringLiteralEscape,
-  makeRouteSafe,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputClient,
@@ -291,13 +292,11 @@ export const generateSharedRequestFunction = (
   } = verbOptions;
   const { context, pathRoute } = options;
 
-  const route = context.output.urlEncodeParameters
-    ? makeRouteSafe(
-        options.route,
-        new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
-        new Set(params.map((p) => p.name)),
-      )
-    : options.route;
+  const route = encodeRouteParameters(
+    options.route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const getUrlFnName = camel(`get-${operationName}-url`);
   const urlProps = props.filter(
@@ -347,14 +346,17 @@ export const generateSharedRequestFunction = (
   })
     .filter(([, names]) => names.length > 0)
     .map(([key, names]) => `${key}: ${JSON.stringify(names)}`);
+  const paramsEncoding = paramsSerializer
+    ? undefined
+    : getQueryParamsEncoding(queryParams, 'params');
   const serializeCall = paramsSerializer
     ? `${paramsSerializer.name}(params)`
-    : `serializeQuery(params${meta.length > 0 ? `, { ${meta.join(', ')} }` : ''})`;
+    : `serializeQuery(${paramsEncoding ? 'encodedParams' : 'params'}${meta.length > 0 ? `, { ${meta.join(', ')} }` : ''})`;
 
   // Same slot layout as the inline builder: a path-only builder stays byte-identical.
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {\n
 
-  ${queryParams ? `const stringifiedParams = ${serializeCall};` : ''}
+  ${paramsEncoding ? `${paramsEncoding}\n` : ''}${queryParams ? `const stringifiedParams = ${serializeCall};` : ''}
 
   ${
     queryParams

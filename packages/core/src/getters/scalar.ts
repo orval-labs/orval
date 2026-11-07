@@ -1,13 +1,24 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
-import { resolveExampleRefs } from '../resolvers';
+import { resolveExampleRefs, resolveRef } from '../resolvers';
 import type {
   ContextSpec,
+  GeneratorImport,
+  NormalizedFormatTypeConfig,
+  NormalizedOverrideOutput,
+  OpenApiNonBooleanSchemaObject,
   OpenApiPrimitiveSchemaType,
+  OpenApiReferenceObject,
   OpenApiSchemaObject,
   ScalarValue,
 } from '../types';
-import { getComponentBaseNames, sanitize, toJsLiteral } from '../utils';
+import {
+  escapeRegExp,
+  getComponentBaseNames,
+  isObject,
+  sanitize,
+  toJsLiteral,
+} from '../utils';
 import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
 import {
   getFormDataFieldFileType,
@@ -17,6 +28,238 @@ import { getArray } from './array';
 import { combineSchemas } from './combine';
 import type { FormDataContext } from './object';
 import { getObject } from './object';
+
+/**
+ * The `override.formatType` entry for a format. Formats come from the
+ * document, so `format: constructor` must not resolve an inherited member.
+ */
+export function getFormatTypeConfig(
+  format: string | undefined,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+): NormalizedFormatTypeConfig | undefined {
+  const { formatType } = override;
+  return format !== undefined && formatType && Object.hasOwn(formatType, format)
+    ? formatType[format]
+    : undefined;
+}
+
+const isDateFormat = (format: string | undefined) =>
+  format === 'date' || format === 'date-time';
+
+/** The type of a format: its `formatType` entry, else `Date` under `useDates`. */
+export function resolveFormatType(
+  format: string | undefined,
+  override: NormalizedOverrideOutput,
+): { type: string; import?: GeneratorImport } | undefined {
+  if (!format) return undefined;
+  const config = getFormatTypeConfig(format, override);
+  if (config) return { type: config.type, import: config.import };
+  if (override.useDates && isDateFormat(format)) {
+    return { type: 'Date' };
+  }
+  return undefined;
+}
+
+/**
+ * Whether values of the format are built-in `Date`s, converted the way
+ * `useDates` converts them: `useDates`, or a `type: 'Date'` mapping of
+ * `date` / `date-time`.
+ */
+export const isDateFormatType = (
+  format: string | undefined,
+  override: NormalizedOverrideOutput,
+) =>
+  isDateFormat(format) && resolveFormatType(format, override)?.type === 'Date';
+
+/**
+ * The `formatType` entry behind the type `getScalar` gives this schema when
+ * that type is not a built-in `Date`, so generated code has to convert its
+ * values with the entry's own functions. Only strings take a mapped type, and
+ * enums and constants keep their literal types.
+ */
+export function getCustomFormatType(
+  schema: OpenApiSchemaObject,
+  override: NormalizedOverrideOutput,
+): NormalizedFormatTypeConfig | undefined {
+  if (
+    isBooleanJsonSchema(schema) ||
+    !isStringLikeSchema(schema) ||
+    schema.enum ||
+    schema.const !== undefined ||
+    isDateFormatType(schema.format, override)
+  ) {
+    return undefined;
+  }
+  return getFormatTypeConfig(schema.format, override);
+}
+
+/**
+ * The context for the string member of a `type: [...]` union such as
+ * `['string', 'number']`, which keeps a custom `formatType` format a plain
+ * string: only string schemas take a custom type (see
+ * {@link getCustomFormatType}), so nothing converts the union's values. The
+ * other members keep the context.
+ */
+export function getUnionMemberContext(
+  context: ContextSpec,
+  format: string | undefined,
+): ContextSpec {
+  const { override } = context.output;
+  if (
+    !getFormatTypeConfig(format, override) ||
+    isDateFormatType(format, override)
+  ) {
+    return context;
+  }
+  return {
+    ...context,
+    output: {
+      ...context.output,
+      override: {
+        ...override,
+        useDates: false,
+        formatType: Object.fromEntries(
+          Object.entries(override.formatType ?? {}).filter(
+            ([key]) => key !== format,
+          ),
+        ),
+      },
+    },
+  };
+}
+
+/**
+ * The first schema in a tree whose values take a custom `formatType` that
+ * `matches`, for paths that can only pass such values through unconverted.
+ */
+export function findCustomFormatType(
+  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+  matches: (config: NormalizedFormatTypeConfig) => boolean = () => true,
+  seenRefs = new Set<string>(),
+):
+  | { format: string | undefined; config: NormalizedFormatTypeConfig }
+  | undefined {
+  if (
+    !context.output.override.formatType ||
+    schemaOrRef === undefined ||
+    isBooleanJsonSchema(schemaOrRef)
+  ) {
+    return undefined;
+  }
+  if ('$ref' in schemaOrRef && typeof schemaOrRef.$ref === 'string') {
+    if (seenRefs.has(schemaOrRef.$ref)) return undefined;
+    seenRefs.add(schemaOrRef.$ref);
+    return findCustomFormatType(
+      resolveRef<OpenApiSchemaObject>(
+        schemaOrRef as OpenApiReferenceObject,
+        context,
+      ).schema,
+      context,
+      matches,
+      seenRefs,
+    );
+  }
+  const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
+  const config = getCustomFormatType(schema, context.output.override);
+  if (config && matches(config)) return { format: schema.format, config };
+  const children: unknown[] = [
+    ...Object.values(schema.properties ?? {}),
+    ...(Array.isArray(schema.items) ? schema.items : [schema.items]),
+    ...((schema.prefixItems as unknown[] | undefined) ?? []),
+    schema.additionalProperties,
+    ...(schema.allOf ?? []),
+    ...(schema.oneOf ?? []),
+    ...(schema.anyOf ?? []),
+  ];
+  for (const child of children) {
+    if (child === null || typeof child !== 'object') continue;
+    const found = findCustomFormatType(
+      child as OpenApiSchemaObject | OpenApiReferenceObject,
+      context,
+      matches,
+      seenRefs,
+    );
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/**
+ * With Zod schema output the generated types are the schemas' input, where a
+ * mapped value is still its wire string: only the schemas convert it. The zod
+ * client's `generateReusableSchemas` makes a string `schemas` path Zod too.
+ */
+const hasZodSchemaTypes = ({ output }: Pick<ContextSpec, 'output'>) =>
+  isObject(output.schemas)
+    ? output.schemas.type === 'zod'
+    : !!output.schemas &&
+      output.client === 'zod' &&
+      output.override.zod.generateReusableSchemas;
+
+/**
+ * {@link getCustomFormatType} for code that handles the values the generated
+ * types describe (mocks, factories, `useDatesTransform`, query and form
+ * values).
+ */
+export const getModelFormatType = (
+  schema: OpenApiSchemaObject,
+  context: Pick<ContextSpec, 'output'>,
+) =>
+  hasZodSchemaTypes(context)
+    ? undefined
+    : getCustomFormatType(schema, context.output.override);
+
+/** {@link findCustomFormatType} for such code, see {@link getModelFormatType}. */
+export const findModelFormatType = (
+  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
+  context: ContextSpec,
+) =>
+  hasZodSchemaTypes(context)
+    ? undefined
+    : findCustomFormatType(schemaOrRef, context);
+
+/**
+ * The `formatType` imports, picked from each entry by `pick`, that generated
+ * `code` references, as value imports.
+ */
+export const getReferencedFormatTypeImports = (
+  code: string,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+  pick: (config: NormalizedFormatTypeConfig) => (GeneratorImport | undefined)[],
+): GeneratorImport[] =>
+  Object.values(override.formatType ?? {})
+    .flatMap((config) => (config ? pick(config) : []))
+    .filter(
+      (imp): imp is GeneratorImport =>
+        !!imp &&
+        new RegExp(
+          String.raw`(?<![\w$.])${escapeRegExp(imp.name)}(?![\w$])`,
+        ).test(code),
+    )
+    .map((imp) => ({ ...imp, values: true }));
+
+/** The `decode` and `encode` imports that generated `code` references. */
+export const getFormatTypeFunctionImports = (
+  code: string,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+): GeneratorImport[] =>
+  getReferencedFormatTypeImports(code, override, (config) => [
+    config.decodeImport,
+    config.encodeImport,
+  ]);
+
+/** A call of a `formatType` function expression such as `decode`. */
+export const callFormatTypeFunction = (fn: string, argument: string) =>
+  `${/^[\w$.]+$/.test(fn) ? fn : `(${fn})`}(${argument})`;
+
+/** The generation error for a path that cannot convert a mapped format. */
+export const getFormatTypeError = (
+  format: string | undefined,
+  config: NormalizedFormatTypeConfig,
+  requirement: string,
+) =>
+  new Error(`override.formatType.${format} (${config.type}): ${requirement}`);
 
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
 type SchemaEnumValue = string | number | boolean | null;
@@ -326,11 +569,19 @@ export function getScalar({
         }
       }
 
+      const formatImports: GeneratorImport[] = [];
+      const formatResolved = resolveFormatType(
+        schemaFormat,
+        context.output.override,
+      );
+      // `useDates` types a date enum as `Date` too; a custom type keeps the
+      // enum's literals.
       if (
-        context.output.override.useDates &&
-        (schemaFormat === 'date' || schemaFormat === 'date-time')
+        formatResolved &&
+        (!isEnum || isDateFormatType(schemaFormat, context.output.override))
       ) {
-        value = 'Date';
+        value = formatResolved.type;
+        if (formatResolved.import) formatImports.push(formatResolved.import);
       }
 
       value += nullable;
@@ -351,7 +602,7 @@ export function getScalar({
         value: value,
         isEnum,
         type: 'string',
-        imports: [],
+        imports: formatImports,
         schemas: [],
         isRef: false,
         hasReadonlyProps: schemaReadOnly ?? false,
@@ -414,8 +665,17 @@ export function getScalar({
 
     default: {
       if (Array.isArray(itemType)) {
+        // The string member types a format `getUnionMemberContext` leaves
+        // unmapped as a plain string.
+        const unmapsFormat =
+          getUnionMemberContext(context, schemaFormat) !== context;
         const anyOfVariants = itemType.map((type) =>
-          Object.assign({}, item, { type }),
+          Object.assign(
+            {},
+            item,
+            { type },
+            type === 'string' && unmapsFormat ? { format: undefined } : {},
+          ),
         ) as OpenApiSchemaObject[];
         return combineSchemas({
           schema: { anyOf: anyOfVariants } as OpenApiSchemaObject,

@@ -2,6 +2,7 @@ import {
   camel,
   type ClientHeaderBuilder,
   emitResponseValidation,
+  encodeRouteParameters,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -17,6 +18,7 @@ import {
   getAngularFilteredParamsHelperBody,
   getArrayResponseSchema,
   getIsBodyVerb,
+  getQueryParamsEncoding,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getSuccessResponseType,
@@ -27,7 +29,6 @@ import {
   isObject,
   isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
-  makeRouteSafe,
   OutputHttpClient,
   pascal,
   toObjectString,
@@ -98,13 +99,11 @@ export const generateAngularHttpRequestFunction = (
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
 ) => {
-  let route = _route;
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
@@ -127,6 +126,11 @@ export const generateAngularHttpRequestFunction = (
   if (mutator) {
     const isExactOptionalPropertyTypes =
       !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    const isAngular = context.output.httpClient === OutputHttpClient.ANGULAR;
+    // The built-in Angular params filter would drop a mapped value.
+    const paramsEncoding = isAngular
+      ? getQueryParamsEncoding(queryParams, 'params')
+      : undefined;
 
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -140,7 +144,8 @@ export const generateAngularHttpRequestFunction = (
       hasSignal,
       hasSignalParam,
       isExactOptionalPropertyTypes,
-      isAngular: context.output.httpClient === OutputHttpClient.ANGULAR,
+      isAngular,
+      paramsExpression: paramsEncoding ? 'encodedParams' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -157,7 +162,7 @@ export const generateAngularHttpRequestFunction = (
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     } ${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
-      ${bodyForm}
+      ${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -199,12 +204,15 @@ export const generateAngularHttpRequestFunction = (
   // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
   const hasQueryParams = queryParams?.schema.name;
   // The queryParams variable from function props is always named 'params'
+  const paramsEncoding = hasQueryParams
+    ? getQueryParamsEncoding(queryParams, 'params')
+    : undefined;
   const filteredParamsExpression = getAngularFilteredParamsCallExpression(
-    'params',
+    paramsEncoding ? 'encodedParams' : 'params',
     queryParams?.requiredNullableKeys,
   );
   const urlConstruction = hasQueryParams
-    ? `const httpParams = params ? new HttpParams({ fromObject: ${filteredParamsExpression} }) : undefined;
+    ? `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const httpParams = params ? new HttpParams({ fromObject: ${filteredParamsExpression} }) : undefined;
     const url = \`${route}\`;`
     : `const url = \`${route}\`;`;
 
@@ -321,14 +329,11 @@ export const generateAxiosRequestFunction = (
   adapter: FrameworkAdapter,
 ) => {
   const props = adapter.transformProps(_props);
-  let route = _route;
-
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const unrefStatements = adapter.getRequestUnrefStatements(props);
 

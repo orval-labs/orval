@@ -1,3 +1,4 @@
+import type { GeneratorImport } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../core/src/test-utils/context';
@@ -190,5 +191,66 @@ describe('formatSchemaExampleValue', () => {
         context,
       ),
     ).toBe('{ createdAt: new Date("2023-12-31T06:46:39.477Z") }');
+  });
+});
+
+describe('formatSchemaExampleValue (formatType)', () => {
+  const schema = {
+    type: 'object',
+    properties: { startsAt: { type: 'string', format: 'date-time' } },
+  } as const;
+
+  it('decodes examples of a mapped format and imports decode', () => {
+    const imports: GeneratorImport[] = [];
+    const value = formatSchemaExampleValue(
+      { startsAt: '2023-12-31T06:46:39.477Z' },
+      schema,
+      createTestContextSpec({
+        override: {
+          formatType: {
+            'date-time': {
+              type: 'Dayjs',
+              decode: 'dayjs',
+              decodeImport: { name: 'dayjs', importPath: 'dayjs' },
+              mock: 'dayjs()',
+            },
+          },
+        },
+      }),
+      imports,
+    );
+
+    expect(value).toBe('{ startsAt: dayjs("2023-12-31T06:46:39.477Z") }');
+    expect(imports).toEqual([
+      { name: 'dayjs', importPath: 'dayjs', values: true },
+    ]);
+  });
+
+  it('falls back to the mock without decode', () => {
+    const value = formatSchemaExampleValue(
+      { startsAt: '2023-12-31T06:46:39.477Z' },
+      schema,
+      createTestContextSpec({
+        override: {
+          formatType: { 'date-time': { type: 'Dayjs', mock: 'dayjs()' } },
+        },
+      }),
+    );
+
+    expect(value).toBe('{ startsAt: dayjs() }');
+  });
+
+  it('fails without decode or mock', () => {
+    expect(() =>
+      formatSchemaExampleValue(
+        { startsAt: '2023-12-31T06:46:39.477Z' },
+        schema,
+        createTestContextSpec({
+          override: { formatType: { 'date-time': { type: 'Dayjs' } } },
+        }),
+      ),
+    ).toThrow(
+      'override.formatType.date-time (Dayjs): examples need `decode` or `mock`',
+    );
   });
 });

@@ -81,9 +81,10 @@ export function generateImports({
       }
 
       const { name, values, alias, isConstant, importPath } = sample;
-      return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
-        alias ? ` as ${alias}` : ''
-      } } from '${importPath}';`;
+      const binding = sample.default
+        ? (alias ?? name)
+        : `{ ${name}${alias ? ` as ${alias}` : ''} }`;
+      return `import ${!values && !isConstant ? 'type ' : ''}${binding} from '${importPath}';`;
     })
     .join('\n');
 }

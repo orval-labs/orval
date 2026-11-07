@@ -19,6 +19,7 @@ import {
 } from '../utils';
 import { schemaRenamesKeys } from './property-renames';
 import { getResReqTypes } from './res-req-types';
+import { findCustomFormatType } from './scalar';
 
 interface GetBodyOptions {
   requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject;
@@ -94,10 +95,21 @@ function buildBody(
     ...(filteredBodyTypes.some((t) =>
       schemaRenamesKeys(t.originalSchema, context),
     ) && { renamesKeys: true }),
+    ...(filteredBodyTypes.some((t) =>
+      findCustomFormatType(t.originalSchema, context),
+    ) &&
+      !filteredBodyTypes.some((t) =>
+        findCustomFormatType(
+          t.originalSchema,
+          context,
+          (config) => !config.zod?.codec,
+        ),
+      ) && { formatTypeCodecs: true }),
     ...(filteredBodyTypes.length === 1
       ? {
           formData: filteredBodyTypes[0].formData,
           formUrlEncoded: filteredBodyTypes[0].formUrlEncoded,
+          formatTypeError: filteredBodyTypes[0].formatTypeError,
           contentType: filteredBodyTypes[0].contentType,
         }
       : {

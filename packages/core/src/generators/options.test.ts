@@ -16,6 +16,7 @@ import {
   generateAxiosOptions,
   generateAxiosUrl,
   generateBodyOptions,
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateOptions,
   getAngularFilteredParamsCallExpression,
@@ -1275,6 +1276,35 @@ describe('generateBodyOptions', () => {
         false,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('generateFormDataAndUrlEncodedFunction', () => {
+  const body: GetterBody = {
+    ...minimalBody,
+    formData: 'const formData = new FormData();\n',
+    formatTypeError: 'needs `encode`',
+  };
+
+  it('raises the formatType error of the form code it emits', () => {
+    expect(() =>
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toThrow('needs `encode`');
+  });
+
+  it('leaves the values to a formData mutator', () => {
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body,
+        formData: { ...minimalParamsSerializer, name: 'customFormData' },
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = customFormData(data)');
   });
 });
 

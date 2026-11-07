@@ -5,6 +5,10 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  collectPropertiesThroughAllOf,
+  type ContextSpec,
+  encodeRouteParameters,
+  findModelFormatType,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -17,15 +21,20 @@ import {
   getFormObjectQueryImplementation,
   getIsBodyVerb,
   getQueryDelimiter,
+  getFormatTypeError,
+  getQueryParamsEncoding,
+  type GetterBody,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
+  isInlineSchema,
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
@@ -144,6 +153,35 @@ export const generateSolidStartFooter: ClientFooterBuilder = () => {
   return '};\n';
 };
 
+/**
+ * The error for a form body holding a `formatType` value, which a body sent as
+ * JSON would carry through its `toJSON`, naming the top-level form field.
+ */
+const getFormBodyFormatTypeError = (
+  body: GetterBody,
+  operationName: string,
+  context: ContextSpec,
+): Error | undefined => {
+  const requestBody = isInlineSchema(body.originalSchema)
+    ? body.originalSchema
+    : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema;
+  const schema = requestBody.content[body.contentType]?.schema;
+  const found = findModelFormatType(schema, context);
+  if (!schema || !found) return undefined;
+  const resolved = isInlineSchema(schema)
+    ? schema
+    : resolveRef<OpenApiSchemaObject>(schema, context).schema;
+  const field =
+    Object.entries(collectPropertiesThroughAllOf(resolved, context)).find(
+      ([, property]) => findModelFormatType(property, context),
+    )?.[0] ?? 'data';
+  return getFormatTypeError(
+    found.format,
+    found.config,
+    `operation \`${operationName}\`, form field \`${field}\` is sent as JSON by Solid Start`,
+  );
+};
+
 const generateImplementation = (
   {
     headers,
@@ -157,9 +195,11 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
+    params,
   }: GeneratorVerbOptions,
-  { route, context, pathRoute }: GeneratorOptions,
+  { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
+  const route = encodeRouteParameters(_route, params);
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -251,6 +291,16 @@ const generateImplementation = (
     return ${mutator.name}<${dataType}>(${axiosConfig});
   }, "${operationName}"),
 `;
+  }
+
+  // The fetch call below sends the body as JSON, not the form code above.
+  if (bodyForm) {
+    const formatTypeError = getFormBodyFormatTypeError(
+      body,
+      operationName,
+      context,
+    );
+    if (formatTypeError) throw formatTypeError;
   }
 
   const propsImplementation = toObjectString(props, 'implementation');
@@ -436,10 +486,12 @@ const generateImplementation = (
   const formObjectImplementation =
     formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
 
+  const paramsEncoding = getQueryParamsEncoding(queryParams, 'params');
+
   const queryParamsCode = queryParams
-    ? `const normalizedParams = new URLSearchParams();
+    ? `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const normalizedParams = new URLSearchParams();
 ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '    ')}
-    Object.entries(params || {}).forEach(([key, value]) => {
+    Object.entries(${paramsEncoding ? 'encodedParams' : 'params || {}'}).forEach(([key, value]) => {
       ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}${formObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values

@@ -268,6 +268,31 @@ export default defineConfig({
       formatter: 'prettier',
     },
   },
+  formatTypeMock: {
+    input: '../specifications/date-type.yaml',
+    output: {
+      target: '../generated/mock/format-type/endpoints.ts',
+      schemas: '../generated/mock/format-type/model',
+      mock: true,
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            mock: 'dayjs(faker.date.past())',
+            mockImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            encode: '(value) => value.toISOString()',
+          },
+          date: {
+            type: 'Temporal.PlainDate',
+            decode: 'Temporal.PlainDate.from',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/mock/zod-schema-response/endpoints.ts',

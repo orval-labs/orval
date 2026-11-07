@@ -512,6 +512,120 @@ export default defineConfig({
       target: '../specifications/usedates-only-date-params.yaml',
     },
   },
+  formatTypeTemporal: {
+    output: {
+      target: '../generated/fetch/format-type-temporal/endpoints.ts',
+      schemas: '../generated/fetch/format-type-temporal/model',
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        formatType: {
+          date: {
+            type: 'Temporal.PlainDate',
+            decode: 'Temporal.PlainDate.from',
+            encode: 'String',
+          },
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  formatTypeZodCodec: {
+    output: {
+      target: '../generated/fetch/format-type-zod-codec/endpoints.ts',
+      schemas: '../generated/fetch/format-type-zod-codec/model',
+      client: 'zod',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            zod: {
+              codec: 'isoDatetimeCodec',
+              codecImport: {
+                name: 'isoDatetimeCodec',
+                importPath: '../../../mutators/zod-codec',
+              },
+            },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  formatTypeDayjs: {
+    output: {
+      target: '../generated/fetch/format-type-dayjs/endpoints.ts',
+      schemas: '../generated/fetch/format-type-dayjs/model',
+      client: 'zod',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            zod: {
+              transform: 'dayjs',
+              transformImport: {
+                name: 'dayjs',
+                importPath: 'dayjs',
+                default: true,
+              },
+            },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  formatTypeZodValidation: {
+    output: {
+      target: '../generated/fetch/format-type-zod-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/format-type-zod-validation/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      override: {
+        useDatesTransform: true,
+        fetch: {
+          runtimeValidation: true,
+        },
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            decode: 'dayjs',
+            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
   forceSuccessResponse: {
     output: {
       target: '../generated/fetch/force-success-response/endpoints.ts',

@@ -2825,3 +2825,107 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
     });
   });
 });
+
+describe('getResReqTypes (formatType form values)', () => {
+  const formatTypeContext = (encode?: string) =>
+    extendContext({
+      override: {
+        useDates: true,
+        formatType: {
+          'date-time': { type: 'Dayjs', ...(encode ? { encode } : {}) },
+        },
+      },
+    });
+  const requestBody = (
+    schema: OpenApiSchemaObject,
+    contentType = 'multipart/form-data',
+    encoding?: Record<string, { style: 'deepObject' }>,
+  ): [string, OpenApiRequestBodyObject][] => [
+    [
+      'requestBody',
+      {
+        content: {
+          [contentType]: { schema, ...(encoding ? { encoding } : {}) },
+        },
+        required: true,
+      },
+    ],
+  ];
+  const event: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['startsAt'],
+    properties: {
+      startsAt: { type: 'string', format: 'date-time' },
+      reminders: {
+        type: 'array',
+        items: { type: 'string', format: 'date-time' },
+      },
+    },
+  };
+
+  it('encodes fields and array items with encode', () => {
+    const [result] = getResReqTypes(
+      requestBody(event),
+      'Event',
+      formatTypeContext('toIso'),
+    );
+    expect(result.formData).toContain(
+      'formData.append(`startsAt`, toIso(eventRequestBody.startsAt));',
+    );
+    expect(result.formData).toContain(
+      'eventRequestBody.reminders.forEach(value => formData.append(`reminders`, toIso(value)))',
+    );
+    expect(result.formData).not.toContain('toFormValue');
+    expect(result.formatTypeError).toBeUndefined();
+  });
+
+  it('skips a nullable root value', () => {
+    const formData = (type: 'string' | ['string', 'null']) =>
+      getResReqTypes(
+        requestBody({ type, format: 'date-time' }),
+        'Event',
+        formatTypeContext('toIso'),
+      )[0].formData;
+
+    expect(formData(['string', 'null'])).toContain(
+      "if(eventRequestBody !== undefined && eventRequestBody !== null) {\n formData.append('data', toIso(eventRequestBody))",
+    );
+    expect(formData('string')).toContain(
+      "\nformData.append('data', toIso(eventRequestBody))",
+    );
+  });
+
+  it('records the error for a field without encode', () => {
+    const [result] = getResReqTypes(
+      requestBody(event),
+      'Event',
+      formatTypeContext(),
+    );
+    expect(result.formatTypeError).toBe(
+      'override.formatType.date-time (Dayjs): form field `startsAt` needs `encode`',
+    );
+  });
+
+  it('records the error for a deepObject field it cannot reach', () => {
+    const [result] = getResReqTypes(
+      requestBody(
+        {
+          type: 'object',
+          properties: {
+            range: {
+              type: 'object',
+              properties: { from: { type: 'string', format: 'date-time' } },
+            },
+          },
+        },
+        'application/x-www-form-urlencoded',
+        { range: { style: 'deepObject' } },
+      ),
+      'Event',
+      formatTypeContext('toIso'),
+    );
+    expect(result.formatTypeError).toBe(
+      "override.formatType.date-time (Dayjs): the deepObject form field `range` can't encode it",
+    );
+  });
+});

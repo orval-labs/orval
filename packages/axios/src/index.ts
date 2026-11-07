@@ -6,6 +6,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  encodeRouteParameters,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -20,7 +21,6 @@ import {
   HTTP_STATUS_CODE_SHARED_TYPES,
   isSyntheticDefaultImportsAllow,
   GetterPropType,
-  makeRouteSafe,
   needsHttpStatusCodeTypes,
   type NormalizedOverrideOutput,
   pascal,
@@ -221,14 +221,11 @@ const generateAxiosImplementation = (
   { route: _route, context }: GeneratorOptions,
   isFactoryMode = false,
 ) => {
-  let route = _route;
-
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
 
   const isRequestOptions = override.requestOptions !== false;
   const includeHttpResponseReturnType =

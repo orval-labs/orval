@@ -1070,3 +1070,74 @@ describe('generateSolidStart — mutator body type', () => {
     );
   });
 });
+
+describe('formatType query values', () => {
+  it('builds the query from an encoded copy of the params', async () => {
+    const verbOptions = makeVerbOptions({
+      queryParams: {
+        ...STUB_QUERY_PARAMS,
+        formatTypeEncoding: {
+          statements: ['encodedParams.after = toIso(encodedParams.after);'],
+        },
+      },
+    });
+    const implementation = await generateImplementation(
+      verbOptions,
+      makeOptions(
+        makeContext([
+          { name: 'after', in: 'query', schema: { type: 'string' } },
+        ]),
+      ),
+    );
+
+    expect(implementation).toContain(
+      'encodedParams.after = toIso(encodedParams.after);',
+    );
+    expect(implementation).toContain(
+      'Object.entries(encodedParams).forEach(([key, value]) => {',
+    );
+  });
+});
+
+describe('formatType form bodies', () => {
+  it('fails for a mapped value in a form body, which is sent as JSON', async () => {
+    const context = makeContext();
+    context.output.override.formatType = {
+      'date-time': { type: 'Dayjs', encode: 'toIso' },
+    };
+    const verbOptions = makeVerbOptions({
+      verb: Verbs.POST,
+      operationName: 'addReminders',
+      body: {
+        originalSchema: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  note: { type: 'string' },
+                  remindAt: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          },
+        },
+        contentType: 'multipart/form-data',
+        definition: 'AddRemindersBody',
+        implementation: 'addRemindersBody',
+        formData:
+          'const formData = new FormData();\nformData.append(`remindAt`, toIso(addRemindersBody.remindAt));\n',
+      },
+    });
+
+    await expect(
+      generateImplementation(verbOptions, makeOptions(context)),
+    ).rejects.toThrow(
+      'override.formatType.date-time (Dayjs): operation `addReminders`, form field `remindAt` is sent as JSON by Solid Start',
+    );
+    context.output.override.formatType = undefined;
+    await expect(
+      generateImplementation(verbOptions, makeOptions(context)),
+    ).resolves.toContain('JSON.stringify(addRemindersBody)');
+  });
+});

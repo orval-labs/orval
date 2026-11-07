@@ -4,9 +4,11 @@ import type {
   BaseUrlFromConstant,
   BaseUrlFromSpec,
   BaseUrlRuntime,
+  GetterParam,
   OpenApiServerObject,
 } from '../types';
 import {
+  encodeRouteParameters,
   escapeRouteForSingleQuotes,
   getBaseUrlRuntimeImports,
   getFullRoute,
@@ -628,6 +630,72 @@ describe('makeRouteSafe', () => {
     expect(result).toBe(
       '/pets/${pathParams()?.petId ?? 42}/x/${encodeURIComponent(String(x))}',
     );
+  });
+});
+
+describe('encodeRouteParameters', () => {
+  const param = (
+    name: string,
+    overrides: Partial<GetterParam> = {},
+  ): GetterParam => ({
+    name,
+    definition: `${name}: string`,
+    implementation: `${name}: string`,
+    default: undefined,
+    required: true,
+    imports: [],
+    ...overrides,
+  });
+  const params = [
+    param('day', { formatTypeEncoding: { encode: 'toIso' } }),
+    param('path', {
+      allowReserved: true,
+      formatTypeEncoding: { encode: '(value) => value.path' },
+    }),
+    param('id'),
+  ];
+  const route = '${baseUrl}/days/${day}/files/${path}/${id}';
+
+  it('encodes formatType values', () => {
+    expect(encodeRouteParameters(route, params)).toBe(
+      '${baseUrl}/days/${toIso(day)}/files/${((value) => value.path)(path)}/${id}',
+    );
+  });
+
+  it('URL-encodes the encoded values under urlEncodeParameters', () => {
+    expect(encodeRouteParameters(route, params, true)).toBe(
+      '${baseUrl}/days/${encodeURIComponent(String(toIso(day)))}/files/${((value) => value.path)(path)}/${encodeURIComponent(String(id))}',
+    );
+  });
+
+  it('encodes signal accessors', () => {
+    expect(encodeRouteParameters('/days/${day()}', params)).toBe(
+      '/days/${toIso(day())}',
+    );
+  });
+
+  it('keeps null for a nullable value', () => {
+    const nullable = [
+      param('day', { formatTypeEncoding: { encode: 'toIso', nullable: true } }),
+    ];
+    expect(encodeRouteParameters('/days/${day()}', nullable)).toBe(
+      '/days/${((value) => value == null ? value : toIso(value))(day())}',
+    );
+    expect(encodeRouteParameters('/days/${day}', nullable, true)).toBe(
+      '/days/${encodeURIComponent(String(((value) => value == null ? value : toIso(value))(day)))}',
+    );
+  });
+
+  it('keeps a route without formatType values as it is', () => {
+    expect(encodeRouteParameters(route, [param('id')])).toBe(route);
+  });
+
+  it('fails for a value it cannot encode', () => {
+    expect(() =>
+      encodeRouteParameters(route, [
+        param('day', { formatTypeEncoding: { error: 'needs `encode`' } }),
+      ]),
+    ).toThrow('needs `encode`');
   });
 });
 

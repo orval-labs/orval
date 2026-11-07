@@ -2,6 +2,7 @@
 
 import {
   assertSafeNumericConstraint,
+  callFormatTypeFunction,
   camel,
   conventionName,
   type ClientBuilder,
@@ -9,21 +10,28 @@ import {
   type ClientGeneratorsBuilder,
   type ContextSpec,
   type DereferenceOptions,
+  findCustomFormatType,
   generateMutator,
   type GeneratorDependency,
+  type GeneratorImport,
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getDynamicAnchorName,
+  getCustomFormatType,
+  getFormatTypeError,
   getFormDataFieldFileType,
   getKey,
   getNumberWord,
   getPropertyNamingConvention,
+  getReferencedFormatTypeImports,
   getRefInfo,
   getRenamedPropertyKeys,
+  getUnionMemberContext,
   getRequiredKeys,
   isBindingIdentifier,
   isBoolean,
+  isDateFormatType,
   isDynamicReference,
   isNumber,
   isObject,
@@ -31,6 +39,7 @@ import {
   isString,
   jsStringEscape,
   jsStringLiteralEscape,
+  type NormalizedOverrideOutput,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
@@ -1064,6 +1073,11 @@ export const generateZodValidationSchemaDefinition = (
       const suffix = counter ? pascal(getNumberWord(counter)) : '';
       const defaultVarName = `${name}Default${suffix}`;
       const defaultLiteral = stringify(siblingSchema.default);
+      // A wire default of a schema with mapped formats, see `isWireDefault`.
+      const defaultFn =
+        isZodV4 && findCustomFormatType(siblingSchema, context)
+          ? 'prefault'
+          : 'default';
       if (defaultLiteral !== undefined) {
         if (
           isObject(siblingSchema.default) ||
@@ -1076,14 +1090,14 @@ export const generateZodValidationSchemaDefinition = (
           );
           // Spreading object defaults preserves contextual types without excess-property checks.
           functions.push([
-            'default',
+            defaultFn,
             Array.isArray(siblingSchema.default)
               ? inlineDefault
               : `{ ...${inlineDefault} }`,
           ]);
         } else {
           consts.push(`export const ${defaultVarName} = ${defaultLiteral};`);
-          functions.push(['default', defaultVarName]);
+          functions.push([defaultFn, defaultVarName]);
         }
       }
     }
@@ -1259,6 +1273,8 @@ export const generateZodValidationSchemaDefinition = (
   const functions: [string, unknown][] = [];
   // Set when this object's keys are renamed by `namingConvention.properties`.
   let renamesKeys = false;
+  // Set when a `formatType` entry converts this string to its mapped type.
+  let formatTypeTransform: string | undefined;
 
   // Emit the schema's trailing description/metadata. On zod v4 with `emitMeta`
   // (top-level component schemas only) this is a single `.meta({ id, ... })`
@@ -1346,6 +1362,17 @@ export const generateZodValidationSchemaDefinition = (
   // This ensures these constraints work with any base type (string, number, object, etc.)
   let skipSwitchStatement = false;
   if ((schema.allOf || schema.oneOf || schema.anyOf) && !enumNarrowsAllOf) {
+    const composedFormatType = getCustomFormatType(
+      schema,
+      context.output.override,
+    );
+    if (composedFormatType) {
+      throw getFormatTypeError(
+        schema.format,
+        composedFormatType,
+        "Zod schemas can't convert it next to allOf/oneOf/anyOf",
+      );
+    }
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
@@ -1659,8 +1686,7 @@ export const generateZodValidationSchemaDefinition = (
 
     const isDateType =
       schema.type === 'string' &&
-      (schema.format === 'date' || schema.format === 'date-time') &&
-      context.output.override.useDates;
+      isDateFormatType(schema.format, context.output.override);
 
     if (isDateType) {
       // OpenApiSchemaObject defines default as 'any'
@@ -1874,13 +1900,21 @@ export const generateZodValidationSchemaDefinition = (
     // exclusive `oneOf`.
     functions.push([
       'anyOf',
-      types.map((t) =>
-        generateZodValidationSchemaDefinition(
+      types.map((t) => {
+        const memberContext =
+          t === 'string'
+            ? getUnionMemberContext(context, schema.format)
+            : context;
+        return generateZodValidationSchemaDefinition(
           {
             ...(schema as Record<string, unknown>),
             type: t,
+            // An unmapped `binary` format would check a `Blob`, not the
+            // string the member is typed as.
+            ...(memberContext !== context &&
+              schema.format === 'binary' && { format: undefined }),
           } as OpenApiSchemaObject,
-          context,
+          memberContext,
           name,
           strict,
           isZodV4,
@@ -1891,8 +1925,8 @@ export const generateZodValidationSchemaDefinition = (
             schemaExtension: rules?.schemaExtension,
             urlEncoded,
           },
-        ),
-      ),
+        );
+      }),
     ]);
 
     if (!required && nullable) {
@@ -2004,17 +2038,43 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
-        if (
-          context.output.override.useDates &&
-          (schema.format === 'date' || schema.format === 'date-time')
-        ) {
+        const formatType = getCustomFormatType(schema, context.output.override);
+        if (formatType?.zod?.codec) {
+          if (!isZodV4) {
+            throw getFormatTypeError(
+              schema.format,
+              formatType,
+              '`zod.codec` needs Zod 4',
+            );
+          }
+          // Replace entire schema with codec reference. Break (not return) so
+          // the function's normal optional/nullable/default logic still runs.
+          functions.push(['codec', formatType.zod.codec]);
+          break;
+        }
+        if (formatType) {
+          formatTypeTransform =
+            formatType.zod?.transform ??
+            (formatType.decode &&
+              `(value) => ${callFormatTypeFunction(formatType.decode, 'value')}`);
+          if (!formatTypeTransform) {
+            throw getFormatTypeError(
+              schema.format,
+              formatType,
+              'Zod schemas need `zod.codec`, `zod.transform` or `decode`',
+            );
+          }
+        }
+
+        if (isDateFormatType(schema.format, context.output.override)) {
           functions.push(['date', undefined]);
           break;
         }
 
         // url-encoded bodies serialize via URLSearchParams (strings only), so
-        // binary fields stay `string` rather than becoming `File` (#3664).
-        if (!urlEncoded && schema.format === 'binary') {
+        // binary fields stay `string` rather than becoming `File` (#3664). A
+        // mapped binary format is a wire string its conversion decodes.
+        if (!urlEncoded && schema.format === 'binary' && !formatTypeTransform) {
           functions.push(['instanceof', 'Blob']);
           break;
         }
@@ -2304,7 +2364,8 @@ export const generateZodValidationSchemaDefinition = (
   // otherwise (allOf/oneOf/anyOf, a date with `useDates`, binary) is left as
   // it was.
   const hasFixedValue =
-    hasNonArrayEnum || functions.some(([fn]) => fn === 'literal');
+    hasNonArrayEnum ||
+    functions.some(([fn]) => fn === 'literal' || fn === 'codec');
 
   if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
@@ -2493,6 +2554,11 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
+  // After the wire-side checks and refinements, which validate the string.
+  if (formatTypeTransform) {
+    functions.push(['transform', formatTypeTransform]);
+  }
+
   if (!required && nullable) {
     functions.push(['nullish', undefined]);
   } else if (nullable) {
@@ -2502,12 +2568,15 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (hasDefault) {
-    // The spec default is wire-shaped (original keys). Zod v4 `.default()`
-    // short-circuits with an OUTPUT value, which would skip the key renaming
-    // and not type-check; `.prefault()` feeds the value through the transform
-    // as input instead. Zod v3 `.default()` already behaves that way.
+    // The spec default is wire-shaped (original keys, mapped formats as
+    // strings). Zod v4 `.default()` short-circuits with an OUTPUT value, which
+    // would skip the key renaming or the formats' conversion and not
+    // type-check; `.prefault()` feeds the value through them as input
+    // instead. Zod v3 `.default()` already behaves that way.
+    const isWireDefault =
+      renamesKeys || !!findCustomFormatType(schema, context);
     functions.push([
-      renamesKeys && isZodV4 ? 'prefault' : 'default',
+      isWireDefault && isZodV4 ? 'prefault' : 'default',
       defaultVarName,
     ]);
   }
@@ -2610,6 +2679,7 @@ const PARAMS_MODIFIER_VALIDATORS = new Set([
   'prefault',
   'describe',
   'refine',
+  'transform',
   // Nullary / degenerate validators — either no params arg accepted in zod v3
   // (e.g. .unknown(), .any(), .never(), .null(), .undefined(), .void()) or no
   // meaningful error to attach (unknown/any accept everything).
@@ -2734,6 +2804,10 @@ export const parseZodValidationSchemaDefinition = (
     (Array.isArray(coerceTypes)
       ? coerceTypes.includes(fn as ZodCoerceType)
       : COERCIBLE_TYPES.has(fn));
+  // `date` also names Zod 3's `zod.string().date()` check, which follows the
+  // string it validates; only a `zod.date()` schema coerces.
+  const coercesType = (fn: string, isBase: boolean) =>
+    !!shouldCoerce(fn) && (fn !== 'date' || isZodV4 || isBase);
 
   // `oneOf` is an exclusive union, but `zod.xor` is opt-in: non-strict object
   // branches strip unknown keys, so a subtype payload also matches its
@@ -2753,8 +2827,7 @@ export const parseZodValidationSchemaDefinition = (
       ? !!coerceTypes && (!Array.isArray(coerceTypes) || coerceTypes.length > 0)
       : fn === 'int'
         ? !!shouldCoerce('number')
-        : !!shouldCoerce(fn) &&
-          (fn !== 'date' || !!context.output.override.useDates);
+        : !!shouldCoerce(fn);
   const containsCoercion = (value: unknown): boolean => {
     if (Array.isArray(value)) return value.some(containsCoercion);
     if (!isObject(value)) return false;
@@ -3114,7 +3187,24 @@ ${Object.entries(objectArgs)
         continue;
       }
 
+      if (fn === 'codec') {
+        current = { expr: args as string, kind: fn };
+        continue;
+      }
+
       const combinedArgs = buildCombinedArgs(fn, args, fieldPath);
+
+      if (fn === 'transform') {
+        const value = requireCurrent(fn);
+        current = {
+          expr: zodMiniCall(
+            'pipe',
+            `${value.expr}, ${zodMiniCall(fn, combinedArgs)}`,
+          ),
+          kind: 'pipe',
+        };
+        continue;
+      }
 
       if (fn === 'int' && shouldCoerce('number')) {
         const numberArgs = buildCombinedArgs('number', undefined, fieldPath);
@@ -3209,10 +3299,7 @@ ${Object.entries(objectArgs)
         continue;
       }
 
-      if (
-        (fn !== 'date' && shouldCoerce(fn)) ||
-        (fn === 'date' && shouldCoerce(fn) && context.output.override.useDates)
-      ) {
+      if (coercesType(fn, current === undefined)) {
         current = {
           expr: zodMiniCoerceCall(fn, combinedArgs),
           kind: fn,
@@ -3334,6 +3421,7 @@ ${Object.entries(mergedProperties)
   const parseProperty = (
     property: readonly [string, unknown],
     fieldPath: readonly string[] = [],
+    isBase = false,
   ): string => {
     const [fn, args = ''] = property;
 
@@ -3362,6 +3450,11 @@ ${Object.entries(mergedProperties)
       // Refinements need the complete schema expression for contextual typing.
       // They are handled by parsePropertyChain, never as detached suffixes.
       throw new TypeError('Cannot render refinement without its schema');
+    }
+
+    // formatType codec: emit bare reference instead of zod.xxx() chain
+    if (fn === 'codec') {
+      return args as string;
     }
 
     // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
@@ -3540,12 +3633,6 @@ ${Object.entries(objectArgs)
       }
       return `.rest(${restValue.startsWith('.') ? 'zod' : ''}${restValue})`;
     }
-    const shouldCoerceType =
-      coerceTypes &&
-      (Array.isArray(coerceTypes)
-        ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCIBLE_TYPES.has(fn));
-
     const formattedArgs = formatFunctionArgs(args);
     const paramsArg = buildParamsArg(fn, fieldPath);
     let combinedArgs: string;
@@ -3573,10 +3660,7 @@ ${Object.entries(objectArgs)
       }
     }
 
-    if (
-      (fn !== 'date' && shouldCoerceType) ||
-      (fn === 'date' && shouldCoerceType && context.output.override.useDates)
-    ) {
+    if (coercesType(fn, isBase)) {
       assertZodMethodName(fn);
       return `.coerce.${fn}(${combinedArgs})`;
     }
@@ -3616,7 +3700,7 @@ ${Object.entries(objectArgs)
           `${expression.startsWith('.') ? 'zod' : ''}${expression}`,
         );
       } else {
-        expression += parseProperty(property, fieldPath);
+        expression += parseProperty(property, fieldPath, expression === '');
       }
     }
     return expression;
@@ -4136,8 +4220,11 @@ export const hasResponseSchema = (
       return (
         // oxlint-disable-next-line typescript/no-unnecessary-condition
         (functions[0] !== undefined && unsupportedTypes.has(functions[0][0])) ||
-        // A key-renaming `.transform()` has no JSON Schema representation.
-        functions.some(([fn]) => fn === 'renameKeys') ||
+        // A key-renaming `.transform()`, and a `formatType` transform or
+        // codec, have no JSON Schema representation.
+        functions.some(
+          ([fn]) => fn === 'renameKeys' || fn === 'transform' || fn === 'codec',
+        ) ||
         functions.some(([, args]) => containsUnsupported(args))
       );
     }
@@ -4778,6 +4865,20 @@ const generateZodRoute = async (
   };
 };
 
+/**
+ * The `formatType` imports (Zod transforms and codecs, `decode`) that the
+ * generated Zod `code` references.
+ */
+export const getFormatTypeZodImports = (
+  code: string,
+  override: Pick<NormalizedOverrideOutput, 'formatType'>,
+): GeneratorImport[] =>
+  getReferencedFormatTypeImports(code, override, (config) => [
+    config.zod?.transformImport,
+    config.zod?.codecImport,
+    config.decodeImport,
+  ]);
+
 // Request-side (params, query, header, body) and response-side schemas as
 // separate blocks, for clients that interleave their own schemas between them.
 export const generateZodSections = async (
@@ -4788,8 +4889,12 @@ export const generateZodSections = async (
     verbOptions,
     options,
   );
+  const imports = getFormatTypeZodImports(
+    [request, response].join('\n'),
+    options.context.output.override,
+  );
 
-  return { request, response, mutators };
+  return { request, response, mutators, imports };
 };
 
 export const generateZod: ClientBuilder = async (verbOptions, options) => {
@@ -4804,11 +4909,17 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
     // Zod schemas are runtime values (not type-only), so mark with values: true
     // to prevent the import writer from emitting `import type { ... }`. Sort
     // by name so import order is stable across runs.
-    imports: [...usedRefs].toSorted().map((name) => ({
-      name,
-      schemaName: name,
-      values: true,
-    })),
+    imports: [
+      ...[...usedRefs].toSorted().map((name) => ({
+        name,
+        schemaName: name,
+        values: true,
+      })),
+      ...getFormatTypeZodImports(
+        implementation,
+        options.context.output.override,
+      ),
+    ],
     mutators,
   };
 };

@@ -5,6 +5,7 @@ import type {
   BaseUrlFromSpec,
   BaseUrlRuntime,
   GeneratorImport,
+  GetterParams,
   NormalizedOutputOptions,
   OpenApiServerObject,
   VariableRuntimeValue,
@@ -17,6 +18,7 @@ import {
   parseTemplateLiteral,
   sanitize,
 } from '../utils';
+import { callFormatTypeFunction } from './scalar';
 
 function isBaseUrlRuntime(
   baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | BaseUrlRuntime,
@@ -417,12 +419,15 @@ export function getBaseUrlRuntimeImports(
 // wildcard params that must keep their `/`). `only`, when given, restricts
 // wrapping to those names, so an interpolation that is not a path parameter
 // (a runtime `baseUrl`, a runtime server variable) is left as it is.
+// `encodes` maps param names to the `formatType` `encode` their value goes
+// through first, wrapped or not.
 export const wrapRouteParameters = (
   route: string,
   prepend: string,
   append: string,
   skip: Set<string> = new Set(),
   only?: Set<string>,
+  encodes: ReadonlyMap<string, string> = new Map(),
 ): string =>
   mapTemplateExpressions(route, (name) => {
     // Angular's httpResource rewrites `${param}` to `${param()}`,
@@ -438,17 +443,67 @@ export const wrapRouteParameters = (
       .replace(/\(\)$/, '')
       .replace(/[()?]/g, '')
       .trim();
+    const encode = encodes.get(key);
+    const value = encode ? callFormatTypeFunction(encode, name) : name;
     return skip.has(key) || (only && !only.has(key))
-      ? name
-      : `${prepend}${name}${append}`;
+      ? value
+      : `${prepend}${value}${append}`;
   });
 
 export const makeRouteSafe = (
   route: string,
   skip: Set<string> = new Set(),
   only?: Set<string>,
+  encodes?: ReadonlyMap<string, string>,
 ): string =>
-  wrapRouteParameters(route, 'encodeURIComponent(String(', '))', skip, only);
+  wrapRouteParameters(
+    route,
+    'encodeURIComponent(String(',
+    '))',
+    skip,
+    only,
+    encodes,
+  );
+
+/**
+ * `route` as a client requests it: a path parameter that takes a `formatType`
+ * goes through its `encode`, failing for one without, and under
+ * `urlEncodeParameters` every parameter but an `allowReserved` one through
+ * `encodeURIComponent`. A nullable one keeps `null` as it is.
+ */
+export const encodeRouteParameters = (
+  route: string,
+  params: GetterParams,
+  urlEncodeParameters = false,
+): string => {
+  const encodes = new Map<string, string>();
+  for (const { name, formatTypeEncoding } of params) {
+    if (!formatTypeEncoding) continue;
+    if ('error' in formatTypeEncoding) {
+      throw new Error(formatTypeEncoding.error);
+    }
+    const { encode, nullable } = formatTypeEncoding;
+    // A function rather than a ternary on the route expression, which can be
+    // a signal read that TypeScript does not narrow.
+    encodes.set(
+      name,
+      nullable
+        ? `(value) => value == null ? value : ${callFormatTypeFunction(encode, 'value')}`
+        : encode,
+    );
+  }
+  if (urlEncodeParameters) {
+    return makeRouteSafe(
+      route,
+      new Set(params.filter((p) => p.allowReserved).map((p) => p.name)),
+      new Set(params.map((p) => p.name)),
+      encodes,
+    );
+  }
+  return encodes.size > 0
+    ? wrapRouteParameters(route, '', '', undefined, undefined, encodes)
+    : route;
+};
 
 /**
  * Turns a template-literal route into the comma-separated query-key segments

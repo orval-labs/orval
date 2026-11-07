@@ -226,7 +226,7 @@ export async function writeSingleMode({
 
     if (!output.schemas && needSchema) {
       data += generateSchemasInline
-        ? generateSchemasInline()
+        ? generateSchemasInline(data)
         : generateModelsInline(builder.schemas);
     }
 

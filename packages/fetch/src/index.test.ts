@@ -1581,6 +1581,58 @@ describe('generateRequestFunction — useDatesTransform', () => {
       'serializeUpdateAppointmentRequest(appointment)',
     );
   });
+
+  describe('with a formatType value in the response', () => {
+    const MAPPED = {
+      type: 'object',
+      required: ['startsAt'],
+      properties: { startsAt: { type: 'string', format: 'date-time' } },
+    } satisfies OpenApiSchemaObject;
+
+    const mappedVerbOptions = (fetch = {}) => {
+      const verbOptions = datedVerbOptions({ fetch });
+      verbOptions.response.types.success = [
+        entry('200', 'Appointment', MAPPED),
+      ];
+      verbOptions.response.imports = [
+        { name: 'Appointment', schemaName: 'Appointment', values: true },
+      ];
+      return verbOptions;
+    };
+
+    const mappedContext = (zodSchemas = false) => {
+      const context = zodSchemas
+        ? makeContext([], false, {
+            path: './model',
+            type: 'zod',
+            splitByTags: false,
+          })
+        : makeContext();
+      context.output.override.formatType = {
+        'date-time': { type: 'Dayjs', decode: 'dayjs' },
+      };
+      return context;
+    };
+
+    it('decodes it', () => {
+      expect(generate(mappedVerbOptions(), mappedContext())).toContain(
+        "data.startsAt = typeof data.startsAt === 'string' ? dayjs(data.startsAt as unknown as string) : data.startsAt;",
+      );
+    });
+
+    it('leaves it to the zod schema that validates the response', () => {
+      const implementation = generate(
+        mappedVerbOptions({
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        }),
+        mappedContext(true),
+      );
+      expect(implementation).toContain('Appointment.parse(parsedBody)');
+      expect(implementation).not.toContain(
+        'deserializeUpdateAppointmentResponse',
+      );
+    });
+  });
 });
 
 describe('httpClientInjection: factory', () => {
@@ -2029,5 +2081,64 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
       expect(implementation).toContain('export const listPets = async (');
       expect(implementation).not.toContain('execute<');
     }
+  });
+});
+
+describe('generateRequestFunction — formatType query values', () => {
+  const encodedQueryParams = {
+    ...STUB_QUERY_PARAMS,
+    formatTypeEncoding: {
+      statements: ['encodedParams.after = toIso(encodedParams.after);'],
+    },
+  };
+
+  it('builds the query from an encoded copy of the params', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({ queryParams: encodedQueryParams }),
+      makeOptions(makeContext([])),
+    );
+    expect(implementation).toContain(
+      'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+    );
+    expect(implementation).toContain(
+      'Object.entries(encodedParams).forEach(([key, value]) => {',
+    );
+  });
+
+  it('fails for a value without encode', () => {
+    expect(() =>
+      generateImplementation(
+        makeVerbOptions({
+          queryParams: {
+            ...STUB_QUERY_PARAMS,
+            formatTypeEncoding: { error: 'needs `encode`' },
+          },
+        }),
+        makeOptions(makeContext([])),
+      ),
+    ).toThrow('needs `encode`');
+  });
+});
+
+describe('generateRequestFunction — formatType path values', () => {
+  it('encodes them into the URL', () => {
+    const implementation = generateImplementation(
+      makeVerbOptions({
+        route: '/pets/${bornAt}',
+        params: [
+          {
+            name: 'bornAt',
+            definition: 'bornAt: Dayjs',
+            implementation: 'bornAt: Dayjs',
+            default: undefined,
+            required: true,
+            imports: [],
+            formatTypeEncoding: { encode: 'toIso' },
+          },
+        ],
+      }),
+      makeOptions(makeContext([]), { route: '/pets/${bornAt}' }),
+    );
+    expect(implementation).toContain('`/pets/${toIso(bornAt)}`');
   });
 });

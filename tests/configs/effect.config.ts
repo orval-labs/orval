@@ -14,6 +14,32 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  formatType: {
+    output: {
+      target: '../generated/effect/format-type/format-type.ts',
+      client: 'effect',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            effect: {
+              schema: 'DayjsFromString',
+              schemaImport: {
+                name: 'DayjsFromString',
+                importPath: '../../../mutators/effect-dayjs',
+              },
+            },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
   'all-of-one-of': {
     output: {
       target: '../generated/effect/all-of-one-of/all-of-one-of.ts',

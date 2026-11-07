@@ -9,6 +9,8 @@ import {
   type AngularOptions,
   type ConfigExternal,
   type EffectOptions,
+  type FormatTypeImport,
+  type FormatTypeMap,
   type ValibotOptions,
   FormDataArrayHandling,
   type FakerMockOptions,
@@ -40,6 +42,7 @@ import {
   type NormalizedEffectOptions,
   type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
+  type NormalizedFormatTypeMap,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
@@ -82,6 +85,64 @@ import {
   loadTsconfig,
   type TsconfigPathsResolver,
 } from './tsconfig';
+
+/** Validates `override.formatType` and normalizes its entries and imports. */
+export function normalizeFormatType(
+  formatTypeConfig: FormatTypeMap | undefined,
+): NormalizedFormatTypeMap | undefined {
+  if (!formatTypeConfig) return undefined;
+
+  const normalizeImport = (imp: FormatTypeImport | undefined) =>
+    imp
+      ? { name: imp.name, importPath: imp.importPath, default: imp.default }
+      : undefined;
+
+  const normalized: NormalizedFormatTypeMap = {};
+  for (const [format, config] of Object.entries(formatTypeConfig)) {
+    if (!config?.type) {
+      throw new Error(`override.formatType.${format}.type is required`);
+    }
+    if (config.zod?.codec && config.zod.transform) {
+      throw new Error(
+        `override.formatType.${format}.zod: codec and transform are mutually exclusive`,
+      );
+    }
+    if (config.effect && !config.effect.schema) {
+      throw new Error(
+        `override.formatType.${format}.effect.schema is required`,
+      );
+    }
+    // A defined property keeps a `__proto__` format as an own entry.
+    Object.defineProperty(normalized, format, {
+      enumerable: true,
+      value: {
+        type: config.type,
+        import: normalizeImport(config.import),
+        decode: config.decode,
+        decodeImport: normalizeImport(config.decodeImport),
+        encode: config.encode,
+        encodeImport: normalizeImport(config.encodeImport),
+        zod: config.zod
+          ? {
+              transform: config.zod.transform,
+              transformImport: normalizeImport(config.zod.transformImport),
+              codec: config.zod.codec,
+              codecImport: normalizeImport(config.zod.codecImport),
+            }
+          : undefined,
+        effect: config.effect
+          ? {
+              schema: config.effect.schema,
+              schemaImport: normalizeImport(config.effect.schemaImport),
+            }
+          : undefined,
+        mock: config.mock,
+        mockImport: normalizeImport(config.mockImport),
+      },
+    });
+  }
+  return normalized;
+}
 
 const INPUT_TARGET_FETCH_TIMEOUT_MS = 10_000;
 
@@ -1206,6 +1267,7 @@ export async function normalizeOptions(
           (outputOptions.override?.useDatesTransform ?? false),
         useDatesTransform: outputOptions.override?.useDatesTransform ?? false,
         useBrandedTypes: outputOptions.override?.useBrandedTypes ?? false,
+        formatType: normalizeFormatType(outputOptions.override?.formatType),
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:

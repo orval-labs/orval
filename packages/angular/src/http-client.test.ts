@@ -763,6 +763,62 @@ describe('angular HttpClient generator', () => {
       expect(impl).toContain('new Set<string>(["filters"])');
     });
 
+    it('filters an encoded copy of formatType query values', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain(
+        'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+      );
+      expect(impl).toContain(
+        'filterParams({...encodedParams, ...options?.params}',
+      );
+    });
+
+    it('filters an encoded copy of formatType query values for a mutator', () => {
+      const verbOption = createVerbOption({
+        queryParams: {
+          schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = toIso(encodedParams.after);'],
+          },
+        },
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-instance.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain(
+        'const encodedParams = { ...params };\nencodedParams.after = toIso(encodedParams.after);',
+      );
+      expect(impl).toContain('params: filterParams(encodedParams');
+    });
+
     it('replaces the built-in filter with the user-supplied paramsFilter', () => {
       const verbOption = createVerbOption({
         queryParams: {
@@ -3460,6 +3516,23 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     );
     expect(imports).not.toContainEqual(
       expect.objectContaining({ name: 'defer' }),
+    );
+  });
+
+  it('encodes the parsed body back through its formatType codecs', async () => {
+    const output = zodOutput();
+    const { implementation, imports } = await generateAngular(
+      createPetsVerb({ body: jsonBody({ formatTypeCodecs: true }) }),
+      generatorOptions(output),
+      'angular',
+      output,
+    );
+
+    expect(implementation).toContain(
+      'const parsedCreatePetsBody = zod.encode(CreatePetsBody, CreatePetsBody.parse(createPetsBody));',
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'zod', namespaceImport: true }),
     );
   });
 });
