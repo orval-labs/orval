@@ -112,6 +112,14 @@ export function normalizeFormatType(
         `override.formatType.${format}.effect.schema is required`,
       );
     }
+    if (
+      config.factoryDefault !== undefined &&
+      typeof config.factoryDefault !== 'string'
+    ) {
+      throw new Error(
+        `override.formatType.${format}.factoryDefault must be a string`,
+      );
+    }
     // A defined property keeps a `__proto__` format as an own entry.
     Object.defineProperty(normalized, format, {
       enumerable: true,
@@ -138,6 +146,7 @@ export function normalizeFormatType(
           : undefined,
         mock: config.mock,
         mockImport: normalizeImport(config.mockImport),
+        factoryDefault: config.factoryDefault,
       },
     });
   }

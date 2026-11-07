@@ -882,6 +882,7 @@ describe('generateFactory (formatType)', () => {
     type: 'Dayjs',
     decode: 'dayjs',
     decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+    factoryDefault: '2000-01-01T00:00:00Z',
   };
 
   it('decodes the default and the placeholder of a mapped format', () => {
@@ -906,9 +907,7 @@ describe('generateFactory (formatType)', () => {
       }),
     );
 
-    expect(result?.model).toContain(
-      `startsAt: dayjs('${new Date(0).toISOString()}')`,
-    );
+    expect(result?.model).toContain('startsAt: dayjs("2000-01-01T00:00:00Z")');
     expect(result?.model).toContain('endsAt: dayjs("2026-01-01T00:00:00Z")');
     expect(result?.imports).toContainEqual({
       ...dayjs.decodeImport,
@@ -916,30 +915,30 @@ describe('generateFactory (formatType)', () => {
     });
   });
 
-  it('decodes a date-only placeholder for a mapped date', () => {
+  it('fails for a value without a default when the entry has no factoryDefault', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
-      required: ['day'],
-      properties: { day: { type: 'string', format: 'date' } },
+      required: ['at'],
+      properties: { at: { type: 'string', format: 'time' } },
     };
 
-    const result = generateFactory(
-      schema,
-      'Event',
-      createMockContext({
-        override: {
-          formatType: {
-            date: {
-              type: 'Temporal.PlainDate',
-              decode: 'Temporal.PlainDate.from',
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({
+          override: {
+            formatType: {
+              time: {
+                type: 'Temporal.PlainTime',
+                decode: 'Temporal.PlainTime.from',
+              },
             },
           },
-        },
-      }),
-    );
-
-    expect(result?.model).toContain(
-      "day: Temporal.PlainDate.from('1970-01-01')",
+        }),
+      ),
+    ).toThrow(
+      'override.formatType.time (Temporal.PlainTime): factory methods need `factoryDefault` for a value without a default',
     );
   });
 
@@ -1003,9 +1002,7 @@ describe('generateFactory (formatType)', () => {
       createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
     );
 
-    expect(result?.model).toContain(
-      `startsAt: dayjs('${new Date(0).toISOString()}')`,
-    );
+    expect(result?.model).toContain('startsAt: dayjs("2000-01-01T00:00:00Z")');
     expect(result?.model).toContain('endsAt: null');
   });
 

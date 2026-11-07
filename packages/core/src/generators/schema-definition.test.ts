@@ -947,7 +947,13 @@ describe('generateSchemasDefinition (single factory methods)', () => {
       },
       override: {
         formatType: {
-          money: { type: 'Big', import: big, decode: 'Big', decodeImport: big },
+          money: {
+            type: 'Big',
+            import: big,
+            decode: 'Big',
+            decodeImport: big,
+            factoryDefault: '0',
+          },
         },
       },
     });

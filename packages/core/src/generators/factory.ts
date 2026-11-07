@@ -514,7 +514,7 @@ function inferSchemaType(schema: OpenApiSchemaObject): string | undefined {
 function buildFormatTypePayload(
   format: string | undefined,
   formatType: NormalizedFormatTypeConfig,
-  wireValue: string,
+  wireValue: string | undefined,
   imports: GeneratorImport[],
 ): string {
   if (!formatType.decode) {
@@ -522,6 +522,13 @@ function buildFormatTypePayload(
       format,
       formatType,
       'factory methods need `decode`',
+    );
+  }
+  if (wireValue === undefined) {
+    throw getFormatTypeError(
+      format,
+      formatType,
+      'factory methods need `factoryDefault` for a value without a default',
     );
   }
   if (formatType.decodeImport) {
@@ -605,7 +612,9 @@ function buildPrimitivePayload(
       return buildFormatTypePayload(
         schema.format,
         formatType,
-        schema.format === 'date' ? "'1970-01-01'" : wireValue,
+        formatType.factoryDefault === undefined
+          ? undefined
+          : formatValue(formatType.factoryDefault),
         imports,
       );
     }

@@ -1501,6 +1501,8 @@ export interface FormatTypeConfig {
   mock?: string;
   /** Import for the mock expression's runtime dependency */
   mockImport?: FormatTypeImport;
+  /** Wire string factory methods pass to `decode` for a value without a default */
+  factoryDefault?: string;
 }
 
 export type FormatTypeMap = { [K in StringFormat]?: FormatTypeConfig };
@@ -1524,6 +1526,7 @@ export interface NormalizedFormatTypeConfig {
   };
   mock?: string;
   mockImport?: GeneratorImport;
+  factoryDefault?: string;
 }
 
 export type NormalizedFormatTypeMap = {

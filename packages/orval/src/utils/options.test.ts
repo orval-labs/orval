@@ -83,6 +83,22 @@ describe('normalizeFormatType', () => {
     ).toThrow('override.formatType.date-time.effect.schema is required');
   });
 
+  it('keeps a string factoryDefault and rejects any other', () => {
+    expect(
+      normalizeFormatType({
+        time: { type: 'Temporal.PlainTime', factoryDefault: '00:00' },
+      })?.time?.factoryDefault,
+    ).toBe('00:00');
+    expect(() =>
+      normalizeFormatType({
+        time: {
+          type: 'Temporal.PlainTime',
+          factoryDefault: 0 as unknown as string,
+        },
+      }),
+    ).toThrow('override.formatType.time.factoryDefault must be a string');
+  });
+
   it('normalizes the effect schema and its import', () => {
     expect(
       normalizeFormatType({
