@@ -884,6 +884,19 @@ describe('getModelFormatType', () => {
     ctx.output.schemas = { path: './model', type: 'zod', splitByTags: false };
     expect(getModelFormatType(dateTime, ctx)).toBeUndefined();
   });
+
+  it('keeps them as strings in the schemas the zod client promotes', () => {
+    const ctx = createTestContextSpec({
+      output: { client: 'zod', schemas: './model' },
+      override: {
+        formatType: { 'date-time': dayjs },
+        zod: { generateReusableSchemas: true },
+      },
+    });
+    expect(getModelFormatType(dateTime, ctx)).toBeUndefined();
+    ctx.output.override.zod.generateReusableSchemas = false;
+    expect(getModelFormatType(dateTime, ctx)).toEqual(dayjs);
+  });
 });
 
 describe('getFormatTypeFunctionImports', () => {

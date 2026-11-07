@@ -185,10 +185,15 @@ export function findCustomFormatType(
 
 /**
  * With Zod schema output the generated types are the schemas' input, where a
- * mapped value is still its wire string: only the schemas convert it.
+ * mapped value is still its wire string: only the schemas convert it. The zod
+ * client's `generateReusableSchemas` makes a string `schemas` path Zod too.
  */
-const hasZodSchemaTypes = (context: Pick<ContextSpec, 'output'>) =>
-  isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+const hasZodSchemaTypes = ({ output }: Pick<ContextSpec, 'output'>) =>
+  isObject(output.schemas)
+    ? output.schemas.type === 'zod'
+    : !!output.schemas &&
+      output.client === 'zod' &&
+      output.override.zod.generateReusableSchemas;
 
 /**
  * {@link getCustomFormatType} for code that handles the values the generated
