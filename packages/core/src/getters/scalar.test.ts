@@ -908,4 +908,17 @@ describe('getFormatTypeFunctionImports', () => {
       getFormatTypeFunctionImports('const toIsoString = 1; Dayjs', override),
     ).toEqual([]);
   });
+
+  it('matches names starting with $ but not member accesses', () => {
+    const $date = { name: '$date', importPath: './dates' };
+    const parse = { name: 'parse', importPath: './dates' };
+    const imports = {
+      formatType: {
+        date: { type: 'Day', decodeImport: $date, encodeImport: parse },
+      },
+    };
+    expect(
+      getFormatTypeFunctionImports('$date(x); Schema.parse(y)', imports),
+    ).toEqual([{ ...$date, values: true }]);
+  });
 });

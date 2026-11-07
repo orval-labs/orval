@@ -224,7 +224,9 @@ export const getReferencedFormatTypeImports = (
     .filter(
       (imp): imp is GeneratorImport =>
         !!imp &&
-        new RegExp(String.raw`\b${escapeRegExp(imp.name)}\b`).test(code),
+        new RegExp(
+          String.raw`(?<![\w$.])${escapeRegExp(imp.name)}(?![\w$])`,
+        ).test(code),
     )
     .map((imp) => ({ ...imp, values: true }));
 
