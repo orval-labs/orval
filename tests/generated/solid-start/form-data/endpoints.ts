@@ -28,52 +28,65 @@ export const SwaggerPetstore = {
    * @summary Create a pet
    */
   createPets: action(async (pet?: Pet) => {
-    const formData = new FormData();
-    Object.entries(pet ?? {}).forEach(([key, value]) => {
-      if (['@id', 'email', 'callingCode', 'country'].includes(key)) return;
-      if (value !== undefined && value !== null) {
-        if (
-          (typeof File !== 'undefined' && value instanceof File) ||
-          value instanceof Blob
-        ) {
-          formData.append(key, value);
-        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
-          formData.append(key, new Blob([Uint8Array.from(value)]));
-        } else if (Array.isArray(value)) {
-          value.forEach((v) => {
-            if (
-              (typeof File !== 'undefined' && v instanceof File) ||
-              v instanceof Blob
-            ) {
-              formData.append(key, v);
-            } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(v)) {
-              formData.append(key, new Blob([Uint8Array.from(v)]));
-            } else {
-              formData.append(
-                key,
-                typeof v === 'object' ? JSON.stringify(v) : String(v),
-              );
+    const formData =
+      pet === undefined
+        ? undefined
+        : (() => {
+            const formData = new FormData();
+            Object.entries(pet ?? {}).forEach(([key, value]) => {
+              if (['@id', 'email', 'callingCode', 'country'].includes(key))
+                return;
+              if (value !== undefined && value !== null) {
+                if (
+                  (typeof File !== 'undefined' && value instanceof File) ||
+                  value instanceof Blob
+                ) {
+                  formData.append(key, value);
+                } else if (
+                  typeof Buffer !== 'undefined' &&
+                  Buffer.isBuffer(value)
+                ) {
+                  formData.append(key, new Blob([Uint8Array.from(value)]));
+                } else if (Array.isArray(value)) {
+                  value.forEach((v) => {
+                    if (
+                      (typeof File !== 'undefined' && v instanceof File) ||
+                      v instanceof Blob
+                    ) {
+                      formData.append(key, v);
+                    } else if (
+                      typeof Buffer !== 'undefined' &&
+                      Buffer.isBuffer(v)
+                    ) {
+                      formData.append(key, new Blob([Uint8Array.from(v)]));
+                    } else {
+                      formData.append(
+                        key,
+                        typeof v === 'object' ? JSON.stringify(v) : String(v),
+                      );
+                    }
+                  });
+                } else if (typeof value === 'object') {
+                  formData.append(key, JSON.stringify(value));
+                } else {
+                  formData.append(key, String(value));
+                }
+              }
+            });
+            if (pet?.['@id'] !== undefined) {
+              formData.append(`@id`, pet['@id']);
             }
-          });
-        } else if (typeof value === 'object') {
-          formData.append(key, JSON.stringify(value));
-        } else {
-          formData.append(key, String(value));
-        }
-      }
-    });
-    if (pet?.['@id'] !== undefined) {
-      formData.append(`@id`, pet['@id']);
-    }
-    if (pet?.email !== undefined) {
-      formData.append(`email`, pet.email);
-    }
-    if (pet?.callingCode !== undefined) {
-      formData.append(`callingCode`, pet.callingCode);
-    }
-    if (pet?.country !== undefined) {
-      formData.append(`country`, pet.country);
-    }
+            if (pet?.email !== undefined) {
+              formData.append(`email`, pet.email);
+            }
+            if (pet?.callingCode !== undefined) {
+              formData.append(`callingCode`, pet.callingCode);
+            }
+            if (pet?.country !== undefined) {
+              formData.append(`country`, pet.country);
+            }
+            return formData;
+          })();
 
     const url = `/pets`;
     const response = await fetch(url, {

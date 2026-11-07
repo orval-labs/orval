@@ -1039,6 +1039,19 @@ describe('generateSolidStart — form bodies', () => {
     );
   });
 
+  it('sends no body when an optional form body is omitted', async () => {
+    const implementation = await generateCreatePet({
+      contentType: 'multipart/form-data',
+      formData: 'const formData = new FormData();\n',
+      isOptional: true,
+    });
+
+    expect(implementation).toContain(
+      'const formData = createPetBody === undefined ? undefined : (() => {',
+    );
+    expect(implementation).toContain('body: formData');
+  });
+
   it('sends the URLSearchParams it builds with the declared Content-Type', async () => {
     const implementation = await generateCreatePet(
       {
