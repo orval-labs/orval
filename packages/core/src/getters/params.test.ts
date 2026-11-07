@@ -200,4 +200,40 @@ describe('getParams formatType values', () => {
         'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `encode`',
     });
   });
+
+  it('decodes the default of a mapped value', () => {
+    const getImplementation = (decode?: string) => {
+      const paramsContext = createTestContextSpec({
+        override: {
+          formatType: {
+            'date-time': { type: 'Dayjs', encode: 'toIso', decode },
+          },
+        },
+      });
+      return getParams({
+        pathRoute: '/events/{startsAt}',
+        pathParams: [
+          {
+            parameter: {
+              name: 'startsAt',
+              in: 'path',
+              required: true,
+              schema: { ...dateTime, default: '2025-01-01T00:00:00Z' },
+            },
+            imports: [],
+          },
+        ],
+        operationId: 'getEvent',
+        context: paramsContext,
+        output: paramsContext.output,
+      })[0].implementation;
+    };
+
+    expect(getImplementation('dayjs')).toBe(
+      "startsAt: Dayjs = dayjs('2025-01-01T00:00:00Z')",
+    );
+    expect(() => getImplementation()).toThrow(
+      'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `decode` for its default',
+    );
+  });
 });

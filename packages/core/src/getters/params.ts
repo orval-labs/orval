@@ -7,6 +7,7 @@ import type {
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
+  OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
@@ -14,10 +15,12 @@ import type {
 import { isSchemaNullable, stringify } from '../utils';
 import { camelPathParamName, parseRoutePath } from './route';
 import {
+  callFormatTypeFunction,
   findCustomFormatType,
   findModelFormatType,
   getCustomFormatType,
   getFormatTypeError,
+  getModelFormatType,
 } from './scalar';
 
 /**
@@ -186,15 +189,32 @@ export function getParams({
     // `0`, `false` and `''` are defaults like any other, so the presence of one
     // is a check against `undefined` rather than a truthiness test.
     const hasSchemaDefault = schemaDefault !== undefined;
+    // The default of a mapped value is its wire string.
+    const defaultFormatType = hasSchemaDefault
+      ? resolvedValue.isRef
+        ? getModelFormatType(originalSchema, context)
+        : getCustomFormatType(originalSchema, context.output.override)
+      : undefined;
+    if (defaultFormatType && !defaultFormatType.decode) {
+      throw getFormatTypeError(
+        (originalSchema as OpenApiNonBooleanSchemaObject).format,
+        defaultFormatType,
+        `operation \`${operationId}\`, path parameter \`${nameWithoutSanitize}\` needs \`decode\` for its default`,
+      );
+    }
+    const defaultValue = defaultFormatType?.decode
+      ? callFormatTypeFunction(
+          defaultFormatType.decode,
+          `${stringify(schemaDefault)}`,
+        )
+      : stringify(schemaDefault);
 
     const definition = `${name}${
       !required || hasSchemaDefault ? '?' : ''
     }: ${paramType}`;
 
     const implementation = `${name}${!required && !hasSchemaDefault ? '?' : ''}${
-      hasSchemaDefault
-        ? `: ${paramType} = ${stringify(schemaDefault)}`
-        : `: ${paramType}`
+      hasSchemaDefault ? `: ${paramType} = ${defaultValue}` : `: ${paramType}`
     }`; // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
 
     return {
