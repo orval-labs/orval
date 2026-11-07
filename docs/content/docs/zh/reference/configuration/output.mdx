@@ -2215,7 +2215,7 @@ export default defineConfig({
 
 ## override.valibot
 
-Valibot schema 生成选项。`strict` 和 `generate` 的键与 `override.zod` 相同，也可以按 operation 或按 tag 设置。
+Valibot schema 生成选项。`strict`、`generate` 和 `exactOptional` 也可以按 operation 或按 tag 设置（`strict` 和 `generate` 的键与 `override.zod` 相同）。`generateReusableSchemas` 作用于整个输出。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2226,6 +2226,7 @@ export default defineConfig({
           strict: { response: true },
           generate: { header: false },
           exactOptional: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -2239,6 +2240,15 @@ export default defineConfig({
 **默认值：** `false`
 
 对可选的对象属性使用 `v.exactOptional(schema)`，而不是 `v.optional(schema)`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
+
+### generateReusableSchemas
+
+**类型：** `boolean`
+**默认值：** `false`
+
+为每个 `#/components/schemas/*` 条目生成一个导出的 Valibot 常量，而不是内联每个 `$ref`。输出和限制见[可复用 Schema](/zh/docs/guides/valibot#可复用-schema)。
+
+目前不能与 [`schemas`](#schemas) 同时使用。
 
 ---
 

@@ -680,3 +680,40 @@ describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
     expect(fs.existsSync(path.join(tmpDir, 'pets', 'pets.msw.ts'))).toBe(false);
   });
 });
+
+describe('writeTagsMode — shared schemas file is generated once', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('calls generateSchemasInline once for several tags', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const generateSchemasInline = vi.fn(() => 'export const Pet = 1;\n');
+
+    await writeTagsMode({
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation(),
+          healthCheck: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'healthCheck',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+      needSchema: true,
+      generateSchemasInline,
+    });
+
+    expect(generateSchemasInline).toHaveBeenCalledTimes(1);
+  });
+});

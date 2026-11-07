@@ -54,3 +54,4 @@ Options are read from `override.valibot.*`:
 - `strict` - emit `v.strictObject` for the locations set to `true` (`param`, `query`, `header`, `body`, `response`)
 - `generate` - choose which of those locations get a schema
 - `exactOptional` - emit `v.exactOptional` for optional properties
+- `generateReusableSchemas` - emit one constant per component schema instead of inlining every `$ref`

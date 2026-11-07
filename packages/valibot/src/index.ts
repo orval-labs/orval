@@ -7,13 +7,16 @@ import {
   pascal,
 } from '@orval/core';
 
+import { allocateConstName } from './const-names';
 import { startRun } from './logger';
 import {
   getSingleResponse,
   parseBodyAndResponse,
   parseParameters,
 } from './operation';
+import { collectRefNames, isReusableSchemasEnabled } from './refs';
 import { renderValibot } from './render';
+import { getComponentNames } from './reusable-schemas';
 
 export { dereference } from './dereference';
 export { parseParameters } from './operation';
@@ -29,6 +32,7 @@ export type {
   ValibotNode,
   ValibotSchema,
 } from './nodes';
+export { generateValibotSchemasInline } from './schemas-inline';
 export {
   generateValibotValidationSchemaDefinition,
   type SchemaRules,
@@ -54,7 +58,7 @@ export const getValibotDependencies = (): GeneratorDependency[] =>
   VALIBOT_DEPENDENCIES;
 
 const generateValibotRoute = (
-  { typeName, verb, override }: GeneratorVerbOptions,
+  { typeName, verb, override, operationName }: GeneratorVerbOptions,
   { pathRoute, context }: GeneratorOptions,
 ) => {
   const spec = context.spec.paths?.[pathRoute];
@@ -71,54 +75,72 @@ const generateValibotRoute = (
     data: [...(spec.parameters ?? []), ...(operation?.parameters ?? [])],
     context,
     strict: options.strict,
+    exactOptional: options.exactOptional,
     generate: options.generate,
+    operation: operationName,
   });
 
   const body = parseBodyAndResponse({
     data: operation?.requestBody,
     context,
     strict: options.strict.body,
+    exactOptional: options.exactOptional,
     generate: options.generate.body,
     isRequest: true,
+    operation: operationName,
   });
 
   const response = parseBodyAndResponse({
     data: getSingleResponse(operation?.responses, context),
     context,
     strict: options.strict.response,
+    exactOptional: options.exactOptional,
     generate: options.generate.response,
     isRequest: false,
+    operation: operationName,
   });
 
   const name = pascal(typeName);
-  const implementation = [
-    { constName: `${name}Params`, node: parameters.params },
-    { constName: `${name}QueryParams`, node: parameters.queryParams },
-    { constName: `${name}Header`, node: parameters.headers },
-    { constName: `${name}Body`, node: body },
-    { constName: `${name}Response`, node: response },
-  ]
-    .flatMap(({ constName, node }) =>
-      node
-        ? [
-            `export const ${constName} = ${renderValibot(node, { exactOptional: options.exactOptional })}`,
-          ]
-        : [],
+  const taken = isReusableSchemasEnabled(context)
+    ? new Set(getComponentNames(context).values())
+    : new Set<string>();
+  const nodes = [
+    { baseName: `${name}Params`, node: parameters.params },
+    { baseName: `${name}QueryParams`, node: parameters.queryParams },
+    { baseName: `${name}Header`, node: parameters.headers },
+    { baseName: `${name}Body`, node: body },
+    { baseName: `${name}Response`, node: response },
+  ].flatMap(({ baseName, node }) =>
+    node ? [{ constName: allocateConstName(baseName, taken), node }] : [],
+  );
+
+  const implementation = nodes
+    .map(
+      ({ constName, node }) =>
+        `export const ${constName} = ${renderValibot(node, { exactOptional: options.exactOptional })}`,
     )
     .join('\n\n');
+  const usedComponents = new Set(
+    nodes.flatMap(({ node }) => [...collectRefNames(node)]),
+  );
 
-  return { implementation, mutators: [] };
+  return { implementation, usedComponents, mutators: [] };
 };
 
 export const generateValibot: ClientBuilder = (verbOptions, options) => {
-  const { implementation, mutators } = generateValibotRoute(
+  const { implementation, usedComponents, mutators } = generateValibotRoute(
     verbOptions,
     options,
   );
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
-    imports: [],
+    // Component schemas are runtime values, so they are imported as values.
+    imports: [...usedComponents].toSorted().map((componentName) => ({
+      name: componentName,
+      schemaName: componentName,
+      values: true,
+    })),
     mutators,
   };
 };

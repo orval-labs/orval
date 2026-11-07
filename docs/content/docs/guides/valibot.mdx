@@ -46,7 +46,44 @@ Options live under [`override.valibot`](/docs/reference/configuration/output#ove
 
 - `strict` - per location (`param`, `query`, `header`, `body`, `response`), emit `v.strictObject` instead of `v.object`. All `false` by default.
 - `generate` - per location, choose which schemas are generated. All `true` by default.
-- `exactOptional` - use `v.exactOptional` for optional properties, for projects with `exactOptionalPropertyTypes`. `false` by default.
+- `exactOptional` - use `v.exactOptional` for optional properties, for projects with `exactOptionalPropertyTypes`. `false` by default. Can also be set per operation or tag.
+- `generateReusableSchemas` - emit each component schema once and reference it, instead of inlining every `$ref`. `false` by default. See [Reusable Schemas](#reusable-schemas).
+
+## Reusable Schemas
+
+By default every `$ref` is inlined, which makes the output large for a spec with many shared components. With `generateReusableSchemas`, each `#/components/schemas/*` entry becomes one exported constant:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      target: './src/api/schemas.ts',
+      override: { valibot: { generateReusableSchemas: true } },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+```ts
+export const Pet = v.object({
+  name: v.string(),
+  friends: v.optional(v.array(v.lazy((): v.GenericSchema => Pet))),
+});
+
+export const ListPetsResponse = v.array(Pet);
+```
+
+The constants go next to the operations: into the target in `single` mode, into a `*.schemas.ts` file in the other modes. A reference that closes a cycle reads through `v.lazy`, and that field is typed `unknown`.
+
+### Limitations
+
+- It can't be combined with `output.schemas` yet: generation fails with an error.
+- A `$ref` is still inlined where a constant would validate differently, such as form bodies, `readOnly` and `writeOnly` properties, and some `allOf`, `oneOf` and `anyOf` members.
+- A constant keeps all its properties and is `strict` only when every location is. A location with a different `strict`, or an operation override of `exactOptional`, inlines its schemas.
+- A `oneOf` or `anyOf` with a `discriminator` becomes `v.union` when an option is a reference.
+- A component named `Date` or `RegExp` gets a `Schema` suffix. Two components with the same name stop generation with an error.
 
 ## Usage
 
@@ -97,9 +134,9 @@ if (result.success) {
 
 ## Limitations
 
-- Recursive schemas (circular `$ref`) are validated as `unknown`, with a warning.
+- A circular `$ref` is validated as `unknown`, with a warning, wherever it is inlined. With `generateReusableSchemas`, component constants validate recursively through `v.lazy`.
 - `prefixItems` tuples are validated as `unknown[]`, with a warning.
-- Every `$ref` is inlined, so components are not emitted as reusable constants and shared schemas can make the output large.
+- Every `$ref` is inlined unless [`generateReusableSchemas`](#reusable-schemas) is set, so shared schemas can make the output large. Inlining one schema stops with an error past 250,000 schema nodes.
 - `oneOf` does not check that exactly one alternative matches.
 - Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected. An open member (`additionalProperties: true`) next to an object member is left out, so extra keys are stripped too.
 - Valibot schemas are not wired into the HTTP clients yet: `schemas: { type: 'valibot' }` and runtime validation of responses are not available.

@@ -6,6 +6,7 @@ import {
   type OpenApiRequestBodyObject,
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
+  isString,
   resolveRef,
 } from '@orval/core';
 
@@ -13,6 +14,8 @@ import { dereference } from './dereference';
 import { withFileParts, type PartEncoding } from './form-data';
 import { plainNode, type ValibotNode } from './nodes';
 import { omitDirectional } from './read-only';
+import { createRefPolicy } from './ref-policy';
+import { getLocalRefTarget } from './refs';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
 const JSON_TYPE = /^application\/([^/;]+\+)?json$/;
@@ -61,28 +64,49 @@ const selectMedia = (
   ).find(Boolean);
 };
 
+const describeSite = (operation: string | undefined, site: string): string =>
+  operation ? `${operation} ${site}` : site;
+
 interface ParseBodyAndResponseOptions {
   data: BodyOrResponse | undefined;
   context: ContextSpec;
   strict: boolean;
+  // Defaults to the output-level option.
+  exactOptional?: boolean;
   generate: boolean;
   isRequest: boolean;
+  // The operation, named when its schema is too large to inline.
+  operation?: string;
 }
 
 export const parseBodyAndResponse = ({
   data,
   context,
   strict,
+  exactOptional = context.output.override.valibot.exactOptional,
   generate,
   isRequest,
+  operation,
 }: ParseBodyAndResponseOptions): ValibotNode | undefined => {
   if (!generate) return;
   const media = selectMedia(data, context);
   if (!media) return;
 
-  const resolved = dereference(media.schema, context);
+  // Form parts are rebuilt from the inlined tree.
+  const isForm =
+    MULTIPART_TYPE.test(media.contentType) ||
+    URL_ENCODED_TYPE.test(media.contentType);
+  const direction = isRequest ? 'readOnly' : 'writeOnly';
+  const resolved = dereference(
+    media.schema,
+    context,
+    isForm
+      ? undefined
+      : createRefPolicy({ context, direction, strict, exactOptional }),
+    { label: describeSite(operation, isRequest ? 'request body' : 'response') },
+  );
   const node = generateValibotValidationSchemaDefinition(
-    omitDirectional(resolved, isRequest ? 'readOnly' : 'writeOnly'),
+    omitDirectional(resolved, direction),
     context,
     strict,
     { required: true, urlEncoded: URL_ENCODED_TYPE.test(media.contentType) },
@@ -125,7 +149,11 @@ export interface ParseParametersOptions {
   data: (OpenApiParameterObject | OpenApiReferenceObject)[] | undefined;
   context: ContextSpec;
   strict: Locations<boolean>;
+  // Defaults to the output-level option.
+  exactOptional?: boolean;
   generate: Locations<boolean>;
+  // The operation, named when its schema is too large to inline.
+  operation?: string;
 }
 
 export interface ParsedParameters {
@@ -142,11 +170,41 @@ const PARAMETER_LOCATIONS = new Map<string, ParameterLocation>([
   ['header', 'header'],
 ]);
 
+type SchemaParameter = OpenApiParameterObject & {
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
+};
+
+const isSchemaParameter = (value: unknown): value is SchemaParameter =>
+  isObject(value) &&
+  isString(value.in) &&
+  isString(value.name) &&
+  value.name !== '' &&
+  value.schema !== undefined;
+
+// Follows the `$ref`s of a parameter without resolving its schema, so a
+// reference there can still become a component constant.
+const resolveParameter = (
+  item: OpenApiParameterObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): SchemaParameter | undefined => {
+  const seen = new Set<string>();
+  const follow = (current: unknown): SchemaParameter | undefined => {
+    if (isSchemaParameter(current)) return current;
+    if (!isObject(current) || !isString(current.$ref)) return undefined;
+    if (seen.has(current.$ref)) return undefined;
+    seen.add(current.$ref);
+    return follow(getLocalRefTarget(current.$ref, context));
+  };
+  return follow(item);
+};
+
 export const parseParameters = ({
   data,
   context,
   strict,
+  exactOptional = context.output.override.valibot.exactOptional,
   generate,
+  operation,
 }: ParseParametersOptions): ParsedParameters => {
   // Keyed by name: a repeated parameter keeps its position and last schema.
   const defs: Record<ParameterLocation, Map<string, ValibotNode>> = {
@@ -156,17 +214,23 @@ export const parseParameters = ({
   };
 
   for (const item of data ?? []) {
-    const { schema: parameter } = resolveRef<OpenApiParameterObject>(
-      item,
-      context,
-    );
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
-    if (!('schema' in parameter) || !parameter.in || !parameter.name) continue;
+    const parameter = resolveParameter(item, context);
+    if (!parameter) continue;
 
     const location = PARAMETER_LOCATIONS.get(parameter.in);
     if (!location || !generate[location]) continue;
 
-    const resolvedSchema = dereference(parameter.schema, context);
+    const resolvedSchema = dereference(
+      parameter.schema,
+      context,
+      createRefPolicy({ context, strict: strict[location], exactOptional }),
+      {
+        label: describeSite(
+          operation,
+          `${location} parameter "${parameter.name}"`,
+        ),
+      },
+    );
 
     defs[location].set(
       parameter.name,
