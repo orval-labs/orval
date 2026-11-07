@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type {
@@ -346,3 +347,72 @@ describe.each([false, true])(
     );
   },
 );
+
+it('generates a compilable Fetch object response for a nested schema alias (#4465)', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'orval-nested-error-'));
+  try {
+    const input: OpenApiDocument = {
+      openapi: '3.1.0',
+      info: { title: 'Nested error response', version: '1' },
+      paths: {
+        '/items': {
+          get: {
+            operationId: 'getItems',
+            responses: {
+              400: {
+                description: 'Bad request',
+                content: {
+                  'application/json': {
+                    schema: { $ref: '#/components/schemas/Error' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Error: {
+            $ref: '#/components/schemas/Error/$defs/ErrorDetail',
+            $defs: {
+              ErrorDetail: {
+                type: 'object',
+                properties: { code: { type: 'string' } },
+              },
+            },
+          },
+        },
+      },
+    };
+    const options = await normalizeOptions(
+      {
+        input: { target: input },
+        output: { target: './client.ts', client: 'fetch' },
+      },
+      workspace,
+    );
+    await generateSpec(workspace, options);
+
+    const entry = path.join(workspace, 'client.ts');
+    const program = ts.createProgram([entry], {
+      strict: true,
+      noEmit: true,
+      types: [],
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+    });
+    expect(
+      ts
+        .getPreEmitDiagnostics(program)
+        .map((diagnostic) =>
+          ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
+        ),
+    ).toEqual([]);
+    const client = await readFile(entry, 'utf8');
+    expect(client).toMatch(/getItemsResponse400 = \{\s*data: Error\b/);
+    expect(client).toMatch(/export type Error = \{\s*code\?: string/);
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
+});
