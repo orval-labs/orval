@@ -976,6 +976,16 @@ describe('generateSolidStart — multipart Content-Type', () => {
 });
 
 describe('generateSolidStart — form bodies', () => {
+  const headerParams = {
+    schema: {
+      name: 'CreatePetHeaders',
+      model: 'export type CreatePetHeaders = { [key: string]: string }',
+      imports: [],
+    },
+    deps: [],
+    isOptional: true,
+  } satisfies NonNullable<GeneratorVerbOptions['headers']>;
+
   const generateCreatePet = (
     body: Partial<GeneratorVerbOptions['body']>,
     {
@@ -1021,17 +1031,7 @@ describe('generateSolidStart — form bodies', () => {
         contentType: 'multipart/form-data',
         formData: 'const formData = new FormData();\n',
       },
-      {
-        headers: {
-          schema: {
-            name: 'CreatePetHeaders',
-            model: 'export type CreatePetHeaders = { [key: string]: string }',
-            imports: [],
-          },
-          deps: [],
-          isOptional: true,
-        },
-      },
+      { headers: headerParams },
     );
 
     expect(implementation).toContain(
@@ -1061,7 +1061,20 @@ describe('generateSolidStart — form bodies', () => {
     });
 
     expect(implementation).toContain('body: JSON.stringify(createPetBody)');
-    expect(implementation).toContain("'Content-Type': 'application/json'");
+    expect(implementation).toContain(
+      "headers: { 'Content-Type': 'application/json' }",
+    );
+  });
+
+  it('lets a caller Content-Type replace the JSON default', async () => {
+    const implementation = await generateCreatePet(
+      { contentType: 'application/json' },
+      { headers: headerParams },
+    );
+
+    expect(implementation).toContain(
+      "headers: { 'Content-Type': 'application/json', ...headers }",
+    );
   });
 });
 

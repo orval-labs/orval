@@ -458,10 +458,11 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
 
   // Build headers object. The browser sets the multipart Content-Type itself,
   // because only it knows the boundary, so a caller's one is dropped too.
+  // Otherwise a caller's Content-Type replaces the default.
   const contentTypeHeader = `'Content-Type': '${isFormUrlEncodedBody ? jsStringLiteralEscape(body.contentType) : 'application/json'}'`;
   const headersCode = isFormDataBody
     ? `headers: ${headers ? `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))` : '{}'}`
-    : `headers: { ${headers ? '...headers, ' : ''}${contentTypeHeader} }`;
+    : `headers: { ${contentTypeHeader}${headers ? ', ...headers' : ''} }`;
 
   // Build body code
   const bodyCode =
