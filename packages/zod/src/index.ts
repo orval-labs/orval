@@ -1900,15 +1900,21 @@ export const generateZodValidationSchemaDefinition = (
     // exclusive `oneOf`.
     functions.push([
       'anyOf',
-      types.map((t) =>
-        generateZodValidationSchemaDefinition(
+      types.map((t) => {
+        const memberContext =
+          t === 'string'
+            ? getUnionMemberContext(context, schema.format)
+            : context;
+        return generateZodValidationSchemaDefinition(
           {
             ...(schema as Record<string, unknown>),
             type: t,
+            // An unmapped `binary` format would check a `Blob`, not the
+            // string the member is typed as.
+            ...(memberContext !== context &&
+              schema.format === 'binary' && { format: undefined }),
           } as OpenApiSchemaObject,
-          t === 'string'
-            ? getUnionMemberContext(context, schema.format)
-            : context,
+          memberContext,
           name,
           strict,
           isZodV4,
@@ -1919,8 +1925,8 @@ export const generateZodValidationSchemaDefinition = (
             schemaExtension: rules?.schemaExtension,
             urlEncoded,
           },
-        ),
-      ),
+        );
+      }),
     ]);
 
     if (!required && nullable) {

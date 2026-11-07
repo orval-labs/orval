@@ -392,6 +392,15 @@ describe('formatType', () => {
     );
   });
 
+  it('validates an unmapped binary member of a union as a string', () => {
+    expect(
+      render(
+        { type: ['string', 'number'], format: 'binary' },
+        { binary: { type: 'Day', decode: 'toDay' } },
+      ).valibot,
+    ).toBe('v.union([v.string(), v.number()])');
+  });
+
   it('keeps the mapped formats of an object member of the union', () => {
     const { parse } = render({
       ...dateTime,

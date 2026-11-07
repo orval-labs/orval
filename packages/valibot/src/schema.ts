@@ -438,15 +438,30 @@ export const generateValibotValidationSchemaDefinition = (
   const hasDefault = defaultValue !== undefined;
   // The string member of a `type: [...]` union keeps the format unmapped.
   const isUnion = getMultiTypes(schema).length > 1;
-  const child: ChildGenerator = (member, isRequired = true) =>
-    generateValibotValidationSchemaDefinition(
-      member,
-      isUnion && isNonBoolean(member) && member.type === 'string'
-        ? getUnionMemberContext(context, schema.format)
-        : context,
+  const child: ChildGenerator = (member, isRequired = true) => {
+    if (!isUnion || !isNonBoolean(member) || member.type !== 'string') {
+      return generateValibotValidationSchemaDefinition(
+        member,
+        context,
+        strict,
+        {
+          required: isRequired,
+          urlEncoded,
+        },
+      );
+    }
+    const memberContext = getUnionMemberContext(context, schema.format);
+    // An unmapped `binary` format would check a `File`, not the string the
+    // member is typed as.
+    const isUnmappedBinary =
+      memberContext !== context && member.format === 'binary';
+    return generateValibotValidationSchemaDefinition(
+      isUnmappedBinary ? { ...member, format: undefined } : member,
+      memberContext,
       strict,
       { required: isRequired, urlEncoded },
     );
+  };
 
   const composedFormatType =
     getCompositionKeys(schema).length > 0

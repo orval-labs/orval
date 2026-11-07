@@ -16139,6 +16139,15 @@ describe('formatType', () => {
     ).toBe('zod.union([zod.iso.datetime({}),zod.number()])');
   });
 
+  it('validates an unmapped binary member of a union as a string', () => {
+    expect(
+      render(
+        { type: ['string', 'number'], format: 'binary' },
+        { binary: dayjs },
+      ).zod,
+    ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
   it('keeps the mapped formats of an object member of the union', () => {
     const union = render(
       {
