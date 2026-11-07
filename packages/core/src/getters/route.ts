@@ -14,6 +14,7 @@ import {
   camel,
   isObject,
   isString,
+  logger,
   mapTemplateExpressions,
   parseTemplateLiteral,
   sanitize,
@@ -467,9 +468,10 @@ export const makeRouteSafe = (
 
 /**
  * `route` as a client requests it: a path parameter that takes a `formatType`
- * goes through its `encode`, failing for one without, and under
- * `urlEncodeParameters` every parameter but an `allowReserved` one through
- * `encodeURIComponent`. A nullable one keeps `null` as it is.
+ * goes through its `encode`, or with a warning through the template literal's
+ * `String()`, and under `urlEncodeParameters` every parameter but an
+ * `allowReserved` one through `encodeURIComponent`. A nullable one keeps
+ * `null` as it is.
  */
 export const encodeRouteParameters = (
   route: string,
@@ -481,6 +483,10 @@ export const encodeRouteParameters = (
     if (!formatTypeEncoding) continue;
     if ('error' in formatTypeEncoding) {
       throw new Error(formatTypeEncoding.error);
+    }
+    if ('warning' in formatTypeEncoding) {
+      logger.warn(formatTypeEncoding.warning);
+      continue;
     }
     const { encode, nullable } = formatTypeEncoding;
     // A function rather than a ternary on the route expression, which can be

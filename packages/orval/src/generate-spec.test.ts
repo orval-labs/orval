@@ -6423,9 +6423,20 @@ describe('generateSpec - formatType form content without encode', () => {
     );
   });
 
-  it('fails for a client that builds the form body', async () => {
-    await expect(generateForm('fetch', 'requestBody')).rejects.toThrow(
-      'override.formatType.date-time (Dayjs): form field `startsAt` needs `encode`',
+  it('warns a client that builds the form body and sends it through String()', async () => {
+    const warn = vi.fn();
+    const content = await withReporter({ ...noopReporter, warn }, () =>
+      generateForm('fetch', 'requestBody'),
+    );
+
+    expect(content).toContain('String(createEventBody.startsAt)');
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        message: expect.stringContaining(
+          'override.formatType.date-time (Dayjs): operation `createEvent`, form field `startsAt` has no `encode` and is sent through `String()`',
+        ),
+      }),
     );
   });
 });

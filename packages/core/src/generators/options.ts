@@ -13,6 +13,7 @@ import {
   isFormDataContentType,
   isObject,
   jsStringLiteralEscape,
+  logger,
   stringify,
 } from '../utils';
 
@@ -1106,6 +1107,7 @@ export function generateFormDataAndUrlEncodedFunction({
     }
 
     if (body.formatTypeError) throw new Error(body.formatTypeError);
+    for (const warning of body.formatTypeWarnings ?? []) logger.warn(warning);
     return build('formData', body.formData);
   }
 
@@ -1115,6 +1117,7 @@ export function generateFormDataAndUrlEncodedFunction({
     }
 
     if (body.formatTypeError) throw new Error(body.formatTypeError);
+    for (const warning of body.formatTypeWarnings ?? []) logger.warn(warning);
     return build('formUrlEncoded', body.formUrlEncoded);
   }
 

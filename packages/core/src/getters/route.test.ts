@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from 'vite-plus/test';
+import { describe, expect, it, test, vi } from 'vite-plus/test';
 
 import type {
   BaseUrlFromConstant,
@@ -7,6 +7,7 @@ import type {
   GetterParam,
   OpenApiServerObject,
 } from '../types';
+import { logger } from '../utils';
 import {
   encodeRouteParameters,
   escapeRouteForSingleQuotes,
@@ -693,9 +694,20 @@ describe('encodeRouteParameters', () => {
   it('fails for a value it cannot encode', () => {
     expect(() =>
       encodeRouteParameters(route, [
-        param('day', { formatTypeEncoding: { error: 'needs `encode`' } }),
+        param('day', { formatTypeEncoding: { error: "can't encode it" } }),
       ]),
-    ).toThrow('needs `encode`');
+    ).toThrow("can't encode it");
+  });
+
+  it('leaves a value without encode to the template literal, with a warning', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    expect(
+      encodeRouteParameters(route, [
+        param('day', { formatTypeEncoding: { warning: 'has no `encode`' } }),
+      ]),
+    ).toBe(route);
+    expect(warn).toHaveBeenCalledExactlyOnceWith('has no `encode`');
+    warn.mockRestore();
   });
 });
 

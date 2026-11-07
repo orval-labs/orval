@@ -2105,18 +2105,22 @@ describe('generateRequestFunction — formatType query values', () => {
     );
   });
 
-  it('fails for a value without encode', () => {
-    expect(() =>
-      generateImplementation(
-        makeVerbOptions({
-          queryParams: {
-            ...STUB_QUERY_PARAMS,
-            formatTypeEncoding: { error: 'needs `encode`' },
+  it('warns about a value without encode', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    generateImplementation(
+      makeVerbOptions({
+        queryParams: {
+          ...STUB_QUERY_PARAMS,
+          formatTypeEncoding: {
+            statements: ['encodedParams.after = String(encodedParams.after);'],
+            warnings: ['has no `encode`'],
           },
-        }),
-        makeOptions(makeContext([])),
-      ),
-    ).toThrow('needs `encode`');
+        },
+      }),
+      makeOptions(makeContext([])),
+    );
+    expect(warn).toHaveBeenCalledExactlyOnceWith('has no `encode`');
+    warn.mockRestore();
   });
 });
 

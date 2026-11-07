@@ -170,10 +170,10 @@ describe('getParams formatType values', () => {
     });
   });
 
-  it('records the error for a mapped value without encode', () => {
+  it('records a warning for a mapped value without encode', () => {
     expect(getEncoding(dateTime, formatTypeContext())).toEqual({
-      error:
-        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `encode`',
+      warning:
+        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` has no `encode` and is sent through `String()`',
     });
   });
 
@@ -196,8 +196,8 @@ describe('getParams formatType values', () => {
       getEncoding({ $ref: '#/components/schemas/StartsAt' }, zodContext),
     ).toBeUndefined();
     expect(getEncoding(dateTime, zodContext)).toEqual({
-      error:
-        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` needs `encode`',
+      warning:
+        'override.formatType.date-time (Dayjs): operation `getEvent`, path parameter `startsAt` has no `encode` and is sent through `String()`',
     });
   });
 

@@ -20,7 +20,7 @@ import type {
   OpenApiRequestBodyObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isInlineSchema, pascal, toObjectSchema } from '../utils';
+import { isInlineSchema, logger, pascal, toObjectSchema } from '../utils';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
@@ -1705,6 +1705,10 @@ const buildCopyingMapStatements = ({
   };
 };
 
+/** A request statement encoding a value that is not a string already. */
+const encodeLeafStatement = (read: string, write: string, encode: string) =>
+  `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
+
 const requestMode: DateTransformMode = {
   isLeaf: (schema, context) =>
     (isDateOnlySchema(schema) && isDateTypedSchema(schema, context)) ||
@@ -1714,7 +1718,7 @@ const requestMode: DateTransformMode = {
   leafStatement: (read, write, schema, context) => {
     const encode = getModelFormatType(schema, context)?.encode;
     return encode
-      ? `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`
+      ? encodeLeafStatement(read, write, encode)
       : serializeLeafStatement(read, write);
   },
   objectPrelude: (accessor, schema, context) =>
@@ -1760,8 +1764,9 @@ export const buildRequestDateSerializeStatements = ({
 
 /**
  * The {@link GetterQueryParam.formatTypeEncoding} of an operation's query
- * parameters. A value without `encode` is an error only for the clients that
- * read it, since HTTP libraries stringify params themselves.
+ * parameters. A value without `encode` goes through `String()`, with a warning
+ * from the clients that read it, since HTTP libraries stringify params
+ * themselves.
  */
 export const getQueryParamsFormatTypeEncoding = ({
   parameters,
@@ -1772,7 +1777,7 @@ export const getQueryParamsFormatTypeEncoding = ({
   operationName: string;
   context: ContextSpec;
 }): GetterQueryParam['formatTypeEncoding'] => {
-  let error: string | undefined;
+  const warnings: string[] = [];
   const statements = parameters.flatMap(({ parameter }) => {
     if (!isSchemaParameter(parameter)) return [];
     const mode: DateTransformMode = {
@@ -1786,13 +1791,15 @@ export const getQueryParamsFormatTypeEncoding = ({
       leafStatement: (read, write, schema, context) => {
         const formatType = getModelFormatType(schema, context);
         if (formatType && !formatType.encode) {
-          error ??= getFormatTypeError(
-            (schema as OpenApiNonBooleanSchemaObject).format,
-            formatType,
-            `operation \`${operationName}\`, query parameter \`${parameter.name}\` needs \`encode\``,
-          ).message;
+          warnings.push(
+            getFormatTypeError(
+              (schema as OpenApiNonBooleanSchemaObject).format,
+              formatType,
+              `operation \`${operationName}\`, query parameter \`${parameter.name}\` has no \`encode\` and is sent through \`String()\``,
+            ).message,
+          );
         }
-        return requestMode.leafStatement(read, write, schema, context);
+        return encodeLeafStatement(read, write, formatType?.encode ?? 'String');
       },
     };
     return buildStatements({
@@ -1807,8 +1814,7 @@ export const getQueryParamsFormatTypeEncoding = ({
       mode,
     }).statements;
   });
-  if (error) return { error };
-  return statements.length > 0 ? { statements } : undefined;
+  return statements.length > 0 ? { statements, warnings } : undefined;
 };
 
 /**
@@ -1822,7 +1828,7 @@ export const getQueryParamsEncoding = (
 ): string | undefined => {
   const encoding = queryParams?.formatTypeEncoding;
   if (!encoding) return undefined;
-  if ('error' in encoding) throw new Error(encoding.error);
+  for (const warning of encoding.warnings ?? []) logger.warn(warning);
   return [
     `const encodedParams = { ...${paramsExpression} };`,
     ...encoding.statements,

@@ -1,6 +1,6 @@
 import vm from 'node:vm';
 
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
 import type {
@@ -10,6 +10,7 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
+import { logger } from '../utils';
 import {
   buildDateTransformStatements,
   buildRequestDateSerializeStatements,
@@ -6544,13 +6545,15 @@ describe('query parameter formatType values', () => {
     );
   });
 
-  it('reports a value without encode only when read', () => {
+  it('sends a value without encode through String() and warns when read', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
     const encoding = getQueryParamsFormatTypeEncoding({
       parameters: [parameter('after', dateTime)],
       operationName: 'listEvents',
       context: contextWith({ 'date-time': { type: 'Dayjs' } }),
     });
-    expect(() =>
+    expect(warn).not.toHaveBeenCalled();
+    expect(
       getQueryParamsEncoding(
         {
           schema: { name: '', model: '', imports: [] },
@@ -6560,9 +6563,13 @@ describe('query parameter formatType values', () => {
         },
         'params',
       ),
-    ).toThrow(
-      'override.formatType.date-time (Dayjs): operation `listEvents`, query parameter `after` needs `encode`',
+    ).toContain(
+      "encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (String(encodedParams.after) as unknown as typeof encodedParams.after);",
     );
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'override.formatType.date-time (Dayjs): operation `listEvents`, query parameter `after` has no `encode` and is sent through `String()`',
+    );
+    warn.mockRestore();
     expect(
       getQueryParamsFormatTypeEncoding({
         parameters: [parameter('after', dateTime)],
@@ -6592,6 +6599,7 @@ describe('query parameter formatType values', () => {
         '  }',
         '}',
       ],
+      warnings: [],
     });
   });
 });

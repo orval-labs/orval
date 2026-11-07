@@ -111,18 +111,28 @@ function getFormatTypeEncoding(
     originalSchema,
     context.output.override,
   );
-  if (isValue && found.config.encode) {
+  const subject = `operation \`${operationId}\`, path parameter \`${parameterName}\``;
+  if (!isValue) {
     return {
-      encode: found.config.encode,
-      ...(isSchemaNullable(originalSchema) && { nullable: true }),
+      error: getFormatTypeError(
+        found.format,
+        found.config,
+        `${subject} can't encode it`,
+      ).message,
+    };
+  }
+  if (!found.config.encode) {
+    return {
+      warning: getFormatTypeError(
+        found.format,
+        found.config,
+        `${subject} has no \`encode\` and is sent through \`String()\``,
+      ).message,
     };
   }
   return {
-    error: getFormatTypeError(
-      found.format,
-      found.config,
-      `operation \`${operationId}\`, path parameter \`${parameterName}\` ${isValue ? 'needs `encode`' : "can't encode it"}`,
-    ).message,
+    encode: found.config.encode,
+    ...(isSchemaNullable(originalSchema) && { nullable: true }),
   };
 }
 

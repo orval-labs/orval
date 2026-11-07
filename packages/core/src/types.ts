@@ -2747,9 +2747,11 @@ export interface GetterBody {
   formUrlEncoded?: string;
   /**
    * The error for a `formatType` value that `formData` / `formUrlEncoded`
-   * can't encode, raised where a client emits that code.
+   * can't encode, and the warnings for the ones they send through `String()`
+   * for lack of `encode`, raised where a client emits that code.
    */
   formatTypeError?: string;
+  formatTypeWarnings?: string[];
   contentType: string;
   isOptional: boolean;
   isBlob: boolean;
@@ -2785,11 +2787,12 @@ export interface GetterParam {
    */
   allowReserved?: boolean;
   /**
-   * The `encode` of a `formatType` value, or the error for one without it.
-   * Read it through `encodeRouteParameters`.
+   * The `encode` of a `formatType` value, the warning for one without it, or
+   * the error for one it can't encode. Read it through `encodeRouteParameters`.
    */
   formatTypeEncoding?:
     | { encode: string; nullable?: boolean }
+    | { warning: string }
     | { error: string };
   imports: GeneratorImport[];
 }
@@ -2801,10 +2804,10 @@ export interface GetterQueryParam {
   isOptional: boolean;
   /**
    * Statements encoding the `formatType` values of a copy of the params named
-   * `encodedParams`, or the error for a value without `encode`. Read it
-   * through `getQueryParamsEncoding`.
+   * `encodedParams`, and the warnings for values without `encode`, which go
+   * through `String()`. Read it through `getQueryParamsEncoding`.
    */
-  formatTypeEncoding?: { statements: string[] } | { error: string };
+  formatTypeEncoding?: { statements: string[]; warnings?: string[] };
   paramNames?: string[];
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
@@ -2912,6 +2915,7 @@ export type ResReqTypesValue = ScalarValue & {
   formData?: string;
   formUrlEncoded?: string;
   formatTypeError?: string;
+  formatTypeWarnings?: string[];
   isRef?: boolean;
   hasReadonlyProps?: boolean;
   key: string;

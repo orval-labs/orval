@@ -2895,15 +2895,20 @@ describe('getResReqTypes (formatType form values)', () => {
     );
   });
 
-  it('records the error for a field without encode', () => {
+  it('sends a field without encode through String(), with a warning', () => {
     const [result] = getResReqTypes(
       requestBody(event),
       'Event',
       formatTypeContext(),
     );
-    expect(result.formatTypeError).toBe(
-      'override.formatType.date-time (Dayjs): form field `startsAt` needs `encode`',
+    expect(result.formData).toContain(
+      'formData.append(`startsAt`, String(eventRequestBody.startsAt));',
     );
+    expect(result.formatTypeError).toBeUndefined();
+    expect(result.formatTypeWarnings).toEqual([
+      'override.formatType.date-time (Dayjs): operation `Event`, form field `startsAt` has no `encode` and is sent through `String()`',
+      'override.formatType.date-time (Dayjs): operation `Event`, form field `reminders` has no `encode` and is sent through `String()`',
+    ]);
   });
 
   it('records the error for a deepObject field it cannot reach', () => {
@@ -2925,7 +2930,7 @@ describe('getResReqTypes (formatType form values)', () => {
       formatTypeContext('toIso'),
     );
     expect(result.formatTypeError).toBe(
-      "override.formatType.date-time (Dayjs): the deepObject form field `range` can't encode it",
+      "override.formatType.date-time (Dayjs): operation `Event`, the deepObject form field `range` can't encode it",
     );
   });
 });
