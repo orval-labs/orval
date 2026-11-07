@@ -440,9 +440,13 @@ export const generateEffectValidationSchemaDefinition = (
           const entries = Object.entries(value)
             .map(([key, entry]) => {
               const literal = toLiteral(entry);
+              // A plain `__proto__` key sets the prototype; a computed one
+              // keeps it as a property.
+              const safeKey =
+                key === '__proto__' ? '["__proto__"]' : JSON.stringify(key);
               return literal === undefined
                 ? undefined
-                : `${JSON.stringify(key)}: ${literal}`;
+                : `${safeKey}: ${literal}`;
             })
             .filter((entry): entry is string => entry !== undefined)
             .join(', ');

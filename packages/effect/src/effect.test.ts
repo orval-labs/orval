@@ -458,6 +458,23 @@ describe('defaults', () => {
     );
   });
 
+  it('keeps an own __proto__ key in object defaults as a property', () => {
+    const { consts } = gen({
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          default: JSON.parse(
+            '{ "__proto__": 1, "nested": { "__proto__": 2 }, "items": [{ "__proto__": 3 }] }',
+          ),
+        } satisfies OpenApiSchemaObject,
+      },
+    });
+    expect(consts).toContain(
+      'export const testConfigDefault = { ["__proto__"]: 1, "nested": { ["__proto__"]: 2 }, "items": [{ ["__proto__"]: 3 }] };',
+    );
+  });
+
   it('keeps nested objects in object defaults', () => {
     const { consts } = gen({
       type: 'object',
