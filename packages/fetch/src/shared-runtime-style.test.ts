@@ -112,7 +112,7 @@ function makeVerbOptions(
       requestOptions: false,
       formUrlEncoded: false,
       fetch: {
-        includeHttpResponseReturnType: false,
+        includeHttpResponseReturnType: true,
         forceSuccessResponse: false,
         runtimeValidation: { enabled: false, strategy: 'throw' },
       },
@@ -338,7 +338,7 @@ describe('generateSharedRequestFunction', () => {
           requestOptions: false,
           formUrlEncoded: false,
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: false, strategy: 'throw' },
             arrayFormat: 'brackets',
@@ -384,7 +384,7 @@ describe('generateSharedRequestFunction', () => {
           requestOptions: false,
           formUrlEncoded: false,
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: false, strategy: 'throw' },
             arrayFormat: 'repeat',
@@ -499,11 +499,13 @@ describe('generateSharedRequestFunction', () => {
 
   it('keeps a path-only URL builder identical to the inline one', () => {
     const verbOptions = makeVerbOptions();
-    const builder = (implementation: string) =>
-      implementation.slice(
-        implementation.indexOf('export const getListPetsUrl'),
-        implementation.indexOf('\n}\n') + 3,
+    const builder = (implementation: string) => {
+      const start = implementation.indexOf('export const getListPetsUrl');
+      return implementation.slice(
+        start,
+        implementation.indexOf('\n}\n', start) + 3,
       );
+    };
 
     const inline = builder(
       generateRequestFunction(verbOptions, makeOptions(makeContext())),
@@ -826,7 +828,7 @@ describe('generateSharedRequestFunction', () => {
         ...(withMutator ? { mutator: mutator() } : {}),
         override: {
           fetch: {
-            includeHttpResponseReturnType: false,
+            includeHttpResponseReturnType: true,
             forceSuccessResponse: false,
             runtimeValidation: { enabled: true, strategy: 'throw' },
           },
@@ -867,21 +869,367 @@ describe('generateSharedRequestFunction', () => {
       );
     });
 
-    it.each([
-      ['without includeZodSchemaInArguments', true, false],
-      ['without a mutator', false, true],
-    ])('passes no schema %s', (_, withMutator, zodSchemaInArguments) => {
+    it('passes no schema without includeZodSchemaInArguments', () => {
       const { imports, implementation } = generateSharedClient(
-        validatedVerbOptions(undefined, withMutator),
-        makeSharedOptions([], { mutator: withMutator, zodSchemaInArguments }),
+        validatedVerbOptions(),
+        makeSharedOptions([], { mutator: true }),
       );
 
       expect(implementation).not.toContain('schema:');
+      expect(implementation).not.toContain('validateResponse:');
       expect(imports).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: 'Pet', values: true }),
         ]),
       );
+    });
+  });
+});
+
+describe('shared runtime options', () => {
+  const response: GeneratorVerbOptions['response'] = {
+    definition: { success: 'Pet', errors: 'Problem' },
+    imports: [{ name: 'Pet' }, { name: 'Problem' }],
+    types: {
+      success: [successType({ key: '200', value: 'Pet', isRef: true })],
+      errors: [successType({ key: '404', value: 'Problem', isRef: true })],
+    },
+    contentTypes: ['application/json'],
+    schemas: [],
+    isBlob: false,
+  };
+  const verbOptions = (
+    fetch: Partial<GeneratorVerbOptions['override']['fetch']> = {},
+    overrides: Parameters<typeof makeVerbOptions>[0] = {},
+  ) =>
+    makeVerbOptions({
+      response,
+      ...overrides,
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: false,
+          serializeResponseHeaders: false,
+          runtimeValidation: { enabled: false, strategy: 'throw' },
+          ...fetch,
+        },
+      },
+    });
+
+  it('narrows to the success responses and throws on the rest', () => {
+    const { imports, implementation } = generateSharedClient(
+      verbOptions({ forceSuccessResponse: true }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'export type listPetsResponseSuccess = ResponseOf<{ 200: Pet; 404: Problem }, Headers, 200>;',
+    );
+    expect(implementation).toContain('execute<listPetsResponseSuccess>');
+    expect(implementation).toContain('throwOnError: true');
+    expect(imports).toEqual(
+      expect.arrayContaining([
+        { name: 'ResponseOf', importPath: '../runtime' },
+      ]),
+    );
+  });
+
+  it('returns the bare data without the response envelope', () => {
+    const { imports, implementation } = generateSharedClient(
+      verbOptions({ includeHttpResponseReturnType: false }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).not.toContain('export type');
+    expect(implementation).toContain('execute<Pet>');
+    expect(implementation).toContain('returnData: true');
+    expect(imports).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'ResponseOf' })]),
+    );
+  });
+
+  it('types and serializes the headers as a plain record', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions({ serializeResponseHeaders: true }),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain(
+      'ResponseOf<{ 200: Pet; 404: Problem }, Record<string, string>>',
+    );
+    expect(implementation).toContain('serializeResponseHeaders: true');
+  });
+
+  it('decodes a download error by its declared media types', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        { forceSuccessResponse: true },
+        {
+          response: {
+            ...response,
+            isBlob: true,
+            contentTypes: ['application/octet-stream', 'text/plain'],
+            types: {
+              success: [
+                successType({
+                  key: '200',
+                  value: 'Blob',
+                  contentType: 'application/octet-stream',
+                }),
+              ],
+              errors: [
+                successType({
+                  key: '404',
+                  value: 'string',
+                  contentType: 'text/plain',
+                }),
+              ],
+            },
+          },
+        },
+      ),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain("responseType: 'blob'");
+    expect(implementation).toContain("errorResponseType: 'text'");
+  });
+
+  it('passes the json reviver', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        {},
+        {
+          fetchReviver: {
+            name: 'reviver',
+            path: './reviver',
+            default: true,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: true,
+            hasThirdArg: false,
+            isHook: false,
+          },
+        },
+      ),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain('reviver: reviver');
+  });
+
+  it.each([
+    ['throw', 'validateResponse: (data) => Pet.parse(data)'],
+    ['both', 'const result = Pet.safeParse(data);'],
+  ] as const)(
+    'validates the response with the %s strategy as the zod output type',
+    (strategy, expected) => {
+      const { imports, implementation } = generateSharedClient(
+        verbOptions({ runtimeValidation: { enabled: true, strategy } }),
+        makeSharedOptions([], { zodSchemaInArguments: true }),
+      );
+
+      expect(implementation).toContain(expected);
+      expect(implementation).toContain('200: PetOutput; 404: Problem');
+      expect(imports).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+          expect.objectContaining({ name: 'PetOutput' }),
+        ]),
+      );
+    },
+  );
+
+  it('hands the error responses to a three-argument mutator', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        { forceSuccessResponse: true, includeHttpErrorResponse: true },
+        {
+          mutator: {
+            name: 'customFetch',
+            path: '../custom-fetch',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: 'ErrorType',
+            hasSecondArg: true,
+            hasThirdArg: true,
+            isHook: false,
+          },
+        },
+      ),
+      makeSharedOptions([], { mutator: true }),
+    );
+
+    expect(implementation).toContain('errorResponses: [');
+    // The mutator issues the request itself, so the runtime-only options stay out.
+    expect(implementation).not.toContain('throwOnError');
+  });
+
+  describe('execute', () => {
+    type Execute = (
+      args: Record<string, unknown>,
+      config?: { mutator: (...args: unknown[]) => Promise<unknown> },
+    ) => Promise<unknown>;
+    const execute: Execute = (args, config) => {
+      const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.CommonJS,
+        },
+      });
+      const exports: { execute: Execute } = {
+        execute: () => Promise.reject(new Error('runtime not loaded')),
+      };
+      runInNewContext(outputText, {
+        exports,
+        URLSearchParams,
+        Date,
+        Headers,
+        Response,
+        JSON,
+        Object,
+        Symbol,
+        Array,
+        globalThis: { Error },
+      });
+      return exports.execute(args, config);
+    };
+    const respond =
+      (body: string, status = 200, contentType = 'application/json') =>
+      () =>
+        Promise.resolve(
+          new Response(body, {
+            status,
+            headers: { 'content-type': contentType, 'set-cookie': 'a=b' },
+          }),
+        );
+    const call = (
+      args: Record<string, unknown>,
+      body: string,
+      status?: number,
+      contentType?: string,
+    ) =>
+      execute({
+        url: '/pets',
+        method: 'GET',
+        ...args,
+        options: { fetch: respond(body, status, contentType) },
+      });
+
+    it('revives a JSON body and deserializes its dates', async () => {
+      const result = await call(
+        {
+          reviver: (key: string, value: unknown) =>
+            key === 'n' ? Number(value) : value,
+          deserializeResponseDates: (data: { n: number }, status: number) => ({
+            ...data,
+            status,
+          }),
+          returnData: true,
+        },
+        '{"n":"1"}',
+      );
+
+      expect(result).toEqual({ n: 1, status: 200 });
+    });
+
+    it('leaves the dates of a text body alone', async () => {
+      const result = await call(
+        {
+          responseType: 'text',
+          deserializeResponseDates: () => 'x',
+          returnData: true,
+        },
+        'plain',
+        200,
+        'text/plain',
+      );
+
+      expect(result).toBe('plain');
+    });
+
+    it('validates only a response declared as JSON, as inline does', async () => {
+      const validateResponse = (data: unknown) => ({ validated: data });
+      const deserializeResponseDates = () => 'deserialized';
+
+      // No Content-Type: inline neither parses nor validates the body.
+      expect(
+        await call({ validateResponse, returnData: true }, '{"n":1}', 200, ''),
+      ).toBe('{"n":1}');
+      // An empty JSON body is validated as `{}`, but not converted.
+      expect(
+        await call(
+          { validateResponse, deserializeResponseDates, returnData: true },
+          '',
+        ),
+      ).toEqual({ validated: {} });
+      expect(
+        await call(
+          { validateResponse, deserializeResponseDates, returnData: true },
+          '{"n":1}',
+        ),
+      ).toEqual({ validated: 'deserialized' });
+    });
+
+    it.each([
+      [undefined, 'application/problem+json', { title: 'nope' }],
+      ['auto', 'application/problem+json', { title: 'nope' }],
+      ['auto', 'text/plain', '{"title":"nope"}'],
+      ['text', 'application/problem+json', '{"title":"nope"}'],
+    ])(
+      'decodes a download error (errorResponseType %s, %s) apart from the blob',
+      async (errorResponseType, contentType, info) => {
+        const failure = await call(
+          { responseType: 'blob', throwOnError: true, errorResponseType },
+          '{"title":"nope"}',
+          404,
+          contentType,
+        ).catch((error: unknown) => error);
+
+        expect(failure).toMatchObject({ info, status: 404 });
+      },
+    );
+
+    it('throws the decoded error body without deserializing or validating it', async () => {
+      const failure = await call(
+        {
+          throwOnError: true,
+          deserializeResponseDates: () => 'x',
+          validateResponse: () => 'x',
+        },
+        '{"title":"nope"}',
+        404,
+      ).catch((error: unknown) => error);
+
+      expect(failure).toMatchObject({ info: { title: 'nope' }, status: 404 });
+    });
+
+    it('serializes the headers without set-cookie', async () => {
+      const result = await call({ serializeResponseHeaders: true }, '{}');
+
+      expect(result).toMatchObject({
+        headers: { 'content-type': 'application/json' },
+      });
+      expect((result as { headers: object }).headers).not.toHaveProperty(
+        'set-cookie',
+      );
+    });
+
+    it('always hands the mutator the error responses', async () => {
+      const calls: unknown[][] = [];
+      const mutator = (...args: unknown[]) => {
+        calls.push(args);
+        return Promise.resolve(undefined);
+      };
+      const errorResponses = [{ status: 404, contentType: '' }];
+
+      await execute({ url: '/a', method: 'GET' }, { mutator });
+      await execute({ url: '/b', method: 'GET', errorResponses }, { mutator });
+
+      expect(calls.map((args) => args[2])).toEqual([
+        { errorResponses: [] },
+        { errorResponses },
+      ]);
     });
   });
 });
@@ -931,6 +1279,8 @@ void resultIsAny;
     {
       includeHttpResponseReturnType = false,
       hasSecondArg = true,
+      hasThirdArg = false,
+      includeHttpErrorResponse = false,
       mutatorName = 'customFetch',
       omitMutatorName = false,
     } = {},
@@ -944,7 +1294,7 @@ void resultIsAny;
       hasErrorType: false,
       errorTypeName: 'ErrorType',
       hasSecondArg,
-      hasThirdArg: false,
+      hasThirdArg,
       isHook: false,
     };
     options.context.output.override.mutator = {
@@ -956,7 +1306,15 @@ void resultIsAny;
     const verbOptions = makeVerbOptions({
       mutator,
       verb: Verbs.POST,
-      override: { fetch: { includeHttpResponseReturnType } },
+      override: {
+        fetch: includeHttpErrorResponse
+          ? {
+              includeHttpResponseReturnType: true,
+              forceSuccessResponse: true,
+              includeHttpErrorResponse,
+            }
+          : { includeHttpResponseReturnType },
+      },
       body: {
         definition: 'Pet',
         implementation: 'pet',
@@ -977,7 +1335,20 @@ void resultIsAny;
         contentTypes: ['application/json'],
         types: {
           success: [successType({ key: '200', value: 'Pet[]' })],
+          errors: includeHttpErrorResponse
+            ? [successType({ key: '404', value: 'unknown' })]
+            : [],
         },
+        ...(includeHttpErrorResponse
+          ? {
+              originalSchema: {
+                404: {
+                  description: 'Not found',
+                  content: { 'application/json': { schema: {} } },
+                },
+              },
+            }
+          : {}),
       },
     });
     const client = generateSharedClient(verbOptions, options);
@@ -1140,14 +1511,14 @@ export const customFetch = async <T>(url: string, options: RequestInit & { baseU
 };
 `;
       files['/proj/src/consumer.ts'] = `
-import { listPets, type listPetsResponse } from './api/endpoints';
+import { listPets${includeHttpResponseReturnType ? ', type listPetsResponse' : ''} } from './api/endpoints';
 import type { Envelope } from './custom-fetch';
 type Pet = { id: number; name: string };
 const request = listPets({ id: 1, name: 'Pet' }, { baseUrl: 'https://api.test' });
 const expected: Promise<Envelope<${includeHttpResponseReturnType ? 'listPetsResponse' : 'Pet[]'}>> = request;
 const sameType: typeof request = expected;
 // @ts-expect-error the envelope's body follows includeHttpResponseReturnType
-const otherMode: Promise<Envelope<${includeHttpResponseReturnType ? 'Pet[]' : 'listPetsResponse'}>> = request;
+const otherMode: Promise<Envelope<${includeHttpResponseReturnType ? 'Pet[]' : '{ data: Pet[]; status: number }'}>> = request;
 void sameType;
 void otherMode;
 ${assertNotAny}
@@ -1249,6 +1620,43 @@ void dataIsAny;
     },
   );
 
+  it.each([
+    ['a readonly', 'readonly '],
+    ['a mutable', ''],
+  ])(
+    'hands the error responses to a three-argument inferred mutator taking %s array',
+    async (_, modifier) => {
+      const { client, files } = await generateClient(false, {
+        hasThirdArg: true,
+        includeHttpErrorResponse: true,
+      });
+      files['/proj/src/custom-fetch.ts'] = `
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit,
+  meta: { errorResponses: ${modifier}{ status: number; contentType: string }[] },
+): Promise<T> => {
+  void meta;
+  return (await fetch(url, options)).json() as Promise<T>;
+};
+`;
+
+      expect(client.implementation).toContain(
+        'errorResponses: [{"status":404,"contentType":"application/json"}]',
+      );
+      expect(files['/proj/src/api/client-config.ts']).toContain(
+        'fetcher(args.url, mutatorOptions, { errorResponses: args.errorResponses ?? [] })',
+      );
+      expect(
+        typeCheckFiles(files, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+    },
+  );
+
   it.each([false, true])(
     'passes request options through and preserves an asynchronous=%s result',
     async (asynchronous) => {
@@ -1340,6 +1748,7 @@ declare class Headers implements Iterable<[string, string]> {
 }
 declare class Blob {}
 declare class Response {
+  readonly ok: boolean;
   readonly status: number;
   readonly headers: Headers;
   text(): Promise<string>;
@@ -1358,13 +1767,17 @@ declare class URLSearchParams {
 }
 `;
 
-  const typeCheck = (mutatorOptionsType: string, inferred = false) => {
+  const typeCheck = (
+    mutatorOptionsType: string,
+    inferred = false,
+    extraParameters = '',
+  ) => {
     const files: Record<string, string> = {
       '/proj/globals.d.ts': FETCH_GLOBALS,
       '/proj/runtime.ts': RUNTIME_TEMPLATE,
       '/proj/custom-fetch.ts': `export const customFetch = async <T>(
   url: string,
-  options: ${mutatorOptionsType},
+  options: ${mutatorOptionsType},${extraParameters}
 ): Promise<T> => {
   return (await fetch(url, options)).json() as Promise<T>;
 };
@@ -1392,6 +1805,22 @@ execute({ url: '/pets', method: 'GET' }, customFetchFetcher<object>);
   ])('compiles without the DOM lib for a mutator taking %s', (optionsType) => {
     expect(typeCheck(optionsType)).toEqual([]);
   });
+
+  it.each([
+    ['a readonly', 'readonly '],
+    ['a mutable', ''],
+  ])(
+    'compiles for a mutator taking the error responses as %s array',
+    (_, modifier) => {
+      expect(
+        typeCheck(
+          'RequestInit',
+          false,
+          `\n  meta: { errorResponses: ${modifier}{ status: number; contentType: string }[] },`,
+        ),
+      ).toEqual([]);
+    },
+  );
 
   // Operations without a validated response pass no schema, so a mutator
   // requiring one would receive `undefined` at runtime.
