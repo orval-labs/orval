@@ -38,7 +38,10 @@ export const createSplitModeBuilder = (target: string): WriteSpecBuilder =>
     operations: { listPets: createSplitModeOperation() },
     verbOptions: {},
     schemas: [],
-    title: async () => ({ implementation: '', implementationMock: '' }),
+    title: async ({ title }) => ({
+      implementation: '',
+      implementationMock: `get${title}Mock`,
+    }),
     header: async () => ({ implementation: '', implementationMock: '' }),
     footer: async () => ({ implementation: '', implementationMock: '' }),
     imports: async () => '',
