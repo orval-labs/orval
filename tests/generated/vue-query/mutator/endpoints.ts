@@ -119,7 +119,7 @@ export const getListPetsInfiniteQueryOptions = <
     TData,
     QueryKey,
     ListPetsParams['limit']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ListPetsInfiniteQueryResult = NonNullable<
@@ -127,10 +127,7 @@ export type ListPetsInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsInfiniteQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
@@ -162,7 +159,13 @@ export function useListPetsInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData,
+      QueryKey,
+      ListPetsParams['limit']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -204,7 +207,9 @@ export const getListPetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -212,10 +217,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
@@ -233,10 +235,16 @@ export function useListPets<
 } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -313,7 +321,11 @@ export const getCreatePetsQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof createPets>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type CreatePetsQueryResult = NonNullable<
@@ -321,10 +333,7 @@ export type CreatePetsQueryResult = NonNullable<
 >;
 export type CreatePetsQueryError = Error;
 
-/**
- * @summary Create a pet
- */
-
+/** @summary Create a pet */
 export function useCreatePets<
   TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
@@ -348,10 +357,16 @@ export function useCreatePets<
     options,
   );
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -418,7 +433,11 @@ export const getShowPetByIdQueryOptions = <
         toValue(petId) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -426,10 +445,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -447,10 +463,16 @@ export function useShowPetById<
 } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -521,7 +543,7 @@ export const getDeletePetByIdQueryOptions = <
     Awaited<ReturnType<typeof deletePetById>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type DeletePetByIdQueryResult = NonNullable<
@@ -529,10 +551,7 @@ export type DeletePetByIdQueryResult = NonNullable<
 >;
 export type DeletePetByIdQueryError = Error;
 
-/**
- * @summary Deletes a specific pet
- */
-
+/** @summary Deletes a specific pet */
 export function useDeletePetById<
   TData = Awaited<ReturnType<typeof deletePetById>>,
   TError = Error,
@@ -550,10 +569,16 @@ export function useDeletePetById<
 } {
   const queryOptions = getDeletePetByIdQueryOptions(petId, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof deletePetById>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -612,7 +637,11 @@ export const getHealthCheckQueryOptions = <
       () => toValue(version) !== null && toValue(version) !== undefined,
     ),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type HealthCheckQueryResult = NonNullable<
@@ -620,10 +649,7 @@ export type HealthCheckQueryResult = NonNullable<
 >;
 export type HealthCheckQueryError = Error;
 
-/**
- * @summary health check
- */
-
+/** @summary health check */
 export function useHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
@@ -640,10 +666,16 @@ export function useHealthCheck<
 } {
   const queryOptions = getHealthCheckQueryOptions(version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof healthCheck>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,
@@ -718,7 +750,7 @@ export const getShowPetWithOwnerQueryOptions = <
     Awaited<ReturnType<typeof showPetWithOwner>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type ShowPetWithOwnerQueryResult = NonNullable<
@@ -726,10 +758,7 @@ export type ShowPetWithOwnerQueryResult = NonNullable<
 >;
 export type ShowPetWithOwnerQueryError = Error;
 
-/**
- * @summary combinate nullable and $ref
- */
-
+/** @summary combinate nullable and $ref */
 export function useShowPetWithOwner<
   TData = Awaited<ReturnType<typeof showPetWithOwner>>,
   TError = Error,
@@ -751,10 +780,16 @@ export function useShowPetWithOwner<
 } {
   const queryOptions = getShowPetWithOwnerQueryOptions(petId, version, options);
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof showPetWithOwner>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

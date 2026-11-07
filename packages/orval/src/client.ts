@@ -21,6 +21,7 @@ import {
   generateDependencyImports,
   getBaseUrlRuntimeImports,
   getFormatTypeFunctionImports,
+  getStandardSchemaHelper,
   isFunction,
   OutputClient,
   OutputMockType,
@@ -43,6 +44,7 @@ const GENERATOR_LOADERS: Record<string, () => Promise<GeneratorModule>> = {
   'pinia-colada': () => import('@orval/pinia-colada'),
   zod: () => import('@orval/zod'),
   effect: () => import('@orval/effect'),
+  valibot: () => import('@orval/valibot'),
   hono: () => import('@orval/hono'),
   fetch: () => import('@orval/fetch'),
   mcp: () => import('@orval/mcp'),
@@ -180,6 +182,7 @@ const createGeneratorClient = (
     case OutputClient.SWR:
     case OutputClient.ZOD:
     case OutputClient.EFFECT:
+    case OutputClient.VALIBOT:
     case OutputClient.HONO:
     case OutputClient.FETCH:
     case OutputClient.MCP:
@@ -292,6 +295,11 @@ export const getGeneratorClient = async (
         output,
         modules.effect,
       ),
+      valibot: createGeneratorClient(
+        OutputClient.VALIBOT,
+        output,
+        modules.valibot,
+      ),
       hono: createGeneratorClient(OutputClient.HONO, output, modules.hono),
       fetch: createGeneratorClient(OutputClient.FETCH, output, modules.fetch),
       mcp: createGeneratorClient(OutputClient.MCP, output, modules.mcp),
@@ -381,8 +389,16 @@ export const generateClientHeader: GeneratorClientHeader = async ({
   const normalizedHeader =
     typeof rawHeader === 'string' ? { implementation: rawHeader } : rawHeader;
 
+  // The helper is declared once, ahead of the header, whenever the header or
+  // the generated operations call it, whichever client emitted the call.
+  const standardSchemaHelper = getStandardSchemaHelper(
+    normalizedHeader.implementation + clientImplementation,
+  );
+
   return {
-    implementation: normalizedHeader.implementation,
+    implementation: standardSchemaHelper
+      ? `${standardSchemaHelper}\n${normalizedHeader.implementation}`
+      : normalizedHeader.implementation,
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
     sharedTypes: normalizedHeader.sharedTypes,
     sharedExports: normalizedHeader.sharedExports,

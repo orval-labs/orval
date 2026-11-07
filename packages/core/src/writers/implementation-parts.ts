@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateMutatorImports } from '../generators';
+import { filterUsedMutators, generateMutatorImports } from '../generators';
 import type {
   GeneratorDependency,
   GeneratorImport,
@@ -81,8 +81,13 @@ export interface TargetMutators {
 
 /**
  * Import statements for every mutator kind a target carries, in the order
- * the generated file declares them. Only the plain `mutators` are matched
- * against `implementation`; the other kinds are always imported.
+ * the generated file declares them. A configured `paramsSerializer`,
+ * `paramsFilter`, `formData`, `formUrlEncoded` or `fetch.jsonReviver` is
+ * attached to every operation, so those kinds are matched against
+ * `implementation` and a file whose operations never call one does not
+ * import it. Client mutators are always imported: a client may call them
+ * from code outside `implementation`, as the zod client does for its params
+ * mutator in inline component schemas.
  */
 export function generateTargetMutatorImports(
   target: TargetMutators,
@@ -99,17 +104,26 @@ export function generateTargetMutatorImports(
     });
   }
 
-  for (const mutators of [
-    target.clientMutators,
+  if (target.clientMutators) {
+    data += generateMutatorImports({
+      mutators: target.clientMutators,
+      oneMore,
+    });
+  }
+
+  const optionalMutators = [
     target.formData,
     target.formUrlEncoded,
     target.paramsSerializer,
     target.paramsFilter,
     target.fetchReviver,
-  ]) {
-    if (mutators) {
-      data += generateMutatorImports({ mutators, oneMore });
-    }
+  ].flatMap((mutators) => mutators ?? []);
+
+  if (optionalMutators.length > 0) {
+    data += generateMutatorImports({
+      mutators: filterUsedMutators(optionalMutators, implementation),
+      oneMore,
+    });
   }
 
   return data;

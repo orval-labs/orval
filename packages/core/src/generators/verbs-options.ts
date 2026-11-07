@@ -294,6 +294,7 @@ async function buildVerbOption({
     route,
     pathRoute,
     summary,
+    description,
     operationId,
     operationName,
     ...(methodName && methodName !== operationName ? { methodName } : {}),

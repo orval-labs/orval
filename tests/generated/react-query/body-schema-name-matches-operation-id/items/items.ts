@@ -194,7 +194,6 @@ export function useCreateItem<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useCreateItem<
   TData = Awaited<ReturnType<typeof createItem>>,
   TError = unknown,
@@ -356,7 +355,6 @@ export function useUploadItem<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useUploadItem<
   TData = Awaited<ReturnType<typeof uploadItem>>,
   TError = unknown,

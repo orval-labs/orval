@@ -251,7 +251,6 @@ export function useGetPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useGetPets<
   TData = Awaited<ReturnType<typeof getPets>>,
   TError = unknown,

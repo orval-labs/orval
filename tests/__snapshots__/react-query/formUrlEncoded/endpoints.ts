@@ -85,9 +85,7 @@ export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
 export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -171,9 +169,7 @@ export type UploadPetContentMutationBody = UploadPetContentBody;
 export type UploadPetContentMutationError = Error;
 export type UploadPetContentMutationVariables = { data: UploadPetContentBody };
 
-/**
- * @summary Upload pet content as url-encoded form
- */
+/** @summary Upload pet content as url-encoded form */
 export const useUploadPetContent = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -259,9 +255,7 @@ export type UploadPetContentRefMutationVariables = {
   data: UploadPetContentRefBody;
 };
 
-/**
- * @summary Upload pet content using a $ref to a binary component schema
- */
+/** @summary Upload pet content using a $ref to a binary component schema */
 export const useUploadPetContentRef = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<

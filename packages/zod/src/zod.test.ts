@@ -6467,13 +6467,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      // default emits a const + a .default(<constName>) call. Match shape, not exact const.
+      // Composite defaults keep their contextual type from the referenced schema.
       expect(result.functions[0]).toEqual([
         'namedRef',
         { name: 'Pet', sourceRef: '#/components/schemas/Pet' },
       ]);
       expect(result.functions.at(-1)?.[0]).toBe('default');
-      expect(result.consts.some((c) => c.includes('Default'))).toBe(true);
+      expect(result.consts).toEqual([]);
     });
 
     it('emits empty-object values in a $ref default as `{}` (#4244)', () => {
@@ -6491,8 +6491,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         { required: true, useReusableSchemas: true },
       );
-      expect(result.consts).toEqual([
-        'export const parametersStateDefault = { items: {}, };',
+      expect(result.consts).toEqual([]);
+      expect(result.functions.at(-1)).toEqual([
+        'default',
+        '{ ...{ items: {}, } }',
       ]);
     });
 
@@ -14417,7 +14419,7 @@ describe('exactOptional (opt-in)', () => {
     );
   });
 
-  it('narrows only optional, leaving .nullish() untouched', () => {
+  describe('optional nullable properties', () => {
     const nullishString: ZodValidationSchemaDefinition = {
       functions: [
         ['string', undefined],
@@ -14425,9 +14427,27 @@ describe('exactOptional (opt-in)', () => {
       ],
       consts: [],
     };
-    expect(parse(nullishString, { exactOptional: true })).toBe(
-      'zod.string().nullish()',
-    );
+
+    it('emits .nullable().exactOptional() on zod v4 classic when enabled', () => {
+      expect(parse(nullishString, { exactOptional: true })).toBe(
+        'zod.string().nullable().exactOptional()',
+      );
+    });
+
+    it('emits zod.exactOptional(zod.nullable()) on zod mini when enabled', () => {
+      expect(
+        parse(nullishString, { variant: 'mini', exactOptional: true }),
+      ).toBe(
+        '/*#__PURE__*/ zod.exactOptional(/*#__PURE__*/ zod.nullable(/*#__PURE__*/ zod.string()))',
+      );
+    });
+
+    it('keeps .nullish() by default and on zod v3', () => {
+      expect(parse(nullishString)).toBe('zod.string().nullish()');
+      expect(
+        parse(nullishString, { isZodV4: false, exactOptional: true }),
+      ).toBe('zod.string().nullish()');
+    });
   });
 });
 

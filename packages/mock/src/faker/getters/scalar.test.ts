@@ -944,7 +944,7 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
   });
 
   describe('OpenAPI 3.1 (numeric exclusiveMinimum/exclusiveMaximum)', () => {
-    it('should use exclusiveMinimum value directly for integer type', () => {
+    it('should start an integer past exclusiveMinimum', () => {
       const result = getScalar({
         ...baseArg,
         item: {
@@ -954,10 +954,10 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
         },
       });
 
-      expect(result.value).toBe('faker.number.int({min: 5})');
+      expect(result.value).toBe('faker.number.int({min: 6})');
     });
 
-    it('should use exclusiveMaximum value directly for integer type', () => {
+    it('should end an integer before exclusiveMaximum', () => {
       const result = getScalar({
         ...baseArg,
         item: {
@@ -967,7 +967,21 @@ describe('getMockScalar (exclusiveMinimum/exclusiveMaximum handling)', () => {
         },
       });
 
-      expect(result.value).toBe('faker.number.int({max: 100})');
+      expect(result.value).toBe('faker.number.int({max: 99})');
+    });
+
+    it('should keep an integer inside fractional exclusive bounds', () => {
+      const result = getScalar({
+        ...baseArg,
+        item: {
+          type: 'integer' as const,
+          exclusiveMinimum: 0.5,
+          exclusiveMaximum: 3.5,
+          name: 'test-item',
+        },
+      });
+
+      expect(result.value).toBe('faker.number.int({min: 1, max: 3})');
     });
 
     it('should use exclusiveMinimum and exclusiveMaximum values directly for number type', () => {
@@ -1757,7 +1771,7 @@ describe('getMockScalar (non-finite numeric constraints)', () => {
       context: scalarContext(),
     });
 
-    expect(result.value).toBe('faker.number.int({min: 1, max: 9})');
+    expect(result.value).toBe('faker.number.int({min: 2, max: 8})');
   });
 });
 

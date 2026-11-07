@@ -148,6 +148,23 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
       exactOptional: false,
       version: 'auto',
     },
+    valibot: {
+      strict: {
+        param: false,
+        query: false,
+        header: false,
+        body: false,
+        response: false,
+      },
+      generate: {
+        param: true,
+        query: true,
+        header: true,
+        body: true,
+        response: true,
+      },
+      exactOptional: false,
+    },
     axios: {
       includeHttpResponseReturnType: false,
     },

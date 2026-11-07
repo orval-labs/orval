@@ -184,10 +184,7 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = Error;
 
-/**
- * @summary List all pets
- */
-
+/** @summary List all pets */
 export function useListPets<
   TData = Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
   TError = Error,
@@ -331,9 +328,7 @@ export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
 export type CreatePetsMutationVariables = { data: CreatePetsBody };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
@@ -455,10 +450,7 @@ export type ListPetsNestedArrayQueryResult = NonNullable<
 >;
 export type ListPetsNestedArrayQueryError = Error;
 
-/**
- * @summary List all pets as nested array
- */
-
+/** @summary List all pets as nested array */
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
   TError = Error,
@@ -571,10 +563,7 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = Error;
 
-/**
- * @summary Info for a specific pet
- */
-
+/** @summary Info for a specific pet */
 export function useShowPetById<
   TData = Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
   TError = Error,

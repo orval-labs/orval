@@ -1034,7 +1034,7 @@ showPetByIdResource(
 - JSON `httpResource` retrievals with model response types
 
 **Validation is skipped for:**
-- Primitive types (`string`, `number`, `boolean`, `void`, `unknown`)
+- `void` and `unknown` responses
 - Custom mutator paths
 - Non-JSON content types (text, blob, arrayBuffer)
 
@@ -1088,6 +1088,8 @@ renames. Orval logs a warning for that operation and sends the body exactly as
 passed, without validation, defaults or transforms. See
 [`runtimeValidation.requestBodies`](/docs/reference/configuration/output#requestbodies)
 for the details.
+
+Add `standardSchema: true` to the same object to validate through Standard Schema; see [`standardSchema`](/docs/reference/configuration/output#standardschema).
 
 Without the option, validate before calling the generated client:
 

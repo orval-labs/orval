@@ -249,9 +249,7 @@ export type CreatePetsMutationVariables = {
   params: CreatePetsParams;
 };
 
-/**
- * @summary Create a pet
- */
+/** @summary Create a pet */
 export const useCreatePets = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
@@ -415,9 +413,7 @@ export type DeletePetByIdMutationResult = NonNullable<
 export type DeletePetByIdMutationError = Error;
 export type DeletePetByIdMutationVariables = { petId: string };
 
-/**
- * @summary Deletes a specific pet
- */
+/** @summary Deletes a specific pet */
 export const useDeletePetById = <TError = Error, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<

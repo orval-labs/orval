@@ -35,6 +35,7 @@
 - [Hono](https://hono.dev/)
 - [zod](https://zod.dev/)
 - [Effect](https://effect.website/)
+- [Valibot](https://valibot.dev/)
 - [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
 - [mcp](https://modelcontextprotocol.io/introduction)
 

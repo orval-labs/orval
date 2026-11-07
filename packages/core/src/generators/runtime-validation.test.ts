@@ -1,6 +1,8 @@
+import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import type { OpenApiSchemaObject } from '../types';
+import { mergeDeep } from '../utils/merge-deep';
 import {
   emitRequestBodyValidation,
   emitResponseValidation,
@@ -13,6 +15,7 @@ import {
   normalizeRuntimeValidation,
   rewriteImportsForResponseValidation,
 } from './runtime-validation';
+import { getStandardSchemaHelper } from './standard-schema-helper';
 
 describe('isPrimitiveResponseSchema', () => {
   it.each<OpenApiSchemaObject>([
@@ -383,5 +386,305 @@ describe('rewriteImportsForResponseValidation', () => {
     const before = structuredClone(imports);
     rewriteImportsForResponseValidation(imports, 'Pets');
     expect(imports).toEqual(before);
+  });
+});
+
+describe('standardSchema', () => {
+  it('emits orvalParseStandardSchema for throw and orvalSafeParseStandardSchema for both', () => {
+    const base = {
+      schemaRef: 'Pets',
+      operationName: 'listPets',
+      context: 'fetch-assign' as const,
+      inputExpression: 'parsedBody',
+      standardSchema: true,
+    };
+    expect(emitResponseValidation({ ...base, strategy: 'throw' })).toBe(
+      'orvalParseStandardSchema(Pets, parsedBody)',
+    );
+    expect(emitResponseValidation({ ...base, strategy: 'both' })).toContain(
+      'orvalSafeParseStandardSchema(Pets, parsedBody)',
+    );
+  });
+
+  it('keeps the zod emission when the flag is off', () => {
+    expect(
+      emitResponseValidation({
+        schemaRef: 'Pets',
+        operationName: 'listPets',
+        strategy: 'throw',
+        context: 'fetch-assign',
+        inputExpression: 'parsedBody',
+      }),
+    ).toBe('Pets.parse(parsedBody)');
+  });
+
+  it('normalizes the flag only when set', () => {
+    expect(normalizeRuntimeValidation({ strategy: 'throw' })).toEqual({
+      enabled: true,
+      strategy: 'throw',
+    });
+    expect(
+      normalizeRuntimeValidation({ strategy: 'throw', standardSchema: true }),
+    ).toEqual({ enabled: true, strategy: 'throw', standardSchema: true });
+  });
+
+  it('declares only the helpers a file calls', () => {
+    expect(getStandardSchemaHelper('Pets.parse(x)')).toBe('');
+    const both = getStandardSchemaHelper('orvalSafeParseStandardSchema(P, x)');
+    expect(both).toContain('function orvalSafeParseStandardSchema');
+    expect(both).not.toContain('function orvalParseStandardSchema');
+    expect(getStandardSchemaHelper('orvalParseStandardSchema(P, x)')).toContain(
+      'function orvalParseStandardSchema',
+    );
+  });
+});
+
+describe('standardSchema request bodies', () => {
+  const base = {
+    schemaRef: 'CreatePetsBody',
+    operationName: 'createPets',
+    inputExpression: 'createPetsBody',
+    standardSchema: true,
+  };
+
+  it('emits the throwing helper for the throw strategy', () => {
+    expect(emitRequestBodyValidation({ ...base, strategy: 'throw' })).toBe(
+      'orvalParseStandardSchema(CreatePetsBody, createPetsBody)',
+    );
+  });
+
+  it('IIFE-wraps the safe helper for the both strategy', () => {
+    expect(emitRequestBodyValidation({ ...base, strategy: 'both' })).toBe(
+      "(() => { const result = orvalSafeParseStandardSchema(CreatePetsBody, createPetsBody); if (!result.success) { console.error('[orval] createPets request body validation failed', result.error); throw result.error; } return result.data; })()",
+    );
+  });
+
+  it('passes an omitted optional body through', () => {
+    expect(
+      emitRequestBodyValidation({
+        ...base,
+        strategy: 'throw',
+        isOptional: true,
+      }),
+    ).toBe(
+      'createPetsBody === undefined ? undefined : orvalParseStandardSchema(CreatePetsBody, createPetsBody)',
+    );
+  });
+});
+
+describe('standardSchema contexts', () => {
+  const base = {
+    schemaRef: 'Pets',
+    operationName: 'listPets',
+    standardSchema: true,
+  };
+
+  it('uses the helper inside rxjs-map', () => {
+    expect(
+      emitResponseValidation({
+        ...base,
+        strategy: 'throw',
+        context: 'rxjs-map',
+      }),
+    ).toBe('.pipe(map(data => orvalParseStandardSchema(Pets, data)))');
+  });
+
+  it('wraps parse-fn in an arrow instead of a bare reference', () => {
+    expect(
+      emitResponseValidation({
+        ...base,
+        strategy: 'throw',
+        context: 'parse-fn',
+      }),
+    ).toBe('(raw: unknown) => orvalParseStandardSchema(Pets, raw)');
+  });
+
+  it('uses the safe helper in the both guard', () => {
+    expect(
+      emitResponseValidation({
+        ...base,
+        strategy: 'both',
+        context: 'parse-fn',
+      }),
+    ).toContain('orvalSafeParseStandardSchema(Pets, raw)');
+  });
+
+  it('annotates the parse-fn parameter so it typechecks without context', () => {
+    expect(
+      emitResponseValidation({
+        ...base,
+        strategy: 'both',
+        context: 'parse-fn',
+      }),
+    ).toMatch(/^\(raw: unknown\) => \{/);
+  });
+});
+
+describe('normalizeAngularRuntimeValidation standardSchema', () => {
+  it('keeps the flag next to requestBodies', () => {
+    expect(
+      normalizeAngularRuntimeValidation({
+        strategy: 'both',
+        requestBodies: true,
+        standardSchema: true,
+      }),
+    ).toEqual({
+      enabled: true,
+      strategy: 'both',
+      standardSchema: true,
+      requestBodies: true,
+    });
+  });
+
+  it('omits the flag by default', () => {
+    expect(normalizeAngularRuntimeValidation({ strategy: 'throw' })).toEqual({
+      enabled: true,
+      strategy: 'throw',
+      requestBodies: false,
+    });
+  });
+});
+
+describe('standardSchema parse-fn with a composed schema', () => {
+  it('binds the schema once instead of rebuilding it per response', () => {
+    const snippet = emitResponseValidation({
+      schemaRef: 'zod.array(Item)',
+      operationName: 'listItems',
+      strategy: 'throw',
+      context: 'parse-fn',
+      standardSchema: true,
+    });
+
+    expect(snippet).toBe(
+      '((schema) => (raw: unknown) => orvalParseStandardSchema(schema, raw))(zod.array(Item))',
+    );
+  });
+
+  it('keeps the plain arrow for a named schema', () => {
+    expect(
+      emitResponseValidation({
+        schemaRef: 'Pet',
+        operationName: 'getPet',
+        strategy: 'throw',
+        context: 'parse-fn',
+        standardSchema: true,
+      }),
+    ).toBe('(raw: unknown) => orvalParseStandardSchema(Pet, raw)');
+  });
+});
+
+describe('getStandardSchemaHelper detection', () => {
+  it('ignores a call quoted in a JSDoc description', () => {
+    expect(
+      getStandardSchemaHelper(
+        '/**\n * Use orvalParseStandardSchema(Pets, value) here\n */\nexport const listPets = () => 1;',
+      ),
+    ).toBe('');
+  });
+
+  it('still finds a call after a JSDoc block', () => {
+    expect(
+      getStandardSchemaHelper(
+        '/** doc */\nconst x = orvalParseStandardSchema(P, y);',
+      ),
+    ).toContain('function orvalParseStandardSchema');
+  });
+
+  it('keeps a call that follows a string literal containing a comment opener', () => {
+    expect(
+      getStandardSchemaHelper(
+        "const re = '/api/**'; foo(orvalParseStandardSchema(Pets, x));\n/** doc */",
+      ),
+    ).toContain('function orvalParseStandardSchema');
+  });
+
+  it('ignores a longer identifier that ends in a helper name', () => {
+    expect(getStandardSchemaHelper('myorvalParseStandardSchema(P, x)')).toBe(
+      '',
+    );
+  });
+});
+
+describe('getStandardSchemaHelper output', () => {
+  it('declares each helper once and types them without casts', () => {
+    const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
+    expect(helper.match(/function orvalSafeParseStandardSchema/g)).toHaveLength(
+      1,
+    );
+    expect(helper.match(/function orvalParseStandardSchema/g)).toHaveLength(1);
+    expect(helper).not.toContain(' as ');
+  });
+});
+
+describe('standardSchema override merging', () => {
+  it('keeps an explicit false and leaves an absent flag absent', () => {
+    expect(
+      normalizeRuntimeValidation({ strategy: 'throw', standardSchema: false }),
+    ).toEqual({ enabled: true, strategy: 'throw', standardSchema: false });
+    expect(normalizeRuntimeValidation({})).toEqual({
+      enabled: true,
+      strategy: 'throw',
+    });
+    expect(
+      normalizeAngularRuntimeValidation({ standardSchema: false }),
+    ).toEqual({
+      enabled: true,
+      strategy: 'throw',
+      standardSchema: false,
+      requestBodies: false,
+    });
+  });
+
+  it('lets a tag override switch off a global true through mergeDeep', () => {
+    const global = {
+      runtimeValidation: normalizeRuntimeValidation({
+        strategy: 'throw',
+        standardSchema: true,
+      }),
+    };
+    const tag = {
+      runtimeValidation: normalizeRuntimeValidation({
+        standardSchema: false,
+      }),
+    };
+
+    expect(mergeDeep(global, tag).runtimeValidation.standardSchema).toBe(false);
+  });
+
+  it('inherits the global flag when the override does not mention it', () => {
+    const global = {
+      runtimeValidation: normalizeRuntimeValidation({ standardSchema: true }),
+    };
+    const tag = {
+      runtimeValidation: normalizeRuntimeValidation({ strategy: 'both' }),
+    };
+
+    expect(mergeDeep(global, tag).runtimeValidation).toEqual({
+      enabled: true,
+      strategy: 'both',
+      standardSchema: true,
+    });
+  });
+});
+
+describe('standard schema helper source', () => {
+  const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
+
+  it('parses as .tsx, where arrow generics do not', () => {
+    const { diagnostics } = ts.transpileModule(helper, {
+      fileName: 'helper.tsx',
+      reportDiagnostics: true,
+      compilerOptions: { jsx: ts.JsxEmit.Preserve },
+    });
+
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('handles the rejection of an unsupported async result', () => {
+    expect(helper).toContain('result.then(undefined, () => {})');
+  });
+
+  it('uses no shadowable global type names', () => {
+    expect(helper).not.toMatch(/\b(PropertyKey|ReadonlyArray|PromiseLike)\b/);
   });
 });

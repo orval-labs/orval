@@ -23,6 +23,8 @@ export default defineConfig({
             'dates-transform-fetch.spec.ts',
             'mutation-invalidates-options-mutator.spec.ts',
             'fixtures-runtime.spec.ts',
+            'reusable-zod-defaults.spec.ts',
+            'standard-schema-validation.spec.ts',
           ],
         },
       },

@@ -1519,6 +1519,73 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  sharedRuntimeOptions: {
+    output: {
+      target: '../generated/fetch/shared-runtime-options/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/shared-runtime-options/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+          runtimeValidation: true,
+          forceSuccessResponse: true,
+          serializeResponseHeaders: true,
+          jsonReviver: {
+            path: '../mutators/custom-reviver.ts',
+            default: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  sharedRuntimeNoEnvelope: {
+    output: {
+      target: '../generated/fetch/shared-runtime-no-envelope/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/shared-runtime-no-envelope/model',
+        type: 'zod',
+      },
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+          runtimeValidation: true,
+          includeHttpResponseReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  sharedRuntimeDatesTransform: {
+    output: {
+      target: '../generated/fetch/shared-runtime-dates-transform/endpoints.ts',
+      schemas: '../generated/fetch/shared-runtime-dates-transform/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        useDatesTransform: true,
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/dates-transform.yaml',
+    },
+  },
   sharedRuntimeMutator: {
     output: {
       target: '../generated/fetch/shared-runtime-mutator/api/endpoints.ts',

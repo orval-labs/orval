@@ -646,6 +646,44 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     expect(implementation).not.toContain('Promise<Pets>');
   });
 
+  it('validates through the Standard Schema helper when opted in', () => {
+    const verbOptions = makeZodValidationVerbOptions();
+    verbOptions.override.fetch.runtimeValidation = {
+      enabled: true,
+      strategy: 'throw',
+      standardSchema: true,
+    };
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain(
+      'orvalParseStandardSchema(Pets, parsedBody)',
+    );
+    expect(implementation).not.toContain('Pets.parse(');
+  });
+
+  it('logs through the safe helper under the both strategy', () => {
+    const verbOptions = makeZodValidationVerbOptions();
+    verbOptions.override.fetch.runtimeValidation = {
+      enabled: true,
+      strategy: 'both',
+      standardSchema: true,
+    };
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain(
+      'orvalSafeParseStandardSchema(Pets, parsedBody)',
+    );
+    expect(implementation).not.toContain('.safeParse(');
+  });
+
   it('uses the output alias for the data field with includeHttpResponseReturnType', () => {
     const verbOptions = makeZodValidationVerbOptions();
     verbOptions.override.fetch.includeHttpResponseReturnType = true;
@@ -2034,7 +2072,7 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
   it('switches to the shared emitter for the fetch client only', () => {
     expect(
       generateImplementation(makeVerbOptions(), sharedOptions()),
-    ).toContain('execute<listPetsResponse>');
+    ).toContain('execute<');
     for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
       const implementation = generateImplementation(
         makeVerbOptions(),

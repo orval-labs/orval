@@ -324,9 +324,19 @@ export function getMockScalar({
         typeof item.exclusiveMaximum === 'number'
           ? safeNumericConstraint(item.exclusiveMaximum, 'exclusiveMaximum')
           : (specMax ?? safeMockOptions.numberMax);
+      // faker's bounds are inclusive, so an integer starts at the first value
+      // past an exclusive bound.
+      const intMin =
+        typeof item.exclusiveMinimum === 'number' && numMin !== undefined
+          ? Math.floor(numMin) + 1
+          : numMin;
+      const intMax =
+        typeof item.exclusiveMaximum === 'number' && numMax !== undefined
+          ? Math.ceil(numMax) - 1
+          : numMax;
       const intParts: string[] = [];
-      if (numMin !== undefined) intParts.push(`min: ${numMin}`);
-      if (numMax !== undefined) intParts.push(`max: ${numMax}`);
+      if (intMin !== undefined) intParts.push(`min: ${intMin}`);
+      if (intMax !== undefined) intParts.push(`max: ${intMax}`);
       if (isFakerV9 && item.multipleOf !== undefined)
         intParts.push(
           `multipleOf: ${safeNumericConstraint(item.multipleOf, 'multipleOf')}`,

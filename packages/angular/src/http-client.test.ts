@@ -289,6 +289,54 @@ describe('angular HttpClient generator', () => {
       expect(header).toContain('type HttpClientObserveOptions');
     });
 
+    it('omits event and response option types when observeOverloads is false (#4458)', () => {
+      const verbOption = createVerbOption();
+      verbOption.override.angular.observeOverloads = false;
+
+      const header = generateAngularHeader(
+        createHeaderParams({ verbOptions: { getPetById: verbOption } }),
+      );
+
+      expect(header).toContain('type HttpClientBodyOptions');
+      expect(header).toContain('type HttpClientObserveOptions');
+      expect(header).not.toContain('HttpClientEventOptions');
+      expect(header).not.toContain('HttpClientResponseOptions');
+    });
+
+    it('keeps event and response option types when observeOverloads is enabled', () => {
+      const header = generateAngularHeader(createHeaderParams());
+
+      expect(header).toContain('type HttpClientEventOptions');
+      expect(header).toContain('type HttpClientResponseOptions');
+    });
+
+    it.each([
+      ['disabled first', [false, true]],
+      ['enabled first', [true, false]],
+    ])(
+      'keeps event and response option types when only some operations disable observeOverloads (%s)',
+      (_, settings) => {
+        const verbOptions = Object.fromEntries(
+          settings.map((observeOverloads, index) => {
+            const operationName = `operation${index}`;
+            const verbOption = createVerbOption({
+              operationId: operationName,
+              operationName,
+            });
+            verbOption.override.angular.observeOverloads = observeOverloads;
+            return [operationName, verbOption];
+          }),
+        );
+
+        const header = generateAngularHeader(
+          createHeaderParams({ verbOptions }),
+        );
+
+        expect(header).toContain('type HttpClientEventOptions');
+        expect(header).toContain('type HttpClientResponseOptions');
+      },
+    );
+
     it('omits HttpClientOptions when isRequestOptions is false', () => {
       const header = generateAngularHeader(
         createHeaderParams({
@@ -2432,6 +2480,7 @@ describe('angular HttpClient generator', () => {
             }),
           }),
         },
+        clientImplementation: '',
       } as never);
 
       expect(header).toContain('export type GetPetFileAccept');
@@ -2481,6 +2530,95 @@ describe('angular HttpClient generator', () => {
 
       expect(impl).toContain('customHttpRequest<TData>');
       expect(impl).not.toContain('ThirdParameter');
+    });
+
+    it('passes the selected Accept header to mutators for multi-content responses', () => {
+      const verbOption = createVerbOption({
+        operationId: 'getPetFile',
+        operationName: 'getPetFile',
+        typeName: 'getPetFile',
+        headers: createQueryParams({
+          schema: { name: 'GetPetFileHeaders', model: '', imports: [] },
+        }),
+        props: [
+          ...createVerbOption().props,
+          {
+            name: 'headers',
+            definition: 'headers?: GetPetFileHeaders',
+            implementation: 'headers?: GetPetFileHeaders',
+            default: false,
+            required: false,
+            type: GetterPropType.HEADER,
+          },
+        ],
+        response: baseResponse({
+          definition: { success: 'Pet | string', errors: 'Error' },
+          types: {
+            success: [
+              createSuccessType('Pet', 'application/json'),
+              createSuccessType('string', 'text/plain'),
+            ],
+            errors: [],
+          },
+          contentTypes: ['application/json', 'text/plain'],
+        }),
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-instance.ts',
+          default: false,
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        } as GeneratorVerbOptions['mutator'],
+      });
+
+      const impl = generateHttpClientImplementation(
+        verbOption,
+        createGeneratorOptions(),
+      );
+
+      expect(impl).toContain("accept: GetPetFileAccept = 'application/json'");
+      expect(impl).toContain('headers: {...headers, Accept: accept}');
+    });
+
+    it('uses the shared query filter helper for mutator configs', () => {
+      const verbOption = createVerbOption({
+        queryParams: createQueryParams({
+          schema: { name: 'GetPetParams', model: '', imports: [] },
+        }),
+        props: [
+          {
+            name: 'params',
+            definition: 'params?: GetPetParams',
+            implementation: 'params?: GetPetParams',
+            default: false,
+            required: false,
+            type: GetterPropType.QUERY_PARAM,
+          },
+        ],
+        mutator: {
+          name: 'customHttpRequest',
+          path: './custom-http.ts',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      });
+
+      const impl = generateHttpClientImplementation(verbOption, {
+        route: '/api/pets',
+        context: { output: createOutput() },
+      });
+
+      expect(impl).toContain(
+        'params: filterParams(params ?? {}, new Set<string>([]))',
+      );
+      expect(impl).not.toContain(
+        'Object.fromEntries(Object.entries(params ?? {})',
+      );
     });
 
     const generateCreatePet = (definition: string, petIdType = 'PetStatus') =>
@@ -3090,6 +3228,22 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     expect(impl).not.toContain('defer(');
     expect(impl).not.toContain('CreatePetsBody.parse');
     expect(impl).toMatch(/`\/api\/pets`,\s*createPetsBody,/);
+  });
+
+  it('validates request bodies through the Standard Schema helper when opted in', () => {
+    const standard = {
+      ...requestBodyValidation,
+      standardSchema: true,
+    } as const;
+    const impl = generate(
+      createPetsVerb({ runtimeValidation: standard }),
+      zodOutput(standard),
+    );
+
+    expect(impl).toContain(
+      'const parsedCreatePetsBody = orvalParseStandardSchema(CreatePetsBody, createPetsBody);',
+    );
+    expect(impl).not.toContain('CreatePetsBody.parse');
   });
 
   it('logs and re-throws under the both strategy', () => {

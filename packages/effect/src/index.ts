@@ -6,6 +6,7 @@ import {
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type ContextSpec,
+  type DereferenceOptions,
   findCustomFormatType,
   type GeneratorDependency,
   type GeneratorOptions,
@@ -43,7 +44,7 @@ import {
   toJsLiteral,
   isOctetStreamContentType,
 } from '@orval/core';
-import { unique } from '@orval/core';
+import { dereference as coreDereference, unique } from '@orval/core';
 
 import { resolveIsEffectV4 } from './compatible-v4';
 import { logger } from './logger';
@@ -116,6 +117,10 @@ const resolveEffectType = (schema: OpenApiSchemaObject): ResolvedEffectType => {
       return { multiType: nonNullTypes };
     }
 
+    if (nonNullTypes.length === 0 && schemaTypeValue.includes('null')) {
+      return 'null';
+    }
+
     const type = nonNullTypes[0];
 
     if (type === 'array' && 'prefixItems' in schema) {
@@ -126,6 +131,10 @@ const resolveEffectType = (schema: OpenApiSchemaObject): ResolvedEffectType => {
   }
 
   const type = isString(schemaTypeValue) ? schemaTypeValue : undefined;
+
+  if (type === undefined && 'const' in schema && schema.const === null) {
+    return 'null';
+  }
 
   if (schema.type === 'array' && 'prefixItems' in schema) {
     return 'tuple';
@@ -317,7 +326,11 @@ export const generateEffectValidationSchemaDefinition = (
   const type = resolveEffectType(schema);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
-  const nullable = Array.isArray(schema.type) && schema.type.includes('null');
+  // A null-only type already renders `S.Null`; `S.NullOr` around it is redundant.
+  const nullable =
+    type !== 'null' &&
+    Array.isArray(schema.type) &&
+    schema.type.includes('null');
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
 
@@ -1116,12 +1129,11 @@ export const parseEffectValidationSchemaDefinition = (
           out = `S.optionalWith(${out}, { default: () => ${isEncodedDefault ? `S.decodeSync(${out})(${value})` : value} })`;
         }
       } else if (isOptional || isNullish) {
-        // `{ exact: true }` narrows a plain optional property to `{ x?: T }` for
+        // `{ exact: true }` narrows an optional property to `{ x?: T }` for
         // `exactOptionalPropertyTypes` consumers instead of `{ x?: T | undefined }`.
-        // Only `.optional()` is narrowed (matching the zod generator): a nullish
-        // field intentionally admits `undefined`, which is legal under the flag, so
-        // it keeps `S.optional`.
-        if (exactOptional && isOptional) {
+        // A nullish property is narrowed to `{ x?: T | null }`, so the
+        // schema's type stays assignable to the generated model.
+        if (exactOptional) {
           out = isEffectV4
             ? `S.optionalKey(${out})`
             : `S.optionalWith(${out}, { exact: true })`;
@@ -1422,112 +1434,25 @@ export const parseEffectValidationSchemaDefinition = (
   return { effect, consts };
 };
 
-const dereferenceScalar = (value: unknown, context: ContextSpec): unknown => {
-  if (isObject(value)) {
-    return dereference(
-      value as OpenApiSchemaObject | OpenApiReferenceObject,
-      context,
-    );
-  } else if (Array.isArray(value)) {
-    return value.map((item) => dereferenceScalar(item, context));
-  } else {
-    return value;
-  }
+const dereferenceOptions: DereferenceOptions = {
+  // `dereference(false)` returns `{ not: {} }`, which the generator renders as
+  // unknown. A boolean property is kept so it renders `S.Never`.
+  keepBooleanProperties: true,
+  falseTargetIsUnresolved: true,
+  mergeArrayTargets: true,
+  onResolveError: (message) => logger.verbose(message),
 };
 
-function tryResolveRefSchema(
-  $ref: string,
-  context: ContextSpec,
-): OpenApiSchemaObject | undefined {
-  try {
-    return resolveRef({ $ref } as OpenApiReferenceObject, context)
-      .schema as OpenApiSchemaObject;
-  } catch (error) {
-    logger.verbose(
-      `Failed to resolve $ref "${$ref}": ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    return;
-  }
-}
-
+/**
+ * Inlines every `$ref`. A circular `$ref` becomes an empty schema.
+ *
+ * The result may share nested objects between calls, so treat it as read-only.
+ */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiNonBooleanSchemaObject => {
-  if (typeof schema !== 'object') {
-    return toObjectSchema(schema);
-  }
-
-  const refName = typeof schema.$ref === 'string' ? schema.$ref : undefined;
-  if (refName && context.parents?.includes(refName)) {
-    return {};
-  }
-
-  const childContext: ContextSpec = {
-    ...context,
-    ...(refName
-      ? { parents: [...(context.parents ?? []), refName] }
-      : undefined),
-  };
-
-  const resolvedSchema: OpenApiSchemaObject | undefined =
-    typeof schema.$ref === 'string'
-      ? (() => {
-          const referencedSchema = tryResolveRefSchema(schema.$ref, context);
-          if (!referencedSchema) {
-            return;
-          }
-          if (typeof referencedSchema !== 'object') {
-            return toObjectSchema(referencedSchema);
-          }
-          const siblingProperties = Object.fromEntries(
-            Object.entries(schema as Record<string, unknown>).filter(
-              ([key]) => key !== '$ref',
-            ),
-          );
-          return {
-            ...(referencedSchema as Record<string, unknown>),
-            ...siblingProperties,
-          } as OpenApiSchemaObject;
-        })()
-      : schema;
-
-  if (!resolvedSchema || typeof resolvedSchema !== 'object') {
-    return typeof resolvedSchema === 'boolean'
-      ? toObjectSchema(resolvedSchema)
-      : {};
-  }
-
-  const resolvedContext = childContext;
-
-  return Object.entries(resolvedSchema).reduce<Record<string, unknown>>(
-    (acc, [key, value]) => {
-      if (key === 'properties' && isObject(value)) {
-        acc[key] = Object.entries(value).reduce<
-          Record<string, OpenApiSchemaObject>
-        >((props, [propKey, propSchema]) => {
-          // `dereference(false)` returns `{ not: {} }`, which the generator
-          // renders as unknown. Keep a boolean so it renders `S.Never`.
-          props[propKey] = isBoolean(propSchema)
-            ? propSchema
-            : dereference(
-                propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
-                resolvedContext,
-              );
-          return props;
-        }, {});
-      } else if (key === 'default' || key === 'example' || key === 'examples') {
-        acc[key] = value;
-      } else {
-        acc[key] = dereferenceScalar(value, resolvedContext);
-      }
-      return acc;
-    },
-    {},
-  ) as OpenApiNonBooleanSchemaObject;
-};
+): OpenApiNonBooleanSchemaObject =>
+  coreDereference(schema, context, dereferenceOptions);
 
 export const generateFormDataEffectSchema = (
   schema: OpenApiSchemaObject,
@@ -1801,8 +1726,10 @@ export const parseParameters = ({
       typeof parameter.schema === 'boolean'
         ? toObjectSchema(parameter.schema)
         : parameter.schema;
-    const resolvedSchema = dereference(parameterSchema, context);
-    resolvedSchema.description = parameter.description;
+    const resolvedSchema = {
+      ...dereference(parameterSchema, context),
+      description: parameter.description,
+    };
 
     const mapStrict = {
       path: strict.param,

@@ -970,7 +970,7 @@ export function generateQueryParamsAxiosConfig(
         requiredNullableParamKeys: requiredNullableQueryParamKeys,
         nonPrimitiveKeys: queryParams.nonPrimitiveKeys,
         paramsFilter,
-        useSharedHelper: false,
+        useSharedHelper: true,
       });
       value += `,\n        params: ${paramsExpr}`;
     } else {
@@ -999,6 +999,7 @@ interface GenerateMutatorConfigOptions {
   isExactOptionalPropertyTypes: boolean;
   isAngular?: boolean;
   paramsFilter?: GeneratorMutator;
+  accept?: string;
 }
 
 export function generateMutatorConfig({
@@ -1015,6 +1016,7 @@ export function generateMutatorConfig({
   isExactOptionalPropertyTypes,
   isAngular,
   paramsFilter,
+  accept,
 }: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -1031,13 +1033,19 @@ export function generateMutatorConfig({
   const shouldSetContentType =
     body.contentType && !(isAngular && isFormDataContentType(body.contentType));
 
-  const headerOptions = shouldSetContentType
-    ? `,\n      headers: {'Content-Type': '${jsStringLiteralEscape(
-        body.contentType,
-      )}', ${headers ? '...headers' : ''}}`
-    : headers
-      ? ',\n      headers'
-      : '';
+  const headerOptions = accept
+    ? `,\n      headers: {${
+        shouldSetContentType
+          ? `'Content-Type': '${jsStringLiteralEscape(body.contentType)}', `
+          : ''
+      }${headers ? '...headers, ' : ''}Accept: ${accept}}`
+    : shouldSetContentType
+      ? `,\n      headers: {'Content-Type': '${jsStringLiteralEscape(
+          body.contentType,
+        )}', ${headers ? '...headers' : ''}}`
+      : headers
+        ? ',\n      headers'
+        : '';
 
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';

@@ -193,7 +193,6 @@ export function useListPets<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 };
-
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = NotFoundResponse,

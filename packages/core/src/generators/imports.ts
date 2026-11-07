@@ -95,6 +95,21 @@ interface GenerateMutatorImportsOptions {
   oneMore?: boolean;
 }
 
+/**
+ * The mutators whose name `implementation` references as an identifier, so a
+ * file only imports the mutators its own code uses. Matching is by name: the
+ * same name inside a comment or string literal also counts, which can only
+ * keep an import, never drop one. Scans the source once.
+ */
+export function filterUsedMutators(
+  mutators: GeneratorMutator[],
+  implementation: string,
+): GeneratorMutator[] {
+  const referencedIdentifiers = getReferencedIdentifiers(implementation);
+
+  return mutators.filter((mutator) => referencedIdentifiers.has(mutator.name));
+}
+
 export function generateMutatorImports({
   mutators,
   implementation,
@@ -102,15 +117,9 @@ export function generateMutatorImports({
 }: GenerateMutatorImportsOptions) {
   let imports = '';
   for (const mutator of uniqueWith(
-    mutators,
+    implementation ? filterUsedMutators(mutators, implementation) : mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   )) {
-    if (
-      implementation &&
-      !implementation.split(/[^\w$]+/).includes(mutator.name)
-    ) {
-      continue;
-    }
     // Relative mutator paths are written relative to the output root, so in
     // tags-split mode (`oneMore`) they need an extra `../` to reach the file
     // from the deeper per-tag directory. Bare specifiers (e.g. `@scope/axios`)

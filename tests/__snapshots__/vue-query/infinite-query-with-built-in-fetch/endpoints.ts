@@ -148,7 +148,7 @@ export const getGetUsersUserIdOrdersInfiniteQueryOptions = <
     TData,
     QueryKey,
     GetUsersUserIdOrdersParams['limit']
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersInfiniteQueryResult = NonNullable<
@@ -157,9 +157,9 @@ export type GetUsersUserIdOrdersInfiniteQueryResult = NonNullable<
 export type GetUsersUserIdOrdersInfiniteQueryError = unknown;
 
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
-
 export function useGetUsersUserIdOrdersInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
@@ -192,7 +192,13 @@ export function useGetUsersUserIdOrdersInfinite<
   );
 
   const query = useInfiniteQuery(
-    queryOptions,
+    queryOptions as UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof getUsersUserIdOrders>>,
+      TError,
+      TData,
+      QueryKey,
+      GetUsersUserIdOrdersParams['limit']
+    >,
     queryClient,
   ) as UseInfiniteQueryReturnType<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -247,7 +253,7 @@ export const getGetUsersUserIdOrdersQueryOptions = <
     Awaited<ReturnType<typeof getUsersUserIdOrders>>,
     TError,
     TData
-  >;
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
 export type GetUsersUserIdOrdersQueryResult = NonNullable<
@@ -256,9 +262,9 @@ export type GetUsersUserIdOrdersQueryResult = NonNullable<
 export type GetUsersUserIdOrdersQueryError = unknown;
 
 /**
+ * Retrieves a list of orders for a specific user with optional filtering
  * @summary Get user orders
  */
-
 export function useGetUsersUserIdOrders<
   TData = Awaited<ReturnType<typeof getUsersUserIdOrders>>,
   TError = unknown,
@@ -285,10 +291,16 @@ export function useGetUsersUserIdOrders<
     options,
   );
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = useQuery(
+    queryOptions as UseQueryOptions<
+      Awaited<ReturnType<typeof getUsersUserIdOrders>>,
+      TError,
+      TData
+    >,
+    queryClient,
+  ) as UseQueryReturnType<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
 
   query.queryKey = unref(queryOptions).queryKey as DataTag<
     QueryKey,

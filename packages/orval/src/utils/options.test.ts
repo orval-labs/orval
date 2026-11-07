@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { noopReporter, withReporter } from '@orval/core';
+import { mergeDeep, noopReporter, withReporter } from '@orval/core';
 import type { NormalizedSchemaOptions, OutputMocksConfig } from '@orval/core';
 import {
   afterEach,
@@ -1429,6 +1429,49 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.angular.queryObjectSerialization).toBe(
         'spec',
       );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps only explicit query docs fields on tag and operation overrides (#4399)', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            override: {
+              query: { docs: { route: true } },
+              tags: {
+                pets: { query: { docs: { route: false } } },
+              },
+              operations: {
+                listPets: { query: { useInfinite: true } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      expect(normalized.output.override.query.docs).toEqual({ route: true });
+      expect(normalized.output.override.tags.pets?.query?.docs).toEqual({
+        route: false,
+      });
+      // Not copied from the output level, so the later output → tag →
+      // operation merge keeps the tag's `route: false`.
+      expect(
+        normalized.output.override.operations.listPets?.query?.docs,
+      ).toBeUndefined();
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -3449,6 +3492,52 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('keeps global valibot settings when an operation override sets only some', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'valibot',
+            override: {
+              valibot: { exactOptional: true, generate: { body: false } },
+              operations: {
+                listPets: { valibot: { strict: { query: true } } },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+
+      const { override } = normalized.output;
+      expect(override.valibot.exactOptional).toBe(true);
+      expect(override.valibot.generate.body).toBe(false);
+      expect(override.valibot.generate.response).toBe(true);
+      expect(override.operations.listPets?.valibot).toEqual({
+        strict: { query: true },
+      });
+
+      const merged = mergeDeep(override, override.operations.listPets ?? {});
+      expect(merged.valibot).toEqual({
+        strict: { ...override.valibot.strict, query: true },
+        generate: override.valibot.generate,
+        exactOptional: true,
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 
@@ -4159,5 +4248,45 @@ describe('single-file schema output combinations', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('output-level standardSchema flag', () => {
+    it('enables validation for fetch, query and angular', async () => {
+      const workspace = await createTempWorkspace();
+      try {
+        const specPath = path.join(workspace, 'petstore.yaml');
+        await writeFile(
+          specPath,
+          'openapi: 3.1.0\ninfo:\n  title: Test\n  version: 1.0.0\npaths: {}\n',
+        );
+        const flag = { runtimeValidation: { standardSchema: true } };
+        const normalized = await normalizeOptions(
+          {
+            input: { target: specPath },
+            output: {
+              target: './generated.ts',
+              override: { fetch: flag, query: flag, angular: flag },
+            },
+          },
+          workspace,
+        );
+        const { fetch, query, angular } = normalized.output.override;
+
+        expect(fetch.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(query.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+        expect(angular.runtimeValidation).toMatchObject({
+          enabled: true,
+          standardSchema: true,
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
   });
 });
