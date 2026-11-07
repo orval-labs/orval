@@ -2,6 +2,7 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   callFormatTypeFunction,
+  findModelFormatType,
   getModelFormatType,
   getFormatTypeError,
   isDateFormatType,
@@ -254,6 +255,12 @@ function buildPayload(
   }
 
   const schema = target;
+  // A mapped string keeps its mapped type whatever it composes.
+  if (getModelFormatType(schema, context)) {
+    return schema.default === undefined
+      ? buildPrimitivePayload(schema, 'string', context, imports)
+      : buildDefaultPayload(schema, context, imports);
+  }
   const payloads: string[] = [];
 
   if (schema.allOf) {
@@ -529,6 +536,7 @@ function buildDefaultPayload(
   imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return formatValue(undefined);
+  if (schema.default === null) return 'null';
   const formatType = getModelFormatType(schema, context);
   if (formatType) {
     return buildFormatTypePayload(
@@ -536,6 +544,14 @@ function buildDefaultPayload(
       formatType,
       formatValue(schema.default),
       imports,
+    );
+  }
+  const nested = findModelFormatType(schema, context);
+  if (nested) {
+    throw getFormatTypeError(
+      nested.format,
+      nested.config,
+      "factory methods can't decode it inside a default",
     );
   }
   if (

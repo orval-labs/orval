@@ -978,4 +978,58 @@ describe('generateFactory (formatType)', () => {
       ),
     ).toThrow('override.formatType.money (Big): factory methods need `decode`');
   });
+
+  it('decodes a composed mapped string and keeps a null default', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'endsAt'],
+      properties: {
+        startsAt: {
+          type: 'string',
+          format: 'date-time',
+          allOf: [{ minLength: 1 }],
+        },
+        endsAt: {
+          type: ['string', 'null'],
+          format: 'date-time',
+          default: null,
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+    );
+
+    expect(result?.model).toContain(
+      `startsAt: dayjs('${new Date(0).toISOString()}')`,
+    );
+    expect(result?.model).toContain('endsAt: null');
+  });
+
+  it('fails for a default holding mapped values', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['reminders'],
+      properties: {
+        reminders: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+          default: ['2026-01-01T00:00:00Z'],
+        },
+      },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): factory methods can't decode it inside a default",
+    );
+  });
 });
