@@ -245,7 +245,8 @@ export async function generateTargetForTags(
     if (index === operations.length - 1) {
       const transformed: Record<
         string,
-        GeneratorTargetFull & Pick<GeneratorTarget, 'sharedExports'>
+        GeneratorTargetFull &
+          Pick<GeneratorTarget, 'sharedExports' | 'mockHandlersName'>
       > = {};
       for (const [tag, target] of Object.entries(allTargetTags)) {
         const isMutator = !!target.mutators?.some((mutator) =>
@@ -357,6 +358,7 @@ export async function generateTargetForTags(
           // between tags that redeclare the same type.
           sharedTypes,
           sharedExports: header.sharedExports,
+          mockHandlersName: titles.implementationMock,
         };
       }
       allTargetTags = transformed;
