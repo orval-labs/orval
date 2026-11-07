@@ -456,16 +456,19 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
   const isFormDataBody = isFormData && !!body.formData;
   const isFormUrlEncodedBody = isFormUrlEncoded && !!body.formUrlEncoded;
 
-  // Build headers object. The browser sets the multipart Content-Type itself,
-  // because only it knows the boundary, so a caller's one is dropped too.
-  // Otherwise the default is only added when the caller sets no Content-Type
-  // in any casing, since fetch would combine both into one header.
-  const contentTypeHeader = `'Content-Type': '${isFormUrlEncodedBody ? jsStringLiteralEscape(body.contentType) : 'application/json'}'`;
+  // Build headers object. A form body fixes its Content-Type, so a caller's one
+  // is dropped: the browser sets the multipart one, because only it knows the
+  // boundary, and a url-encoded body sends the declared media type. For JSON,
+  // the default is only added when the caller sets no Content-Type in any
+  // casing, since fetch would combine both into one header.
+  const headersWithoutContentType = `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))`;
   const headersCode = isFormDataBody
-    ? `headers: ${headers ? `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))` : '{}'}`
-    : headers
-      ? `headers: Object.keys(headers ?? {}).some((key) => key.toLowerCase() === 'content-type') ? headers : { ${contentTypeHeader}, ...headers }`
-      : `headers: { ${contentTypeHeader} }`;
+    ? `headers: ${headers ? headersWithoutContentType : '{}'}`
+    : isFormUrlEncodedBody
+      ? `headers: { 'Content-Type': '${jsStringLiteralEscape(body.contentType)}'${headers ? `, ...${headersWithoutContentType}` : ''} }`
+      : headers
+        ? `headers: Object.keys(headers ?? {}).some((key) => key.toLowerCase() === 'content-type') ? headers : { 'Content-Type': 'application/json', ...headers }`
+        : `headers: { 'Content-Type': 'application/json' }`;
 
   // Build body code
   const bodyCode =

@@ -1081,22 +1081,37 @@ describe('generateSolidStart — form bodies', () => {
     );
   });
 
+  const urlEncodedBody = {
+    contentType: 'application/x-www-form-urlencoded',
+    formUrlEncoded: 'const formUrlEncoded = new URLSearchParams();\n',
+  };
+
   it.each([
-    [{ 'X-Trace': 't' }, 'application/json'],
+    ['JSON', {}, { 'X-Trace': 't' }, 'application/json'],
     [
+      'JSON',
+      {},
       { 'Content-Type': 'application/merge-patch+json' },
       'application/merge-patch+json',
     ],
     [
+      'JSON',
+      {},
       { 'content-type': 'application/merge-patch+json' },
       'application/merge-patch+json',
     ],
+    [
+      'url-encoded',
+      urlEncodedBody,
+      { 'content-type': 'application/json' },
+      'application/x-www-form-urlencoded',
+    ],
   ])(
-    'lets a caller Content-Type replace the JSON default (%o)',
-    async (callerHeaders, contentType) => {
+    'resolves the Content-Type of a %s body with caller headers %o',
+    async (_kind, formBody, callerHeaders, contentType) => {
       const implementation = await generateCreatePet(
-        { contentType: 'application/json' },
-        { headers: headerParams },
+        { contentType: 'application/json', ...formBody },
+        { formUrlEncoded: 'formUrlEncoded' in formBody, headers: headerParams },
       );
       const headersExpression = /headers: (.+),$/m.exec(implementation)?.[1];
 
