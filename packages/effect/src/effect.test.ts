@@ -458,6 +458,31 @@ describe('defaults', () => {
       'export const testConfigDefault = { "name": "x" as const, "retry": { "mode": "fast" as const } };',
     );
   });
+
+  it('applies the default to a schema outside a Struct', () => {
+    expect(gen({ type: 'string', default: 'a' }).effect).toBe(
+      'S.transform(S.UndefinedOr(S.String), S.typeSchema(S.String), { decode: (value) => (value === undefined ? testDefault : value), encode: (value) => value })',
+    );
+    expect(genV4({ type: 'string', default: 'a' }).effect).toBe(
+      'S.String.pipe(S.withDecodingDefaultType(Effect.succeed(testDefault)))',
+    );
+  });
+
+  it('drops the default of an allOf member that S.extend merges', () => {
+    const { effect } = gen({
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          default: { a: 'x' },
+        },
+        { type: 'object', properties: { b: { type: 'string' } } },
+      ],
+    });
+    expect(effect).toBe(
+      'S.extend(S.Struct({\n  "a": S.optional(S.String)\n}), S.Struct({\n  "b": S.optional(S.String)\n}))',
+    );
+  });
 });
 
 describe('formats', () => {

@@ -1111,7 +1111,11 @@ export const parseEffectValidationSchemaDefinition = (
         }
       }
     } else {
-      if (isNullish) {
+      if (hasDefault) {
+        out = isEffectV4
+          ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
+          : `S.transform(S.UndefinedOr(${out}), S.typeSchema(${out}), { decode: (value) => (value === undefined ? ${defaultValue as string} : value), encode: (value) => value })`;
+      } else if (isNullish) {
         out = `S.UndefinedOr(${out})`;
       } else if (isOptional) {
         out = `S.UndefinedOr(${out})`;
@@ -1338,7 +1342,8 @@ export const parseEffectValidationSchemaDefinition = (
         if (!isEffectV4) {
           // S.extend takes pairs; chain via reduce. Effect 3 throws on a second
           // string index signature, so an open member adds only its fields and
-          // the merge adds the index signature once.
+          // the merge adds the index signature once. It also throws on the
+          // transformation a default renders, so a member's default is dropped.
           const members = args.map(
             (member) =>
               openMember(
@@ -1346,7 +1351,18 @@ export const parseEffectValidationSchemaDefinition = (
                 member.functions.filter(
                   ([fn]) => fn !== 'describe' && fn !== 'default',
                 ),
-              ) ?? { struct: renderSchema(member, false), open: false },
+              ) ?? {
+                struct: renderSchema(
+                  {
+                    ...member,
+                    functions: member.functions.filter(
+                      ([fn]) => fn !== 'default',
+                    ),
+                  },
+                  false,
+                ),
+                open: false,
+              },
           );
           return [
             ...members.flatMap(({ struct }) => (struct ? [struct] : [])),
