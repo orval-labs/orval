@@ -24,16 +24,22 @@ export const createUpload = async (
   upload?: Upload,
   options?: RequestInit,
 ): Promise<createUploadResponse> => {
-  const formData = new FormData();
-  if (upload?.name !== undefined) {
-    formData.append(`name`, upload.name);
-  }
-  if (upload?.file !== undefined) {
-    formData.append(`file`, upload.file);
-  }
-  if (upload?.attachment !== undefined) {
-    formData.append(`attachment`, upload.attachment);
-  }
+  const formData =
+    upload === undefined
+      ? undefined
+      : (() => {
+          const formData = new FormData();
+          if (upload?.name !== undefined) {
+            formData.append(`name`, upload.name);
+          }
+          if (upload?.file !== undefined) {
+            formData.append(`file`, upload.file);
+          }
+          if (upload?.attachment !== undefined) {
+            formData.append(`attachment`, upload.attachment);
+          }
+          return formData;
+        })();
 
   const res = await fetch(getCreateUploadUrl(), {
     ...options,

@@ -54,13 +54,21 @@ export const postApiAppOssIdentityUserImportUsersFromFile = async (
   params?: PostApiAppOssIdentityUserImportUsersFromFileParams,
   options?: RequestInit,
 ): Promise<postApiAppOssIdentityUserImportUsersFromFileResponse> => {
-  const formData = new FormData();
-  if (postApiAppOssIdentityUserImportUsersFromFileBody?.File !== undefined) {
-    formData.append(
-      `File`,
-      postApiAppOssIdentityUserImportUsersFromFileBody.File,
-    );
-  }
+  const formData =
+    postApiAppOssIdentityUserImportUsersFromFileBody === undefined
+      ? undefined
+      : (() => {
+          const formData = new FormData();
+          if (
+            postApiAppOssIdentityUserImportUsersFromFileBody?.File !== undefined
+          ) {
+            formData.append(
+              `File`,
+              postApiAppOssIdentityUserImportUsersFromFileBody.File,
+            );
+          }
+          return formData;
+        })();
 
   const res = await fetch(
     getPostApiAppOssIdentityUserImportUsersFromFileUrl(params),
