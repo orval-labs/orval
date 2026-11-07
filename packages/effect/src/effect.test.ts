@@ -1401,6 +1401,15 @@ describe('formatType', () => {
     expect(union).not.toContain('DayjsFromString');
   });
 
+  it('validates an unmapped binary member of a union as a string', () => {
+    const union = render(
+      { type: ['string', 'number'], format: 'binary' },
+      { binary: dayjs },
+    ).effect;
+    expect(union).toContain('S.String');
+    expect(union).not.toContain('instanceOf');
+  });
+
   it('keeps the mapped formats of an object member of the union', () => {
     const union = render(
       {

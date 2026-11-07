@@ -502,15 +502,21 @@ export const generateEffectValidationSchemaDefinition = (
     const types = type.multiType;
     functions.push([
       'oneOf',
-      types.map((t) =>
-        generateEffectValidationSchemaDefinition(
+      types.map((t) => {
+        const memberContext =
+          t === 'string'
+            ? getUnionMemberContext(context, schema.format)
+            : context;
+        return generateEffectValidationSchemaDefinition(
           {
             ...(schema as Record<string, unknown>),
             type: t,
+            // An unmapped `binary` format would check a `File`, not the
+            // string the member is typed as.
+            ...(memberContext !== context &&
+              schema.format === 'binary' && { format: undefined }),
           } as OpenApiSchemaObject,
-          t === 'string'
-            ? getUnionMemberContext(context, schema.format)
-            : context,
+          memberContext,
           name,
           strict,
           {
@@ -518,8 +524,8 @@ export const generateEffectValidationSchemaDefinition = (
             constNameRegistry,
             urlEncoded,
           },
-        ),
-      ),
+        );
+      }),
     ]);
 
     if (!required && nullable) {
