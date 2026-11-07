@@ -847,7 +847,10 @@ function getSchemaFormDataAndUrlEncoded({
 
   const encode = getFormValueEncode(schema, context, 'data', formatTypeErrors);
   if (encode) {
-    return `${form}${variableName}.append('data', ${callFormatTypeFunction(encode, propName)})\n`;
+    const append = `${variableName}.append('data', ${callFormatTypeFunction(encode, propName)})\n`;
+    return isRequestBodyOptional || isSchemaNullable(schema)
+      ? `${form}if(${propName} !== undefined && ${propName} !== null) {\n ${append} }\n`
+      : `${form}${append}`;
   }
 
   if (usesFormValueHelper(context) && getDateFormat(schema, context)) {

@@ -2879,6 +2879,22 @@ describe('getResReqTypes (formatType form values)', () => {
     expect(result.formatTypeError).toBeUndefined();
   });
 
+  it('skips a nullable root value', () => {
+    const formData = (type: 'string' | ['string', 'null']) =>
+      getResReqTypes(
+        requestBody({ type, format: 'date-time' }),
+        'Event',
+        formatTypeContext('toIso'),
+      )[0].formData;
+
+    expect(formData(['string', 'null'])).toContain(
+      "if(eventRequestBody !== undefined && eventRequestBody !== null) {\n formData.append('data', toIso(eventRequestBody))",
+    );
+    expect(formData('string')).toContain(
+      "\nformData.append('data', toIso(eventRequestBody))",
+    );
+  });
+
   it('records the error for a field without encode', () => {
     const [result] = getResReqTypes(
       requestBody(event),
