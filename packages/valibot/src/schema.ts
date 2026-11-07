@@ -436,16 +436,17 @@ export const generateValibotValidationSchemaDefinition = (
   const defaultValue =
     schema.default === undefined ? undefined : generateDefault(schema);
   const hasDefault = defaultValue !== undefined;
-  // The members of a `type: [...]` union keep the format unmapped.
-  const childContext =
-    getMultiTypes(schema).length > 1
-      ? getUnionMemberContext(context, schema.format)
-      : context;
+  // The string member of a `type: [...]` union keeps the format unmapped.
+  const isUnion = getMultiTypes(schema).length > 1;
   const child: ChildGenerator = (member, isRequired = true) =>
-    generateValibotValidationSchemaDefinition(member, childContext, strict, {
-      required: isRequired,
-      urlEncoded,
-    });
+    generateValibotValidationSchemaDefinition(
+      member,
+      isUnion && isNonBoolean(member) && member.type === 'string'
+        ? getUnionMemberContext(context, schema.format)
+        : context,
+      strict,
+      { required: isRequired, urlEncoded },
+    );
 
   const composedFormatType =
     getCompositionKeys(schema).length > 0

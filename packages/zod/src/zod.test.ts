@@ -16139,6 +16139,19 @@ describe('formatType', () => {
     ).toBe('zod.union([zod.iso.datetime({}),zod.number()])');
   });
 
+  it('keeps the mapped formats of an object member of the union', () => {
+    const union = render(
+      {
+        type: ['string', 'object'],
+        format: 'date-time',
+        properties: { at: dateTime },
+      },
+      { 'date-time': dayjs },
+    ).zod;
+    expect(union).toContain('zod.union([zod.iso.datetime({}),zod.object(');
+    expect(union).toContain('.transform((value) => dayjs(value))');
+  });
+
   it('coerces only a zod.date() schema, not the Zod 3 string date check', () => {
     const formatType = { 'date-time': { type: 'Date' } };
     const options = { isZodV4: false, coerce: true };

@@ -1906,7 +1906,9 @@ export const generateZodValidationSchemaDefinition = (
             ...(schema as Record<string, unknown>),
             type: t,
           } as OpenApiSchemaObject,
-          getUnionMemberContext(context, schema.format),
+          t === 'string'
+            ? getUnionMemberContext(context, schema.format)
+            : context,
           name,
           strict,
           isZodV4,

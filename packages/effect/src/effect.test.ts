@@ -1401,6 +1401,19 @@ describe('formatType', () => {
     expect(union).not.toContain('DayjsFromString');
   });
 
+  it('keeps the mapped formats of an object member of the union', () => {
+    const union = render(
+      {
+        type: ['string', 'object'],
+        format: 'date-time',
+        properties: { at: dateTime },
+      },
+      { 'date-time': dayjs },
+    ).effect;
+    expect(union).toContain('S.Union(S.String');
+    expect(union).toContain('"at": S.optional(DayjsFromString)');
+  });
+
   it('decodes a default that holds a mapped format', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',

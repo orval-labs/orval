@@ -94,10 +94,11 @@ export function getCustomFormatType(
 }
 
 /**
- * The context for the members of a `type: [...]` union such as
+ * The context for the string member of a `type: [...]` union such as
  * `['string', 'number']`, which keeps a custom `formatType` format a plain
  * string: only string schemas take a custom type (see
- * {@link getCustomFormatType}), so nothing converts the union's values.
+ * {@link getCustomFormatType}), so nothing converts the union's values. The
+ * other members keep the context.
  */
 export function getUnionMemberContext(
   context: ContextSpec,
@@ -664,14 +665,23 @@ export function getScalar({
 
     default: {
       if (Array.isArray(itemType)) {
+        // The string member types a format `getUnionMemberContext` leaves
+        // unmapped as a plain string.
+        const unmapsFormat =
+          getUnionMemberContext(context, schemaFormat) !== context;
         const anyOfVariants = itemType.map((type) =>
-          Object.assign({}, item, { type }),
+          Object.assign(
+            {},
+            item,
+            { type },
+            type === 'string' && unmapsFormat ? { format: undefined } : {},
+          ),
         ) as OpenApiSchemaObject[];
         return combineSchemas({
           schema: { anyOf: anyOfVariants } as OpenApiSchemaObject,
           name,
           separator: 'anyOf',
-          context: getUnionMemberContext(context, schemaFormat),
+          context,
           nullable,
         });
       }

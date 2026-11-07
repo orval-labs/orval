@@ -391,4 +391,16 @@ describe('formatType', () => {
       'v.union([v.pipe(v.string(), v.isoTimestamp()), v.number()])',
     );
   });
+
+  it('keeps the mapped formats of an object member of the union', () => {
+    const { parse } = render({
+      ...dateTime,
+      type: ['string', 'object'],
+      properties: { at: dateTime },
+    });
+    expect(parse('2025-01-01T09:00:00.000Z')).toBe('2025-01-01T09:00:00.000Z');
+    expect(parse({ at: '2025-01-01T09:00:00.000Z' })).toEqual({
+      at: { day: '2025-01-01T09:00:00.000Z' },
+    });
+  });
 });

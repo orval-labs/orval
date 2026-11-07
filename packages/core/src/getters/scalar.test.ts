@@ -821,6 +821,23 @@ describe('getScalar with formatType', () => {
     expect(value(['string', 'number'])).toBe('string | number');
     expect(value(['string', 'number'], 'date')).toBe('Date | number');
   });
+
+  it('keeps the mapped formats of an object member of the union', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': { type: 'Dayjs' } } },
+    });
+    const { value } = getScalar({
+      item: {
+        type: ['string', 'object'],
+        format: 'date-time',
+        properties: { at: { type: 'string', format: 'date-time' } },
+      },
+      context: ctx,
+    });
+
+    expect(value).toMatch(/^string | /);
+    expect(value).toContain('at?: Dayjs');
+  });
 });
 
 describe('findCustomFormatType', () => {
