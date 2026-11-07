@@ -2,6 +2,7 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import {
   callFormatTypeFunction,
+  findModelFormatType,
   getFormatTypeConfig,
   getFormatTypeError,
   getModelFormatType,
@@ -1902,6 +1903,22 @@ export const generateRequestDateSerializer = ({
 
   const schema = resolveJsonBodySchema(body, context);
   if (!schema) return undefined;
+
+  // Its `toJSON` may send an instant where an unmapped `Date` sends a day.
+  const dateFormatType = getFormatTypeConfig('date', context.output.override);
+  if (
+    dateFormatType &&
+    !dateFormatType.encode &&
+    findModelFormatType(schema, context, (config) => config === dateFormatType)
+  ) {
+    logger.warn(
+      getFormatTypeError(
+        'date',
+        dateFormatType,
+        `operation \`${operationName}\`: \`useDatesTransform\` sends a request body's value through its \`toJSON\` for lack of \`encode\``,
+      ).message,
+    );
+  }
 
   const statements = buildRequestDateSerializeStatements({
     schema,

@@ -5519,6 +5519,28 @@ describe('generateRequestDateSerializer', () => {
     );
   });
 
+  it('warns that a mapped date without encode is sent through its toJSON', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const context = makeContext();
+    context.output.override.formatType = {
+      date: { type: 'Dayjs', decode: 'dayjs' },
+    };
+
+    generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context,
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "override.formatType.date (Dayjs): operation `putItem`: `useDatesTransform` sends a request body's value through its `toJSON` for lack of `encode`",
+    );
+    warn.mockRestore();
+  });
+
   it('returns undefined when the body has no date-only field', () => {
     expect(
       generateRequestDateSerializer({

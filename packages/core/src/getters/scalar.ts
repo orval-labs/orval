@@ -214,10 +214,11 @@ export const getModelFormatType = (
 export const findModelFormatType = (
   schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
   context: ContextSpec,
+  matches?: (config: NormalizedFormatTypeConfig) => boolean,
 ) =>
   hasZodSchemaTypes(context)
     ? undefined
-    : findCustomFormatType(schemaOrRef, context);
+    : findCustomFormatType(schemaOrRef, context, matches);
 
 /**
  * The `formatType` imports, picked from each entry by `pick`, that generated
