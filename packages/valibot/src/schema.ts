@@ -29,6 +29,7 @@ import {
   type ValibotNode,
   type ValibotSchema,
 } from './nodes';
+import { getRef, isReusableSchemasEnabled, resolveComponentName } from './refs';
 import {
   getMultiTypes,
   hasProperties,
@@ -392,6 +393,31 @@ const generateDefault = (
   return undefined;
 };
 
+// Siblings of a `$ref` apply next to it, so they are generated as an `allOf`
+// with the reference as a member.
+const generateReference = (
+  schema: OpenApiNonBooleanSchemaObject,
+  ref: string,
+  context: ContextSpec,
+  strict: boolean,
+  rules: SchemaRules | undefined,
+): ValibotNode => {
+  const { $ref: _ref, ...siblings } = schema;
+  if (Object.values(siblings).every((value) => value === undefined)) {
+    return {
+      ...plainNode({ kind: 'ref', name: resolveComponentName(ref, context) }),
+      optional: !(rules?.required ?? false),
+    };
+  }
+  const members = siblings.allOf ?? [];
+  return generateValibotValidationSchemaDefinition(
+    { ...siblings, allOf: [{ $ref: ref }, ...members] },
+    context,
+    strict,
+    rules,
+  );
+};
+
 export const generateValibotValidationSchemaDefinition = (
   schemaInput: OpenApiSchemaObject | undefined,
   context: ContextSpec,
@@ -407,6 +433,11 @@ export const generateValibotValidationSchemaDefinition = (
       ...plainNode({ kind: never ? 'never' : 'unknown' }),
       optional: !required,
     };
+  }
+
+  const ref = getRef(schemaInput);
+  if (ref !== undefined && isReusableSchemasEnabled(context)) {
+    return generateReference(schemaInput, ref, context, strict, rules);
   }
 
   const schema = toCanonicalNullable(schemaInput);

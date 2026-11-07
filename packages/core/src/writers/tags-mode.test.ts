@@ -680,3 +680,74 @@ describe('writeTagsMode — de-inlines mocks by default (#3831)', () => {
     expect(fs.existsSync(path.join(tmpDir, 'pets', 'pets.msw.ts'))).toBe(false);
   });
 });
+
+describe('writeTagsMode - shared schemas file is generated once', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-tags-mode-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('calls generateSchemasInline once for several tags', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const generateSchemasInline = vi.fn(() => 'export const Pet = 1;\n');
+
+    await writeTagsMode({
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation(),
+          healthCheck: createSplitModeOperation({
+            tags: ['health'],
+            operationName: 'healthCheck',
+          }),
+        },
+      },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+      needSchema: true,
+      generateSchemasInline,
+    });
+
+    expect(generateSchemasInline).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the shared schemas file when there are no operations', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+
+    const paths = await writeTagsMode({
+      ...baseProps,
+      builder: { ...baseProps.builder, operations: {} },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+      needSchema: true,
+      generateSchemasInline: () => 'export const Pet = 1;\n',
+    });
+
+    const schemasFile = path.join(tmpDir, 'petstore.schemas.ts');
+    expect(fs.readFileSync(schemasFile, 'utf8')).toContain(
+      'export const Pet = 1;',
+    );
+    expect(paths).toContain(schemasFile);
+  });
+
+  it('writes no schemas file for a spec without operations and without inline schemas', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+
+    const paths = await writeTagsMode({
+      ...baseProps,
+      builder: { ...baseProps.builder, operations: {} },
+      output: createSplitModeOutput(target, { mode: OutputMode.TAGS }),
+      needSchema: true,
+    });
+
+    expect(fs.existsSync(path.join(tmpDir, 'petstore.schemas.ts'))).toBe(false);
+    expect(paths).not.toContain(path.join(tmpDir, 'petstore.schemas.ts'));
+  });
+});

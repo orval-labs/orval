@@ -19,6 +19,9 @@ const renderKey = (key: string) =>
 
 export interface RenderOptions {
   exactOptional?: boolean;
+  // Referenced names read through `v.lazy`, as their constants are declared
+  // later in the module or are the one being declared.
+  lazyRefs?: ReadonlySet<string>;
 }
 
 interface RenderPosition {
@@ -62,7 +65,7 @@ const renderAction = (
 
 export const renderValibot = (
   input: ValibotNode,
-  { exactOptional = false }: RenderOptions = {},
+  { exactOptional = false, lazyRefs }: RenderOptions = {},
 ): string => {
   const renderEntries = (entries: ValibotEntry[]) =>
     entries.length === 0
@@ -108,6 +111,13 @@ export const renderValibot = (
         return schema.members.length === 1
           ? render(schema.members[0], { inIntersection })
           : `v.intersect([${schema.members.map((member) => render(member, { inIntersection: true })).join(', ')}])`;
+      }
+      case 'ref': {
+        // The getter's return type breaks the cycle in the inferred type of
+        // a constant that reads itself, directly or through other constants.
+        return lazyRefs?.has(schema.name)
+          ? `v.lazy((): v.GenericSchema => ${schema.name})`
+          : schema.name;
       }
       case 'variant': {
         return `v.variant(${toJsLiteral(schema.key)}, [${schema.options.map((option) => render(option, { inIntersection })).join(', ')}])`;
