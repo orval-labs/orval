@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import type {
   ContextSpec,
   GeneratorOptions,
@@ -1079,16 +1081,34 @@ describe('generateSolidStart — form bodies', () => {
     );
   });
 
-  it('lets a caller Content-Type replace the JSON default', async () => {
-    const implementation = await generateCreatePet(
-      { contentType: 'application/json' },
-      { headers: headerParams },
-    );
+  it.each([
+    [{ 'X-Trace': 't' }, 'application/json'],
+    [
+      { 'Content-Type': 'application/merge-patch+json' },
+      'application/merge-patch+json',
+    ],
+    [
+      { 'content-type': 'application/merge-patch+json' },
+      'application/merge-patch+json',
+    ],
+  ])(
+    'lets a caller Content-Type replace the JSON default (%o)',
+    async (callerHeaders, contentType) => {
+      const implementation = await generateCreatePet(
+        { contentType: 'application/json' },
+        { headers: headerParams },
+      );
+      const headersExpression = /headers: (.+),$/m.exec(implementation)?.[1];
 
-    expect(implementation).toContain(
-      "headers: { 'Content-Type': 'application/json', ...headers }",
-    );
-  });
+      expect(
+        new Headers(
+          runInNewContext(`(${headersExpression})`, {
+            headers: callerHeaders,
+          }) as Record<string, string>,
+        ).get('content-type'),
+      ).toBe(contentType);
+    },
+  );
 });
 
 describe('generateSolidStart — Content-Type header escaping', () => {
