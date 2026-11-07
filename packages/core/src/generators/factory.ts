@@ -589,7 +589,7 @@ function buildPrimitivePayload(
       return buildFormatTypePayload(
         schema.format,
         formatType,
-        wireValue,
+        schema.format === 'date' ? "'1970-01-01'" : wireValue,
         imports,
       );
     }

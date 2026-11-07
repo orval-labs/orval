@@ -916,6 +916,33 @@ describe('generateFactory (formatType)', () => {
     });
   });
 
+  it('decodes a date-only placeholder for a mapped date', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['day'],
+      properties: { day: { type: 'string', format: 'date' } },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({
+        override: {
+          formatType: {
+            date: {
+              type: 'Temporal.PlainDate',
+              decode: 'Temporal.PlainDate.from',
+            },
+          },
+        },
+      }),
+    );
+
+    expect(result?.model).toContain(
+      "day: Temporal.PlainDate.from('1970-01-01')",
+    );
+  });
+
   it('treats a Date mapping like useDates', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
