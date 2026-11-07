@@ -23,6 +23,7 @@ import {
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
+  makeRouteSafe,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
@@ -157,9 +158,18 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
+    params,
   }: GeneratorVerbOptions,
-  { route, context, pathRoute }: GeneratorOptions,
+  { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
+  let route = _route;
+  if (context.output.urlEncodeParameters) {
+    const skip = new Set(
+      params.filter((p) => p.allowReserved).map((p) => p.name),
+    );
+    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
+  }
+
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
