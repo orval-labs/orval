@@ -10,6 +10,7 @@ import {
   findMediaType,
   generateImports,
   type GeneratorMutator,
+  getReferencedFormatTypeImports,
   getImportExtension,
   getRefInfo,
   hasSchemaDefinition,
@@ -79,22 +80,28 @@ const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
   `import * as zod from '${getZodImportSource(variant)}';`;
 
 /**
- * Adds the imports of the `formatType` functions Zod schema `content`
- * references below its `zod` import, or above the content when it has none.
- * Schemas inlined into a file skip the imports of `precedingContent`, the
- * part of the file written before them.
+ * Adds the imports of the `formatType` functions and types Zod schema
+ * `content` references below its `zod` import, or above the content when it
+ * has none. Schemas inlined into a file skip the imports of
+ * `precedingContent`, the part of the file written before them.
  */
 export function addFormatTypeImports(
   content: string,
   override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
   precedingContent = '',
 ): string {
-  const imported = new Set(
-    getFormatTypeZodImports(precedingContent, override).map(({ name }) => name),
-  );
-  const imports = getFormatTypeZodImports(content, override).filter(
-    ({ name }) => !imported.has(name),
-  );
+  const isImported = (name: string) =>
+    new RegExp(
+      String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
+      'm',
+    ).test(precedingContent);
+  const imports = [
+    ...getFormatTypeZodImports(content, override),
+    // The TypeScript type a recursive schema is pinned to names them.
+    ...getReferencedFormatTypeImports(content, override, (config) => [
+      config.import,
+    ]).map((imp) => ({ ...imp, values: false })),
+  ].filter(({ name }) => !isImported(name));
   if (imports.length === 0) return content;
   const statements = generateImports({ imports });
   const zodImport = getZodSchemaImportStatement(override.zod.variant);

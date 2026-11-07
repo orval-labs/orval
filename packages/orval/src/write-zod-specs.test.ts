@@ -2200,6 +2200,26 @@ describe('formatType imports', () => {
     expect(
       addFormatTypeImports(schema, override, "import dayjs from 'dayjs';\n"),
     ).toBe(schema);
+    expect(
+      addFormatTypeImports(schema, override, '/** Times use dayjs. */\n'),
+    ).toBe(`import dayjs from 'dayjs';\n\n${schema}`);
+  });
+
+  it('imports the mapped type a recursive schema is pinned to', () => {
+    const typed = {
+      ...override,
+      formatType: {
+        'date-time': {
+          type: 'Dayjs',
+          import: { name: 'Dayjs', importPath: 'dayjs' },
+        },
+      },
+    };
+    const pinned =
+      'export type Node = { at: Dayjs; children?: Node[] };\n\nexport const Node: zod.ZodType<Node> = zod.object({})\n';
+    expect(addFormatTypeImports(pinned, typed)).toBe(
+      `import type { Dayjs } from 'dayjs';\n\n${pinned}`,
+    );
   });
 
   it('writes the imports into a schema file', async () => {
