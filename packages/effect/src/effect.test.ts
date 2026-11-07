@@ -1572,6 +1572,17 @@ describe('formatType', () => {
     ).toContain('S.withDecodingDefault(Effect.succeed(testEventDefault))');
   });
 
+  it('decodes the default of a mapped format outside a Struct', () => {
+    const schema = { ...dateTime, default: '2025-01-01T00:00:00Z' };
+    const formatType = { 'date-time': dayjs };
+    expect(render(schema, formatType).effect).toBe(
+      'S.transform(S.UndefinedOr(DayjsFromString), S.typeSchema(DayjsFromString), { decode: (value) => (value === undefined ? S.decodeSync(DayjsFromString)(testDefault) : value), encode: (value) => value })',
+    );
+    expect(render(schema, formatType, true).effect).toBe(
+      'DayjsFromString.pipe(S.withDecodingDefault(Effect.succeed(testDefault)))',
+    );
+  });
+
   it('imports the schemas the emitted code references', async () => {
     const context = createTestContextSpec({
       spec: {

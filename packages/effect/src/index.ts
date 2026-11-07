@@ -1156,9 +1156,10 @@ export const parseEffectValidationSchemaDefinition = (
       }
     } else {
       if (hasDefault) {
+        const value = defaultValue as string;
         out = isEffectV4
-          ? `${out}.pipe(S.withDecodingDefaultType(Effect.succeed(${defaultValue as string})))`
-          : `S.transform(S.UndefinedOr(${out}), S.typeSchema(${out}), { decode: (value) => (value === undefined ? ${defaultValue as string} : value), encode: (value) => value })`;
+          ? `${out}.pipe(S.${isEncodedDefault ? 'withDecodingDefault' : 'withDecodingDefaultType'}(Effect.succeed(${value})))`
+          : `S.transform(S.UndefinedOr(${out}), S.typeSchema(${out}), { decode: (value) => (value === undefined ? ${isEncodedDefault ? `S.decodeSync(${out})(${value})` : value} : value), encode: (value) => value })`;
       } else if (isNullish) {
         out = `S.UndefinedOr(${out})`;
       } else if (isOptional) {
