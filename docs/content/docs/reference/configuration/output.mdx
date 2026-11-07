@@ -4941,7 +4941,7 @@ A `type: 'Date'` entry for `date` or `date-time` behaves like `useDates` for tha
 - **Effect schemas:** `effect.schema`. Defaults are decoded through the schema.
 - **Valibot schemas:** `decode`, as a `v.transform` after the string checks. Defaults go through it too.
 - **`useDatesTransform`:** responses are decoded with `decode`. Request bodies are encoded with `encode`; without it the value is sent through its `toJSON`.
-- **Path parameters**, **query parameters** built by the fetch, solid-start and Angular (built-in `filterParams`) clients, and **form-data / url-encoded request bodies** a client builds: `encode`. The error names the operation and parameter, or the form field. Mapped values Orval can't reach (in `oneOf`/`anyOf` form bodies, `deepObject` form fields, path parameter arrays) are rejected, and so is a form body solid-start sends as JSON. A path parameter's default is decoded with `decode`.
+- **Path parameters**, **query parameters** built by the fetch, solid-start and Angular (built-in `filterParams`) clients, and **form-data / url-encoded request bodies** a client builds: `encode`. The error names the operation and parameter, or the form field. Mapped values Orval can't reach (in `oneOf`/`anyOf` form bodies, `deepObject` form fields, path parameter arrays) are rejected. A path parameter's default is decoded with `decode`.
 
 Header parameters, Axios `params`, a `paramsSerializer`, a `formData` / `formUrlEncoded` mutator and an Angular `paramsFilter` receive mapped values as they are, so the HTTP library or your function stringifies them, as with `Date`.
 

@@ -1320,7 +1320,7 @@ describe('formatType query values', () => {
 });
 
 describe('formatType form bodies', () => {
-  it('fails for a mapped value in a form body, which is sent as JSON', async () => {
+  it('sends the form body that encodes a mapped value', async () => {
     const context = makeContext();
     context.output.override.formatType = {
       'date-time': { type: 'Dayjs', encode: 'toIso' },
@@ -1350,14 +1350,14 @@ describe('formatType form bodies', () => {
       },
     });
 
-    await expect(
-      generateImplementation(verbOptions, makeOptions(context)),
-    ).rejects.toThrow(
-      'override.formatType.date-time (Dayjs): operation `addReminders`, form field `remindAt` is sent as JSON by Solid Start',
+    const implementation = await generateImplementation(
+      verbOptions,
+      makeOptions(context),
     );
-    context.output.override.formatType = undefined;
-    await expect(
-      generateImplementation(verbOptions, makeOptions(context)),
-    ).resolves.toContain('body: formData');
+
+    expect(implementation).toContain(
+      'formData.append(`remindAt`, toIso(addRemindersBody.remindAt));',
+    );
+    expect(implementation).toContain('body: formData');
   });
 });

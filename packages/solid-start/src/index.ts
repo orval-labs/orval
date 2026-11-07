@@ -5,10 +5,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
-  collectPropertiesThroughAllOf,
-  type ContextSpec,
   encodeRouteParameters,
-  findModelFormatType,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -21,20 +18,16 @@ import {
   getFormObjectQueryImplementation,
   getIsBodyVerb,
   getQueryDelimiter,
-  getFormatTypeError,
   getQueryParamsEncoding,
-  type GetterBody,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
-  isInlineSchema,
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
-  type OpenApiRequestBodyObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
@@ -153,35 +146,6 @@ export const generateSolidStartFooter: ClientFooterBuilder = () => {
   return '};\n';
 };
 
-/**
- * The error for a form body holding a `formatType` value, which a body sent as
- * JSON would carry through its `toJSON`, naming the top-level form field.
- */
-const getFormBodyFormatTypeError = (
-  body: GetterBody,
-  operationName: string,
-  context: ContextSpec,
-): Error | undefined => {
-  const requestBody = isInlineSchema(body.originalSchema)
-    ? body.originalSchema
-    : resolveRef<OpenApiRequestBodyObject>(body.originalSchema, context).schema;
-  const schema = requestBody.content[body.contentType]?.schema;
-  const found = findModelFormatType(schema, context);
-  if (!schema || !found) return undefined;
-  const resolved = isInlineSchema(schema)
-    ? schema
-    : resolveRef<OpenApiSchemaObject>(schema, context).schema;
-  const field =
-    Object.entries(collectPropertiesThroughAllOf(resolved, context)).find(
-      ([, property]) => findModelFormatType(property, context),
-    )?.[0] ?? 'data';
-  return getFormatTypeError(
-    found.format,
-    found.config,
-    `operation \`${operationName}\`, form field \`${field}\` is sent as JSON by Solid Start`,
-  );
-};
-
 const generateImplementation = (
   {
     headers,
@@ -295,16 +259,6 @@ const generateImplementation = (
     return ${mutator.name}<${dataType}>(${axiosConfig});
   }, "${operationName}"),
 `;
-  }
-
-  // The fetch call below sends the body as JSON, not the form code above.
-  if (bodyForm) {
-    const formatTypeError = getFormBodyFormatTypeError(
-      body,
-      operationName,
-      context,
-    );
-    if (formatTypeError) throw formatTypeError;
   }
 
   const propsImplementation = toObjectString(props, 'implementation');
