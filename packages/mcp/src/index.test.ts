@@ -477,6 +477,10 @@ describe('header parameters', () => {
     expect(implementation).toContain(
       'await getItem(args.headerParams, args.pathParams.version, options);',
     );
+    expect(implementation).toContain(
+      '  pathParams: {\n    version: number\n  };',
+    );
+    expect(implementation).not.toContain('version: number = 1');
   });
 });
 
