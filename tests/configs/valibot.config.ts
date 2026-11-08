@@ -19,6 +19,30 @@ const valibotProject = (
   input: { target: `../specifications/${input}.yaml` },
 });
 
+const formatTypeProject = (
+  name: string,
+  valibot?: ValibotOptions,
+  mode?: OutputMode,
+) => {
+  const project = valibotProject(name, 'date-type', valibot, mode);
+  return {
+    ...project,
+    output: {
+      ...project.output,
+      override: {
+        ...project.output.override,
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            decode: 'dayjs',
+            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+          },
+        },
+      },
+    },
+  };
+};
+
 export default defineConfig({
   logLevel: 'error',
   petstore: valibotProject('petstore', 'petstore'),
@@ -58,24 +82,16 @@ export default defineConfig({
     },
     exactOptional: true,
   }),
-  'format-type': {
-    output: {
-      target: '../generated/valibot/format-type/format-type.ts',
-      client: 'valibot',
-      clean: true,
-      formatter: 'prettier',
-      override: {
-        formatType: {
-          'date-time': {
-            type: 'Dayjs',
-            decode: 'dayjs',
-            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
-          },
-        },
-      },
-    },
-    input: { target: '../specifications/date-type.yaml' },
-  },
+  'format-type': formatTypeProject('format-type'),
+  'format-type-reusable-schemas': formatTypeProject(
+    'format-type-reusable-schemas',
+    { generateReusableSchemas: true },
+  ),
+  'format-type-reusable-schemas-tags-split': formatTypeProject(
+    'format-type-reusable-schemas-tags-split',
+    { generateReusableSchemas: true },
+    'tags-split',
+  ),
   // Component schemas become shared constants; cycles read through `v.lazy`.
   'reusable-schemas': valibotProject('reusable-schemas', 'valibot-reusable', {
     generateReusableSchemas: true,
