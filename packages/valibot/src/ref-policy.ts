@@ -1,5 +1,7 @@
 import {
   type ContextSpec,
+  getCustomFormatType,
+  isDateFormatType,
   isObject,
   isSchemaNullable,
   isString,
@@ -433,8 +435,9 @@ export const mayCheckNothing = (
   return result;
 };
 
-// Whether the schema or a member is a date string transformed into a Date.
-const carriesDateTransform = (
+// Whether the schema or a member is a string transformed into a Date or into
+// a `formatType` type.
+const carriesTransform = (
   input: unknown,
   context: ContextSpec,
   followedRefs: ReadonlySet<string> = new Set(),
@@ -444,14 +447,16 @@ const carriesDateTransform = (
   seen.add(input);
   const { schema, followed } = resolveSelf(input, context, followedRefs);
   if (!isObject(schema)) return false;
-  const isDate =
-    schema.type === 'string' &&
-    isString(schema.format) &&
-    ['date', 'date-time'].includes(schema.format);
+  const { override } = context.output;
+  const isTransformed =
+    (schema.type === 'string' &&
+      isString(schema.format) &&
+      isDateFormatType(schema.format, override)) ||
+    getCustomFormatType(schema, override) !== undefined;
   return (
-    isDate ||
+    isTransformed ||
     compositionMembers(schema).some((member) =>
-      carriesDateTransform(member, context, followed, seen),
+      carriesTransform(member, context, followed, seen),
     )
   );
 };
@@ -476,7 +481,7 @@ interface ComponentFacts {
   declaredKeys: () => Set<string>;
   acceptsNull: () => boolean;
   hasDefault: () => boolean;
-  hasDateTransform: () => boolean;
+  hasTransform: () => boolean;
 }
 
 const createComponentFacts = (
@@ -489,18 +494,21 @@ const createComponentFacts = (
   declaredKeys: lazy(() => new Set(declaredKeys(schema, context))),
   acceptsNull: lazy(() => mayAcceptNull(schema, context)),
   hasDefault: lazy(() => hasDefault(schema, context)),
-  hasDateTransform: lazy(
-    () =>
-      context.output.override.useDates === true &&
-      carriesDateTransform(schema, context),
-  ),
+  hasTransform: lazy(() => carriesTransform(schema, context)),
 });
 
 const factsCache = new WeakMap<object, Map<string, ComponentFacts>>();
 
-// The facts depend on useDates, which differs between outputs of one spec.
-const factsKey = (ref: string, context: ContextSpec): string =>
-  `${context.output.override.useDates === true ? 'dates' : 'plain'}:${ref}`;
+// The facts depend on useDates and the formatType formats, which differ between
+// outputs of one spec.
+const factsKey = (ref: string, context: ContextSpec): string => {
+  const { useDates, formatType } = context.output.override;
+  return JSON.stringify([
+    useDates === true,
+    Object.keys(formatType ?? {}).toSorted(),
+    ref,
+  ]);
+};
 
 const getComponentFacts = (
   ref: string,
@@ -591,7 +599,7 @@ export const createRefPolicy = ({
     // generated, so a reference cannot stand in for it.
     if (facts.hasDefault()) return false;
     // A transformed member would not merge with its siblings.
-    if (site.inIntersection && facts.hasDateTransform()) {
+    if (site.inIntersection && facts.hasTransform()) {
       return false;
     }
     // A schema that checks nothing is cheaper inline, and the containers

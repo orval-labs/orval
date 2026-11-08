@@ -1,6 +1,7 @@
 import { runInNewContext } from 'node:vm';
 
 import type {
+  FormatTypeMap,
   OpenApiComponentsObject,
   OpenApiParameterObject,
   OpenApiReferenceObject,
@@ -22,17 +23,19 @@ const ref = (name: string) => ({
 interface ContextOptions {
   strict?: boolean;
   useDates?: boolean;
+  formatType?: FormatTypeMap;
 }
 
 const contextOf = (
   schemas: Record<string, OpenApiSchemaObject>,
-  { strict = false, useDates = false }: ContextOptions = {},
+  { strict = false, useDates = false, formatType }: ContextOptions = {},
 ) =>
   createTestContextSpec({
     spec: { components: { schemas } },
     output: {
       override: {
         useDates,
+        formatType,
         valibot: {
           generateReusableSchemas: true,
           strict: {
@@ -49,12 +52,15 @@ const contextOf = (
 
 // Evaluates the whole module, so a constant read before its declaration throws.
 // The getter's return type is dropped as the script is plain JavaScript.
-const load = (schemas: Record<string, OpenApiSchemaObject>) => {
-  const code = generateValibotComponents(contextOf(schemas));
+const load = (
+  schemas: Record<string, OpenApiSchemaObject>,
+  options?: ContextOptions,
+) => {
+  const code = generateValibotComponents(contextOf(schemas, options));
   const names = Object.keys(schemas);
   const module = runInNewContext(
     `${code.replaceAll('export const ', 'const ').replaceAll('(): v.GenericSchema =>', '() =>')}\n;({ ${names.join(', ')} })`,
-    { v },
+    { v, toDay: (value: string) => ({ day: value }) },
   ) as Record<string, v.GenericSchema>;
   const ok = (name: string, input: unknown) =>
     v.safeParse(module[name], input).success;
@@ -427,6 +433,71 @@ describe('component constants', () => {
   it('keeps the name of a component called Error', () => {
     const { code } = load({ Error: { type: 'string' } });
     expect(code).toContain('const Error = v.string()');
+  });
+});
+
+describe('formatType component constants', () => {
+  const formatType: FormatTypeMap = {
+    'date-time': { type: 'Day', decode: 'toDay' },
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const at = '2025-01-01T09:00:00.000Z';
+
+  it('decodes mapped strings, references to them and defaults holding them', () => {
+    const { code, module } = load(
+      {
+        Timestamp: dateTime,
+        Event: {
+          type: 'object',
+          required: ['at'],
+          properties: {
+            at: ref('Timestamp'),
+            startsAt: { ...dateTime, default: at },
+            window: {
+              type: 'object',
+              properties: { from: dateTime },
+              default: { from: at },
+            },
+          },
+        },
+      },
+      { formatType },
+    );
+    expect(code).toContain(
+      'export const Timestamp = v.pipe(v.string(), v.isoTimestamp(), v.transform((value) => toDay(value)))',
+    );
+    expect(v.parse(module.Event, { at })).toEqual({
+      at: { day: at },
+      startsAt: { day: at },
+      window: { from: { day: at } },
+    });
+  });
+
+  it('fails for a mapped format without decode', () => {
+    expect(() =>
+      load(
+        { Timestamp: dateTime },
+        { formatType: { 'date-time': { type: 'Day' } } },
+      ),
+    ).toThrow(
+      'override.formatType.date-time (Day): Valibot schemas need `decode`',
+    );
+  });
+
+  it('fails for a reference to a mapped format inside allOf', () => {
+    expect(() =>
+      load(
+        {
+          Timestamp: dateTime,
+          Stamp: {
+            allOf: [ref('Timestamp'), { type: 'string', minLength: 1 }],
+          },
+        },
+        { formatType },
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Day): Valibot schemas can't convert it inside allOf",
+    );
   });
 });
 
