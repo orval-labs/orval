@@ -18,6 +18,61 @@ export default defineConfig({
       },
     },
   },
+  formatType: {
+    output: {
+      target: '../generated/angular/format-type/endpoints.ts',
+      schemas: '../generated/angular/format-type/model',
+      client: 'angular',
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  formatTypeZodCodec: {
+    output: {
+      target: '../generated/angular/format-type-zod-codec/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/format-type-zod-codec/model',
+      },
+      client: 'angular',
+      override: {
+        angular: {
+          runtimeValidation: { requestBodies: true, standardSchema: true },
+        },
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            zod: {
+              codec: 'isoDatetimeCodec',
+              codecImport: {
+                name: 'isoDatetimeCodec',
+                importPath: '../../../../mutators/zod-codec',
+              },
+            },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/angular/zod-schema-response/endpoints.ts',

@@ -490,6 +490,7 @@ describe('angular httpResource generator', () => {
     const generateMutationImports = async (
       requestBodies: boolean,
       bodyName = 'CreatePetsBody',
+      formatTypeCodecs?: boolean,
     ) => {
       const angular = {
         ...angularOverride('httpResource'),
@@ -524,6 +525,7 @@ describe('angular httpResource generator', () => {
           formUrlEncoded: '',
           isBlob: false,
           isOptional: false,
+          formatTypeCodecs,
         },
         override: {
           ...createVerbOption().override,
@@ -572,6 +574,19 @@ describe('angular httpResource generator', () => {
         values: true,
       });
       expect(imports).not.toContainEqual({ name: 'Error', values: true });
+    });
+
+    it('imports the zod namespace to encode a parsed body back through its formatType codecs', async () => {
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
+      const zodImport = expect.objectContaining({
+        name: 'zod',
+        namespaceImport: true,
+      });
+
+      expect(
+        await generateMutationImports(true, 'CreatePetsBody', true),
+      ).toContainEqual(zodImport);
+      expect(await generateMutationImports(true)).not.toContainEqual(zodImport);
     });
   });
 
@@ -1168,6 +1183,37 @@ describe('angular httpResource generator', () => {
         // Without a serializer the passthrough set would make `filterParams`
         // return `unknown` (uncompilable against HttpClient). See #3326.
         expect(header).not.toContain('new Set<string>(["filters"])');
+      });
+
+      it('filters an encoded copy of formatType query values', () => {
+        const verbOption = createVerbOption({
+          queryParams: {
+            schema: { name: 'GetPetByIdParams', model: '', imports: [] },
+            deps: [],
+            isOptional: true,
+            formatTypeEncoding: {
+              statements: ['encodedParams.after = toIso(encodedParams.after);'],
+            },
+          },
+        });
+        routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+        const header = generateHttpResourceHeader({
+          title: 'PetService',
+          isRequestOptions: true,
+          isMutator: false,
+          isGlobalMutator: false,
+          provideIn: 'root',
+          hasAwaitedType: false,
+          output: createOutput(),
+          verbOptions: { getPetById: verbOption },
+          clientImplementation: '',
+        } as never);
+
+        expect(header).toContain(
+          'const encodedParams = { ...params?.() };\nencodedParams.after = toIso(encodedParams.after);',
+        );
+        expect(header).toContain('params: filterParams(encodedParams');
       });
 
       it('passes nonPrimitiveKeys through when a paramsSerializer is configured', () => {

@@ -13,6 +13,7 @@ import {
   isFormDataContentType,
   isObject,
   jsStringLiteralEscape,
+  logger,
   stringify,
 } from '../utils';
 
@@ -956,6 +957,7 @@ export function generateQueryParamsAxiosConfig(
   requiredNullableQueryParamKeys?: string[],
   queryParams?: GetterQueryParam,
   paramsFilter?: GeneratorMutator,
+  paramsExpression = 'params ?? {}',
 ) {
   if (!queryParams && !response.isBlob) {
     return '';
@@ -966,7 +968,7 @@ export function generateQueryParamsAxiosConfig(
   if (queryParams) {
     if (isAngular) {
       const paramsExpr = buildAngularParamsFilterExpression({
-        paramsExpression: 'params ?? {}',
+        paramsExpression,
         requiredNullableParamKeys: requiredNullableQueryParamKeys,
         nonPrimitiveKeys: queryParams.nonPrimitiveKeys,
         paramsFilter,
@@ -1000,6 +1002,8 @@ interface GenerateMutatorConfigOptions {
   isAngular?: boolean;
   paramsFilter?: GeneratorMutator;
   accept?: string;
+  /** The query params an Angular config filters, `params ?? {}` by default. */
+  paramsExpression?: string;
 }
 
 export function generateMutatorConfig({
@@ -1017,6 +1021,7 @@ export function generateMutatorConfig({
   isAngular,
   paramsFilter,
   accept,
+  paramsExpression,
 }: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -1028,6 +1033,7 @@ export function generateMutatorConfig({
     queryParams?.requiredNullableKeys,
     queryParams,
     paramsFilter,
+    paramsExpression,
   );
 
   const shouldSetContentType =
@@ -1100,6 +1106,8 @@ export function generateFormDataAndUrlEncodedFunction({
       return `const formData = ${guard}${formData.name}(${body.implementation})`;
     }
 
+    if (body.formatTypeError) throw new Error(body.formatTypeError);
+    for (const warning of body.formatTypeWarnings ?? []) logger.warn(warning);
     return build('formData', body.formData);
   }
 
@@ -1108,6 +1116,8 @@ export function generateFormDataAndUrlEncodedFunction({
       return `const formUrlEncoded = ${guard}${formUrlEncoded.name}(${body.implementation})`;
     }
 
+    if (body.formatTypeError) throw new Error(body.formatTypeError);
+    for (const warning of body.formatTypeWarnings ?? []) logger.warn(warning);
     return build('formUrlEncoded', body.formUrlEncoded);
   }
 

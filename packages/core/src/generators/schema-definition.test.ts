@@ -923,3 +923,45 @@ describe('generateSchemasDefinition', () => {
     });
   });
 });
+
+describe('generateSchemasDefinition (single factory methods)', () => {
+  it('makes a type import a value import when the factory calls it', () => {
+    const schemas: OpenApiSchemasObject = {
+      Product: {
+        type: 'object',
+        required: ['price'],
+        properties: { price: { type: 'string', format: 'money' } },
+      },
+    };
+    const big = { name: 'Big', importPath: 'big.js' };
+    const context = createTestContextSpec({
+      target: 'typescript',
+      spec: { openapi: '3.1.0', components: { schemas } },
+      output: {
+        factoryMethods: {
+          functionNamePrefix: 'create',
+          mode: 'single',
+          outputDirectory: '',
+          includeOptionalProperty: false,
+        },
+      },
+      override: {
+        formatType: {
+          money: {
+            type: 'Big',
+            import: big,
+            decode: 'Big',
+            decodeImport: big,
+            factoryDefault: '0',
+          },
+        },
+      },
+    });
+
+    const [product] = generateSchemasDefinition(schemas, context, '');
+
+    expect(product.imports.filter((imp) => imp.name === 'Big')).toEqual([
+      { ...big, values: true },
+    ]);
+  });
+});

@@ -107,10 +107,17 @@ export function generateSchemasDefinition(
           if (context.output.factoryMethods.mode === 'single') {
             schema.model += `\n${factoryData.model}`;
             for (const imp of factoryData.imports) {
-              if (
-                !schema.imports.some((existing) => existing.name === imp.name)
-              ) {
+              const index = schema.imports.findIndex(
+                (existing) => existing.name === imp.name,
+              );
+              if (index === -1) {
                 schema.imports.push(imp);
+              } else if (imp.values && !schema.imports[index].values) {
+                // A `formatType` type and its `decode` can share one name.
+                schema.imports[index] = {
+                  ...schema.imports[index],
+                  values: true,
+                };
               }
             }
           } else {

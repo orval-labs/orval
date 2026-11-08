@@ -1,0 +1,168 @@
+openapi: '3.1.0'
+info:
+  title: Date Type Test
+  version: '1.0.0'
+paths:
+  /events:
+    get:
+      operationId: listEvents
+      parameters:
+        - name: after
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: before
+          in: query
+          schema:
+            type: [string, 'null']
+            format: date-time
+        - name: days
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvent'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+  /events/at/{startsAt}:
+    get:
+      operationId: getEventAt
+      parameters:
+        - name: startsAt
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+  /events/until/{endsAt}:
+    get:
+      operationId: getEventUntil
+      parameters:
+        - name: endsAt
+          in: path
+          required: true
+          schema:
+            type: [string, 'null']
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+  /events/{eventId}/reminders:
+    post:
+      operationId: addReminders
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reminders'
+      responses:
+        '204':
+          description: No Content
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - id
+        - name
+        - startsAt
+        - date
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/EventStatus'
+        endsAt:
+          type: [string, 'null']
+          format: date-time
+    CreateEvent:
+      type: object
+      required:
+        - name
+        - startsAt
+      properties:
+        name:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        date:
+          type: string
+          format: date
+        publishAt:
+          type: string
+          format: date-time
+          default: '2025-01-01T09:00:00Z'
+        endsAt:
+          type: [string, 'null']
+          format: date-time
+    Reminders:
+      type: object
+      required:
+        - remindAt
+      properties:
+        remindAt:
+          type: string
+          format: date-time
+        alsoAt:
+          type: array
+          items:
+            type: string
+            format: date-time
+        snoozeUntil:
+          type: [string, 'null']
+          format: date-time
+    EventStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, CANCELLED]
+      default: DRAFT

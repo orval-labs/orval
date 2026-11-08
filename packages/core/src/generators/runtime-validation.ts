@@ -184,6 +184,8 @@ export interface EmitRequestBodyValidationOptions {
   isOptional?: boolean;
   /** Call the Standard Schema helpers instead of Zod's `parse`/`safeParse`. */
   standardSchema?: boolean;
+  /** Encode the parsed body back through the schema's codecs. */
+  encode?: boolean;
 }
 
 /**
@@ -198,15 +200,17 @@ export const emitRequestBodyValidation = ({
   inputExpression,
   isOptional = false,
   standardSchema = false,
+  encode = false,
 }: EmitRequestBodyValidationOptions): string => {
   const parse =
     strategy === 'both'
       ? `(() => { ${buildGuardBody({ schemaRef, operationName, input: inputExpression, subject: 'request body', standardSchema })} })()`
       : parseCall('parse', schemaRef, inputExpression, standardSchema);
+  const parsed = encode ? `zod.encode(${schemaRef}, ${parse})` : parse;
 
   return isOptional
-    ? `${inputExpression} === undefined ? undefined : ${parse}`
-    : parse;
+    ? `${inputExpression} === undefined ? undefined : ${parsed}`
+    : parsed;
 };
 
 /**

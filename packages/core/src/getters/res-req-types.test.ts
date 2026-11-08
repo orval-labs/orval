@@ -2825,3 +2825,147 @@ describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertie
     });
   });
 });
+
+describe('getResReqTypes (formatType form values)', () => {
+  const formatTypeContext = (encode?: string) =>
+    extendContext({
+      override: {
+        useDates: true,
+        formatType: {
+          'date-time': { type: 'Dayjs', ...(encode ? { encode } : {}) },
+        },
+      },
+    });
+  const requestBody = (
+    schema: OpenApiSchemaObject,
+    contentType = 'multipart/form-data',
+    encoding?: Record<string, { style: 'deepObject' }>,
+  ): [string, OpenApiRequestBodyObject][] => [
+    [
+      'requestBody',
+      {
+        content: {
+          [contentType]: { schema, ...(encoding ? { encoding } : {}) },
+        },
+        required: true,
+      },
+    ],
+  ];
+  const event: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['startsAt'],
+    properties: {
+      startsAt: { type: 'string', format: 'date-time' },
+      reminders: {
+        type: 'array',
+        items: { type: 'string', format: 'date-time' },
+      },
+    },
+  };
+
+  it('encodes fields and array items with encode', () => {
+    const [result] = getResReqTypes(
+      requestBody(event),
+      'Event',
+      formatTypeContext('toIso'),
+    );
+    expect(result.formData).toContain(
+      'formData.append(`startsAt`, toIso(eventRequestBody.startsAt));',
+    );
+    expect(result.formData).toContain(
+      'eventRequestBody.reminders.forEach(value => formData.append(`reminders`, toIso(value)))',
+    );
+    expect(result.formData).not.toContain('toFormValue');
+    expect(result.formatTypeError).toBeUndefined();
+  });
+
+  it('skips a nullable root value', () => {
+    const formData = (type: 'string' | ['string', 'null']) =>
+      getResReqTypes(
+        requestBody({ type, format: 'date-time' }),
+        'Event',
+        formatTypeContext('toIso'),
+      )[0].formData;
+
+    expect(formData(['string', 'null'])).toContain(
+      "if(eventRequestBody !== undefined && eventRequestBody !== null) {\n formData.append('data', toIso(eventRequestBody))",
+    );
+    expect(formData('string')).toContain(
+      "\nformData.append('data', toIso(eventRequestBody))",
+    );
+  });
+
+  it('sends a field without encode through String(), with a warning', () => {
+    const [result] = getResReqTypes(
+      requestBody(event),
+      'Event',
+      formatTypeContext(),
+    );
+    expect(result.formData).toContain(
+      'formData.append(`startsAt`, String(eventRequestBody.startsAt));',
+    );
+    expect(result.formatTypeError).toBeUndefined();
+    expect(result.formatTypeWarnings).toEqual([
+      'override.formatType.date-time (Dayjs): operation `Event`, form field `startsAt` has no `encode` and is sent through `String()`',
+      'override.formatType.date-time (Dayjs): operation `Event`, form field `reminders` has no `encode` and is sent through `String()`',
+    ]);
+  });
+
+  it('records the error for a deepObject field it cannot reach', () => {
+    const [result] = getResReqTypes(
+      requestBody(
+        {
+          type: 'object',
+          properties: {
+            range: {
+              type: 'object',
+              properties: { from: { type: 'string', format: 'date-time' } },
+            },
+          },
+        },
+        'application/x-www-form-urlencoded',
+        { range: { style: 'deepObject' } },
+      ),
+      'Event',
+      formatTypeContext('toIso'),
+    );
+    expect(result.formatTypeError).toBe(
+      "override.formatType.date-time (Dayjs): operation `Event`, the deepObject form field `range` can't encode it",
+    );
+  });
+
+  it("encodes only an operation's unnamed values with Zod schemas", () => {
+    const context = extendContext({
+      spec: {
+        components: {
+          schemas: { At: { type: 'string', format: 'date-time' } },
+        },
+      },
+      override: {
+        formatType: { 'date-time': { type: 'Dayjs', encode: 'toIso' } },
+      },
+    });
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const formData = (schema: OpenApiSchemaObject) =>
+      getResReqTypes(requestBody(schema), 'Event', context)[0].formData;
+
+    expect(
+      formData({
+        type: 'array',
+        items: { type: 'string', format: 'date-time' },
+      }),
+    ).toContain("formData.append('data', toIso(value))");
+    expect(formData({ type: 'string', format: 'date-time' })).toContain(
+      "formData.append('data', toIso(eventRequestBody))",
+    );
+    // An object level and a `$ref` have named types, holding the strings.
+    expect(formData(event)).not.toContain('toIso');
+    expect(
+      formData({ type: 'array', items: { $ref: '#/components/schemas/At' } }),
+    ).not.toContain('toIso');
+  });
+});

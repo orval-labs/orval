@@ -1,7 +1,12 @@
 import {
+  callFormatTypeFunction,
   type ContextSpec,
+  getCustomFormatType,
   getEnumMembers,
+  getFormatTypeError,
+  getUnionMemberContext,
   isBoolean,
+  isDateFormatType,
   isObject,
   isSchemaNullable,
   isString,
@@ -31,6 +36,7 @@ import {
 } from './nodes';
 import { getRef, isReusableSchemasEnabled, resolveComponentName } from './refs';
 import {
+  getCompositionKeys,
   getMultiTypes,
   hasProperties,
   isNonBoolean,
@@ -252,8 +258,16 @@ const generateActions = (
   context: ContextSpec,
 ): ValibotAction[] => {
   const { kind } = base.schema;
-  const isDateString =
-    kind === 'string' && ['date', 'date-time'].includes(schema.format ?? '');
+  const { override } = context.output;
+  const formatType =
+    kind === 'string' ? getCustomFormatType(schema, override) : undefined;
+  if (formatType && !formatType.decode) {
+    throw getFormatTypeError(
+      schema.format,
+      formatType,
+      'Valibot schemas need `decode`',
+    );
+  }
   return [
     ...base.actions,
     ...(kind === 'number' ? numberActions(schema) : []),
@@ -262,8 +276,22 @@ const generateActions = (
       ? patternActions(schema.pattern)
       : []),
     // The transform runs after every check, which expect the string.
-    ...(isDateString && context.output.override.useDates
+    ...(kind === 'string' && isDateFormatType(schema.format, override)
       ? [{ kind: 'toDate' } as const]
+      : []),
+    ...(formatType?.decode
+      ? [
+          {
+            kind: 'decode',
+            call: callFormatTypeFunction(formatType.decode, 'value'),
+            // A transformed member would not merge with its siblings.
+            intersectionError: getFormatTypeError(
+              schema.format,
+              formatType,
+              "Valibot schemas can't convert it inside allOf",
+            ).message,
+          } as const,
+        ]
       : []),
     ...(isString(schema.description) && schema.description
       ? [
@@ -445,11 +473,44 @@ export const generateValibotValidationSchemaDefinition = (
   const defaultValue =
     schema.default === undefined ? undefined : generateDefault(schema);
   const hasDefault = defaultValue !== undefined;
-  const child: ChildGenerator = (member, isRequired = true) =>
-    generateValibotValidationSchemaDefinition(member, context, strict, {
-      required: isRequired,
-      urlEncoded,
-    });
+  // The string member of a `type: [...]` union keeps the format unmapped.
+  const isUnion = getMultiTypes(schema).length > 1;
+  const child: ChildGenerator = (member, isRequired = true) => {
+    if (!isUnion || !isNonBoolean(member) || member.type !== 'string') {
+      return generateValibotValidationSchemaDefinition(
+        member,
+        context,
+        strict,
+        {
+          required: isRequired,
+          urlEncoded,
+        },
+      );
+    }
+    const memberContext = getUnionMemberContext(context, schema.format);
+    // An unmapped `binary` format would check a `File`, not the string the
+    // member is typed as.
+    const isUnmappedBinary =
+      memberContext !== context && member.format === 'binary';
+    return generateValibotValidationSchemaDefinition(
+      isUnmappedBinary ? { ...member, format: undefined } : member,
+      memberContext,
+      strict,
+      { required: isRequired, urlEncoded },
+    );
+  };
+
+  const composedFormatType =
+    getCompositionKeys(schema).length > 0
+      ? getCustomFormatType(schema, context.output.override)
+      : undefined;
+  if (composedFormatType) {
+    throw getFormatTypeError(
+      schema.format,
+      composedFormatType,
+      "Valibot schemas can't convert it next to allOf/oneOf/anyOf",
+    );
+  }
 
   const base = generateBase(schema, child, strict, nullable, urlEncoded);
 

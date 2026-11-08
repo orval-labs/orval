@@ -49,6 +49,7 @@ import {
   generateZod,
   generateZodSections,
   generateZodValidationSchemaDefinition,
+  getFormatTypeZodImports,
   getZodDependencies,
   hasResponseSchema,
   isObjectResponseSchema,
@@ -16002,5 +16003,305 @@ describe('oneOf as zod.xor', () => {
     expect(render({ oneOf: [{ type: 'string' }, { not: {} }] }, true)).toBe(
       'zod.xor([zod.string(),zod.never()])',
     );
+  });
+});
+
+describe('formatType', () => {
+  const dayjsImport = { name: 'dayjs', importPath: 'dayjs', default: true };
+  const dayjs = {
+    type: 'Dayjs',
+    import: { name: 'Dayjs', importPath: 'dayjs' },
+    decode: 'dayjs',
+    decodeImport: dayjsImport,
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const render = (
+    schema: OpenApiSchemaObject,
+    formatType: ContextSpec['output']['override']['formatType'],
+    {
+      isZodV4 = true,
+      variant = 'classic',
+      coerce = false,
+      required = true,
+    }: {
+      isZodV4?: boolean;
+      variant?: ZodVariantOption;
+      coerce?: boolean;
+      required?: boolean;
+    } = {},
+  ) => {
+    const context = makeContextSpec({ override: { formatType } });
+    const definition = generateZodValidationSchemaDefinition(
+      schema,
+      context,
+      'field',
+      false,
+      isZodV4,
+      { required },
+    );
+    return parseZodValidationSchemaDefinition(
+      definition,
+      context,
+      coerce,
+      false,
+      isZodV4,
+      undefined,
+      undefined,
+      variant,
+    );
+  };
+
+  it('decodes a mapped format after validating the wire string', () => {
+    expect(render(dateTime, { 'date-time': dayjs }).zod).toBe(
+      'zod.iso.datetime({}).transform((value) => dayjs(value))',
+    );
+    expect(
+      render(
+        { type: 'string', format: 'date-time', minLength: 1 },
+        { 'date-time': dayjs },
+        { isZodV4: false, required: false },
+      ).zod,
+    ).toBe(
+      'zod.string().datetime({}).min(1).transform((value) => dayjs(value)).optional()',
+    );
+    expect(
+      render(dateTime, { 'date-time': dayjs }, { variant: 'mini' }).zod,
+    ).toBe(
+      '/*#__PURE__*/ zod.pipe(/*#__PURE__*/ zod.iso.datetime({}), /*#__PURE__*/ zod.transform((value) => dayjs(value)))',
+    );
+  });
+
+  it('prefers zod.transform over decode', () => {
+    expect(
+      render(dateTime, {
+        'date-time': { ...dayjs, zod: { transform: 'toDayjs' } },
+      }).zod,
+    ).toBe('zod.iso.datetime({}).transform(toDayjs)');
+  });
+
+  it('replaces the schema with zod.codec on Zod 4 and rejects it on Zod 3', () => {
+    const codec = {
+      'date-time': { type: 'Dayjs', zod: { codec: 'isoDatetimeCodec' } },
+    };
+    expect(render(dateTime, codec, { required: false }).zod).toBe(
+      'isoDatetimeCodec.optional()',
+    );
+    expect(() => render(dateTime, codec, { isZodV4: false })).toThrow(
+      'override.formatType.date-time (Dayjs): `zod.codec` needs Zod 4',
+    );
+  });
+
+  it('fails for a mapped format it cannot convert', () => {
+    expect(() => render(dateTime, { 'date-time': { type: 'Dayjs' } })).toThrow(
+      'override.formatType.date-time (Dayjs): Zod schemas need `zod.codec`, `zod.transform` or `decode`',
+    );
+  });
+
+  it('decodes a mapped binary format from a wire string', () => {
+    expect(
+      render({ type: 'string', format: 'binary' }, { binary: dayjs }).zod,
+    ).toBe('zod.string().transform((value) => dayjs(value))');
+  });
+
+  it('fails for a mapped format next to allOf', () => {
+    expect(() =>
+      render(
+        { ...dateTime, allOf: [{ minLength: 1 }] },
+        { 'date-time': dayjs },
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): Zod schemas can't convert it next to allOf/oneOf/anyOf",
+    );
+  });
+
+  it('keeps enums and unmapped formats as strings', () => {
+    const formatType = { 'date-time': { type: 'Dayjs' } };
+    expect(
+      render({ ...dateTime, enum: ['2025-01-01T00:00:00Z'] }, formatType).zod,
+    ).toBe("zod.enum(['2025-01-01T00:00:00Z'])");
+    expect(render({ type: 'string', format: 'date' }, formatType).zod).toBe(
+      'zod.iso.date()',
+    );
+  });
+
+  it('types a `Date` mapping like useDates', () => {
+    expect(render(dateTime, { 'date-time': { type: 'Date' } }).zod).toBe(
+      'zod.date()',
+    );
+  });
+
+  it('leaves a mapped format unmapped in a union with other types', () => {
+    expect(
+      render(
+        { type: ['string', 'number'], format: 'date-time' },
+        { 'date-time': dayjs },
+      ).zod,
+    ).toBe('zod.union([zod.iso.datetime({}),zod.number()])');
+  });
+
+  it('validates an unmapped binary member of a union as a string', () => {
+    expect(
+      render(
+        { type: ['string', 'number'], format: 'binary' },
+        { binary: dayjs },
+      ).zod,
+    ).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('keeps the mapped formats of an object member of the union', () => {
+    const union = render(
+      {
+        type: ['string', 'object'],
+        format: 'date-time',
+        properties: { at: dateTime },
+      },
+      { 'date-time': dayjs },
+    ).zod;
+    expect(union).toContain('zod.union([zod.iso.datetime({}),zod.object(');
+    expect(union).toContain('.transform((value) => dayjs(value))');
+  });
+
+  it('coerces only a zod.date() schema, not the Zod 3 string date check', () => {
+    const formatType = { 'date-time': { type: 'Date' } };
+    const options = { isZodV4: false, coerce: true };
+    expect(render(dateTime, formatType, options).zod).toBe('zod.coerce.date()');
+    expect(
+      render({ type: 'string', format: 'date' }, formatType, options).zod,
+    ).toBe('zod.coerce.string().date()');
+  });
+
+  it('applies a default on the wire side', () => {
+    const withDefault: OpenApiSchemaObject = {
+      ...dateTime,
+      default: '2025-01-01T00:00:00Z',
+    };
+    const formatType = { 'date-time': dayjs };
+    expect(render(withDefault, formatType).zod).toBe(
+      'zod.iso.datetime({}).transform((value) => dayjs(value)).prefault(fieldDefault)',
+    );
+    expect(render(withDefault, formatType, { isZodV4: false }).zod).toBe(
+      'zod.string().datetime({}).transform((value) => dayjs(value)).default(fieldDefault)',
+    );
+    expect(
+      render(
+        {
+          type: 'object',
+          properties: { startsAt: dateTime },
+          default: { startsAt: '2025-01-01T00:00:00Z' },
+        },
+        formatType,
+      ).zod,
+    ).toMatch(/\.prefault\(fieldDefault\)$/);
+  });
+
+  it('collects the imports the emitted code references', () => {
+    const override = {
+      formatType: {
+        'date-time': dayjs,
+        date: {
+          type: 'Temporal.PlainDate',
+          zod: {
+            transform: 'toPlainDate',
+            transformImport: { name: 'toPlainDate', importPath: './dates' },
+          },
+        },
+      },
+    };
+    expect(
+      getFormatTypeZodImports(
+        'zod.iso.datetime({}).transform((value) => dayjs(value))',
+        override,
+      ),
+    ).toEqual([{ ...dayjsImport, values: true }]);
+    expect(getFormatTypeZodImports('zod.iso.date()', override)).toEqual([]);
+  });
+
+  it('returns the imports of the request and response sections', async () => {
+    const { response, imports } = await generateZodSections(
+      createTestGeneratorVerbOptions({
+        pathRoute: '/events',
+        verb: 'get',
+        operationName: 'listEvents',
+        typeName: 'listEvents',
+        override: {
+          zod: {
+            generate: {
+              param: true,
+              query: true,
+              header: true,
+              body: true,
+              response: true,
+            },
+          },
+        },
+      }),
+      createTestGeneratorOptions({
+        pathRoute: '/events',
+        context: {
+          spec: {
+            paths: {
+              '/events': {
+                get: {
+                  operationId: 'listEvents',
+                  responses: {
+                    '200': {
+                      description: 'OK',
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: { startsAt: dateTime },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        override: { formatType: { 'date-time': dayjs } },
+      }),
+    );
+
+    expect(response).toContain('.transform((value) => dayjs(value))');
+    expect(imports).toEqual([{ ...dayjsImport, values: true }]);
+  });
+
+  it('has no JSON Schema response for a converted format', () => {
+    const context = makeContextSpec({
+      spec: {
+        paths: {
+          '/x': {
+            get: {
+              operationId: 'getX',
+              responses: {
+                '200': {
+                  description: 'ok',
+                  content: { 'application/json': { schema: dateTime } },
+                },
+              },
+            },
+          },
+        },
+      },
+      override: { formatType: { 'date-time': dayjs } },
+    });
+    context.output.override.zod = {
+      ...context.output.override.zod,
+      generate: { ...context.output.override.zod.generate, response: true },
+    };
+
+    expect(
+      hasResponseSchema(
+        createTestGeneratorVerbOptions({
+          verb: 'get',
+          pathRoute: '/x',
+          override: context.output.override,
+        }),
+        context,
+      ),
+    ).toBe(false);
   });
 });

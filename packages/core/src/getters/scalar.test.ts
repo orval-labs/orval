@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
-import type { OpenApiSchemaObject } from '../types';
+import type { NormalizedOverrideOutput, OpenApiSchemaObject } from '../types';
 import type { FormDataContext } from './object';
-import { getScalar, isBinaryScalarSchema } from './scalar';
+import {
+  findCustomFormatType,
+  getFormatTypeFunctionImports,
+  getModelFormatType,
+  getScalar,
+  isBinaryScalarSchema,
+  resolveFormatType,
+} from './scalar';
 
 const context = createTestContextSpec({
   override: {
@@ -645,5 +652,303 @@ describe('getScalar (binary types shadowed by components)', () => {
 
     expect(fileType(suffixed)).toBe('Blob | File');
     expect(fileType(shared)).toBe('Blob | globalThis.File');
+  });
+});
+
+describe('resolveFormatType', () => {
+  const override = { useDates: false } as NormalizedOverrideOutput;
+
+  it('returns undefined when no format', () => {
+    expect(resolveFormatType(undefined, override)).toBeUndefined();
+  });
+
+  it('returns formatType config when present', () => {
+    const withFormat = {
+      ...override,
+      formatType: {
+        date: { type: 'Temporal.PlainDate' },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withFormat)).toEqual({
+      type: 'Temporal.PlainDate',
+      import: undefined,
+    });
+  });
+
+  it('returns formatType config with import', () => {
+    const withFormat = {
+      ...override,
+      formatType: {
+        'date-time': {
+          type: 'Dayjs',
+          import: { name: 'Dayjs', importPath: 'dayjs' },
+        },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date-time', withFormat)).toEqual({
+      type: 'Dayjs',
+      import: { name: 'Dayjs', importPath: 'dayjs' },
+    });
+  });
+
+  it('falls back to useDates for date format', () => {
+    const withDates = {
+      ...override,
+      useDates: true,
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withDates)).toEqual({ type: 'Date' });
+  });
+
+  it('returns undefined when no formatType and useDates is false', () => {
+    expect(resolveFormatType('date', override)).toBeUndefined();
+  });
+
+  it('formatType takes precedence over useDates', () => {
+    const withBoth = {
+      ...override,
+      useDates: true,
+      formatType: {
+        date: { type: 'Temporal.PlainDate' },
+      },
+    } as NormalizedOverrideOutput;
+    expect(resolveFormatType('date', withBoth)).toEqual({
+      type: 'Temporal.PlainDate',
+      import: undefined,
+    });
+  });
+
+  it('returns undefined for non-date formats without formatType', () => {
+    expect(resolveFormatType('email', override)).toBeUndefined();
+  });
+});
+
+describe('getScalar with formatType', () => {
+  it('uses formatType type for date format', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { date: { type: 'Temporal.PlainDate' } } },
+    });
+
+    const result = getScalar({
+      item: { type: 'string', format: 'date' },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('Temporal.PlainDate');
+  });
+
+  it('uses formatType for non-date formats like uuid', () => {
+    const ctx = createTestContextSpec({
+      override: {
+        formatType: {
+          uuid: {
+            type: 'UUID',
+            import: { name: 'UUID', importPath: '@company/types' },
+          },
+        },
+      },
+    });
+
+    const result = getScalar({
+      item: { type: 'string', format: 'uuid' },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('UUID');
+    expect(result.imports).toEqual([
+      { name: 'UUID', importPath: '@company/types' },
+    ]);
+  });
+
+  it('preserves enum when formatType is configured', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': { type: 'Dayjs' } } },
+    });
+
+    const result = getScalar({
+      item: {
+        type: 'string',
+        format: 'date-time',
+        enum: ['2024-01-01T00:00:00Z', '2024-12-31T00:00:00Z'],
+      },
+      context: ctx,
+    });
+
+    expect(result.isEnum).toBe(true);
+    expect(result.value).toContain('2024-01-01');
+  });
+
+  it('keeps typing a date enum as Date under useDates', () => {
+    const ctx = createTestContextSpec({ override: { useDates: true } });
+
+    const result = getScalar({
+      item: {
+        type: 'string',
+        format: 'date-time',
+        enum: ['2024-01-01T00:00:00Z'],
+      },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('Date');
+  });
+
+  it('ignores inherited members for document-supplied formats', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { uuid: { type: 'UUID' } } },
+    });
+
+    const result = getScalar({
+      item: { type: 'string', format: 'constructor' },
+      context: ctx,
+    });
+
+    expect(result.value).toBe('string');
+  });
+
+  it('maps a nullable string but leaves a union with other types unmapped', () => {
+    const ctx = createTestContextSpec({
+      override: {
+        useDates: true,
+        formatType: { 'date-time': { type: 'Dayjs' }, date: { type: 'Date' } },
+      },
+    });
+    const value = (
+      type: ('string' | 'number' | 'null')[],
+      format = 'date-time',
+    ) => getScalar({ item: { type, format }, context: ctx }).value;
+
+    expect(value(['string', 'null'])).toBe('Dayjs | null');
+    expect(value(['string', 'number'])).toBe('string | number');
+    expect(value(['string', 'number'], 'date')).toBe('Date | number');
+  });
+
+  it('keeps the mapped formats of an object member of the union', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': { type: 'Dayjs' } } },
+    });
+    const { value } = getScalar({
+      item: {
+        type: ['string', 'object'],
+        format: 'date-time',
+        properties: { at: { type: 'string', format: 'date-time' } },
+      },
+      context: ctx,
+    });
+
+    expect(value).toMatch(/^string \| /);
+    expect(value).toContain('at?: Dayjs');
+  });
+});
+
+describe('findCustomFormatType', () => {
+  const dayjs = { type: 'Dayjs', decode: 'dayjs' };
+  const ctx = createTestContextSpec({
+    spec: {
+      components: {
+        schemas: {
+          Event: {
+            type: 'object',
+            properties: {
+              startsAt: { type: 'string', format: 'date-time' },
+              next: { $ref: '#/components/schemas/Event' },
+            },
+          },
+          Day: { type: 'string', format: 'date' },
+        },
+      },
+    },
+    override: {
+      formatType: { 'date-time': dayjs, date: { type: 'Date' } },
+    },
+  });
+
+  it('finds a mapped format through properties, items and refs', () => {
+    expect(
+      findCustomFormatType(
+        { type: 'array', items: { $ref: '#/components/schemas/Event' } },
+        ctx,
+      ),
+    ).toEqual({ format: 'date-time', config: dayjs });
+  });
+
+  it('skips Date mappings, enums, non-strings and unmapped formats', () => {
+    expect(
+      findCustomFormatType(
+        {
+          type: 'object',
+          properties: {
+            day: { $ref: '#/components/schemas/Day' },
+            fixed: { type: 'string', format: 'date-time', enum: ['x'] },
+            count: { type: 'integer', format: 'date-time' },
+            email: { type: 'string', format: 'email' },
+          },
+        },
+        ctx,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('getModelFormatType', () => {
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const dayjs = { type: 'Dayjs', decode: 'dayjs' };
+
+  it('keeps mapped values as strings under Zod schema output', () => {
+    const ctx = createTestContextSpec({
+      override: { formatType: { 'date-time': dayjs } },
+    });
+    expect(getModelFormatType(dateTime, ctx)).toEqual(dayjs);
+    ctx.output.schemas = { path: './model', type: 'zod', splitByTags: false };
+    expect(getModelFormatType(dateTime, ctx)).toBeUndefined();
+  });
+
+  it('keeps them as strings in the schemas the zod client promotes', () => {
+    const ctx = createTestContextSpec({
+      output: { client: 'zod', schemas: './model' },
+      override: {
+        formatType: { 'date-time': dayjs },
+        zod: { generateReusableSchemas: true },
+      },
+    });
+    expect(getModelFormatType(dateTime, ctx)).toBeUndefined();
+    ctx.output.override.zod.generateReusableSchemas = false;
+    expect(getModelFormatType(dateTime, ctx)).toEqual(dayjs);
+  });
+});
+
+describe('getFormatTypeFunctionImports', () => {
+  const dayjs = { name: 'dayjs', importPath: 'dayjs', default: true };
+  const toIso = { name: 'toIso', importPath: './dates' };
+  const override = {
+    formatType: {
+      'date-time': {
+        type: 'Dayjs',
+        decodeImport: dayjs,
+        encode: 'toIso',
+        encodeImport: toIso,
+      },
+    },
+  };
+
+  it('returns the decode and encode imports the code references', () => {
+    expect(
+      getFormatTypeFunctionImports('data.at = dayjs(data.at);', override),
+    ).toEqual([{ ...dayjs, values: true }]);
+    expect(
+      getFormatTypeFunctionImports('const toIsoString = 1; Dayjs', override),
+    ).toEqual([]);
+  });
+
+  it('matches names starting with $ but not member accesses', () => {
+    const $date = { name: '$date', importPath: './dates' };
+    const parse = { name: 'parse', importPath: './dates' };
+    const imports = {
+      formatType: {
+        date: { type: 'Day', decodeImport: $date, encodeImport: parse },
+      },
+    };
+    expect(
+      getFormatTypeFunctionImports('$date(x); Schema.parse(y)', imports),
+    ).toEqual([{ ...$date, values: true }]);
   });
 });

@@ -1,6 +1,6 @@
 import vm from 'node:vm';
 
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
 import type {
@@ -10,11 +10,14 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
+import { logger } from '../utils';
 import {
   buildDateTransformStatements,
   buildRequestDateSerializeStatements,
   generateRequestDateSerializer,
   generateResponseDateDeserializer,
+  getQueryParamsEncoding,
+  getQueryParamsFormatTypeEncoding,
 } from './date-transform';
 
 const makeContext = (
@@ -5516,6 +5519,28 @@ describe('generateRequestDateSerializer', () => {
     );
   });
 
+  it('warns that a mapped date without encode is sent through its toJSON', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const context = makeContext();
+    context.output.override.formatType = {
+      date: { type: 'Dayjs', decode: 'dayjs' },
+    };
+
+    generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context,
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      "override.formatType.date (Dayjs): operation `putItem`: `useDatesTransform` sends a request body's value through its `toJSON` for lack of `encode`",
+    );
+    warn.mockRestore();
+  });
+
   it('returns undefined when the body has no date-only field', () => {
     expect(
       generateRequestDateSerializer({
@@ -6366,5 +6391,285 @@ describe('buildDateTransformStatements — property guards are unchanged', () =>
         '}',
       ].join('\n'),
     );
+  });
+});
+
+describe('formatType values', () => {
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const contextWith = (
+    formatType: ContextSpec['output']['override']['formatType'],
+  ) => {
+    const context = makeContext();
+    context.output.override.formatType = formatType;
+    return context;
+  };
+  const dayjs = contextWith({
+    'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    money: { type: 'Money', decode: 'parseMoney' },
+  });
+  const deserialize = (schema: OpenApiSchemaObject, context = dayjs) =>
+    buildDateTransformStatements({ schema, accessor: 'data', context }).join(
+      '\n',
+    );
+  const serialize = (schema: OpenApiSchemaObject, context = dayjs) =>
+    buildRequestDateSerializeStatements({
+      schema,
+      accessor: 'copy',
+      context,
+    }).join('\n');
+
+  it('decodes a response value with decode', () => {
+    expect(
+      deserialize({
+        type: 'object',
+        required: ['startsAt'],
+        properties: {
+          startsAt: dateTime,
+          amounts: {
+            type: 'array',
+            items: { type: 'string', format: 'money' },
+          },
+        },
+      }),
+    ).toBe(
+      [
+        "data.startsAt = typeof data.startsAt === 'string' ? dayjs(data.startsAt as unknown as string) : data.startsAt;",
+        'if (data.amounts != null) {',
+        '  for (let i0 = 0; i0 < data.amounts.length; i0++) {',
+        "    data.amounts[i0] = typeof data.amounts[i0]! === 'string' ? parseMoney(data.amounts[i0]! as unknown as string) : data.amounts[i0]!;",
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('converts a `Date` mapping like useDates and leaves enums alone', () => {
+    expect(
+      deserialize(dateTime, contextWith({ 'date-time': { type: 'Date' } })),
+    ).toBe('data = new Date(data);');
+    expect(deserialize({ ...dateTime, enum: ['2025-01-01T00:00:00Z'] })).toBe(
+      '',
+    );
+  });
+
+  it('fails for a response value without decode', () => {
+    expect(() =>
+      deserialize(dateTime, contextWith({ 'date-time': { type: 'Dayjs' } })),
+    ).toThrow(
+      'override.formatType.date-time (Dayjs): `useDatesTransform` needs `decode`',
+    );
+  });
+
+  it('leaves the values to Zod schemas whose input types hold the strings', () => {
+    const context = contextWith({
+      'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    });
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'day'],
+      properties: {
+        startsAt: dateTime,
+        day: { type: 'string', format: 'date' },
+      },
+    };
+    expect(deserialize(schema, context)).toBe('data.day = new Date(data.day);');
+    expect(serialize(schema, context)).toBe(
+      'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
+    );
+  });
+
+  it("converts an operation's unnamed values, which keep the mapped type, with Zod schemas", () => {
+    const context = makeContext({
+      Event: { type: 'object', properties: { at: dateTime } },
+    });
+    context.output.override.formatType = {
+      'date-time': { type: 'Dayjs', decode: 'dayjs', encode: 'toIso' },
+    };
+    context.output.schemas = {
+      path: './model',
+      type: 'zod',
+      splitByTags: false,
+    };
+    const deserializer = (schema: OpenApiSchemaObject, isRef = false) =>
+      generateResponseDateDeserializer({
+        operationName: 'getEvents',
+        response: makeResponse({
+          successTypes: [{ originalSchema: schema, isRef }],
+        }),
+        context,
+      })?.implementation;
+    const serializer = (schema: OpenApiSchemaObject) =>
+      generateRequestDateSerializer({
+        operationName: 'putEvents',
+        body: makeJsonBody(schema),
+        context,
+      })?.implementation;
+    const unnamed: OpenApiSchemaObject = {
+      type: 'array',
+      items: { anyOf: [dateTime, { type: 'null' }] },
+    };
+
+    expect(deserializer(unnamed)).toContain(
+      "data[i0] = typeof data[i0]! === 'string' ? dayjs(data[i0]! as unknown as string) : data[i0]!;",
+    );
+    expect(serializer(unnamed)).toContain(
+      "value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
+    );
+    // An object, inline or not, and a `$ref` have named types.
+    for (const named of [
+      { type: 'object', properties: { at: dateTime } },
+      { type: 'array', items: { $ref: '#/components/schemas/Event' } },
+    ] satisfies OpenApiSchemaObject[]) {
+      expect(deserializer(named)).toBeUndefined();
+      expect(serializer(named)).toBeUndefined();
+    }
+    expect(deserializer(unnamed, true)).toBeUndefined();
+  });
+
+  it('encodes a request value with encode and leaves the rest to toJSON', () => {
+    expect(
+      serialize({
+        type: 'object',
+        required: ['startsAt', 'amount'],
+        properties: {
+          startsAt: dateTime,
+          amount: { type: 'string', format: 'money' },
+        },
+      }),
+    ).toBe(
+      "copy.startsAt = typeof copy.startsAt === 'string' ? copy.startsAt : (toIso(copy.startsAt) as unknown as typeof copy.startsAt);",
+    );
+  });
+
+  it('serializes a `date` mapped to `Date` as a calendar day', () => {
+    expect(
+      serialize(
+        { type: 'string', format: 'date' },
+        contextWith({ date: { type: 'Date' } }),
+      ),
+    ).toBe(
+      'copy = copy instanceof Date ? (copy.toISOString().slice(0, 10) as unknown as Date) : copy;',
+    );
+    expect(
+      serialize(
+        { type: 'string', format: 'date' },
+        contextWith({ date: { type: 'Temporal.PlainDate' } }),
+      ),
+    ).toBe('');
+  });
+});
+
+describe('query parameter formatType values', () => {
+  const parameter = (name: string, schema: OpenApiSchemaObject) => ({
+    parameter: { name, in: 'query' as const, schema },
+    imports: [],
+  });
+  const contextWith = (
+    formatType: ContextSpec['output']['override']['formatType'],
+  ) => {
+    const context = makeContext();
+    context.output.override.formatType = formatType;
+    return context;
+  };
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+
+  it('encodes a copy of the params', () => {
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [
+        parameter('after', dateTime),
+        parameter('days', { type: 'array', items: dateTime }),
+        parameter('page', { type: 'integer' }),
+      ],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs', encode: 'toIso' } }),
+    });
+    expect(
+      getQueryParamsEncoding(
+        {
+          schema: { name: '', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: encoding,
+        },
+        'params',
+      ),
+    ).toBe(
+      [
+        'const encodedParams = { ...params };',
+        'if (encodedParams.after != null) {',
+        "  encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (toIso(encodedParams.after) as unknown as typeof encodedParams.after);",
+        '}',
+        'if (encodedParams.days != null) {',
+        '  encodedParams.days = encodedParams.days.map((item0) => {',
+        '    let value0 = item0;',
+        "    value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
+        '    return value0;',
+        '  });',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  it('sends a value without encode through String() and warns when read', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [parameter('after', dateTime)],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs' } }),
+    });
+    expect(warn).not.toHaveBeenCalled();
+    expect(
+      getQueryParamsEncoding(
+        {
+          schema: { name: '', model: '', imports: [] },
+          deps: [],
+          isOptional: true,
+          formatTypeEncoding: encoding,
+        },
+        'params',
+      ),
+    ).toContain(
+      "encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (String(encodedParams.after) as unknown as typeof encodedParams.after);",
+    );
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'override.formatType.date-time (Dayjs): operation `listEvents`, query parameter `after` has no `encode` and is sent through `String()`',
+    );
+    warn.mockRestore();
+    expect(
+      getQueryParamsFormatTypeEncoding({
+        parameters: [parameter('after', dateTime)],
+        operationName: 'listEvents',
+        context: makeContext(),
+      }),
+    ).toBeUndefined();
+  });
+
+  it('encodes a readOnly property of a query object, which is sent', () => {
+    const encoding = getQueryParamsFormatTypeEncoding({
+      parameters: [
+        parameter('range', {
+          type: 'object',
+          properties: { from: { ...dateTime, readOnly: true } },
+        }),
+      ],
+      operationName: 'listEvents',
+      context: contextWith({ 'date-time': { type: 'Dayjs', encode: 'toIso' } }),
+    });
+    expect(encoding).toEqual({
+      statements: [
+        'if (encodedParams.range != null) {',
+        '  encodedParams.range = { ...encodedParams.range };',
+        '  if (encodedParams.range.from != null) {',
+        "    (encodedParams.range as { -readonly [K in keyof typeof encodedParams.range]: (typeof encodedParams.range)[K] }).from = typeof encodedParams.range.from === 'string' ? encodedParams.range.from : (toIso(encodedParams.range.from) as unknown as typeof encodedParams.range.from);",
+        '  }',
+        '}',
+      ],
+      warnings: [],
+    });
   });
 });

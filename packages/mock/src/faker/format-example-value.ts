@@ -1,5 +1,11 @@
 import {
+  callFormatTypeFunction,
   type ContextSpec,
+  type GeneratorImport,
+  getModelFormatType,
+  getFormatTypeConfig,
+  getFormatTypeError,
+  isDateFormatType,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
@@ -64,12 +70,16 @@ function mergePropertySchemas(
 function getEffectiveScalarFormat(
   resolved: OpenApiNonBooleanSchemaObject | undefined,
   context: ContextSpec,
-): 'date' | 'date-time' | undefined {
+): string | undefined {
   if (!resolved) {
     return undefined;
   }
 
-  if (isDateFormat(resolved.format)) {
+  const isConvertedFormat = (format: string | undefined): format is string =>
+    isDateFormat(format) ||
+    getFormatTypeConfig(format, context.output.override) !== undefined;
+
+  if (isConvertedFormat(resolved.format)) {
     return resolved.format;
   }
 
@@ -80,7 +90,7 @@ function getEffectiveScalarFormat(
     const resolvable = isSchemaObject(variant) ? variant : undefined;
     const resolvedVariant = resolveSchema(resolvable, context);
 
-    if (isDateFormat(resolvedVariant?.format)) {
+    if (isConvertedFormat(resolvedVariant?.format)) {
       return resolvedVariant.format;
     }
   }
@@ -180,6 +190,7 @@ function formatLiteralValue(
   example: unknown,
   schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
+  imports: GeneratorImport[],
 ): string {
   if (example === null) {
     return 'null';
@@ -197,7 +208,7 @@ function formatLiteralValue(
         ? resolveExampleSchema(resolved.items, context)
         : resolved;
 
-    return `[${example.map((item) => formatLiteralValue(item, itemsSchema, context)).join(', ')}]`;
+    return `[${example.map((item) => formatLiteralValue(item, itemsSchema, context, imports)).join(', ')}]`;
   }
 
   if (typeof example === 'object') {
@@ -213,19 +224,40 @@ function formatLiteralValue(
           ? key
           : JSON.stringify(key);
 
-        return `${safeKey}: ${formatLiteralValue(value, resolvedProp, context)}`;
+        return `${safeKey}: ${formatLiteralValue(value, resolvedProp, context, imports)}`;
       },
     );
 
     return `{ ${entries.join(', ')} }`;
   }
 
-  if (
-    context.output.override.useDates &&
-    typeof example === 'string' &&
-    isDateFormat(getEffectiveScalarFormat(resolved, context))
-  ) {
-    return `new Date(${JSON.stringify(example)})`;
+  const format = getEffectiveScalarFormat(resolved, context);
+  if (typeof example === 'string' && resolved && format) {
+    const formatType = getModelFormatType({ ...resolved, format }, context);
+    // The example is a specific wire value: `decode` keeps it, `mock` only
+    // stands in for it.
+    if (formatType?.decode) {
+      if (formatType.decodeImport) {
+        imports.push({ ...formatType.decodeImport, values: true });
+      }
+      return callFormatTypeFunction(formatType.decode, JSON.stringify(example));
+    }
+    if (formatType?.mock) {
+      if (formatType.mockImport) {
+        imports.push({ ...formatType.mockImport, values: true });
+      }
+      return formatType.mock;
+    }
+    if (formatType) {
+      throw getFormatTypeError(
+        format,
+        formatType,
+        'examples need `decode` or `mock`',
+      );
+    }
+    if (isDateFormatType(format, context.output.override)) {
+      return `new Date(${JSON.stringify(example)})`;
+    }
   }
 
   return JSON.stringify(example);
@@ -235,10 +267,12 @@ export function formatSchemaExampleValue(
   example: unknown,
   schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
+  imports: GeneratorImport[] = [],
 ): string {
-  if (!context.output.override.useDates || schema === undefined) {
+  const { useDates, formatType } = context.output.override;
+  if ((!useDates && !formatType) || schema === undefined) {
     return JSON.stringify(example);
   }
 
-  return formatLiteralValue(example, schema, context);
+  return formatLiteralValue(example, schema, context, imports);
 }

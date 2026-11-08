@@ -5,6 +5,7 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  encodeRouteParameters,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
@@ -17,13 +18,13 @@ import {
   getFormObjectQueryImplementation,
   getIsBodyVerb,
   getQueryDelimiter,
+  getQueryParamsEncoding,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
   isObject,
   isOperationInTagBucket,
   jsStringLiteralEscape,
-  makeRouteSafe,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
   type OpenApiReferenceObject,
@@ -162,14 +163,11 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
 ) => {
-  let route = _route;
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
-
+  const route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -446,10 +444,12 @@ const generateImplementation = (
   const formObjectImplementation =
     formObjectParameters.length > 0 ? getFormObjectQueryImplementation() : '';
 
+  const paramsEncoding = getQueryParamsEncoding(queryParams, 'params');
+
   const queryParamsCode = queryParams
-    ? `const normalizedParams = new URLSearchParams();
+    ? `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const normalizedParams = new URLSearchParams();
 ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<string, string>(${JSON.stringify(delimitedParametersEntries)});\n    const delimitedEntries: string[] = [];\n` : ''}${deepObjectParameters.length > 0 ? '    const deepObjectEntries: string[] = [];\n' : ''}${getFormObjectParametersDeclaration(formObjectParameters, '    ')}
-    Object.entries(params || {}).forEach(([key, value]) => {
+    Object.entries(${paramsEncoding ? 'encodedParams' : 'params || {}'}).forEach(([key, value]) => {
       ${delimitedArrayImplementation}${explodeArrayImplementation}${deepObjectImplementation}${formObjectImplementation}
       ${
         // When every parameter is declared as an exploded array, scalar values

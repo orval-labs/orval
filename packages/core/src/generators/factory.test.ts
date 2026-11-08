@@ -876,3 +876,224 @@ describe('generateFactory with schemas.importPath', () => {
     expect(typeImport?.importPath).not.toContain('factories');
   });
 });
+
+describe('generateFactory (formatType)', () => {
+  const dayjs = {
+    type: 'Dayjs',
+    decode: 'dayjs',
+    decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+    factoryDefault: '2000-01-01T00:00:00Z',
+  };
+
+  it('decodes the default and the placeholder of a mapped format', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'endsAt'],
+      properties: {
+        startsAt: { type: 'string', format: 'date-time' },
+        endsAt: {
+          type: 'string',
+          format: 'date-time',
+          default: '2026-01-01T00:00:00Z',
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({
+        override: { formatType: { 'date-time': dayjs } },
+      }),
+    );
+
+    expect(result?.model).toContain('startsAt: dayjs("2000-01-01T00:00:00Z")');
+    expect(result?.model).toContain('endsAt: dayjs("2026-01-01T00:00:00Z")');
+    expect(result?.imports).toContainEqual({
+      ...dayjs.decodeImport,
+      values: true,
+    });
+  });
+
+  it('fails for a value without a default when the entry has no factoryDefault', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['at'],
+      properties: { at: { type: 'string', format: 'time' } },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({
+          override: {
+            formatType: {
+              time: {
+                type: 'Temporal.PlainTime',
+                decode: 'Temporal.PlainTime.from',
+              },
+            },
+          },
+        }),
+      ),
+    ).toThrow(
+      'override.formatType.time (Temporal.PlainTime): factory methods need `factoryDefault` for a value without a default',
+    );
+  });
+
+  it('treats a Date mapping like useDates', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt'],
+      properties: { startsAt: { type: 'string', format: 'date-time' } },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({
+        override: { formatType: { 'date-time': { type: 'Date' } } },
+      }),
+    );
+
+    expect(result?.model).toContain('startsAt: new Date(0)');
+  });
+
+  it('fails when a mapped format has no decode', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['price'],
+      properties: { price: { type: 'string', format: 'money' } },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Product',
+        createMockContext({
+          override: { formatType: { money: { type: 'Big' } } },
+        }),
+      ),
+    ).toThrow('override.formatType.money (Big): factory methods need `decode`');
+  });
+
+  it('decodes a composed mapped string and keeps a null default', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'endsAt'],
+      properties: {
+        startsAt: {
+          type: 'string',
+          format: 'date-time',
+          allOf: [{ minLength: 1 }],
+        },
+        endsAt: {
+          type: ['string', 'null'],
+          format: 'date-time',
+          default: null,
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+    );
+
+    expect(result?.model).toContain('startsAt: dayjs("2000-01-01T00:00:00Z")');
+    expect(result?.model).toContain('endsAt: null');
+  });
+
+  it('fails for a default holding mapped values', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['reminders'],
+      properties: {
+        reminders: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+          default: ['2026-01-01T00:00:00Z'],
+        },
+      },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): factory methods can't decode it inside a default",
+    );
+  });
+
+  it('keeps a default that holds no mapped value', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['reminders', 'byName', 'meta'],
+      properties: {
+        reminders: {
+          type: 'array',
+          items: { type: 'string', format: 'date-time' },
+          default: [],
+        },
+        byName: {
+          type: 'object',
+          additionalProperties: { type: 'string', format: 'date-time' },
+          default: {},
+        },
+        meta: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              at: { type: 'string', format: 'date-time' },
+              note: { type: 'string' },
+            },
+          },
+          default: { first: { note: 'n' } },
+        },
+      },
+    };
+
+    const result = generateFactory(
+      schema,
+      'Event',
+      createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+    );
+
+    expect(result?.model).toContain('reminders: []');
+    expect(result?.model).toContain('byName: {}');
+    expect(result?.model).toContain('meta: {"first":{"note":"n"}}');
+  });
+
+  it('fails for a default holding a mapped value in a nested object', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['meta'],
+      properties: {
+        meta: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: { at: { type: 'string', format: 'date-time' } },
+          },
+          default: { first: { at: '2026-01-01T00:00:00Z' } },
+        },
+      },
+    };
+
+    expect(() =>
+      generateFactory(
+        schema,
+        'Event',
+        createMockContext({ override: { formatType: { 'date-time': dayjs } } }),
+      ),
+    ).toThrow(
+      "override.formatType.date-time (Dayjs): factory methods can't decode it inside a default",
+    );
+  });
+});

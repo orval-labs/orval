@@ -11,6 +11,7 @@ import {
   type ClientHeaderBuilder,
   type ContextSpec,
   findMediaType,
+  generateImports,
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
@@ -37,7 +38,11 @@ import {
   type Tsconfig,
   upath,
 } from '@orval/core';
-import { generateZod, getZodImportSource } from '@orval/zod';
+import {
+  generateZod,
+  getFormatTypeZodImports,
+  getZodImportSource,
+} from '@orval/zod';
 
 function successResponseJsonSchema(
   originalSchema: GeneratorVerbOptions['response']['originalSchema'],
@@ -65,6 +70,16 @@ import { getRoute } from './route';
 const getZodSchemaImportStatement = (
   variant: NormalizedOutputOptions['override']['zod']['variant'],
 ) => `import * as zod from '${getZodImportSource(variant)}';`;
+
+const getFormatTypeImportStatements = (
+  implementation: string,
+  output: NormalizedOutputOptions,
+) => {
+  const imports = generateImports({
+    imports: getFormatTypeZodImports(implementation, output.override),
+  });
+  return imports ? `${imports}\n` : '';
+};
 
 const ZVALIDATOR_SOURCE = fs
   .readFileSync(nodePath.join(import.meta.dirname, 'zValidator.ts'))
@@ -947,14 +962,13 @@ const generateZodFiles = async (
           oneMore: output.mode === 'tags-split',
         });
 
-        let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
+        const implementation = zods.map((zod) => zod.implementation).join('\n');
+        const content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}${getFormatTypeImportStatements(implementation, output)}\n${implementation}`;
 
         const zodPath =
           output.mode === 'tags'
             ? nodePath.join(dirname, `${tag}.zod${extension}`)
             : nodePath.join(dirname, tag, tag + '.zod' + extension);
-
-        content += zods.map((zod) => zod.implementation).join('\n');
 
         return {
           content,
@@ -992,11 +1006,10 @@ const generateZodFiles = async (
     mutators: allMutators,
   });
 
-  let content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}\n`;
+  const implementation = zods.map((zod) => zod.implementation).join('\n');
+  const content = `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n${mutatorsImports}${getFormatTypeImportStatements(implementation, output)}\n${implementation}`;
 
   const zodPath = nodePath.join(dirname, `${filename}.zod${extension}`);
-
-  content += zods.map((zod) => zod.implementation).join('\n');
 
   return [
     {

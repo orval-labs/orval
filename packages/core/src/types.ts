@@ -201,6 +201,7 @@ export interface NormalizedOverrideOutput {
   requestOptions: Record<string, unknown> | boolean;
   useDates?: boolean;
   useDatesTransform?: boolean;
+  formatType?: NormalizedFormatTypeMap;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -988,6 +989,7 @@ export interface OverrideOutput {
    * Implies `useDates`. @default false
    */
   useDatesTransform?: boolean;
+  formatType?: FormatTypeMap;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -1466,6 +1468,81 @@ export type SchemaExtension<
 > = {
   [T in PrimitiveSchemaType]: SchemaExtensionEntry<T, never, TVersion>;
 }[PrimitiveSchemaType][];
+
+/** Known OpenAPI string formats with autocomplete, open to any string */
+export type StringFormat = 'date' | 'date-time' | 'time' | (string & {});
+
+export interface FormatTypeImport {
+  name: string;
+  importPath: string;
+  default?: boolean;
+}
+
+/** User-facing configuration for a single string-format type override */
+export interface FormatTypeConfig {
+  /** TypeScript type name (e.g. 'Dayjs', 'Temporal.PlainDate', 'UUID') */
+  type: string;
+  /** Import for the type if needed */
+  import?: FormatTypeImport;
+  /** Function expression turning a wire string into `type` (e.g. 'dayjs') */
+  decode?: string;
+  decodeImport?: FormatTypeImport;
+  /** Function expression turning a `type` value into its wire string */
+  encode?: string;
+  encodeImport?: FormatTypeImport;
+  /** Zod schema config */
+  zod?: {
+    /** Expression appended as .transform() (e.g. 'dayjs') */
+    transform?: string;
+    /** Import for the transform function */
+    transformImport?: FormatTypeImport;
+    /** Replace the entire Zod schema chain with a custom codec reference */
+    codec?: string;
+    /** Import for the codec */
+    codecImport?: FormatTypeImport;
+  };
+  /** Effect schema config */
+  effect?: {
+    /** Effect schema decoding the wire string into `type` */
+    schema: string;
+    /** Import for the schema */
+    schemaImport?: FormatTypeImport;
+  };
+  /** Faker mock expression override */
+  mock?: string;
+  /** Import for the mock expression's runtime dependency */
+  mockImport?: FormatTypeImport;
+  /** Wire string factory methods pass to `decode` for a value without a default */
+  factoryDefault?: string;
+}
+
+export type FormatTypeMap = { [K in StringFormat]?: FormatTypeConfig };
+
+export interface NormalizedFormatTypeConfig {
+  type: string;
+  import?: GeneratorImport;
+  decode?: string;
+  decodeImport?: GeneratorImport;
+  encode?: string;
+  encodeImport?: GeneratorImport;
+  zod?: {
+    transform?: string;
+    transformImport?: GeneratorImport;
+    codec?: string;
+    codecImport?: GeneratorImport;
+  };
+  effect?: {
+    schema: string;
+    schemaImport?: GeneratorImport;
+  };
+  mock?: string;
+  mockImport?: GeneratorImport;
+  factoryDefault?: string;
+}
+
+export type NormalizedFormatTypeMap = {
+  [K in StringFormat]?: NormalizedFormatTypeConfig;
+};
 
 export interface NormalizedZodOptions {
   variant: ZodVariantOption;
@@ -2683,6 +2760,13 @@ export interface GetterBody {
   schemas: GeneratorSchema[];
   formData?: string;
   formUrlEncoded?: string;
+  /**
+   * The error for a `formatType` value that `formData` / `formUrlEncoded`
+   * can't encode, and the warnings for the ones they send through `String()`
+   * for lack of `encode`, raised where a client emits that code.
+   */
+  formatTypeError?: string;
+  formatTypeWarnings?: string[];
   contentType: string;
   isOptional: boolean;
   isBlob: boolean;
@@ -2691,6 +2775,11 @@ export interface GetterBody {
    * so its Zod schema's parsed output no longer has the wire keys.
    */
   renamesKeys?: boolean;
+  /**
+   * The body schema holds `formatType` values and each has a `zod.codec`, so
+   * `zod.encode` turns its Zod schema's parsed output back into wire values.
+   */
+  formatTypeCodecs?: boolean;
 }
 
 export interface GetterParameters {
@@ -2712,6 +2801,14 @@ export interface GetterParam {
    * `urlEncodeParameters`) (#3910).
    */
   allowReserved?: boolean;
+  /**
+   * The `encode` of a `formatType` value, the warning for one without it, or
+   * the error for one it can't encode. Read it through `encodeRouteParameters`.
+   */
+  formatTypeEncoding?:
+    | { encode: string; nullable?: boolean }
+    | { warning: string }
+    | { error: string };
   imports: GeneratorImport[];
 }
 
@@ -2720,6 +2817,12 @@ export interface GetterQueryParam {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  /**
+   * Statements encoding the `formatType` values of a copy of the params named
+   * `encodedParams`, and the warnings for values without `encode`, which go
+   * through `String()`. Read it through `getQueryParamsEncoding`.
+   */
+  formatTypeEncoding?: { statements: string[]; warnings?: string[] };
   paramNames?: string[];
   originalSchema?: OpenApiSchemaObject;
   requiredNullableKeys?: string[];
@@ -2826,6 +2929,8 @@ export type ResolverValue = ScalarValue & {
 export type ResReqTypesValue = ScalarValue & {
   formData?: string;
   formUrlEncoded?: string;
+  formatTypeError?: string;
+  formatTypeWarnings?: string[];
   isRef?: boolean;
   hasReadonlyProps?: boolean;
   key: string;
@@ -2872,7 +2977,8 @@ export interface WriteModeProps {
   projectName?: string;
   header: string;
   needSchema: boolean;
-  generateSchemasInline?: () => string;
+  /** `precedingContent` is the file content written before the schemas. */
+  generateSchemasInline?: (precedingContent?: string) => string;
   // Schema-to-tag map computed by `getApiBuilder` when `schemas.splitByTags` is
   // enabled. Mode writers forward it to `generateImportsForBuilder` so the
   // `indexFiles: false` branch can route each schema import into its tag

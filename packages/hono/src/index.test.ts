@@ -12,6 +12,7 @@ import {
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
 import {
+  generateExtraFiles,
   generateHandlerFile,
   generateHono,
   getContext,
@@ -360,6 +361,68 @@ describe('single-quote escaping in generated route literals', () => {
 
     expect(client.implementation).toContain(
       String.raw`.get('/api/v1/it\'s-endpoint/:id', ...getItemHandlers)`,
+    );
+  });
+});
+
+describe('formatType', () => {
+  it('imports the decode function into the zod file', async () => {
+    const context = createTestContextSpec({
+      spec: {
+        paths: {
+          '/events': {
+            get: {
+              operationId: 'listEvents',
+              parameters: [
+                {
+                  name: 'from',
+                  in: 'query',
+                  schema: { type: 'string', format: 'date-time' },
+                },
+              ],
+              responses: { '200': { description: 'ok' } },
+            },
+          },
+        },
+      },
+      output: {
+        target: '/project/src/endpoints.ts',
+        client: OutputClient.HONO,
+        override: {
+          formatType: {
+            'date-time': {
+              type: 'Dayjs',
+              decode: 'dayjs',
+              decodeImport: {
+                name: 'dayjs',
+                importPath: 'dayjs',
+                default: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const files = await generateExtraFiles(
+      {
+        listEvents: createTestGeneratorVerbOptions({
+          operationName: 'listEvents',
+          typeName: 'listEvents',
+          route: '/events',
+          pathRoute: '/events',
+          override: { zod: { generate: { query: true } } },
+        }),
+      },
+      context.output,
+      context,
+    );
+    const content =
+      files.find((file) => file.path.endsWith('endpoints.zod.ts'))?.content ??
+      '';
+
+    expect(content).toContain('.transform((value) => dayjs(value))');
+    expect(content).toContain(
+      "import * as zod from 'zod';\nimport dayjs from 'dayjs';\n\n",
     );
   });
 });

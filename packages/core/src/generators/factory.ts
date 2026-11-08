@@ -1,9 +1,16 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
+import {
+  callFormatTypeFunction,
+  getModelFormatType,
+  getFormatTypeError,
+  isDateFormatType,
+} from '../getters/scalar';
 import { resolveRef } from '../resolvers/ref';
 import type {
   ContextSpec,
   GeneratorImport,
+  NormalizedFormatTypeConfig,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '../types';
@@ -247,6 +254,12 @@ function buildPayload(
   }
 
   const schema = target;
+  // A mapped string keeps its mapped type whatever it composes.
+  if (getModelFormatType(schema, context)) {
+    return schema.default === undefined
+      ? buildPrimitivePayload(schema, 'string', context, imports)
+      : buildDefaultPayload(schema, context, imports);
+  }
   const payloads: string[] = [];
 
   if (schema.allOf) {
@@ -290,7 +303,9 @@ function buildPayload(
 
   const { constValue } = getExtendedProps(schema);
   if (constValue !== undefined) return formatValue(constValue);
-  if (schema.default !== undefined) return buildDefaultPayload(schema, context);
+  if (schema.default !== undefined) {
+    return buildDefaultPayload(schema, context, imports);
+  }
 
   const schemaType = inferSchemaType(schema);
 
@@ -298,7 +313,7 @@ function buildPayload(
   if (schemaType === 'array')
     return buildArrayPayload(schema, context, parents, imports);
 
-  return buildPrimitivePayload(schema, schemaType, context);
+  return buildPrimitivePayload(schema, schemaType, context, imports);
 }
 
 function buildRefPayload(
@@ -494,15 +509,120 @@ function inferSchemaType(schema: OpenApiSchemaObject): string | undefined {
   return type;
 }
 
+/** A factory value of a custom `formatType`, decoded from its wire string. */
+function buildFormatTypePayload(
+  format: string | undefined,
+  formatType: NormalizedFormatTypeConfig,
+  wireValue: string | undefined,
+  imports: GeneratorImport[],
+): string {
+  if (!formatType.decode) {
+    throw getFormatTypeError(
+      format,
+      formatType,
+      'factory methods need `decode`',
+    );
+  }
+  if (wireValue === undefined) {
+    throw getFormatTypeError(
+      format,
+      formatType,
+      'factory methods need `factoryDefault` for a value without a default',
+    );
+  }
+  if (formatType.decodeImport) {
+    imports.push({ ...formatType.decodeImport, values: true });
+  }
+  return callFormatTypeFunction(formatType.decode, wireValue);
+}
+
+/** The mapped format of a value that `value` holds where `schema` maps one. */
+function findMappedValue(
+  schemaOrRef: unknown,
+  value: unknown,
+  context: ContextSpec,
+  seenRefs = new Set<string>(),
+):
+  | { format: string | undefined; config: NormalizedFormatTypeConfig }
+  | undefined {
+  if (
+    value === null ||
+    value === undefined ||
+    !schemaOrRef ||
+    typeof schemaOrRef !== 'object'
+  ) {
+    return undefined;
+  }
+  const target = schemaOrRef as OpenApiSchemaObject | OpenApiReferenceObject;
+  if (!isInlineSchema(target)) {
+    if (seenRefs.has(target.$ref)) return undefined;
+    seenRefs.add(target.$ref);
+    const { schema } = getResolvedRef(target, context);
+    return findMappedValue(schema, value, context, seenRefs);
+  }
+  if (isBooleanJsonSchema(target)) return undefined;
+  const schema = target;
+  const config = getModelFormatType(schema, context);
+  if (config) return { format: schema.format, config };
+  const children: [unknown, unknown, Set<string>?][] = [
+    ...(schema.allOf ?? []),
+    ...(schema.oneOf ?? []),
+    ...(schema.anyOf ?? []),
+  ].map((branch) => [branch, value, seenRefs]);
+  if (Array.isArray(value)) {
+    const { prefixItems } = getExtendedProps(schema);
+    const items: unknown = getItems(schema);
+    for (const [index, item] of value.entries()) {
+      children.push([
+        prefixItems?.[index] ?? (Array.isArray(items) ? items[index] : items),
+        item,
+      ]);
+    }
+  } else if (typeof value === 'object') {
+    const properties = getProperties(schema);
+    for (const [key, item] of Object.entries(value)) {
+      children.push([
+        Object.hasOwn(properties, key)
+          ? properties[key]
+          : getAdditionalProperties(schema),
+        item,
+      ]);
+    }
+  }
+  for (const [child, item, seen] of children) {
+    const found = findMappedValue(child, item, context, seen);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 function buildDefaultPayload(
   schema: OpenApiSchemaObject,
   context: ContextSpec,
+  imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return formatValue(undefined);
+  if (schema.default === null) return 'null';
+  const formatType = getModelFormatType(schema, context);
+  if (formatType) {
+    return buildFormatTypePayload(
+      schema.format,
+      formatType,
+      formatValue(schema.default),
+      imports,
+    );
+  }
+  const nested = findMappedValue(schema, schema.default, context);
+  if (nested) {
+    throw getFormatTypeError(
+      nested.format,
+      nested.config,
+      "factory methods can't decode it inside a default",
+    );
+  }
   if (
-    context.output.override.useDates &&
     typeof schema.default === 'string' &&
-    (schema.format === 'date' || schema.format === 'date-time')
+    isDateFormatType(schema.format, context.output.override)
   ) {
     // The default is document text, and this builds a single-quoted literal by
     // hand: an unescaped `'` closed it and appended expressions to the
@@ -516,6 +636,7 @@ function buildPrimitivePayload(
   schema: OpenApiSchemaObject,
   schemaType: string | undefined,
   context: ContextSpec,
+  imports: GeneratorImport[],
 ): string {
   if (isBooleanJsonSchema(schema)) return '{}';
   if (schemaType === 'null') return 'null';
@@ -542,12 +663,23 @@ function buildPrimitivePayload(
     if (enumValues && enumValues.length > 0) {
       return formatValue(enumValues[0]);
     }
-    if (schema.format === 'date' || schema.format === 'date-time') {
-      return context.output.override.useDates
-        ? 'new Date(0)'
-        : `'${new Date(0).toISOString()}'`;
+    const isDateFormat =
+      schema.format === 'date' || schema.format === 'date-time';
+    const wireValue = isDateFormat ? `'${new Date(0).toISOString()}'` : "''";
+    const formatType = getModelFormatType(schema, context);
+    if (formatType) {
+      return buildFormatTypePayload(
+        schema.format,
+        formatType,
+        formatType.factoryDefault === undefined
+          ? undefined
+          : formatValue(formatType.factoryDefault),
+        imports,
+      );
     }
-    return "''";
+    return isDateFormatType(schema.format, context.output.override)
+      ? 'new Date(0)'
+      : wireValue;
   }
 
   return 'undefined as unknown';

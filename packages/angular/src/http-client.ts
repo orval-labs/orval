@@ -10,6 +10,7 @@ import {
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
+  encodeRouteParameters,
   getZodNamespaceImport,
   getArrayResponseSchema,
   generateBodyOptions,
@@ -23,11 +24,11 @@ import {
   getDefaultContentType,
   getEnumImplementation,
   getIsBodyVerb,
+  getQueryParamsEncoding,
   type GetterProp,
   isTextContentType,
   GetterPropType,
   jsStringLiteralEscape,
-  makeRouteSafe,
   pascal,
   toObjectString,
   type EnumMember,
@@ -526,16 +527,14 @@ export const generateHttpClientImplementation = (
   const operationName = methodName ?? reservedOperationName;
   // Opt-in URL-encoding of path parameters (`urlEncodeParameters`), applied once
   // at the single point the route enters this builder so the mutator config and
-  // every inline interpolation below stay consistent. `makeRouteSafe` is not
-  // idempotent — applying it more than once double-encodes — so it must run here
-  // exactly once and nowhere downstream.
-  let route = _route;
-  if (context.output.urlEncodeParameters) {
-    const skip = new Set(
-      params.filter((p) => p.allowReserved).map((p) => p.name),
-    );
-    route = makeRouteSafe(route, skip, new Set(params.map((p) => p.name)));
-  }
+  // every inline interpolation below stay consistent. `encodeRouteParameters` is
+  // not idempotent — applying it more than once double-encodes — so it must run
+  // here exactly once and nowhere downstream.
+  let route = encodeRouteParameters(
+    _route,
+    params,
+    context.output.urlEncodeParameters,
+  );
   // MUST run after the urlEncodeParameters/makeRouteSafe step above:
   // wrapRouteParameters (invoked by makeRouteSafe) rewrites every `${...}`
   // segment of the route, so prefixing before it would wrap `this.baseUrl`
@@ -630,6 +629,10 @@ export const generateHttpClientImplementation = (
     : undefined;
 
   if (mutator) {
+    // A `paramsFilter` takes the values as they are.
+    const paramsEncoding = paramsFilter
+      ? undefined
+      : getQueryParamsEncoding(queryParams, 'params');
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -644,6 +647,7 @@ export const generateHttpClientImplementation = (
       isAngular: true,
       paramsFilter,
       accept: mutatorAcceptTypeName ? 'accept' : undefined,
+      paramsExpression: paramsEncoding ? 'encodedParams' : undefined,
     });
 
     const requestOptions = isRequestOptions
@@ -690,7 +694,7 @@ export const generateHttpClientImplementation = (
     const implementationParams =
       allParams.length > 0 ? `${allParams.join(',\n    ')},` : '';
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}
+    return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
@@ -759,6 +763,7 @@ export const generateHttpClientImplementation = (
         standardSchema: override.angular.runtimeValidation.standardSchema,
         inputExpression: body.implementation,
         isOptional: body.isOptional,
+        encode: body.formatTypeCodecs,
       })};
     ${statements}
     });`
@@ -797,10 +802,17 @@ export const generateHttpClientImplementation = (
 
   let paramsDeclaration = '';
   if (angularParamsRef && queryParams) {
+    // A `paramsFilter` or `paramsSerializer` takes the values as they are.
+    const paramsEncoding =
+      paramsFilter || paramsSerializer
+        ? undefined
+        : getQueryParamsEncoding(queryParams, 'params');
     const filterExpr = buildAngularParamsFilterExpression({
       paramsExpression: isRequestOptions
-        ? '{...params, ...options?.params}'
-        : 'params ?? {}',
+        ? `{...${paramsEncoding ? 'encodedParams' : 'params'}, ...options?.params}`
+        : paramsEncoding
+          ? 'encodedParams'
+          : 'params ?? {}',
       requiredNullableParamKeys: queryParams.requiredNullableKeys ?? [],
       preserveRequiredNullables: !!paramsSerializer,
       // Only pass non-primitive params through the built-in `filterParams`
@@ -820,7 +832,7 @@ export const generateHttpClientImplementation = (
     });
     paramsDeclaration = paramsSerializer
       ? `const ${angularParamsRef} = ${paramsSerializer.name}(${filterExpr});\n\n    `
-      : `const ${angularParamsRef} = ${filterExpr};\n\n    `;
+      : `${paramsEncoding ? `${paramsEncoding}\n    ` : ''}const ${angularParamsRef} = ${filterExpr};\n\n    `;
   }
 
   const optionsInput = {
@@ -1322,9 +1334,10 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),
     ...(validatedBody ? [DEFER_IMPORT] : []),
-    // Only a composed array expression references the `zod` namespace; a named
-    // schema calls `Schema.parse` on its own binding.
-    ...(implementation.includes('zod.array(')
+    // Only a composed array expression and `zod.encode` reference the `zod`
+    // namespace; a named schema calls `Schema.parse` on its own binding.
+    ...(implementation.includes('zod.array(') ||
+    implementation.includes('zod.encode(')
       ? [getZodNamespaceImport(options.context.output.override)]
       : []),
     ...(baseUrl

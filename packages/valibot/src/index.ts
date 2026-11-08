@@ -4,6 +4,7 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getReferencedFormatTypeImports,
   pascal,
 } from '@orval/core';
 
@@ -135,12 +136,19 @@ export const generateValibot: ClientBuilder = (verbOptions, options) => {
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
-    // Component schemas are runtime values, so they are imported as values.
-    imports: [...usedComponents].toSorted().map((componentName) => ({
-      name: componentName,
-      schemaName: componentName,
-      values: true,
-    })),
+    imports: [
+      // Component schemas are runtime values, so they are imported as values.
+      ...[...usedComponents].toSorted().map((componentName) => ({
+        name: componentName,
+        schemaName: componentName,
+        values: true,
+      })),
+      ...getReferencedFormatTypeImports(
+        implementation,
+        options.context.output.override,
+        (config) => [config.decodeImport],
+      ),
+    ],
     mutators,
   };
 };

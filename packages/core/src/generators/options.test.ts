@@ -1327,6 +1327,33 @@ describe('generateFormDataAndUrlEncodedFunction', () => {
       }),
     ).toBe('const formData = pet === undefined ? undefined : toFormData(pet)');
   });
+
+  const mappedBody: GetterBody = {
+    ...minimalBody,
+    formData: 'const formData = new FormData();\n',
+    formatTypeError: 'needs `encode`',
+  };
+
+  it('raises the formatType error of the form code it emits', () => {
+    expect(() =>
+      generateFormDataAndUrlEncodedFunction({
+        body: mappedBody,
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toThrow('needs `encode`');
+  });
+
+  it('leaves the values to a formData mutator', () => {
+    expect(
+      generateFormDataAndUrlEncodedFunction({
+        body: mappedBody,
+        formData: { ...minimalParamsSerializer, name: 'customFormData' },
+        isFormData: true,
+        isFormUrlEncoded: false,
+      }),
+    ).toBe('const formData = customFormData(data)');
+  });
 });
 
 describe('generateMutatorConfig', () => {

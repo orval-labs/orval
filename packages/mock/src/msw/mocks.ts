@@ -275,6 +275,7 @@ export function getResponsesMockDefinition({
           exampleValue,
           originalSchema,
           context,
+          result.imports,
         )}${brandCast}`;
         result.definitions.push(
           transformer ? transformer(formatted, returnType) : formatted,

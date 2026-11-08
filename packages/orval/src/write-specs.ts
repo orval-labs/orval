@@ -1088,21 +1088,27 @@ async function writeSpecsInternal(
       schemaTagMap,
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
-        ? () =>
+        ? (precedingContent) =>
             // oxlint-disable-next-line typescript/no-non-null-assertion
-            zodWriters!.generateZodSchemasInline(
-              builder,
-              output,
-              includeZodImport,
-              inlineSchemasParamsMutator,
-              includeParamsImport,
+            zodWriters!.addFormatTypeImports(
+              // oxlint-disable-next-line typescript/no-non-null-assertion
+              zodWriters!.generateZodSchemasInline(
+                builder,
+                output,
+                includeZodImport,
+                inlineSchemasParamsMutator,
+                includeParamsImport,
+              ),
+              output.override,
+              precedingContent,
             )
         : valibotModule
-          ? () =>
+          ? (precedingContent) =>
               valibotModule.generateValibotSchemasInline(
                 builder,
                 output,
                 includeValibotImport,
+                precedingContent,
               )
           : undefined,
     });

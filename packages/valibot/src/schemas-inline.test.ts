@@ -42,4 +42,44 @@ describe('generateValibotSchemasInline', () => {
       expect(code).toContain(`owner: v.optional(Owner${suffix})`);
     }
   });
+
+  it('imports the decode functions the constants reference', () => {
+    const output = createTestContextSpec({
+      output: {
+        override: {
+          formatType: {
+            'date-time': {
+              type: 'Day',
+              decode: 'toDay',
+              decodeImport: { name: 'toDay', importPath: './day' },
+            },
+            uuid: {
+              type: 'Id',
+              decode: 'toId',
+              decodeImport: { name: 'toId', importPath: './id' },
+            },
+          },
+          valibot: { generateReusableSchemas: true },
+        },
+      },
+    }).output;
+    const mapped: OpenApiDocument = {
+      ...spec,
+      components: { schemas: { At: { type: 'string', format: 'date-time' } } },
+    };
+    const inline = (precedingContent?: string) =>
+      generateValibotSchemasInline(
+        { spec: mapped, target: '' },
+        output,
+        true,
+        precedingContent,
+      );
+    const toDayImport = "import { toDay } from './day';";
+
+    expect(inline()).toContain(
+      `import * as v from 'valibot';\n${toDayImport}\n\nexport const At =`,
+    );
+    expect(inline()).not.toContain('toId');
+    expect(inline(`${toDayImport}\n`)).not.toContain(toDayImport);
+  });
 });

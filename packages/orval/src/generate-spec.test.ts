@@ -13,6 +13,7 @@ import {
   type GeneratorVerbOptions,
   noopReporter,
   type OpenApiDocument,
+  type OpenApiRequestBodyObject,
   OutputMockType,
   type OutputMode,
   type OutputOptions,
@@ -6343,5 +6344,99 @@ describe('generateSpec - clean keeps the previous output when the spec fails', (
       await rm(workspace, { recursive: true, force: true });
       await rm(specDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('generateSpec - formatType form content without encode', () => {
+  const formContent = {
+    'multipart/form-data': {
+      schema: {
+        type: 'object',
+        properties: { startsAt: { type: 'string', format: 'date-time' } },
+      },
+    },
+  } satisfies OpenApiRequestBodyObject['content'];
+
+  const generateForm = async (
+    client: 'fetch' | 'zod',
+    formIn: 'requestBody' | 'response',
+  ) => {
+    const workspace = await createTempWorkspace();
+    try {
+      const options = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Events', version: '1.0.0' },
+              paths: {
+                '/events': {
+                  post: {
+                    operationId: 'createEvent',
+                    ...(formIn === 'requestBody'
+                      ? {
+                          requestBody: { required: true, content: formContent },
+                        }
+                      : {}),
+                    responses: {
+                      '200': {
+                        description: 'OK',
+                        ...(formIn === 'response'
+                          ? { content: formContent }
+                          : {}),
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          output: {
+            target: './endpoints.ts',
+            client,
+            override: {
+              formatType: { 'date-time': { type: 'Dayjs', decode: 'dayjs' } },
+            },
+          },
+        },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      return await fs.promises.readFile(
+        path.join(workspace, 'endpoints.ts'),
+        'utf8',
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  };
+
+  it('generates a zod client for a form body', async () => {
+    expect(await generateForm('zod', 'requestBody')).toContain(
+      'export const CreateEventBody',
+    );
+  });
+
+  it('generates a client for a form response', async () => {
+    expect(await generateForm('fetch', 'response')).toContain(
+      'export const createEvent',
+    );
+  });
+
+  it('warns a client that builds the form body and sends it through String()', async () => {
+    const warn = vi.fn();
+    const content = await withReporter({ ...noopReporter, warn }, () =>
+      generateForm('fetch', 'requestBody'),
+    );
+
+    expect(content).toContain('String(createEventBody.startsAt)');
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        message: expect.stringContaining(
+          'override.formatType.date-time (Dayjs): operation `createEvent`, form field `startsAt` has no `encode` and is sent through `String()`',
+        ),
+      }),
+    );
   });
 });
