@@ -1103,11 +1103,12 @@ async function writeSpecsInternal(
               precedingContent,
             )
         : valibotModule
-          ? () =>
+          ? (precedingContent) =>
               valibotModule.generateValibotSchemasInline(
                 builder,
                 output,
                 includeValibotImport,
+                precedingContent,
               )
           : undefined,
     });
