@@ -179,6 +179,7 @@ function createMockContext(): ContextSpec {
             response: true,
           },
           exactOptional: false,
+          generateReusableSchemas: false,
         },
         axios: {
           includeHttpResponseReturnType: false,

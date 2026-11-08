@@ -23,7 +23,7 @@ import {
 import type { ExpansionCache } from './cache';
 import { buildScopedContext, planDynamicRef } from './dynamic-scope';
 import { tryResolveRefSchema } from './resolve-target';
-import type { DereferenceOptions, Expansion } from './types';
+import type { DereferenceOptions, Expansion, VisitListener } from './types';
 
 const ALWAYS_VERBATIM_KEYS = new Set(['default', 'example', 'examples']);
 
@@ -69,6 +69,7 @@ interface Run {
   copied: number;
   /** Schemas begun so far, the measure of work the budget is relative to. */
   visits: number;
+  onVisit: VisitListener | undefined;
 }
 
 // Plain assignment, except for `__proto__`: assigning it would swap the
@@ -294,6 +295,7 @@ function begin(
   wantsRefs: boolean,
 ): Started {
   run.visits++;
+  run.onVisit?.(context.parents);
   // Once tracking stops, nothing reads the met refs any more.
   wantsRefs &&= run.tracking;
   // Not `typeof schema !== 'object'`: extensions such as JSON merge-patch
@@ -433,6 +435,7 @@ export function expandSchema(
   context: ContextSpec,
   options: DereferenceOptions,
   budget: TrackingBudget = DEFAULT_BUDGET,
+  onVisit?: VisitListener,
 ): Expansion {
   const run: Run = {
     cache: isObject(context.spec)
@@ -442,6 +445,7 @@ export function expandSchema(
     budget,
     copied: 0,
     visits: 0,
+    onVisit,
   };
   const root = begin(schema, context, options, run, false);
   if (root.kind === 'done') return root.expansion;

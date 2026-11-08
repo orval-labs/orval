@@ -279,7 +279,7 @@ export interface NormalizedOperationOptions {
   swr?: SwrOptions;
   zod?: NormalizedOperationZodOptions;
   effect?: NormalizedEffectOptions;
-  valibot?: ValibotOptions;
+  valibot?: OperationValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,
@@ -1317,7 +1317,18 @@ export interface ValibotOptions {
    * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
    */
   exactOptional?: boolean;
+  /**
+   * Emit one constant per `#/components/schemas/*` entry instead of inlining
+   * every `$ref`. Output-wide. Default `false`.
+   */
+  generateReusableSchemas?: boolean;
 }
+
+/** `override.valibot` keys that may also be set per operation or tag. */
+export type OperationValibotOptions = Omit<
+  ValibotOptions,
+  'generateReusableSchemas'
+>;
 
 export type ZodCoerceType =
   | 'string'
@@ -1587,6 +1598,7 @@ export interface NormalizedValibotOptions {
   strict: NormalizedZodOptions['strict'];
   generate: NormalizedZodOptions['generate'];
   exactOptional: boolean;
+  generateReusableSchemas: boolean;
 }
 
 export interface NormalizedEffectOptions {
@@ -2077,7 +2089,7 @@ export interface OperationOptions {
   swr?: SwrOptions;
   zod?: OperationZodOptions;
   effect?: EffectOptions;
-  valibot?: ValibotOptions;
+  valibot?: OperationValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
     route: string,

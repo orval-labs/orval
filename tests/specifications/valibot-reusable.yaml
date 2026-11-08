@@ -1,0 +1,251 @@
+openapi: 3.0.0
+info:
+  title: Reusable valibot schemas
+  version: 0.0.0
+paths:
+  /trees:
+    get:
+      operationId: getTree
+      tags: [trees]
+      responses:
+        '200':
+          description: A tree
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tree'
+  /authors:
+    post:
+      operationId: createAuthor
+      tags: [books]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Author'
+      responses:
+        '200':
+          description: The book of the author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+  /rings:
+    get:
+      operationId: getRing
+      tags: [trees]
+      responses:
+        '200':
+          description: A ring
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RingA'
+  /extended:
+    get:
+      operationId: getExtended
+      tags: [books]
+      responses:
+        '200':
+          description: An extended entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Extended'
+  /accounts:
+    post:
+      operationId: createAccount
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '200':
+          description: The account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+  /secrets:
+    post:
+      operationId: createSecret
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Secret'
+      responses:
+        '200':
+          description: The secret, without its password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Secret'
+  /pets:
+    get:
+      operationId: listPets
+      tags: [books]
+      parameters:
+        - name: status
+          in: query
+          description: Status to filter by
+          schema:
+            $ref: '#/components/schemas/Status'
+      responses:
+        '200':
+          description: The pets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPetsResponse'
+  /requirements:
+    put:
+      operationId: putRequirements
+      tags: [books]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Requirements'
+      responses:
+        '200':
+          description: OK
+  /uploads:
+    post:
+      operationId: upload
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadForm'
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    Tree:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        parent:
+          $ref: '#/components/schemas/Tree'
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tree'
+    Author:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+    Book:
+      type: object
+      required: [title, author]
+      properties:
+        title:
+          type: string
+        author:
+          $ref: '#/components/schemas/Author'
+        reviewer:
+          $ref: '#/components/schemas/Author'
+          description: The person who reviewed the book
+    RingA:
+      type: object
+      required: [b]
+      properties:
+        b:
+          $ref: '#/components/schemas/RingB'
+    RingB:
+      type: object
+      required: [c]
+      properties:
+        c:
+          $ref: '#/components/schemas/RingC'
+    RingC:
+      type: object
+      properties:
+        a:
+          $ref: '#/components/schemas/RingA'
+    Base:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+    Extended:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [label]
+          properties:
+            label:
+              type: string
+            book:
+              $ref: '#/components/schemas/Book'
+    Account:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        owner:
+          $ref: '#/components/schemas/Base'
+    Secret:
+      type: object
+      required: [label, password]
+      properties:
+        label:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+    Status:
+      type: string
+      enum: [available, sold]
+    ListPetsResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'
+    Optionals:
+      type: object
+      properties:
+        left:
+          type: string
+        right:
+          type: string
+    Requirements:
+      allOf:
+        - $ref: '#/components/schemas/Optionals'
+        - $ref: '#/components/schemas/Base'
+      required: [left]
+    UploadForm:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+        author:
+          $ref: '#/components/schemas/Author'

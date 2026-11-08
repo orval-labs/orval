@@ -1,4 +1,4 @@
-import type { ValibotOptions } from '@orval/core';
+import type { OutputMode, ValibotOptions } from '@orval/core';
 import { defineConfig } from 'orval';
 
 // `tests` installs Valibot, and `build` typechecks this output against it.
@@ -6,12 +6,14 @@ const valibotProject = (
   name: string,
   input: string,
   valibot?: ValibotOptions,
+  mode?: OutputMode,
 ) => ({
   output: {
     target: `../generated/valibot/${name}/${name}.ts`,
     client: 'valibot' as const,
     clean: true,
     formatter: 'prettier' as const,
+    ...(mode ? { mode } : {}),
     ...(valibot ? { override: { valibot } } : {}),
   },
   input: { target: `../specifications/${input}.yaml` },
@@ -74,4 +76,14 @@ export default defineConfig({
     },
     input: { target: '../specifications/date-type.yaml' },
   },
+  // Component schemas become shared constants; cycles read through `v.lazy`.
+  'reusable-schemas': valibotProject('reusable-schemas', 'valibot-reusable', {
+    generateReusableSchemas: true,
+  }),
+  'reusable-schemas-tags-split': valibotProject(
+    'reusable-schemas-tags-split',
+    'valibot-reusable',
+    { generateReusableSchemas: true },
+    'tags-split',
+  ),
 });

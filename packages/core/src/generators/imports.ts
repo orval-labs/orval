@@ -290,7 +290,8 @@ function isMemberName(source: string, start: number): boolean {
   return !isSpread;
 }
 
-function getReferencedIdentifiers(implementation: string): Set<string> {
+/** Identifiers `implementation` reads, member names after a dot excluded. */
+export function getReferencedIdentifiers(implementation: string): Set<string> {
   const identifiers = new Set<string>();
 
   for (const match of implementation.matchAll(IDENTIFIER_PATTERN)) {

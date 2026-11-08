@@ -164,6 +164,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
         response: true,
       },
       exactOptional: false,
+      generateReusableSchemas: false,
     },
     axios: {
       includeHttpResponseReturnType: false,

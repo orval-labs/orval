@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import {
   noopReporter,
+  OutputMode,
   type NormalizedOptions,
   type OpenApiDocument,
   SupportedFormatter,
@@ -394,6 +395,66 @@ describe('writeSpecs', () => {
         await writeSpecs(builder, root, options);
 
         expect(formatWithPrettier).toHaveBeenCalledTimes(postPassCalls);
+      } finally {
+        await fs.promises.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each([
+    ['writes a schemas file for', { Pet: { type: 'object' } }, true],
+    ['writes no schemas file without', undefined, false],
+  ] as const)(
+    '%s component schemas with reusable valibot schemas',
+    async (_name, schemas, written) => {
+      const root = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'orval-valibot-empty-'),
+      );
+      const builder = {
+        operations: {},
+        verbOptions: {},
+        schemas: [],
+        title: vi.fn(),
+        header: vi.fn(),
+        footer: vi.fn(),
+        imports: vi.fn(),
+        importsMock: vi.fn(),
+        extraFiles: [],
+        info: { title: 'Valibot', version: '1.0.0' },
+        target: '',
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          ...(schemas ? { components: { schemas } } : {}),
+        } satisfies OpenApiDocument,
+      } satisfies WriteSpecBuilder;
+      const options = {
+        output: createTestContextSpec({
+          output: {
+            target: path.join(root, 'endpoints.ts'),
+            mode: OutputMode.SPLIT,
+            client: 'valibot',
+            docs: false,
+            formatter: undefined,
+            override: { valibot: { generateReusableSchemas: true } },
+          },
+          override: { header: false },
+        }).output,
+        input: {
+          target: '',
+          override: {},
+          unsafeDisableValidation: false,
+        },
+        hooks: {},
+      } satisfies NormalizedOptions;
+
+      try {
+        await writeSpecs(builder, root, options);
+
+        expect(
+          (await fs.promises.readdir(root)).includes('endpoints.schemas.ts'),
+        ).toBe(written);
       } finally {
         await fs.promises.rm(root, { recursive: true, force: true });
       }

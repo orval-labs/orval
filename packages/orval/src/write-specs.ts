@@ -15,6 +15,7 @@ import {
   getFileInfo,
   getGeneratedFileCheck,
   getImportExtension,
+  getReferencedIdentifiers,
   getFakerEntry,
   getMockFileExtensionByTypeName,
   getSchemasImportPath,
@@ -569,6 +570,20 @@ function isSchemaValidatorClient(
   return client === 'zod' || client === 'effect' || client === 'valibot';
 }
 
+function shouldGenerateValibotSchemasInline(
+  output: NormalizedOptions['output'],
+  spec: WriteSpecBuilder['spec'],
+): boolean {
+  // Operations reference the constants by name, so they are written next to
+  // the operations. Without components no file is written.
+  return (
+    output.client === 'valibot' &&
+    !output.schemas &&
+    output.override.valibot.generateReusableSchemas &&
+    Object.keys(spec.components?.schemas ?? {}).length > 0
+  );
+}
+
 function shouldGenerateZodSchemasInline(
   output: NormalizedOptions['output'],
   hasOperations: boolean,
@@ -592,10 +607,12 @@ function shouldGenerateZodSchemasInline(
 function shouldGenerateSchemas(
   output: NormalizedOptions['output'],
   hasOperations: boolean,
+  spec: WriteSpecBuilder['spec'],
 ): boolean {
   return (
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
-    shouldGenerateZodSchemasInline(output, hasOperations)
+    shouldGenerateZodSchemasInline(output, hasOperations) ||
+    shouldGenerateValibotSchemasInline(output, spec)
   );
 }
 
@@ -1045,13 +1062,29 @@ async function writeSpecsInternal(
       ? await loadZodWriters()
       : undefined;
 
+    // A separate schemas file always imports `valibot`. Inline schemas bring
+    // the import only when no operation already uses `v`.
+    const needValibotSchemasInline = shouldGenerateValibotSchemasInline(
+      output,
+      builder.spec,
+    );
+    const includeValibotImport =
+      needValibotSchemasInline &&
+      (isSchemasInSeparateFile ||
+        !Object.values(builder.operations).some((operation) =>
+          getReferencedIdentifiers(operation.implementation).has('v'),
+        ));
+    const valibotModule = needValibotSchemasInline
+      ? await import('@orval/valibot')
+      : undefined;
+
     implementationPaths = await writeMode({
       builder,
       workspace,
       output,
       projectName,
       header,
-      needSchema: shouldGenerateSchemas(output, hasOperations),
+      needSchema: shouldGenerateSchemas(output, hasOperations, builder.spec),
       schemaTagMap,
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
@@ -1069,7 +1102,14 @@ async function writeSpecsInternal(
               output.override,
               precedingContent,
             )
-        : undefined,
+        : valibotModule
+          ? () =>
+              valibotModule.generateValibotSchemasInline(
+                builder,
+                output,
+                includeValibotImport,
+              )
+          : undefined,
     });
   }
 

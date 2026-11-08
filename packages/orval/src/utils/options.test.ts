@@ -6,6 +6,7 @@ import { mergeDeep, noopReporter, withReporter } from '@orval/core';
 import type {
   FormatTypeMap,
   NormalizedSchemaOptions,
+  OutputClientFunc,
   OutputMocksConfig,
 } from '@orval/core';
 import {
@@ -3560,10 +3561,123 @@ describe('normalizeOptions', () => {
         strict: { ...override.valibot.strict, query: true },
         generate: override.valibot.generate,
         exactOptional: true,
+        generateReusableSchemas: false,
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
+  });
+
+  describe('valibot generateReusableSchemas', () => {
+    const normalizeValibot = async (
+      output: Record<string, unknown>,
+      generateReusableSchemas?: boolean,
+    ) => {
+      const workspace = await createTempWorkspace();
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              client: 'valibot',
+              override: { valibot: { generateReusableSchemas } },
+              ...output,
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it('is off by default', async () => {
+      const normalized = await normalizeValibot({ target: './generated.ts' });
+      expect(normalized.output.override.valibot.generateReusableSchemas).toBe(
+        false,
+      );
+    });
+
+    it('can be turned on', async () => {
+      const normalized = await normalizeValibot(
+        { target: './generated.ts' },
+        true,
+      );
+      expect(normalized.output.override.valibot.generateReusableSchemas).toBe(
+        true,
+      );
+    });
+
+    it('is dropped from operation and tag overrides', async () => {
+      const normalized = await normalizeValibot({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: {
+              valibot: { generateReusableSchemas: true, exactOptional: true },
+            },
+          },
+          tags: { pets: { valibot: { generateReusableSchemas: true } } },
+        },
+      });
+      const { operations, tags } = normalized.output.override;
+      expect(operations.listPets?.valibot).toEqual({ exactOptional: true });
+      expect(tags.pets?.valibot).toEqual({});
+    });
+
+    it('warns for a defined operation override but not for undefined', async () => {
+      logWarningSpy.mockClear();
+      await normalizeValibot({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: { valibot: { generateReusableSchemas: undefined } },
+          },
+        },
+      });
+      expect(logWarningSpy).not.toHaveBeenCalled();
+
+      await normalizeValibot({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: { valibot: { generateReusableSchemas: false } },
+          },
+        },
+      });
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('is rejected together with output.schemas', async () => {
+      await expect(
+        normalizeValibot(
+          { target: './generated.ts', schemas: './model' },
+          true,
+        ),
+      ).rejects.toThrow(/cannot be combined with `output.schemas`/);
+    });
+
+    it('is rejected for a custom client function', async () => {
+      const client: OutputClientFunc = (clients) => clients.valibot;
+      await expect(
+        normalizeValibot({ target: './generated.ts', client }, true),
+      ).rejects.toThrow(/requires `client: 'valibot'`/);
+    });
+
+    it('allows output.schemas when it is off', async () => {
+      await expect(
+        normalizeValibot(
+          { target: './generated.ts', schemas: './model' },
+          false,
+        ),
+      ).resolves.toBeDefined();
+    });
   });
 
   it('resolves hono compositeRoute relative to the workspace', async () => {

@@ -2661,7 +2661,7 @@ Pin the Effect major version that generated output targets, instead of inferring
 
 ## override.valibot
 
-Valibot schema generation options. `strict` and `generate` take the same keys as `override.zod`, and can also be set per operation or tag.
+Valibot schema generation options. `strict`, `generate` and `exactOptional` can also be set per operation or tag (`strict` and `generate` take the same keys as `override.zod`). `generateReusableSchemas` is output-wide.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2672,6 +2672,7 @@ export default defineConfig({
           strict: { response: true },
           generate: { header: false },
           exactOptional: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -2686,6 +2687,16 @@ export default defineConfig({
 **Default:** `false`
 
 Emit optional object properties with `v.exactOptional(schema)` instead of `v.optional(schema)`, so consumers compiling with [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) infer `{ x?: T }` rather than `{ x?: T | undefined }`.
+
+### generateReusableSchemas
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit one exported Valibot constant per `#/components/schemas/*` entry instead of inlining every `$ref`. See [Reusable Schemas](/docs/guides/valibot#reusable-schemas) for the output and the limitations.
+
+It can't be combined with [`schemas`](#schemas) yet.
 
 ---
 
