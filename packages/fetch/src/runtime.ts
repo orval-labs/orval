@@ -214,15 +214,11 @@ export const serializeQuery = (
         );
         return;
       }
-      if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
+      const repeated = meta.explode?.includes(key) || meta.repeat?.includes(key);
+      if (repeated || meta.brackets?.includes(key)) {
+        const name = repeated ? key : key + '[]';
         value.forEach((v) => {
-          normalizedParams.append(key, stringifyValue(v));
-        });
-        return;
-      }
-      if (meta.brackets?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key + '[]', stringifyValue(v));
+          normalizedParams.append(name, stringifyValue(v));
         });
         return;
       }
