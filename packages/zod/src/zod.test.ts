@@ -16305,3 +16305,74 @@ describe('formatType', () => {
     ).toBe(false);
   });
 });
+
+describe.each([
+  { version: 3, variant: 'classic' },
+  { version: 4, variant: 'classic' },
+  { version: 4, variant: 'mini' },
+] as const)(
+  'dependentRequired (Zod $version, $variant)',
+  ({ version, variant }) => {
+    const context = createTestContextSpec({
+      output: { override: { useDates: false } },
+    });
+
+    const render = (schema: OpenApiSchemaObject) =>
+      parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'typography',
+          false,
+          version === 4,
+          { required: true },
+        ),
+        context,
+        false,
+        false,
+        version === 4,
+        undefined,
+        undefined,
+        variant,
+      ).zod;
+
+    const typography = schemaObject({
+      type: 'object',
+      properties: {
+        font_url: { type: 'string' },
+        font_family: { type: 'string' },
+      },
+      dependentRequired: { font_url: ['font_family'] },
+    });
+
+    it('refines the object so a dependent property must be present, reported at its own path', () => {
+      const rendered = render(typography);
+      const message = 'font_family is required when font_url is present';
+
+      expect(rendered).toContain('(property in value) || dependent in value');
+      expect(rendered).toContain('const property = "font_url"');
+      expect(rendered).toContain('const dependent = "font_family"');
+      expect(rendered).toContain(
+        version === 4
+          ? `{ "error": "${message}", "path": ["font_family"] }`
+          : `{ "message": "${message}", "path": ["font_family"] }`,
+      );
+      expect(rendered).toContain(variant === 'mini' ? '.check(' : '.refine(');
+    });
+
+    it('adds one refinement per dependent property', () => {
+      const rendered = render({
+        ...typography,
+        dependentRequired: { font_url: ['font_family', 'font_weight'] },
+      });
+
+      expect(rendered.match(/\brefine\(/g)).toHaveLength(2);
+    });
+
+    it('leaves schemas without dependentRequired unrefined', () => {
+      const { dependentRequired: _unused, ...plain } = typography;
+
+      expect(render(plain)).not.toContain('refine(');
+    });
+  },
+);
