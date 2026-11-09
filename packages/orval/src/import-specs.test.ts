@@ -2507,6 +2507,24 @@ describe('dereferenceExternalRefs', () => {
       expect(result.components.schemas['a/b_abc']).toEqual({ type: 'string' });
     });
 
+    it('ignores inherited object keys when mapping component names', () => {
+      const result = dereferenceExternalRef({
+        openapi: '3.1.0',
+        components: {
+          schemas: {
+            Ref: { $ref: '#/x-ext/abc/components/schemas/constructor' },
+          },
+        },
+        'x-ext': { abc: { components: { schemas: {} } } },
+      }) as {
+        components: { schemas: Record<string, Record<string, unknown>> };
+      };
+
+      expect(result.components.schemas.Ref).toEqual({
+        $ref: '#/components/schemas/constructor',
+      });
+    });
+
     it('inlines a ref to a false schema', () => {
       const schemas = derefThing(
         {

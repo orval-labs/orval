@@ -2664,8 +2664,12 @@ function replaceXExtRefs(
             // The token is pointer-encoded (`a~1b` for `a/b`); the mapping is
             // keyed by the decoded name.
             const [nameToken, ...rest] = parts.slice(2);
-            const mappedName =
-              schemaNameMappings[extKey][decodeRefToken(nameToken)];
+            const mapping = schemaNameMappings[extKey] ?? {};
+            const decodedName = decodeRefToken(nameToken);
+            // Own entries only: an inherited `constructor` is not a mapping.
+            const mappedName = Object.hasOwn(mapping, decodedName)
+              ? mapping[decodedName]
+              : undefined;
             const finalToken = mappedName
               ? escapePointerToken(mappedName)
               : nameToken;
