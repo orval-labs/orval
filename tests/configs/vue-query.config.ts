@@ -489,4 +489,21 @@ export default defineConfig({
       target: '../specifications/issue-4223.yaml',
     },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/vue-query/shared-runtime/endpoints.ts',
+      schemas: '../generated/vue-query/shared-runtime/model',
+      client: 'vue-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

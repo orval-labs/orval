@@ -38,6 +38,7 @@ import {
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   OutputClient,
+  OutputHttpClient,
   rewriteImportsForResponseValidation,
   toObjectString,
   upath,
@@ -57,16 +58,39 @@ import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 const isContentTypeJson = (contentType: string) =>
   contentType.toLowerCase().includes('json');
 
+/**
+ * Whether the request functions use the shared runtime: the fetch client, and
+ * the clients built on it with `httpClient: 'fetch'`. mcp is left out, as it
+ * embeds the request functions in its own `http-client.ts`.
+ */
 export const isSharedRuntimeStyle = (
   output: NormalizedOutputOptions | undefined,
 ) =>
   output?.override.fetch.runtimeImplementationStyle === 'shared' &&
-  output.client === OutputClient.FETCH;
+  output.client !== OutputClient.MCP &&
+  (output.client === OutputClient.FETCH ||
+    output.httpClient === OutputHttpClient.FETCH);
 
 const usesClientConfig = (
   output: NormalizedOutputOptions,
   mutator: GeneratorVerbOptions['mutator'],
 ) => !!output.override.mutator && !!mutator && !mutator.isHook;
+
+/**
+ * Drops a mutator the shared runtime cannot route (a hook mutator, or one set
+ * only per operation or tag) before a client built on fetch generates its
+ * hooks, which would otherwise reference the mutator. The fetch client ignores
+ * such a mutator the same way.
+ */
+export const normalizeSharedRuntimeVerbOptions = (
+  verbOptions: GeneratorVerbOptions,
+  output: NormalizedOutputOptions,
+): GeneratorVerbOptions =>
+  isSharedRuntimeStyle(output) &&
+  verbOptions.mutator &&
+  !usesClientConfig(output, verbOptions.mutator)
+    ? { ...verbOptions, mutator: undefined }
+    : verbOptions;
 
 /**
  * Keeps default-export callbacks stable across operations and distinct from the
@@ -235,8 +259,16 @@ const getResponseTypes = (
   ];
   if (override.fetch.forceSuccessResponse && successKeys.length > 0) {
     const resultType = `${typeName}ResponseSuccess`;
+    const responseOf = (keys: string[]) =>
+      `ResponseOf<${map}, ${headersType ?? 'Headers'}, ${keys.map(statusKeyLiteral).join(' | ')}>`;
+    // The query clients type a mutator's error with it (`ErrorType<…>`).
+    const errorKeys = [...new Set(response.types.errors.map(({ key }) => key))];
+    const errorDeclaration =
+      override.fetch.includeHttpErrorResponse && errorKeys.length > 0
+        ? `export type ${typeName}ResponseError = ${responseOf(errorKeys)};\n`
+        : '';
     return {
-      declarations: `export type ${resultType} = ResponseOf<${map}, ${headersType ?? 'Headers'}, ${successKeys.map(statusKeyLiteral).join(' | ')}>;\n`,
+      declarations: `export type ${resultType} = ${responseOf(successKeys)};\n${errorDeclaration}`,
       resultType,
     };
   }

@@ -15,6 +15,7 @@ import {
   HTTP_STATUS_CODE_SHARED_TYPES,
   logger,
   OutputClient,
+  OutputHttpClient,
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
@@ -2069,18 +2070,24 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
     ).toBe('');
   });
 
-  it('switches to the shared emitter for the fetch client only', () => {
-    expect(
-      generateImplementation(makeVerbOptions(), sharedOptions()),
-    ).toContain('execute<');
-    for (const client of [OutputClient.MCP, OutputClient.REACT_QUERY]) {
-      const implementation = generateImplementation(
-        makeVerbOptions(),
-        sharedOptions(client),
-      );
-      expect(implementation).toContain('export const listPets = async (');
-      expect(implementation).not.toContain('execute<');
-    }
+  it.each([OutputClient.FETCH, OutputClient.REACT_QUERY, OutputClient.SWR])(
+    'switches to the shared emitter for %s with the fetch http client',
+    (client) => {
+      expect(
+        generateImplementation(makeVerbOptions(), sharedOptions(client)),
+      ).toContain('execute<');
+    },
+  );
+
+  it.each([
+    ['mcp', OutputClient.MCP, OutputHttpClient.FETCH],
+    ['the axios http client', OutputClient.REACT_QUERY, OutputHttpClient.AXIOS],
+  ])('keeps the inline emitter for %s', (_, client, httpClient) => {
+    const options = sharedOptions(client);
+    options.context.output.httpClient = httpClient;
+    const implementation = generateImplementation(makeVerbOptions(), options);
+    expect(implementation).toContain('export const listPets = async (');
+    expect(implementation).not.toContain('execute<');
   });
 });
 

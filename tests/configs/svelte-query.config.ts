@@ -263,4 +263,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/svelte-query/shared-runtime/endpoints.ts',
+      schemas: '../generated/svelte-query/shared-runtime/model',
+      client: 'svelte-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

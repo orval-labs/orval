@@ -450,4 +450,21 @@ export default defineConfig({
     },
     input: { target: '../specifications/dates-transform.yaml' },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/swr/shared-runtime/endpoints.ts',
+      schemas: '../generated/swr/shared-runtime/model',
+      client: 'swr',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

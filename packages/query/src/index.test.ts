@@ -754,3 +754,124 @@ export function useGetOperatorFacility<`);
 export const useGetOperatorFacility = <`);
   });
 });
+
+describe('generateQuery — shared runtime', () => {
+  const makeVerbOptions = (
+    fetch: Partial<GeneratorVerbOptions['override']['fetch']> = {},
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+  ): GeneratorVerbOptions =>
+    createTestGeneratorVerbOptions({
+      verb: 'get',
+      route: '/pets',
+      pathRoute: '/pets',
+      operationId: 'listPets',
+      operationName: 'listPets',
+      typeName: 'listPets',
+      response: {
+        definition: { success: 'Pets', errors: '' },
+        imports: [{ name: 'Pets' }],
+        types: { success: [successType({ value: 'Pets' })], errors: [] },
+        contentTypes: ['application/json'],
+      },
+      override: {
+        requestOptions: true,
+        fetch: {
+          includeHttpResponseReturnType: true,
+          forceSuccessResponse: false,
+          ...fetch,
+        },
+        query: { useQuery: true, useMutation: true, signal: true },
+      },
+      ...overrides,
+    });
+
+  const makeOptions = () => {
+    const options = createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+      context: {
+        output: {
+          client: OutputClient.REACT_QUERY,
+          httpClient: OutputHttpClient.FETCH,
+        },
+      },
+    });
+    options.context.output.target = '/proj/src/endpoints.ts';
+    Object.assign(options.context.output.override.fetch, {
+      runtimeImplementationStyle: 'shared',
+      runtimeOutputPath: '/proj/src/runtime.ts',
+    });
+    return options;
+  };
+
+  it('builds the hooks on the shared request function', async () => {
+    const { implementation, imports } = await generateQuery(
+      makeVerbOptions(),
+      makeOptions(),
+      'react-query',
+    );
+
+    expect(implementation).toContain('execute<listPetsResponse>');
+    expect(implementation).toContain('export const useListPets');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'execute', values: true }),
+    );
+  });
+
+  it('passes the hook fetcher as options.fetch', async () => {
+    const { implementation } = await generateQuery(
+      makeVerbOptions({ useRuntimeFetcher: true }),
+      makeOptions(),
+      'react-query',
+    );
+
+    expect(implementation).toContain('fetcher?: typeof globalThis.fetch');
+    expect(implementation).toContain(
+      '...(fetcherFn ? { fetch: fetcherFn } : {})',
+    );
+    expect(implementation).not.toContain(', fetcherFn)');
+  });
+
+  it('ignores a hook mutator, as the fetch client does', async () => {
+    const options = makeOptions();
+    options.context.output.override.mutator = {
+      path: '/proj/src/use-custom-fetch.ts',
+      name: 'useCustomFetch',
+      default: false,
+    };
+    const { implementation } = await generateQuery(
+      makeVerbOptions(
+        {},
+        {
+          mutator: {
+            name: 'useCustomFetch',
+            path: './use-custom-fetch',
+            default: false,
+            hasErrorType: false,
+            errorTypeName: '',
+            hasSecondArg: true,
+            hasThirdArg: false,
+            isHook: true,
+          },
+        },
+      ),
+      options,
+      'react-query',
+    );
+
+    expect(implementation).toContain('execute<listPetsResponse>');
+    expect(implementation).not.toContain('useListPetsHook');
+    expect(implementation).not.toContain('useCustomFetch');
+  });
+
+  it('emits the shared runtime file', async () => {
+    const options = makeOptions();
+    const files = await builder()().extraFiles(
+      { listPets: makeVerbOptions() },
+      options.context.output,
+      options.context,
+    );
+
+    expect(files.map(({ path }) => path)).toEqual(['/proj/src/runtime.ts']);
+  });
+});

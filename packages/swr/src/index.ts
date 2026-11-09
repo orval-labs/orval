@@ -23,7 +23,13 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
-import { getFetchResponseValidationImports } from '@orval/fetch';
+import {
+  generateFetchExtraFiles,
+  generateSharedClient,
+  getFetchResponseValidationImports,
+  isSharedRuntimeStyle,
+  normalizeSharedRuntimeVerbOptions,
+} from '@orval/fetch';
 
 import {
   AXIOS_DEPENDENCIES,
@@ -906,6 +912,24 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) => {
 };
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
+  // With the shared runtime, the fetch request function and its imports come
+  // from the shared emitter; the hooks are built on top as usual.
+  if (isSharedRuntimeStyle(options.context.output)) {
+    const sharedVerbOptions = normalizeSharedRuntimeVerbOptions(
+      verbOptions,
+      options.context.output,
+    );
+    const { implementation, imports } = generateSharedClient(
+      sharedVerbOptions,
+      options,
+    );
+    return {
+      implementation: `${implementation}\n\n${generateSwrHook(sharedVerbOptions, options)}`,
+      imports,
+      docComment: '',
+    };
+  }
+
   const isFetchHttpClient =
     options.context.output.httpClient !== OutputHttpClient.AXIOS;
   // The request function is the fetch generator's, so the Zod references it
@@ -947,6 +971,7 @@ const swrClientBuilder: ClientGeneratorsBuilder = {
   client: generateSwr,
   header: generateSwrHeader,
   dependencies: getSwrDependencies,
+  extraFiles: generateFetchExtraFiles,
 };
 
 export const builder = () => () => swrClientBuilder;

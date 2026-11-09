@@ -3455,7 +3455,7 @@ touches only the schema-declared `format: date`/`date-time` fields.
 
 Enable runtime validation for fetch client responses, through Zod by default. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
 
-This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for `void`/`unknown` responses, non-JSON responses and ndjson streams, and with `runtimeImplementationStyle: 'shared'`. Inline scalar JSON responses are validated through a generated schema.
+This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for `void`/`unknown` responses, non-JSON responses and ndjson streams. Inline scalar JSON responses are validated through a generated schema.
 
 The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy: 'throw' }`. With `{ strategy: 'both' }` an invalid response is first logged through `console.error('[orval] <operation> response validation failed', error)` with the raw `ZodError`, then re-thrown (rejecting the returned promise) — giving production visibility into contract drift while still failing fast.
 
@@ -3645,7 +3645,14 @@ it. Call signatures and the `{ data, status, headers }` response shape stay the
 same as with `'inline'`. The other `override.fetch` options behave as they do
 with `'inline'`, with two exceptions: `httpClientInjection: 'factory'` is
 supported by the inline style only, and instead of `useRuntimeFetcher` a
-per-call `fetch` is passed as `options.fetch`.
+per-call `fetch` is passed as `options.fetch`. The query hooks' `fetcher` option
+keeps working and is passed on as `options.fetch`.
+
+It applies to `client: 'fetch'`, and to `react-query`, `vue-query`,
+`svelte-query`, `solid-query`, `swr` and `pinia-colada` under
+`httpClient: 'fetch'`. The runtime routes requests only through a global
+`override.mutator` that is not a hook; a hook mutator, or a mutator set only
+per operation or tag, is ignored.
 
 ```ts title="orval.config.ts"
 export default defineConfig({

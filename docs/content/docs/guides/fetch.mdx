@@ -135,7 +135,8 @@ handling. With `override.fetch.runtimeImplementationStyle: 'shared'`, that
 logic is generated once into a shared `runtime.ts` and each operation becomes a
 thin wrapper around it. Call signatures and the `{ data, status, headers }`
 response shape are the same as the inline style, and MSW handlers written with
-`getXxxUrl` keep working.
+`getXxxUrl` keep working. The query clients and `swr` under `httpClient: 'fetch'`
+use it the same way.
 
 ```ts title="orval.config.ts"
 override: {

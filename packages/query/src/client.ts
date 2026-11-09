@@ -596,6 +596,10 @@ export const getQueryArgumentsRequestType = (
   return '';
 };
 
+// The hook's `fetcher` option, folded into the request options for the shared
+// runtime, whose request functions read a per-call fetch from `options.fetch`.
+const FETCHER_OPTION = ', ...(fetcherFn ? { fetch: fetcherFn } : {})';
+
 export const getQueryOptions = ({
   isRequestOptions,
   mutator,
@@ -604,6 +608,7 @@ export const getQueryOptions = ({
   httpClient,
   hasSignalParam = false,
   useRuntimeFetcher = false,
+  fetcherInOptions = false,
 }: {
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
@@ -612,6 +617,8 @@ export const getQueryOptions = ({
   httpClient: OutputHttpClient;
   hasSignalParam?: boolean;
   useRuntimeFetcher?: boolean;
+  /** The shared runtime takes the fetcher as `options.fetch`, not a third argument. */
+  fetcherInOptions?: boolean;
 }) => {
   // Use querySignal if API has a param named "signal" to avoid conflict
   const signalVar = hasSignalParam ? 'querySignal' : 'signal';
@@ -621,20 +628,23 @@ export const getQueryOptions = ({
   if (!mutator && isRequestOptions) {
     const options =
       httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
-    const fetcherArg =
-      httpClient === OutputHttpClient.FETCH && useRuntimeFetcher
-        ? ', fetcherFn'
-        : '';
+    const passesFetcher =
+      httpClient === OutputHttpClient.FETCH && useRuntimeFetcher;
+    const fetcherArg = passesFetcher && !fetcherInOptions ? ', fetcherFn' : '';
+    const fetcherOption =
+      passesFetcher && fetcherInOptions ? FETCHER_OPTION : '';
 
     if (!hasSignal) {
-      return `${options}${fetcherArg}`;
+      return fetcherOption
+        ? `{ ...${options}${fetcherOption} }`
+        : `${options}${fetcherArg}`;
     }
 
     return `{ ${
       isExactOptionalPropertyTypes
         ? `...(${signalVar} ? { ${signalProp} } : {})`
         : signalProp
-    }, ...${options} }${fetcherArg}`;
+    }, ...${options}${fetcherOption} }${fetcherArg}`;
   }
 
   // For Angular mutators with hasSecondArg, pass http through options parameter
@@ -806,13 +816,17 @@ export const getMutationRequestArgs = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
   useRuntimeFetcher?: boolean,
+  fetcherInOptions = false,
 ) => {
+  const passesFetcher =
+    httpClient === OutputHttpClient.FETCH && useRuntimeFetcher;
   const options =
-    httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
-  const fetcherArg =
-    httpClient === OutputHttpClient.FETCH && useRuntimeFetcher
-      ? ', fetcherFn'
-      : '';
+    httpClient === OutputHttpClient.AXIOS
+      ? 'axiosOptions'
+      : passesFetcher && fetcherInOptions
+        ? `{ ...fetchOptions${FETCHER_OPTION} }`
+        : 'fetchOptions';
+  const fetcherArg = passesFetcher && !fetcherInOptions ? ', fetcherFn' : '';
 
   // For Angular mutators with hasSecondArg, pass http (which is injected in inject* fn)
   // http is required as first param so no assertion needed

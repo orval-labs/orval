@@ -27,6 +27,7 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
+import { isSharedRuntimeStyle } from '@orval/fetch';
 
 import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
 import type { FrameworkAdapter } from './framework-adapter';
@@ -757,6 +758,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes,
   hasSignal,
   useRuntimeFetcher,
+  fetcherInOptions,
   forceSuccessResponse,
   includeHttpErrorResponse,
   route,
@@ -798,6 +800,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   useRuntimeFetcher?: boolean;
+  fetcherInOptions?: boolean;
   forceSuccessResponse?: boolean;
   includeHttpErrorResponse?: boolean;
   route: string;
@@ -979,6 +982,7 @@ const generateQueryImplementation = ({
     httpClient,
     hasSignalParam,
     useRuntimeFetcher,
+    fetcherInOptions,
   });
 
   const hookOptions = getHookOptions({
@@ -1744,6 +1748,7 @@ ${queryKeyFns}`;
           overrideQuerySignal: override.query.signal,
         }),
         useRuntimeFetcher: override.fetch.useRuntimeFetcher,
+        fetcherInOptions: isSharedRuntimeStyle(context.output),
         forceSuccessResponse: override.fetch.forceSuccessResponse,
         includeHttpErrorResponse: override.fetch.includeHttpErrorResponse,
         queryOptionsMutator,

@@ -13,7 +13,13 @@ import {
   type QueryOptions,
   rewriteImportsForResponseValidation,
 } from '@orval/core';
-import { getFetchResponseValidationImports } from '@orval/fetch';
+import {
+  generateFetchExtraFiles,
+  generateSharedClient,
+  getFetchResponseValidationImports,
+  isSharedRuntimeStyle,
+  normalizeSharedRuntimeVerbOptions,
+} from '@orval/fetch';
 
 import { getQueryHeader } from './client';
 import {
@@ -123,6 +129,35 @@ export const generateQuery: ClientBuilder = async (
     packageJson: options.context.output.packageJson,
     queryVersion: verbOptions.override.query.version,
   });
+
+  // With the shared runtime, the fetch request function and its imports come
+  // from the shared emitter; the hooks are built on top as usual.
+  if (!adapter.isAngularHttp && isSharedRuntimeStyle(options.context.output)) {
+    const sharedVerbOptions = normalizeSharedRuntimeVerbOptions(
+      verbOptions,
+      options.context.output,
+    );
+    const { implementation, imports } = generateSharedClient(
+      sharedVerbOptions,
+      options,
+    );
+    const {
+      implementation: hookImplementation,
+      imports: hookImports,
+      mutators,
+    } = await generateQueryHook(
+      sharedVerbOptions,
+      options,
+      outputClient,
+      adapter,
+    );
+    return {
+      implementation: `${implementation}\n\n${hookImplementation}`,
+      imports: [...imports, ...hookImports],
+      mutators,
+      docComment: '',
+    };
+  }
 
   // Every non-Angular framework delegates its request function to the fetch (or
   // axios) generator, so what the response imports have to look like is that
@@ -278,6 +313,7 @@ export const builder =
       client: client,
       header: generateQueryHeader,
       dependencies: dependenciesBuilder[type],
+      extraFiles: generateFetchExtraFiles,
     };
   };
 
