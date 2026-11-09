@@ -2150,6 +2150,8 @@ export function dereferenceExternalRef(
 const SCHEMA_NAME_MAP_KEYS = new Set([
   '$defs',
   'definitions',
+  // Draft-07 `dependencies`: its values are schemas or property-name arrays.
+  'dependencies',
   'dependentSchemas',
   'patternProperties',
   'properties',
@@ -2190,7 +2192,12 @@ function scopeEmbeddedResourceRefs(
     }
     if (!isObject(node)) return node;
 
-    const scope = !inNameMap && isString(node.$id) ? path : resourcePath;
+    // A plain-name `$id` (`#inner`, draft-07) is an anchor, not a new base for
+    // JSON Pointer fragments, so it keeps the enclosing resource.
+    const scope =
+      !inNameMap && isString(node.$id) && !node.$id.startsWith('#')
+        ? path
+        : resourcePath;
     const out: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(node)) {
       if (
@@ -2200,8 +2207,10 @@ function scopeEmbeddedResourceRefs(
         (value === '#' || value.startsWith('#/')) &&
         !value.startsWith('#/x-ext/')
       ) {
+        // Tokens are percent-decoded when the ref is followed (decodeRefToken),
+        // so a literal `%` in a key has to be encoded to survive the trip.
         const base = ['x-ext', extKey, ...scope]
-          .map((token) => escapePointerToken(token))
+          .map((token) => escapePointerToken(token).replaceAll('%', '%25'))
           .join('/');
         out[key] = `#/${base}${value.slice(1)}`;
       } else if (
@@ -2649,11 +2658,15 @@ function replaceXExtRefs(
             parts[0] === 'components' &&
             parts[1] === 'schemas'
           ) {
-            const schemaName = parts.slice(2).join('/');
-            // Use the mapped name (which may include suffix for collisions)
+            // Use the mapped name (which may include suffix for collisions).
+            // A ref into a component (`.../schemas/Foo/properties/bar`) maps
+            // only the component name and keeps the rest of the pointer.
+            const [schemaName, ...rest] = parts.slice(2);
             const finalName =
               schemaNameMappings[extKey][schemaName] || schemaName;
-            return { $ref: `${refPrefix}${finalName}` };
+            return {
+              $ref: [`${refPrefix}${finalName}`, ...rest].join('/'),
+            };
           }
 
           // A schema that contains itself became a component; point at it.
@@ -2670,7 +2683,9 @@ function replaceXExtRefs(
           }
 
           const refObj = resolveXExtRef(extensions, extKey, parts);
-          if (refObj) {
+          // `false` (and `true`) are valid boolean schemas, so only a missing
+          // target leaves the ref as is.
+          if (!isNullish(refObj)) {
             const cleaned = scrubUnwantedKeys(refObj);
             const nextInlining = new Set(inliningRefs);
             nextInlining.add(refValue);

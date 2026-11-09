@@ -2374,6 +2374,135 @@ describe('dereferenceExternalRefs', () => {
       });
     });
 
+    const derefThing = (extDoc: Record<string, unknown>, ref: string) =>
+      (
+        dereferenceExternalRef({
+          openapi: '3.1.0',
+          components: { schemas: { Thing: { $ref: ref } } },
+          'x-ext': { abc: extDoc },
+        }) as {
+          components: { schemas: Record<string, Record<string, unknown>> };
+        }
+      ).components.schemas;
+
+    it('scopes refs inside legacy dependencies maps', () => {
+      const schemas = derefThing(
+        {
+          $id: 'https://mock.com',
+          definitions: {
+            Thing: {
+              type: 'object',
+              dependencies: {
+                default: { $ref: '#/definitions/Leaf' },
+                other: ['default'],
+              },
+            },
+            Leaf: { required: ['x'] },
+          },
+        },
+        '#/x-ext/abc/definitions/Thing',
+      );
+
+      expect(schemas.Thing.dependencies).toEqual({
+        default: { required: ['x'] },
+        other: ['default'],
+      });
+    });
+
+    it('keeps the enclosing resource for a plain-name $id', () => {
+      const schemas = derefThing(
+        {
+          $id: 'https://mock.com',
+          definitions: {
+            Thing: {
+              $id: '#inner',
+              type: 'object',
+              properties: { leaf: { $ref: '#/definitions/Leaf' } },
+            },
+            Leaf: { type: 'string' },
+          },
+        },
+        '#/x-ext/abc/definitions/Thing',
+      );
+
+      expect(schemas.Thing.properties).toEqual({ leaf: { type: 'string' } });
+    });
+
+    it('resolves refs inside a nested resource stored under a key with %', () => {
+      const schemas = derefThing(
+        {
+          $id: 'https://mock.com',
+          $defs: {
+            'part%20name': {
+              $id: 'part.json',
+              $defs: { Leaf: { type: 'integer' } },
+              type: 'object',
+              properties: { leaf: { $ref: '#/$defs/Leaf' } },
+            },
+          },
+        },
+        '#/x-ext/abc/$defs/part%2520name',
+      );
+
+      expect(schemas.Thing.properties).toEqual({ leaf: { type: 'integer' } });
+    });
+
+    it('maps renamed components when a ref points inside them', () => {
+      const result = dereferenceExternalRef({
+        openapi: '3.1.0',
+        components: {
+          schemas: {
+            Foo: { type: 'boolean' },
+            Ref: { $ref: '#/x-ext/abc/components/schemas/Foo' },
+          },
+        },
+        'x-ext': {
+          abc: {
+            components: {
+              schemas: {
+                Foo: {
+                  $id: 'foo.json',
+                  type: 'object',
+                  properties: {
+                    a: { type: 'string' },
+                    b: { $ref: '#/properties/a' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }) as {
+        components: { schemas: Record<string, Record<string, unknown>> };
+      };
+
+      expect(result.components.schemas.Ref).toEqual({
+        $ref: '#/components/schemas/Foo_abc',
+      });
+      expect(result.components.schemas.Foo_abc.properties).toEqual({
+        a: { type: 'string' },
+        b: { $ref: '#/components/schemas/Foo_abc/properties/a' },
+      });
+    });
+
+    it('inlines a ref to a false schema', () => {
+      const schemas = derefThing(
+        {
+          $id: 'https://mock.com',
+          $defs: {
+            Thing: {
+              type: 'object',
+              properties: { never: { $ref: '#/$defs/Never' } },
+            },
+            Never: false,
+          },
+        },
+        '#/x-ext/abc/$defs/Thing',
+      );
+
+      expect(schemas.Thing.properties).toEqual({ never: false });
+    });
+
     it('validates and imports a spec referencing an external $id document', async () => {
       const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-id-'));
       try {
