@@ -35,9 +35,27 @@ export const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<Request
   };
 `;
 
-const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
-  ({ code }) => `export ${code}`,
-).join('\n');
+// A union of more than eight codes is split into private aliases of eight,
+// which a formatter keeps on one line each instead of one line per code.
+const STATUS_CODES_PER_LINE = 8;
+const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(({ name, code }) => {
+  const codes = code.match(/\b[1-5]\d\d\b/g) ?? [];
+  if (codes.length <= STATUS_CODES_PER_LINE) return `export ${code}`;
+  const parts = Array.from(
+    { length: Math.ceil(codes.length / STATUS_CODES_PER_LINE) },
+    (_, index) => ({
+      name: `${name}${String.fromCodePoint(65 + index)}`,
+      codes: codes.slice(
+        index * STATUS_CODES_PER_LINE,
+        (index + 1) * STATUS_CODES_PER_LINE,
+      ),
+    }),
+  );
+  return [
+    ...parts.map((part) => `type ${part.name} = ${part.codes.join(' | ')};`),
+    `export type ${name} = ${parts.map((part) => part.name).join(' | ')};`,
+  ].join('\n');
+}).join('\n');
 
 // The runtime names fetch types only through `RequestInit`: `BodyInit` and
 // `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
