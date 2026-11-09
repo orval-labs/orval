@@ -38,24 +38,29 @@ export const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<Request
 // A union of more than eight codes is split into private aliases of eight,
 // which a formatter keeps on one line each instead of one line per code.
 const STATUS_CODES_PER_LINE = 8;
-const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(({ name, code }) => {
-  const codes = code.match(/\b[1-5]\d\d\b/g) ?? [];
-  if (codes.length <= STATUS_CODES_PER_LINE) return `export ${code}`;
-  const parts = Array.from(
-    { length: Math.ceil(codes.length / STATUS_CODES_PER_LINE) },
-    (_, index) => ({
-      name: `${name}${String.fromCodePoint(65 + index)}`,
-      codes: codes.slice(
-        index * STATUS_CODES_PER_LINE,
-        (index + 1) * STATUS_CODES_PER_LINE,
-      ),
-    }),
-  );
-  return [
-    ...parts.map((part) => `type ${part.name} = ${part.codes.join(' | ')};`),
-    `export type ${name} = ${parts.map((part) => part.name).join(' | ')};`,
-  ].join('\n');
-}).join('\n');
+// `HTTPStatusCodes` is derived from the wildcard lookup in the template.
+const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.filter(
+  ({ name }) => name !== 'HTTPStatusCodes',
+)
+  .map(({ name, code }) => {
+    const codes = code.match(/\b[1-5]\d\d\b/g) ?? [];
+    if (codes.length <= STATUS_CODES_PER_LINE) return `export ${code}`;
+    const parts = Array.from(
+      { length: Math.ceil(codes.length / STATUS_CODES_PER_LINE) },
+      (_, index) => ({
+        name: `${name}${String.fromCodePoint(65 + index)}`,
+        codes: codes.slice(
+          index * STATUS_CODES_PER_LINE,
+          (index + 1) * STATUS_CODES_PER_LINE,
+        ),
+      }),
+    );
+    return [
+      ...parts.map((part) => `type ${part.name} = ${part.codes.join(' | ')};`),
+      `export type ${name} = ${parts.map((part) => part.name).join(' | ')};`,
+    ].join('\n');
+  })
+  .join('\n');
 
 // The runtime names fetch types only through `RequestInit`: `BodyInit` and
 // `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
@@ -117,25 +122,22 @@ export interface Stream<T> {
   readonly __orvalStream: T;
 }
 
-type WildcardKey = '1XX' | '2XX' | '3XX' | '4XX' | '5XX';
-type WildcardStatus<K> = K extends '1XX'
-  ? HTTPStatusCode1xx
-  : K extends '2XX'
-    ? HTTPStatusCode2xx
-    : K extends '3XX'
-      ? HTTPStatusCode3xx
-      : K extends '4XX'
-        ? HTTPStatusCode4xx
-        : K extends '5XX'
-          ? HTTPStatusCode5xx
-          : never;
+type WildcardStatus = {
+  '1XX': HTTPStatusCode1xx;
+  '2XX': HTTPStatusCode2xx;
+  '3XX': HTTPStatusCode3xx;
+  '4XX': HTTPStatusCode4xx;
+  '5XX': HTTPStatusCode5xx;
+};
+type WildcardKey = keyof WildcardStatus;
+export type HTTPStatusCodes = WildcardStatus[WildcardKey];
 type DeclaredStatuses<R> = {
   [K in Exclude<keyof R, 'default'>]: StatusFor<R, K>;
 }[Exclude<keyof R, 'default'>];
 type StatusFor<R, K extends keyof R> = K extends number
   ? K
   : K extends WildcardKey
-    ? Exclude<WildcardStatus<K>, Extract<keyof R, number>>
+    ? Exclude<WildcardStatus[K], Extract<keyof R, number>>
     : K extends 'default'
       ? [Exclude<keyof R, 'default'>] extends [never]
         ? number
