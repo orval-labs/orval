@@ -68,6 +68,15 @@ const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.filter(
 // a mutator typed for `includeZodSchemaInArguments` may declare any optional
 // `schema` (`schema?: ZodType`), but not a required one, since operations
 // without a validated response pass none.
+//
+// The template carries no comments of its own, since they would ship in every
+// generated runtime. In `serializeQuery`, `encodedEntries` are pre-encoded and
+// bypass `URLSearchParams`: delimited arrays are joined with a percent-encoded
+// separator (URLSearchParams would write a space as '+'), and deepObject
+// params keep their brackets. Plain-object form params are flattened into
+// their own keys, or written as one key of comma-joined prop,value pairs. In
+// `execute`, a download's error body is text, decoded by the declared error
+// media types (`errorResponseType`).
 export const RUNTIME_TEMPLATE = `${statusCodeTypes}
 
 export type HttpMethod =
@@ -188,13 +197,10 @@ export const serializeQuery = (
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  // Pre-encoded entries that bypass URLSearchParams.
   const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
-      // Joined with a percent-encoded separator; URLSearchParams would write
-      // the space as '+'.
       const delimiter = meta.pipeDelimited?.includes(key)
         ? '%7C'
         : meta.spaceDelimited?.includes(key)
@@ -232,8 +238,6 @@ export const serializeQuery = (
       !(value instanceof Date) &&
       (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
     ) {
-      // Plain-object form-style params: flatten writes each property as its own
-      // key, comma writes one key with prop,value pairs.
       const commaParts: string[] = [];
       Object.entries(value).forEach(([subKey, subValue]) => {
         const items = (Array.isArray(subValue) ? subValue : [subValue])
@@ -376,7 +380,6 @@ export const execute = async <R>(
   if (args.throwOnError && !res.ok) {
     const err: globalThis.Error & { info?: unknown; status?: number } =
       new globalThis.Error();
-    // A download's error body is text, decoded by the declared error types.
     const {
       deserializeResponseDates: _deserializeResponseDates,
       validateResponse: _validateResponse,
