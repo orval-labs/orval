@@ -180,17 +180,15 @@ export interface QueryMeta {
 }
 
 const stringifyValue = (value: unknown) =>
-  value === null
-    ? 'null'
-    : value instanceof Date
-      ? value.toISOString()
-      : Array.isArray(value)
-        ? value.join(',')
-        : typeof value === 'string' ||
-            typeof value === 'number' ||
-            typeof value === 'boolean'
-          ? String(value)
-          : JSON.stringify(value);
+  value instanceof Date
+    ? value.toISOString()
+    : Array.isArray(value)
+      ? value.join(',')
+      : typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ? String(value)
+        : JSON.stringify(value);
 
 export const serializeQuery = (
   params: Record<string, unknown> | undefined,
