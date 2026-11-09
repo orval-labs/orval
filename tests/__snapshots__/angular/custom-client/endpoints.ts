@@ -31,31 +31,33 @@ type AngularHttpParamValue =
 type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: boolean | undefined,
   passthroughKeys: ReadonlySet<string>,
 ): Record<string, unknown>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
   passthroughKeys: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   const filteredParams: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(
+    params as Record<string, unknown>,
+  )) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
         filteredParams[key] = value;

@@ -237,31 +237,31 @@ export const getAngularFilteredParamsHelperBody = ({
 type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: boolean | undefined,
   passthroughKeys: ReadonlySet<string>,
 ): Record<string, unknown>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
   passthroughKeys: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   const filteredParams: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
         filteredParams[key] = value;
@@ -312,32 +312,32 @@ type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 type AngularObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
 
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: boolean | undefined,
   passthroughKeys: ReadonlySet<string>,
 ): Record<string, unknown>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: boolean | undefined,
   passthroughKeys: ReadonlySet<string> | undefined,
   objectParamStrategies: Readonly<Record<string, AngularObjectParamStrategy>>,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
   passthroughKeys: ReadonlySet<string> = new Set(),
@@ -359,7 +359,7 @@ function filterParams(
       .map((item) => (item instanceof Date ? item.toISOString() : item)) as Array<
       string | number | boolean
     >;
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
         filteredParams[key] = value;
