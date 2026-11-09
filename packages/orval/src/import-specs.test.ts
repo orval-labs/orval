@@ -2485,6 +2485,28 @@ describe('dereferenceExternalRefs', () => {
       });
     });
 
+    it('maps renamed components whose name needs pointer escaping', () => {
+      const result = dereferenceExternalRef({
+        openapi: '3.1.0',
+        components: {
+          schemas: {
+            'a/b': { type: 'boolean' },
+            Ref: { $ref: '#/x-ext/abc/components/schemas/a~1b' },
+          },
+        },
+        'x-ext': {
+          abc: { components: { schemas: { 'a/b': { type: 'string' } } } },
+        },
+      }) as {
+        components: { schemas: Record<string, Record<string, unknown>> };
+      };
+
+      expect(result.components.schemas.Ref).toEqual({
+        $ref: '#/components/schemas/a~1b_abc',
+      });
+      expect(result.components.schemas['a/b_abc']).toEqual({ type: 'string' });
+    });
+
     it('inlines a ref to a false schema', () => {
       const schemas = derefThing(
         {

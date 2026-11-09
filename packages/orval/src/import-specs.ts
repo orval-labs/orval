@@ -2661,11 +2661,16 @@ function replaceXExtRefs(
             // Use the mapped name (which may include suffix for collisions).
             // A ref into a component (`.../schemas/Foo/properties/bar`) maps
             // only the component name and keeps the rest of the pointer.
-            const [schemaName, ...rest] = parts.slice(2);
-            const finalName =
-              schemaNameMappings[extKey][schemaName] || schemaName;
+            // The token is pointer-encoded (`a~1b` for `a/b`); the mapping is
+            // keyed by the decoded name.
+            const [nameToken, ...rest] = parts.slice(2);
+            const mappedName =
+              schemaNameMappings[extKey][decodeRefToken(nameToken)];
+            const finalToken = mappedName
+              ? escapePointerToken(mappedName)
+              : nameToken;
             return {
-              $ref: [`${refPrefix}${finalName}`, ...rest].join('/'),
+              $ref: [`${refPrefix}${finalToken}`, ...rest].join('/'),
             };
           }
 
