@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: closed-empty-object-response
+  version: '1'
+paths:
+  /items/{id}:
+    delete:
+      operationId: deleteItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+components:
+  schemas:
+    DeleteResponse:
+      type: object
+      properties: {}
+      additionalProperties: false
+      title: DeleteResponse
