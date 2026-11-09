@@ -2081,7 +2081,9 @@ export function dereferenceExternalRef(
   data: Record<string, unknown>,
   strategy: ExternalRefNamingStrategy = 'default',
 ): Record<string, unknown> {
-  const extensions = (data['x-ext'] ?? {}) as Record<string, unknown>;
+  const extensions = scopeEmbeddedResourceRefs(
+    (data['x-ext'] ?? {}) as Record<string, unknown>,
+  );
   const refPrefix = schemaRefPrefix(data);
 
   // Step 1: Merge external schemas into main spec with collision handling
@@ -2139,6 +2141,93 @@ export function dereferenceExternalRef(
   }
 
   return hoistedResult;
+}
+
+/**
+ * Keys whose value maps names to schemas. Inside one, a key spelled like a data
+ * keyword (`default`, `enum`, ...) is a name and its schema must be walked.
+ */
+const SCHEMA_NAME_MAP_KEYS = new Set([
+  '$defs',
+  'definitions',
+  'dependentSchemas',
+  'patternProperties',
+  'properties',
+  'schemas',
+]);
+
+/**
+ * Point the fragment-only `$ref`s of embedded schema resources at their place
+ * under `x-ext`.
+ *
+ * `@scalar/json-magic` (>= 0.16, scalar/scalar#10206) keeps the authored refs
+ * of an external document that declares an `$id`: a `#/$defs/Foo` inside it
+ * resolves against that `$id`, not against the bundle root. orval drops `$id`
+ * and inlines the content, so those refs would point at the root of the main
+ * document and fail validation (#4474). Rewrite each `#…` pointer to the
+ * absolute `#/x-ext/<key>/<resource>/…` location of the resource that encloses
+ * it — the nearest object with an `$id`, or the external document itself —
+ * so the usual x-ext handling inlines or maps it.
+ *
+ * Refs json-magic already rewrote (`#/x-ext/…`), refs to other documents and
+ * plain-name anchors (`#foo`) are left alone, and so are data keywords such as
+ * `example` and `const`, whose values are not schemas.
+ */
+function scopeEmbeddedResourceRefs(
+  extensions: Record<string, unknown>,
+): Record<string, unknown> {
+  const rewrite = (
+    node: unknown,
+    path: string[],
+    resourcePath: string[],
+    extKey: string,
+    inNameMap: boolean,
+  ): unknown => {
+    if (Array.isArray(node)) {
+      return node.map((element, index) =>
+        rewrite(element, [...path, String(index)], resourcePath, extKey, false),
+      );
+    }
+    if (!isObject(node)) return node;
+
+    const scope = !inNameMap && isString(node.$id) ? path : resourcePath;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(node)) {
+      if (
+        !inNameMap &&
+        key === '$ref' &&
+        isString(value) &&
+        (value === '#' || value.startsWith('#/')) &&
+        !value.startsWith('#/x-ext/')
+      ) {
+        const base = ['x-ext', extKey, ...scope]
+          .map((token) => escapePointerToken(token))
+          .join('/');
+        out[key] = `#/${base}${value.slice(1)}`;
+      } else if (
+        !inNameMap &&
+        (SCHEMA_DATA_KEYWORDS.has(key) || isExtension(key))
+      ) {
+        out[key] = value;
+      } else {
+        out[key] = rewrite(
+          value,
+          [...path, key],
+          scope,
+          extKey,
+          !inNameMap && SCHEMA_NAME_MAP_KEYS.has(key),
+        );
+      }
+    }
+    return out;
+  };
+
+  return Object.fromEntries(
+    Object.entries(extensions).map(([extKey, extDoc]) => [
+      extKey,
+      rewrite(extDoc, [], [], extKey, false),
+    ]),
+  );
 }
 
 /**

@@ -2260,6 +2260,179 @@ export const getHandleResourceUrl = (workspaceId: string,
 });
 
 describe('dereferenceExternalRefs', () => {
+  describe('embedded schema resources with $id (#4474)', () => {
+    it('resolves authored #/$defs refs against the external document', () => {
+      // The shape @scalar/json-magic >= 0.16 produces for a document with a
+      // root `$id`: its own refs stay as authored.
+      const input = {
+        openapi: '3.1.0',
+        components: {
+          schemas: {
+            Organization: { $ref: '#/x-ext/abc/$defs/Organization' },
+          },
+        },
+        'x-ext': {
+          abc: {
+            $id: 'https://mock.com',
+            $defs: {
+              Organization: {
+                type: 'object',
+                properties: {
+                  name: { $ref: '#/$defs/LangString' },
+                  aff: { $ref: '#/$defs/Affiliation' },
+                },
+              },
+              Affiliation: {
+                type: 'object',
+                properties: { org: { $ref: '#/$defs/LangString' } },
+              },
+              LangString: { type: 'string' },
+            },
+          },
+        },
+      };
+
+      const result = dereferenceExternalRef(input) as {
+        components: { schemas: Record<string, unknown> };
+      };
+
+      expect(result.components.schemas.Organization).toEqual({
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          aff: {
+            type: 'object',
+            properties: { org: { type: 'string' } },
+          },
+        },
+      });
+      expect(JSON.stringify(result)).not.toContain('#/$defs/');
+    });
+
+    it('resolves refs inside a nested $id against that nested resource', () => {
+      const input = {
+        openapi: '3.1.0',
+        components: {
+          schemas: { Nested: { $ref: '#/x-ext/abc/$defs/Nested' } },
+        },
+        'x-ext': {
+          abc: {
+            $id: 'https://mock.com/root.json',
+            $defs: {
+              A: { type: 'string' },
+              Nested: {
+                $id: 'nested.json',
+                $defs: { A: { type: 'integer' } },
+                type: 'object',
+                properties: { a: { $ref: '#/$defs/A' } },
+              },
+            },
+          },
+        },
+      };
+
+      const result = dereferenceExternalRef(input) as {
+        components: { schemas: Record<string, Record<string, unknown>> };
+      };
+
+      expect(result.components.schemas.Nested.properties).toEqual({
+        a: { type: 'integer' },
+      });
+    });
+
+    it('leaves data keywords alone but walks properties named like them', () => {
+      const input = {
+        openapi: '3.1.0',
+        components: {
+          schemas: { Thing: { $ref: '#/x-ext/abc/$defs/Thing' } },
+        },
+        'x-ext': {
+          abc: {
+            $id: 'https://mock.com',
+            $defs: {
+              Thing: {
+                type: 'object',
+                properties: {
+                  default: { $ref: '#/$defs/Leaf' },
+                },
+                example: { $ref: '#/$defs/Leaf' },
+              },
+              Leaf: { type: 'boolean' },
+            },
+          },
+        },
+      };
+
+      const result = dereferenceExternalRef(input) as {
+        components: { schemas: Record<string, Record<string, unknown>> };
+      };
+
+      expect(result.components.schemas.Thing).toEqual({
+        type: 'object',
+        properties: { default: { type: 'boolean' } },
+        example: { $ref: '#/$defs/Leaf' },
+      });
+    });
+
+    it('validates and imports a spec referencing an external $id document', async () => {
+      const workspace = await mkdtemp(path.join(os.tmpdir(), 'orval-id-'));
+      try {
+        const specPath = path.join(workspace, 'openapi.yaml');
+        await writeFile(
+          path.join(workspace, 'schema.json'),
+          JSON.stringify({
+            $id: 'https://mock.com',
+            $schema: 'https://json-schema.org/draft/2019-09/schema',
+            $defs: {
+              Organization: {
+                type: 'object',
+                properties: { name: { $ref: '#/$defs/LangString' } },
+              },
+              LangString: { type: 'object' },
+            },
+          }),
+          'utf8',
+        );
+        await writeFile(
+          specPath,
+          JSON.stringify({
+            openapi: '3.1.0',
+            info: { title: 'repro', version: '1' },
+            paths: {},
+            components: {
+              schemas: {
+                Organization: { $ref: './schema.json#/$defs/Organization' },
+              },
+            },
+          }),
+          'utf8',
+        );
+        const normalizedOptions = await normalizeOptions(
+          {
+            output: { target: '' },
+            input: {
+              target: specPath,
+              parserOptions: { externalRefs: { allow: ['*'] } },
+            },
+          },
+          workspace,
+          {},
+        );
+
+        const result = await withReporter(noopReporter, () =>
+          importSpecs(workspace, normalizedOptions),
+        );
+
+        expect(result.spec.components?.schemas?.Organization).toEqual({
+          type: 'object',
+          properties: { name: { type: 'object' } },
+        });
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    });
+  });
+
   it('should match an x-ext placeholder to its source document', () => {
     const input = {
       components: {
