@@ -5,6 +5,7 @@ import {
   callFormatTypeFunction,
   camel,
   conventionName,
+  type BoundRefinement,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientGeneratorsBuilder,
@@ -630,6 +631,31 @@ const isConstraintOnlyMember = (
     return false;
   }
   return Object.keys(schema).every((key) => SHAPELESS_MEMBER_KEYS.has(key));
+};
+
+// `dependentRequired: { a: [b] }` means that when `a` is present, `b` must be
+// too. Each pair becomes one refinement that reports the missing key at its own
+// path, so a consumer sees which field to fill in.
+const getDependentRequiredRefinements = (
+  schema: OpenApiSchemaObject,
+  isZodV4: boolean,
+): BoundRefinement[] => {
+  const { dependentRequired = {} } = schema as OpenApiSchemaObject & {
+    dependentRequired?: Record<string, string[]>;
+  };
+  return Object.entries(dependentRequired).flatMap(([property, dependents]) =>
+    dependents.map((dependent): BoundRefinement => {
+      const message = `${dependent} is required when ${property} is present`;
+      return {
+        callable: (value: Record<string, unknown>) =>
+          !(property in value) || dependent in value,
+        options: isZodV4
+          ? { error: message, path: [dependent] }
+          : { message, path: [dependent] },
+        bindings: { property, dependent },
+      };
+    }),
+  );
 };
 
 // Extracts the property names a member forbids via `not`. JSON Schema forbids a
@@ -2299,6 +2325,14 @@ export const generateZodValidationSchemaDefinition = (
             ]);
           } else if (strict && !isZodV4) {
             functions.push(['strict', undefined]);
+          }
+
+          const dependentRequiredRefinements = getDependentRequiredRefinements(
+            schema,
+            isZodV4,
+          );
+          if (dependentRequiredRefinements.length > 0) {
+            functions.push(['refine', dependentRequiredRefinements]);
           }
 
           const renames = getPropertyRenames(
