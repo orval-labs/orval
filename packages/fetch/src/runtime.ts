@@ -265,9 +265,7 @@ export const serializeQuery = (
               '[' +
               encodeURIComponent(subKey) +
               ']=' +
-              (subValue === null
-                ? 'null'
-                : encodeURIComponent(stringifyValue(subValue))),
+              encodeURIComponent(stringifyValue(subValue)),
           );
         }
       });
