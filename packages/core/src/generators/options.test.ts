@@ -671,7 +671,7 @@ describe('generateAxiosOptions', () => {
       );
       expect(body).toContain(
         'function filterParams(\n' +
-          '  params: Record<string, unknown>,\n' +
+          '  params: object,\n' +
           '  requiredNullableKeys?: ReadonlySet<string>,\n' +
           '  preserveRequiredNullables?: false,\n' +
           '  passthroughKeys?: undefined,\n' +
@@ -796,31 +796,31 @@ describe('Angular object query param serialization (issue #3705)', () => {
 type AngularHttpParamValueWithNullable = AngularHttpParamValue | null;
 
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys?: ReadonlySet<string>,
   preserveRequiredNullables?: false,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValue>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: true,
   passthroughKeys?: undefined,
 ): Record<string, AngularHttpParamValueWithNullable>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> | undefined,
   preserveRequiredNullables: boolean | undefined,
   passthroughKeys: ReadonlySet<string>,
 ): Record<string, unknown>;
 function filterParams(
-  params: Record<string, unknown>,
+  params: object,
   requiredNullableKeys: ReadonlySet<string> = new Set(),
   preserveRequiredNullables = false,
   passthroughKeys: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   const filteredParams: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
     if (passthroughKeys.has(key)) {
       if (value !== undefined) {
         filteredParams[key] = value;
@@ -884,6 +884,60 @@ function filterParams(
       expect(body).not.toBe(PRE_3705_HELPER_BODY);
       expect(body).toContain('objectParamStrategies');
       expect(body).toContain("'flatten' | 'comma' | 'deepObject'");
+    });
+  });
+
+  // Issue #4478: lint autofixes such as
+  // `@typescript-eslint/consistent-type-definitions` rewrite generated params
+  // `type` aliases into `interface`s. Interfaces have no implicit index
+  // signature, so the helper must accept them, not only `Record<string, unknown>`.
+  describe('filterParams accepts interface-typed params (issue #4478)', () => {
+    const typeCheck = (source: string): string[] => {
+      const fileName = 'filter-params-4478.ts';
+      const options: ts.CompilerOptions = {
+        strict: true,
+        noEmit: true,
+        target: ts.ScriptTarget.ES2020,
+        lib: ['lib.es2020.d.ts'],
+        types: [],
+      };
+      const host = ts.createCompilerHost(options);
+      const getSourceFile = host.getSourceFile.bind(host);
+      host.getSourceFile = (name, languageVersion, ...rest) =>
+        name === fileName
+          ? ts.createSourceFile(name, source, languageVersion)
+          : getSourceFile(name, languageVersion, ...rest);
+      const program = ts.createProgram([fileName], options, host);
+      return ts
+        .getPreEmitDiagnostics(program)
+        .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+    };
+
+    const usage = `
+interface ListPetsParams {
+  limit?: number;
+  tags?: string[];
+}
+declare const params: ListPetsParams;
+export const a = filterParams(params, new Set<string>([]));
+export const b = filterParams(params, new Set<string>([]), true);
+export const c = filterParams(params, new Set<string>([]), false, new Set<string>(["tags"]));
+`;
+
+    it('type-checks with an interface argument (base helper)', () => {
+      expect(typeCheck(getAngularFilteredParamsHelperBody() + usage)).toEqual(
+        [],
+      );
+    });
+
+    it('type-checks with an interface argument (object-param helper)', () => {
+      expect(
+        typeCheck(
+          getAngularFilteredParamsHelperBody({ hasObjectParams: true }) +
+            usage +
+            `export const d = filterParams(params, new Set<string>([]), false, undefined, { limit: 'flatten' } as const);\n`,
+        ),
+      ).toEqual([]);
     });
   });
 
