@@ -2070,4 +2070,68 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/react-query/shared-runtime/endpoints.ts',
+      schemas: '../generated/react-query/shared-runtime/model',
+      client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  sharedRuntimeMutator: {
+    output: {
+      target: '../generated/react-query/shared-runtime-mutator/endpoints.ts',
+      schemas: '../generated/react-query/shared-runtime-mutator/model',
+      client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  sharedRuntimeOptions: {
+    output: {
+      target: '../generated/react-query/shared-runtime-options/endpoints.ts',
+      schemas: {
+        path: '../generated/react-query/shared-runtime-options/model',
+        type: 'zod',
+      },
+      client: 'react-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        query: {
+          signal: true,
+        },
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+          runtimeValidation: true,
+          forceSuccessResponse: true,
+          useRuntimeFetcher: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -75,6 +75,13 @@ import {
   isSharedRuntimeStyle,
 } from './shared-runtime-style';
 
+export {
+  generateFetchExtraFiles,
+  generateSharedClient,
+  isSharedRuntimeStyle,
+  normalizeSharedRuntimeVerbOptions,
+} from './shared-runtime-style';
+
 const resolveSchemaRef = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: GeneratorOptions['context'],

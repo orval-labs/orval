@@ -170,3 +170,64 @@ describe('generateSwrHeader SecondParameter helper (#4388)', () => {
     expect(implementation).toContain('type SecondParameter<');
   });
 });
+
+describe('generateSwr — shared runtime', () => {
+  const verbOptions = createTestGeneratorVerbOptions({
+    verb: 'get',
+    route: '/pets',
+    pathRoute: '/pets',
+    operationId: 'listPets',
+    operationName: 'listPets',
+    typeName: 'listPets',
+    override: {
+      fetch: {
+        includeHttpResponseReturnType: true,
+        forceSuccessResponse: false,
+      },
+    },
+  });
+  const makeOptions = () => {
+    const options = createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+      context: {
+        output: {
+          client: OutputClient.SWR,
+          httpClient: OutputHttpClient.FETCH,
+        },
+      },
+    });
+    options.context.output.target = '/proj/src/endpoints.ts';
+    Object.assign(options.context.output.override.fetch, {
+      runtimeImplementationStyle: 'shared',
+      runtimeOutputPath: '/proj/src/runtime.ts',
+    });
+    return options;
+  };
+
+  it('builds the hooks on the shared request function', async () => {
+    const { implementation, imports } = await generateSwr(
+      verbOptions,
+      makeOptions(),
+      'swr',
+    );
+
+    expect(implementation).toContain('execute<listPetsResponse>');
+    expect(implementation).toContain('export const useListPets');
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'execute', values: true }),
+    );
+  });
+
+  it('emits the shared runtime file', async () => {
+    const options = makeOptions();
+    const files =
+      (await builder()().extraFiles?.(
+        { listPets: verbOptions },
+        options.context.output,
+        options.context,
+      )) ?? [];
+
+    expect(files.map(({ path }) => path)).toEqual(['/proj/src/runtime.ts']);
+  });
+});

@@ -30,6 +30,7 @@ import {
   generateFetchExtraFiles,
   generateSharedClient,
   generateSharedRequestFunction,
+  normalizeSharedRuntimeVerbOptions,
 } from './shared-runtime-style';
 
 type SerializeQuery = (
@@ -1090,6 +1091,31 @@ describe('shared runtime options', () => {
     expect(implementation).not.toContain('throwOnError');
   });
 
+  it('declares the error responses for the query clients error type', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(
+        { forceSuccessResponse: true, includeHttpErrorResponse: true },
+        {
+          mutator: {
+            name: 'customFetch',
+            path: '../custom-fetch',
+            default: false,
+            hasErrorType: true,
+            errorTypeName: 'ErrorType',
+            hasSecondArg: true,
+            hasThirdArg: true,
+            isHook: false,
+          },
+        },
+      ),
+      makeSharedOptions([], { mutator: true }),
+    );
+
+    expect(implementation).toContain(
+      'export type listPetsResponseError = ResponseOf<{ 200: Pet; 404: Problem }, Headers, 404>;',
+    );
+  });
+
   describe('execute', () => {
     type Execute = (
       args: Record<string, unknown>,
@@ -1883,4 +1909,59 @@ execute({ url: '/pets', method: 'GET' }, customFetchFetcher<object>);
       ]);
     },
   );
+});
+
+describe('normalizeSharedRuntimeVerbOptions', () => {
+  const mutator = (isHook = false) => ({
+    name: 'customFetch',
+    path: '../custom-fetch',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: 'ErrorType',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook,
+  });
+  const output = ({
+    globalMutator = true,
+    style = 'shared',
+  }: { globalMutator?: boolean; style?: 'shared' | 'inline' } = {}) => {
+    const { context } = makeSharedOptions([], {
+      client: OutputClient.REACT_QUERY,
+      mutator: globalMutator,
+    });
+    context.output.override.fetch.runtimeImplementationStyle = style;
+    return context.output;
+  };
+
+  it.each([
+    ['a hook mutator', mutator(true), output()],
+    [
+      'a mutator set only per operation',
+      mutator(),
+      output({ globalMutator: false }),
+    ],
+  ])(
+    'drops %s, which the shared runtime cannot route',
+    (_, operationMutator, out) => {
+      expect(
+        normalizeSharedRuntimeVerbOptions(
+          makeVerbOptions({ mutator: operationMutator }),
+          out,
+        ).mutator,
+      ).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ['a global mutator', output()],
+    ['the inline style', output({ style: 'inline', globalMutator: false })],
+  ])('keeps the mutator for %s', (_, out) => {
+    expect(
+      normalizeSharedRuntimeVerbOptions(
+        makeVerbOptions({ mutator: mutator() }),
+        out,
+      ).mutator,
+    ).toEqual(mutator());
+  });
 });

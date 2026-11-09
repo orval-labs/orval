@@ -277,4 +277,21 @@ export default defineConfig({
       },
     },
   },
+  sharedRuntime: {
+    output: {
+      target: '../generated/solid-query/shared-runtime/endpoints.ts',
+      schemas: '../generated/solid-query/shared-runtime/model',
+      client: 'solid-query',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -20,6 +20,7 @@ import {
   pascal,
   type Verbs,
 } from '@orval/core';
+import { isSharedRuntimeStyle } from '@orval/fetch';
 
 import {
   getHooksOptionImplementation,
@@ -638,6 +639,7 @@ export const generateMutationHook = async ({
     uniqueInvalidates.length > 0 && adapter.supportsMutationInvalidation();
 
   const useRuntimeFetcher = override.fetch.useRuntimeFetcher;
+  const fetcherInOptions = isSharedRuntimeStyle(context.output);
 
   const mutationArguments = adapter.generateQueryArguments({
     operationName: operationTypeReferenceName,
@@ -714,7 +716,7 @@ ${hooksOptionImplementation}
 
           return  ${operationReferenceName}(${adapter.getMutationHttpPrefix(mutator)}${properties}${
             properties ? ',' : ''
-          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher)})
+          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator, useRuntimeFetcher, fetcherInOptions)})
         }
 
 ${
