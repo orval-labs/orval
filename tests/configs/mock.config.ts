@@ -1508,4 +1508,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  closedEmptyObjectResponse: {
+    output: {
+      target: '../generated/mock/closed-empty-object-response/endpoints.ts',
+      schemas: '../generated/mock/closed-empty-object-response/model',
+      client: 'fetch',
+      mock: {
+        generators: [{ type: 'msw' }, { type: 'faker' }],
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/closed-empty-object-response.yaml',
+    },
+  },
 });

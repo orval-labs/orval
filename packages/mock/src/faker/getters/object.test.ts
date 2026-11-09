@@ -513,6 +513,42 @@ describe('getMockObject', () => {
   });
 });
 
+describe('getMockObject closed empty objects', () => {
+  const context: ContextSpec = createTestContextSpec();
+  const build = (item: Record<string, unknown> & { name: string }) =>
+    getObject({
+      item,
+      operationId: 'deleteItem',
+      tags: [],
+      context,
+      imports: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      allowOverride: true,
+    });
+
+  it('does not spread the override into a closed empty object (#4473)', () => {
+    const result = build({
+      name: 'DeleteResponse',
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+
+    expect(result.value).toBe('{}');
+  });
+
+  it('still spreads the override into an open empty object', () => {
+    const result = build({
+      name: 'OpenResponse',
+      type: 'object',
+      properties: {},
+    });
+
+    expect(result.value).toContain('...overrideResponse');
+  });
+});
+
 describe('getMockObject recursive reference terminators', () => {
   const nodeSchema = {
     type: 'object',

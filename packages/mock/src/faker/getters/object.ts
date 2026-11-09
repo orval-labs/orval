@@ -4,6 +4,7 @@ import {
   type GeneratorImport,
   getKey,
   getRefInfo,
+  isClosedEmptyObjectSchema,
   isInlineSchema,
   isSchemaNullable,
   type MockOptions,
@@ -430,7 +431,10 @@ export function getMockObject({
       )
       .filter(Boolean);
 
-    if (allowOverride) {
+    // A closed empty object is typed `{ [key: string]: never }`, so spreading a
+    // `Partial<…>` override into it widens the values to `undefined` and fails
+    // to type-check. It admits only `{}`, so there is nothing to override (#4473).
+    if (allowOverride && !isClosedEmptyObjectSchema(schemaItem)) {
       propertyScalars.push(`...${overrideVarName}`);
     }
 
