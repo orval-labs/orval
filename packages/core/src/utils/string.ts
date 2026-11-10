@@ -405,8 +405,20 @@ export function dedupeUnionType(unionType: string): string {
   let quote = ''; // current open quote char, or '' if outside string
   let escaped = false; // true if previous char was unescaped \ inside string
 
-  for (const c of unionType) {
-    if (!escaped && (c === "'" || c === '"')) {
+  for (let i = 0; i < unionType.length; i++) {
+    const c = unionType[i];
+
+    // Copy a /* ... */ comment through untouched, so quotes, brackets and | inside
+    // JSDoc (e.g. "the event's ID") are never read as code.
+    if (!quote && c === '/' && unionType[i + 1] === '*') {
+      const end = unionType.indexOf('*/', i + 2);
+      const stop = end < 0 ? unionType.length : end + 2;
+      current += unionType.slice(i, stop);
+      i = stop - 1;
+      continue;
+    }
+
+    if (!escaped && (c === "'" || c === '"' || c === '`')) {
       if (!quote) quote = c;
       else if (quote === c) quote = '';
     }

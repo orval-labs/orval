@@ -31,6 +31,50 @@ describe('dedupeUnionType', () => {
     });
   });
 
+  describe('comments', () => {
+    const member = (eventType: string) =>
+      `({\n  /** The event's ID. */\n  id: string;\n  team_id?: string | null;\n}) & {\n  event_type: '${eventType}';\n}`;
+
+    it('should keep members whole when their JSDoc has an apostrophe', () => {
+      const union = [
+        member('a.created'),
+        member('b.created'),
+        member('a.created'),
+      ].join(' | ');
+
+      expect(dedupeUnionType(union)).toBe(
+        [member('a.created'), member('b.created')].join(' | '),
+      );
+    });
+
+    it('should never split on a | inside a comment', () => {
+      expect(
+        dedupeUnionType('/** a | b */ A | /** a | b */ B | /** a | b */ B'),
+      ).toBe('/** a | b */ A | /** a | b */ B');
+    });
+
+    it('should ignore a bracket or a double quote inside a comment', () => {
+      const withComment = '{ /** a <\' b, "1) first */ x: string | null }';
+
+      expect(dedupeUnionType(`${withComment} | ${withComment}`)).toBe(
+        withComment,
+      );
+    });
+
+    it('should handle an empty or unterminated comment', () => {
+      expect(dedupeUnionType('/**/ A | /**/ A')).toBe('/**/ A');
+      expect(dedupeUnionType('/* A | A')).toBe('/* A | A');
+    });
+
+    it('should not start a comment inside a string literal', () => {
+      expect(dedupeUnionType("'/*' | 'x' | '/*'")).toBe("'/*' | 'x'");
+    });
+
+    it('should not start a comment inside a template literal type', () => {
+      expect(dedupeUnionType('`a/*` | A | `a/*`')).toBe('`a/*` | A');
+    });
+  });
+
   describe('nested structures', () => {
     it('should not corrupt objects with similar nested unions', () => {
       // If we incorrectly split on inner |, "{ a: 'x'" would appear twice and get deduped
