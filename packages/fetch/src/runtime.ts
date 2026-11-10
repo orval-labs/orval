@@ -217,9 +217,7 @@ export const serializeQuery = (
       const repeated = meta.explode?.includes(key) || meta.repeat?.includes(key);
       if (repeated || meta.brackets?.includes(key)) {
         const name = repeated ? key : key + '[]';
-        value.forEach((v) => {
-          normalizedParams.append(name, stringifyValue(v));
-        });
+        value.forEach((v) => normalizedParams.append(name, stringifyValue(v)));
         return;
       }
       if (meta.comma?.includes(key)) {
@@ -238,9 +236,7 @@ export const serializeQuery = (
           .filter((v) => v !== undefined)
           .map(stringifyValue);
         if (meta.flattenObject?.includes(key)) {
-          items.forEach((item) => {
-            normalizedParams.append(subKey, item);
-          });
+          items.forEach((item) => normalizedParams.append(subKey, item));
         } else if (items.length > 0) {
           commaParts.push(subKey, ...items);
         }
