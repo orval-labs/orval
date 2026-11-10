@@ -23,6 +23,7 @@
     "generate:zod": "orval --config ./configs/zod.config.ts",
     "generate:effect": "orval --config ./configs/effect.config.ts",
     "generate:valibot": "orval --config ./configs/valibot.config.ts",
+    "generate:valibot-schemas": "orval --config ./configs/valibot-schemas.config.ts",
     "generate:mock": "orval --config ./configs/mock.config.ts",
     "generate:fetch": "orval --config ./configs/fetch.config.ts",
     "generate:runtime-validation": "orval --config ./configs/runtime-validation.config.ts",

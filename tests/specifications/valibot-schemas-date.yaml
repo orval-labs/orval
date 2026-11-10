@@ -1,0 +1,42 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas component named Date
+  version: 1.0.0
+paths:
+  /holders:
+    get:
+      operationId: getHolder
+      responses:
+        '200':
+          description: A holder
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holder'
+  /dates:
+    get:
+      operationId: getDateComponent
+      responses:
+        '200':
+          description: A component named Date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Date'
+components:
+  schemas:
+    Date:
+      type: object
+      required: [day]
+      properties:
+        day:
+          type: string
+    Holder:
+      type: object
+      required: [when, at]
+      properties:
+        when:
+          $ref: '#/components/schemas/Date'
+        at:
+          type: string
+          format: date-time
