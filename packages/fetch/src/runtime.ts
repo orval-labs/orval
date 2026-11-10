@@ -307,11 +307,10 @@ const decodeResponseBody = async (
       : data;
   };
 
-  if (responseType === 'blob') {
-    return [204, 205, 304].includes(res.status) ? null : await res.blob();
-  }
+  const noContent = [204, 205, 304].includes(res.status);
+  if (responseType === 'blob') return noContent ? null : await res.blob();
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const body = noContent ? null : await res.text();
 
   if (responseType === 'text') return body !== null ? body : '';
 
