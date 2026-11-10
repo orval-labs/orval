@@ -312,6 +312,8 @@ function normalizeSchemasOption(
     );
   }
 
+  validateValibotSchemas(schemas);
+
   if (
     schemas.mode !== undefined &&
     schemas.mode !== 'split' &&
@@ -328,7 +330,10 @@ function normalizeSchemasOption(
     }
   }
 
-  if (schemas.mode !== 'single') {
+  // All Valibot schemas share one module, so cycles between them can resolve.
+  const mode = schemas.type === 'valibot' ? 'single' : schemas.mode;
+
+  if (mode !== 'single') {
     assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
   }
   validatePackageSpecifier(schemas.importPath, 'schemas.importPath');
@@ -342,9 +347,29 @@ function normalizeSchemasOption(
     type: schemas.type ?? 'typescript',
     importPath: schemas.importPath,
     splitByTags: schemas.splitByTags ?? false,
-    ...(schemas.mode === undefined ? {} : { mode: schemas.mode }),
+    ...(mode === undefined ? {} : { mode }),
     routes,
   };
+}
+
+/** Rejects the schema layouts `schemas.type: 'valibot'` cannot generate. */
+function validateValibotSchemas(schemas: SchemaOptions): void {
+  if (schemas.type !== 'valibot') return;
+  if (schemas.mode === 'split') {
+    throw new Error(
+      'schemas.mode "split" cannot be used with schemas.type "valibot": all Valibot schemas are written to one module, because references between separate files break on cycles.',
+    );
+  }
+  if (schemas.routes) {
+    throw new Error(
+      'schemas.routes cannot be used with schemas.type "valibot".',
+    );
+  }
+  if (schemas.splitByTags) {
+    throw new Error(
+      'schemas.splitByTags cannot be used with schemas.type "valibot".',
+    );
+  }
 }
 
 /** Normalizes the configured default and enum schema routes. */
@@ -412,6 +437,14 @@ function validateSchemaRoute(value: string, fieldName: string): string {
   return upath.joinSafe(...segments);
 }
 
+const SCHEMA_WRITING_CLIENTS: ReadonlySet<string> = new Set([
+  OutputClient.ZOD,
+  OutputClient.EFFECT,
+  OutputClient.VALIBOT,
+  OutputClient.HONO,
+  OutputClient.MCP,
+]);
+
 /** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
@@ -433,17 +466,50 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
     );
   }
   if (!schemas || isString(schemas)) return;
+  if (
+    schemas.type === 'valibot' &&
+    isString(output.client) &&
+    SCHEMA_WRITING_CLIENTS.has(output.client)
+  ) {
+    throw new Error(
+      `schemas.type "valibot" cannot be used with client "${output.client}", which generates its own schemas or needs Zod ones.`,
+    );
+  }
+  if (schemas.type === 'valibot') {
+    // Valibot schemas keep the wire keys, strings and numbers, while client
+    // code would use the renamed keys and the mapped types.
+    if (output.override.namingConvention.properties) {
+      throw new Error(
+        '`override.namingConvention.properties` cannot be used with schemas.type "valibot".',
+      );
+    }
+    if (Object.keys(output.override.formatType ?? {}).length > 0) {
+      throw new Error(
+        '`override.formatType` cannot be used with schemas.type "valibot".',
+      );
+    }
+    if (output.override.useBigInt) {
+      throw new Error(
+        '`override.useBigInt` cannot be used with schemas.type "valibot".',
+      );
+    }
+  }
   if (schemas.mode === 'single') {
     if (output.operationSchemas || output.factoryMethods) {
       throw new Error(
-        'schemas.mode "single" cannot be combined with operationSchemas or factoryMethods.',
+        `${schemas.type === 'valibot' ? 'schemas.type "valibot"' : 'schemas.mode "single"'} cannot be combined with operationSchemas or factoryMethods.`,
       );
     }
-    // TypeScript mocks import types from the single module (#4235); Zod
-    // single mode has not been checked with mocks yet.
-    if (schemas.type === 'zod' && output.mock.generators.length > 0) {
+    // TypeScript mocks import types from the single module (#4235); Zod and
+    // Valibot single mode have not been checked with mocks yet.
+    if (
+      (schemas.type === 'zod' || schemas.type === 'valibot') &&
+      output.mock.generators.length > 0
+    ) {
       throw new Error(
-        'schemas.mode "single" cannot be combined with mock generators when schemas.type is "zod".',
+        schemas.type === 'valibot'
+          ? 'schemas.type "valibot" cannot be combined with mock generators.'
+          : 'schemas.mode "single" cannot be combined with mock generators when schemas.type is "zod".',
       );
     }
   }
@@ -886,9 +952,15 @@ export async function normalizeOptions(
       (isString(outputOptions.schemas) &&
         (outputOptions.client ?? client) === 'zod' &&
         outputOptions.override?.zod?.generateReusableSchemas === true));
+  const isValibotSchemasOutput =
+    !!outputOptions.schemas &&
+    !isString(outputOptions.schemas) &&
+    outputOptions.schemas.type === 'valibot';
   const defaultSchemaFileExtension = isZodSchemasOutput
     ? '.zod.ts'
-    : defaultFileExtension;
+    : isValibotSchemasOutput
+      ? '.valibot.ts'
+      : defaultFileExtension;
 
   const factoryMethodsConfig = outputOptions.factoryMethods;
   let factoryMethods: NormalizedFactoryMethodsOptions | undefined = undefined;

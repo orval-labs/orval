@@ -701,6 +701,13 @@ function getImplementationPathsForIndex(
 }
 
 /** Coordinates schema, operation, mock, and client generation for one spec. */
+/** The one module `schemas.type: 'valibot'` writes: the path itself when it names a file. */
+function getSchemasModulePath(schemasPath: string, extension: string): string {
+  return namesAFile(schemasPath)
+    ? schemasPath
+    : path.join(schemasPath, `index${extension}`);
+}
+
 async function writeSpecsInternal(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -745,7 +752,24 @@ async function writeSpecsInternal(
       );
     }
 
-    if (isZodSchemas) {
+    if (isObject(output.schemas) && output.schemas.type === 'valibot') {
+      const { generateValibotSchemasModule } = await import('@orval/valibot');
+      const schemasModule = generateValibotSchemasModule(
+        {
+          spec: builder.spec,
+          target: builder.target,
+          schemas,
+          verbOptions: builder.verbOptions,
+        },
+        output,
+        workspace,
+      );
+      // Written even when empty: the workspace barrel re-exports it.
+      await writeGeneratedFile(
+        getSchemasModulePath(schemasPath, output.schemaFileExtension),
+        header + (schemasModule || 'export {};\n'),
+      );
+    } else if (isZodSchemas) {
       const zodWriters = await loadZodWriters();
       // Use the schema-specific extension so the global `fileExtension` (which
       // also drives client/mock outputs) isn't dragged into the zod world.
@@ -1181,20 +1205,25 @@ async function writeSpecsInternal(
         isObject(output.schemas) &&
         output.schemas.mode === 'single' &&
         namesAFile(schemasPath);
+      const isValibotSchemas =
+        isObject(output.schemas) && output.schemas.type === 'valibot';
 
       if (schemaOutputPlan) {
         imports.push(
           upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath),
         );
-      } else if (isNamedSingleSchema) {
-        const schemaSourceExtension = path.extname(schemasPath);
+      } else if (isValibotSchemas || isNamedSingleSchema) {
+        const schemasModule = isValibotSchemas
+          ? getSchemasModulePath(schemasPath, output.schemaFileExtension)
+          : schemasPath;
+        const schemaSourceExtension = path.extname(schemasModule);
         const schemaImportExtension = getImportExtension(
           schemaSourceExtension,
           output.tsconfig,
         );
         const relative = upath.getRelativeImportPath(
           indexFile,
-          schemasPath,
+          schemasModule,
           true,
         );
         imports.push(
