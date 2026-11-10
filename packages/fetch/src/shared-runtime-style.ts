@@ -469,13 +469,10 @@ export const generateSharedRequestFunction = (
       strategy: override.fetch.runtimeValidation.strategy,
       context: 'fetch-assign',
       inputExpression: 'data',
-      standardSchema:
-        getSchemaLibrary(context.output) === 'valibot'
-          ? resolveStandardSchema(
-              context.output,
-              override.fetch.runtimeValidation,
-            )
-          : undefined,
+      standardSchema: resolveStandardSchema(
+        context.output,
+        override.fetch.runtimeValidation,
+      ),
     });
     // A primitive schema would reject an error body, so only a 2xx one is
     // validated, as inline does.
