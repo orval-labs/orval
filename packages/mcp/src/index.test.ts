@@ -477,6 +477,57 @@ describe('header parameters', () => {
     expect(implementation).toContain(
       'await getItem(args.headerParams, args.pathParams.version, options);',
     );
+    expect(implementation).toContain(
+      '  pathParams: {\n    version: number\n  };',
+    );
+    expect(implementation).not.toContain('version: number = 1');
+  });
+
+  it('keeps the full path param type when it contains colons or no space', async () => {
+    const filterParam = {
+      name: 'filter',
+      definition: 'filter?: { a: string; b: number }',
+      implementation: 'filter: { a: string; b: number } = {"a":"x","b":1}',
+      default: { a: 'x', b: 1 },
+      required: true,
+      imports: [],
+    };
+    const idParam = {
+      name: 'id',
+      definition: 'id:string',
+      implementation: 'id:string',
+      default: undefined,
+      required: true,
+      imports: [],
+    };
+    const getItem = createTestGeneratorVerbOptions({
+      verb: 'get',
+      operationName: 'getItem',
+      typeName: 'getItem',
+      route: '/items/${filter}/${id}',
+      pathRoute: '/items/{filter}/{id}',
+      params: [filterParam, idParam],
+      props: [
+        { ...filterParam, type: GetterPropType.PARAM },
+        { ...idParam, type: GetterPropType.PARAM },
+      ],
+    });
+
+    const { implementation } = await generateMcp(
+      getItem,
+      {
+        route: getItem.route,
+        pathRoute: getItem.pathRoute,
+        override: headerContext.output.override,
+        context: headerContext,
+        output: headerContext.output.target,
+      },
+      'mcp',
+    );
+
+    expect(implementation).toContain(
+      '  pathParams: {\n    filter: { a: string; b: number },\n    id: string\n  };',
+    );
   });
 });
 
