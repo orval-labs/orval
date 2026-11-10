@@ -1370,6 +1370,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ...(validatedBody ? [DEFER_IMPORT] : []),
     // Only a composed array expression and `zod.encode` reference the schema
     // namespace; a named schema calls `Schema.parse` on its own binding.
+    // `zod.encode` needs `formatType`, which `schemas.type: 'valibot'` rejects.
     ...(composesArraySchema(
       implementation,
       getSchemaLibrary(options.context.output),

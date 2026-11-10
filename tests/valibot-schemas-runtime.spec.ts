@@ -290,6 +290,27 @@ describe('schemas.type valibot', () => {
       /formatType/,
     ],
     [
+      'a formatType codec with Angular request bodies',
+      {
+        client: 'angular',
+        override: {
+          formatType: {
+            uuid: {
+              type: 'string',
+              zod: {
+                codec:
+                  'zod.codec(zod.string(), zod.string(), { decode: (v) => v, encode: (v) => v })',
+              },
+            },
+          },
+          angular: {
+            runtimeValidation: { enabled: true, requestBodies: true },
+          },
+        },
+      },
+      /formatType/,
+    ],
+    [
       'property renaming',
       {
         client: 'fetch',
