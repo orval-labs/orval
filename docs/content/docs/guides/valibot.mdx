@@ -93,7 +93,7 @@ Each constant on a cycle also gets two exported types: `Pet` for its output and 
 
 ### Limitations
 
-- With `client: 'valibot'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error. To write the schemas to their own module, use [`schemas: { type: 'valibot' }`](#validating-http-client-responses) with an HTTP client.
+- With `client: 'valibot'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error. To write the schemas to their own module, set [`schemas.type`](#validating-http-client-responses) to `valibot` with an HTTP client.
 - A `$ref` is still inlined where a constant would validate differently, such as form bodies, `readOnly` and `writeOnly` properties, and some `allOf`, `oneOf` and `anyOf` members.
 - A constant keeps all its properties and is `strict` only when every location is. A location with a different `strict`, or an operation override of `exactOptional`, inlines its schemas.
 - A `oneOf` or `anyOf` with a `discriminator` becomes `v.union` when an option is a reference.
