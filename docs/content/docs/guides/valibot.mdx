@@ -181,21 +181,15 @@ Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.
 - [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on, because Valibot schemas have no `parse` method. Validation errors are therefore `StandardSchemaError`, not `ValiError`, and async schemas are not supported.
 - Axios clients do not validate.
 - With [`includeZodSchemaInArguments`](/docs/reference/configuration/output#includezodschemainarguments), a custom mutator receives the schema as `schema` and validates through `schema['~standard'].validate()`.
-- `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. `useDatesTransform` has no effect: the generated client does not convert dates, the schema does. A response that is not validated keeps its dates as strings, and is typed that way.
+- `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. `useDatesTransform` has no effect.
 
 The following fail with a configuration error: `schemas.mode: 'split'`, `schemas.routes`, `schemas.splitByTags`, mock generators, `operationSchemas`, `factoryMethods`, `splitByContentType`, `standardSchema: false`, `override.formatType`, `override.useBigInt`, `override.namingConvention.properties`, Angular `runtimeValidation.requestBodies` with `useDates`, and the clients `zod`, `effect`, `valibot`, `hono` and `mcp`.
 
 Known limits:
 
-- A component schema keeps its `readOnly` and `writeOnly` properties, because requests and responses share it. A required `writeOnly` property is made optional there, so valid responses pass, and a request body that references the component does not require it either. A required `readOnly` property stays required.
+- Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
 - A cycle is validated at runtime, but the type of the field that closes it is `unknown`.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
-- `dependentRequired` is not checked.
-- A query or header parameter declared with `content` instead of `schema` gets no schema. It is missing from the parameters type, or that type accepts any key when no parameter has a schema.
-- An operation schema named like a component, such as a component `ListPetsParams` next to the query parameters of `listPets`, stops generation with an error.
-- In fetch-based clients, same as with Zod, a JSON error response is validated against an object or array success schema, so it throws a validation error.
-- `fetch.jsonReviver` runs before validation, so a reviver that creates `Date` values makes date fields fail.
-- A custom mutator's response is typed with `X`, not `XOutput`, so with `useDates` a mutator returning the validated value returns `Date` where the type says `string`.
 
 ## Combining with HTTP Clients
 
