@@ -119,7 +119,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
     method: 'GET',
     validateResponse: (data) =>
       orvalParseStandardSchema(valibot.array(Pet), data),
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type createPetResponse = ResponseOf<{ 201: PetOutput }>;
@@ -138,7 +138,7 @@ export const createPet = (
     body: createPetBody,
     contentType: 'application/json',
     validateResponse: (data) => orvalParseStandardSchema(Pet, data),
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type getPetStatusResponse = ResponseOf<{ 200: PetStatusOutput }>;
@@ -152,7 +152,7 @@ export const getPetStatus = (petId: string, options?: CallOptions) =>
     url: getGetPetStatusUrl(petId),
     method: 'GET',
     validateResponse: (data) => orvalParseStandardSchema(PetStatus, data),
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type getHealthResponse = ResponseOf<{ 200: GetHealth200Output }>;
@@ -169,7 +169,7 @@ export const getHealth = (options?: CallOptions) =>
       status >= 200 && status < 300
         ? orvalParseStandardSchema(GetHealth200, data)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type getLastErrorResponse = ResponseOf<{ 200: ErrorOutput }>;
@@ -183,7 +183,7 @@ export const getLastError = (options?: CallOptions) =>
     url: getGetLastErrorUrl(),
     method: 'GET',
     validateResponse: (data) => orvalParseStandardSchema(ErrorSchema, data),
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type getTreeResponse = ResponseOf<{ 200: TreeOutput }>;
@@ -197,5 +197,5 @@ export const getTree = (options?: CallOptions) =>
     url: getGetTreeUrl(),
     method: 'GET',
     validateResponse: (data) => orvalParseStandardSchema(Tree, data),
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
