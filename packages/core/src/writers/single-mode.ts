@@ -222,7 +222,10 @@ export async function writeSingleMode({
 
     data += generateTargetMutatorImports(target, implementation);
 
-    data += generateOrvalHelperTypes(implementation);
+    data += generateOrvalHelperTypes(
+      implementation,
+      output.override.useReadonlyArrays,
+    );
 
     if (!output.schemas && needSchema) {
       data += generateSchemasInline

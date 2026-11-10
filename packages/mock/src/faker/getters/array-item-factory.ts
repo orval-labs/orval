@@ -282,7 +282,10 @@ function getArrayItemFactoryNames({
       : propertyName;
 
     if (workingName.endsWith('[]')) {
-      const base = workingName.slice(0, -2);
+      const arrayItemType = workingName.slice(0, -2);
+      const base = context.output.override.useReadonlyArrays
+        ? arrayItemType.replace(/^readonly /, '')
+        : arrayItemType;
       if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(base)) {
         return undefined;
       }

@@ -1,4 +1,5 @@
 import type {
+  ClientMockGeneratorBuilder,
   FakerMockOptions,
   GenerateMockImports,
   GeneratorOptions,
@@ -66,7 +67,7 @@ export function generateMock(
   generatorOptions: Omit<GeneratorOptions, 'mock'> & {
     mock: GlobalMockOptions;
   },
-) {
+): ClientMockGeneratorBuilder {
   const { context } = generatorOptions;
   const previousActiveMockOutputType = context.activeMockOutputType;
   context.activeMockOutputType = generatorOptions.mock.type;

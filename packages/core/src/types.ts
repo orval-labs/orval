@@ -209,6 +209,8 @@ export interface NormalizedOverrideOutput {
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /** Emit readonly array and tuple types for schemas. @default false */
+  useReadonlyArrays?: boolean;
   /**
    * Controls how readonly properties are handled for generated request-body types.
    *
@@ -1001,6 +1003,8 @@ export interface OverrideOutput {
   useNamedParameters?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
+  /** Emit readonly array and tuple types for schemas. @default false */
+  useReadonlyArrays?: boolean;
   /**
    * Controls how readonly properties are handled for generated request-body types.
    *

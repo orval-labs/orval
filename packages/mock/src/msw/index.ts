@@ -329,7 +329,10 @@ function generateDefinition(
   const mockOptionsFromOverride = override.mock;
   const strictMock = isStrictMock(mockOptionsFromOverride);
   const schemaTypeNames = strictMock
-    ? getSchemaTypeNamesFromResponses(responses)
+    ? getSchemaTypeNamesFromResponses(
+        responses,
+        context.output.override.useReadonlyArrays,
+      )
     : [];
   const strictMockReturnType = strictMock
     ? applyStrictMockReturnType(nonVoidMockReturnType, schemaTypeNames)

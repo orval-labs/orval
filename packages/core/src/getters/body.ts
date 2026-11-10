@@ -47,8 +47,12 @@ function buildBody(
       : definition;
 
   let implementation =
-    generalJSTypesWithArray.includes(definition.toLowerCase()) ||
-    filteredBodyTypes.length > 1
+    generalJSTypesWithArray.includes(
+      (context.output.override.useReadonlyArrays
+        ? definition.replace(/^readonly /, '')
+        : definition
+      ).toLowerCase(),
+    ) || filteredBodyTypes.length > 1
       ? camel(operationName) +
         context.output.override.components.requestBodies.suffix
       : camel(definition);

@@ -776,8 +776,15 @@ function formatEnumMember(value: unknown): string {
  *
  * Same guard `getArrayItemFactory` applies before naming a type.
  */
-function safeTypeIdentifier(name: string): string | undefined {
-  const identifier = name.endsWith('[]') ? name.slice(0, -2) : name;
+function safeTypeIdentifier(
+  name: string,
+  useReadonlyArrays = false,
+): string | undefined {
+  const base = name.endsWith('[]') ? name.slice(0, -2) : name;
+  const identifier =
+    useReadonlyArrays && name.endsWith('[]')
+      ? base.replace(/^readonly /, '')
+      : base;
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(identifier) ? identifier : undefined;
 }
 
@@ -817,7 +824,10 @@ function getEnum(
       // type by that name to import, and the cast would only carry the name's
       // text into the expression. Fall back to the `as const` the other
       // generation types emit, which is always well-formed.
-      const typeIdentifier = safeTypeIdentifier(item.name);
+      const typeIdentifier = safeTypeIdentifier(
+        item.name,
+        context.output.override.useReadonlyArrays,
+      );
       if (typeIdentifier) {
         // Always an array of the element type — `item.name` arrives either
         // bare or already carrying the suffix, and the identifier is the same
@@ -838,7 +848,10 @@ function getEnum(
       // so always quoted and therefore always escaped. `getKey` covers the key
       // side of the object-literal entry this expression ends up in; the value
       // side is this cast, and it was quoting the name by hand.
-      const parentIdentifier = safeTypeIdentifier(parentReference);
+      const parentIdentifier = safeTypeIdentifier(
+        parentReference,
+        context.output.override.useReadonlyArrays,
+      );
       if (parentIdentifier) {
         const indexedType = `${parentIdentifier}[${getStringLiteralType(item.name)}]`;
         // On an optional key the indexed access includes `undefined`, which

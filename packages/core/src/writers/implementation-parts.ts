@@ -133,11 +133,14 @@ export function generateTargetMutatorImports(
  * Local type declarations an implementation relies on (`NonReadonly<>`,
  * `TypedResponse<>`), emitted only when the implementation uses them.
  */
-export function generateOrvalHelperTypes(implementation: string): string {
+export function generateOrvalHelperTypes(
+  implementation: string,
+  useReadonlyArrays = false,
+): string {
   let data = '';
 
   if (implementation.includes('NonReadonly<')) {
-    data += getOrvalGeneratedTypes();
+    data += getOrvalGeneratedTypes(useReadonlyArrays);
     data += '\n';
   }
 
