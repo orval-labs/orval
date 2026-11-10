@@ -1,5 +1,6 @@
 import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
+import { getSchemaLibrary } from '../generators/runtime-validation';
 import { resolveExampleRefs, resolveRef } from '../resolvers';
 import type {
   ContextSpec,
@@ -604,6 +605,8 @@ export function getScalar({
       // enum's literals.
       if (
         formatResolved &&
+        // A Valibot schema is what converts dates, and only when it validates.
+        getSchemaLibrary(context.output) !== 'valibot' &&
         (!isEnum || isDateFormatType(schemaFormat, context.output.override))
       ) {
         value = formatResolved.type;

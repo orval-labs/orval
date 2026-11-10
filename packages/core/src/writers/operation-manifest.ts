@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { generateDependencyImports } from '../generators';
+import { generateDependencyImports, getSchemaLibrary } from '../generators';
 import {
   camelPathParamName,
   getArrayFormatParameters,
@@ -29,7 +29,6 @@ import {
   getImportExtension,
   getOperationTagKey,
   getSchemasImportPath,
-  isObject,
   isString,
   logger,
   pascal,
@@ -374,11 +373,9 @@ export function buildOperationManifest(
     types[verbOptions.operationName] = getOperationManifestTypes(verbOptions);
   }
 
-  const isZodSchemas =
-    isObject(output.schemas) && output.schemas.type === 'zod';
   const withTypes =
     output.operationManifest?.types !== false &&
-    !isZodSchemas &&
+    getSchemaLibrary(output) === undefined &&
     !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
 
   let implementation = renderEntries(entries);

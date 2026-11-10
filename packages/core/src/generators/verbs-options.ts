@@ -42,6 +42,7 @@ import {
 import { getQueryParamsFormatTypeEncoding } from './date-transform';
 import { filteredVerbs } from './input-filters';
 import { generateMutator } from './mutator';
+import { getSchemaLibrary } from './runtime-validation';
 
 export interface GenerateVerbOptionsParams {
   verb: Verbs;
@@ -158,8 +159,7 @@ async function buildVerbOption({
     contentType: override.contentType,
     generatePrimitiveSchemas:
       !override.mutator &&
-      isObject(output.schemas) &&
-      output.schemas.type === 'zod' &&
+      getSchemaLibrary(output) !== undefined &&
       (output.client === 'angular'
         ? override.angular.runtimeValidation.enabled
         : output.client === 'angular-query'

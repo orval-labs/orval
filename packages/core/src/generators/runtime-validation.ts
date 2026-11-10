@@ -2,6 +2,7 @@ import type {
   AngularRuntimeValidation,
   GeneratorImport,
   NormalizedAngularRuntimeValidation,
+  NormalizedOutputOptions,
   NormalizedOverrideOutput,
   NormalizedRuntimeValidation,
   OpenApiSchemaObject,
@@ -12,6 +13,46 @@ import {
   STANDARD_SCHEMA_PARSE_NAME,
   STANDARD_SCHEMA_SAFE_PARSE_NAME,
 } from './standard-schema-helper';
+
+/** The validator library `output.schemas` generates schemas for. */
+export type SchemaLibrary = 'zod' | 'valibot';
+
+/**
+ * The library of the validator schemas written to `output.schemas`, or
+ * `undefined` when they are plain TypeScript types.
+ */
+export const getSchemaLibrary = (
+  output: Pick<NormalizedOutputOptions, 'schemas'>,
+): SchemaLibrary | undefined => {
+  const { schemas } = output;
+  if (typeof schemas !== 'object') return undefined;
+  return schemas.type === 'zod' || schemas.type === 'valibot'
+    ? schemas.type
+    : undefined;
+};
+
+/**
+ * Whether a client's `runtimeValidation.standardSchema` is on. Valibot schemas
+ * have no `parse` method, so with `schemas.type: 'valibot'` the helpers are the
+ * only way to validate. Read at emit time, after tag and operation overrides
+ * were merged.
+ */
+export const resolveStandardSchema = (
+  output: Pick<NormalizedOutputOptions, 'schemas'>,
+  runtimeValidation:
+    | Pick<NormalizedRuntimeValidation, 'standardSchema'>
+    | undefined,
+): boolean | undefined => {
+  if (getSchemaLibrary(output) !== 'valibot') {
+    return runtimeValidation?.standardSchema;
+  }
+  if (runtimeValidation?.standardSchema === false) {
+    throw new Error(
+      '`runtimeValidation.standardSchema: false` cannot be used with `schemas.type: "valibot"`: Valibot schemas are validated through Standard Schema.',
+    );
+  }
+  return true;
+};
 
 /**
  * The syntactic shape a validation snippet has to take at the call site it is
@@ -409,6 +450,24 @@ export interface ArrayResponseSchema {
   outputTypeRef: string;
 }
 
+const SCHEMA_NAMESPACES: Record<SchemaLibrary, string> = {
+  zod: 'zod',
+  // Not `v`: generated functions have parameters of that name, such as `/{v}/pets`.
+  valibot: 'valibot',
+};
+
+/**
+ * Whether generated code calls the library's composed array schema, which
+ * needs its namespace in scope.
+ */
+export const composesArraySchema = (
+  code: string,
+  library: SchemaLibrary = 'zod',
+): boolean =>
+  new RegExp(
+    String.raw`(?<![\w$.])${SCHEMA_NAMESPACES[library]}\.array\(`,
+  ).test(code);
+
 /** A definition that is exactly one `[]` level over a bare identifier. */
 const ARRAY_DEFINITION_PATTERN = /^([A-Za-z_$][\w$]*)\[]$/;
 
@@ -427,6 +486,7 @@ export const getArrayResponseSchema = (
   imports: readonly { name: string }[],
   definition: string | undefined,
   toValueRef: (typeName: string) => string = (typeName) => typeName,
+  library: SchemaLibrary = 'zod',
 ): ArrayResponseSchema | undefined => {
   if (definition === undefined) return undefined;
 
@@ -438,7 +498,7 @@ export const getArrayResponseSchema = (
 
   return {
     elementName,
-    schemaRef: `zod.array(${toValueRef(elementName)})`,
+    schemaRef: `${SCHEMA_NAMESPACES[library]}.array(${toValueRef(elementName)})`,
     outputTypeRef: `${getSchemaOutputTypeRef(elementName)}[]`,
   };
 };
@@ -460,3 +520,16 @@ export const getZodNamespaceImport = (override?: NormalizedOverrideOutput) => ({
   namespaceImport: true,
   importPath: getZodNamespaceImportSource(override),
 });
+
+/** The namespace import a composed array expression requires. */
+export const getSchemaNamespaceImport = (
+  output: Pick<NormalizedOutputOptions, 'schemas' | 'override'>,
+) =>
+  getSchemaLibrary(output) === 'valibot'
+    ? {
+        name: SCHEMA_NAMESPACES.valibot,
+        values: true,
+        namespaceImport: true,
+        importPath: 'valibot',
+      }
+    : getZodNamespaceImport(output.override);

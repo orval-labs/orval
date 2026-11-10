@@ -4,7 +4,8 @@ import {
   type ClientHeaderBuilder,
   generateVerbImports,
   getArrayResponseSchema,
-  getZodNamespaceImport,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
   hasSchemaImport,
   isPrimitiveResponseType,
   mergeDeep,
@@ -162,9 +163,8 @@ export const generateQuery: ClientBuilder = async (
       ? getFetchResponseValidationImports(verbOptions, options)
       : undefined;
 
-  const isZodOutput =
-    typeof options.context.output.schemas === 'object' &&
-    options.context.output.schemas.type === 'zod';
+  const schemaLibrary = getSchemaLibrary(options.context.output);
+  const isZodOutput = schemaLibrary !== undefined;
   const responseType = verbOptions.response.definition.success;
   // A custom mutator skips the generated parse entirely, so its schema
   // import stays type-only and no rewrite is needed.
@@ -184,7 +184,12 @@ export const generateQuery: ClientBuilder = async (
     adapter.isAngularHttp &&
     verbOptions.override.query.runtimeValidation?.enabled &&
     !verbOptions.mutator
-      ? getArrayResponseSchema(verbOptions.response.imports, responseType)
+      ? getArrayResponseSchema(
+          verbOptions.response.imports,
+          responseType,
+          undefined,
+          schemaLibrary,
+        )
       : undefined;
 
   const validatedResponseImports = fetchValidationImports
@@ -236,7 +241,7 @@ export const generateQuery: ClientBuilder = async (
       ...imports,
       ...hookImports,
       ...(responseArraySchema || fetchValidationImports?.composesZod
-        ? [getZodNamespaceImport(options.context.output.override)]
+        ? [getSchemaNamespaceImport(options.context.output)]
         : []),
     ],
     mutators,

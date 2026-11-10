@@ -5,7 +5,7 @@ import {
   generateResponseDateDeserializer,
   type GeneratorOptions,
   type GeneratorVerbOptions,
-  isObject,
+  getSchemaLibrary,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   OutputClient,
@@ -35,8 +35,7 @@ export const passesZodSchemaToMutator = (
 ) =>
   mutator !== undefined &&
   !!context.output.override.includeZodSchemaInArguments &&
-  isObject(context.output.schemas) &&
-  context.output.schemas.type === 'zod';
+  getSchemaLibrary(context.output) !== undefined;
 
 export const getMutatorErrorResponses = (
   {
@@ -101,7 +100,11 @@ export const getMutatorErrorResponses = (
 export const getIsDatesTransformEnabled = (
   override: GeneratorVerbOptions['override'],
   context: ContextSpec,
-) => override.useDatesTransform && context.output.client !== OutputClient.MCP;
+) =>
+  override.useDatesTransform &&
+  context.output.client !== OutputClient.MCP &&
+  // A Valibot schema converts the date strings itself and rejects a `Date`.
+  getSchemaLibrary(context.output) !== 'valibot';
 
 /**
  * Builds the `deserialize{Op}Response` function for a verb's response, or

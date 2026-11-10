@@ -10,8 +10,12 @@ import {
   type NormalizedOutputOptions,
   emitRequestBodyValidation,
   emitResponseValidation,
+  composesArraySchema,
   encodeRouteParameters,
-  getZodNamespaceImport,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
+  resolveStandardSchema,
+  type SchemaLibrary,
   getArrayResponseSchema,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
@@ -89,6 +93,7 @@ const getSchemaValueRef = (typeName: string): string =>
 const resolveValidatableSchema = (
   imports: readonly { name: string }[],
   value: string,
+  library: SchemaLibrary | undefined,
 ):
   | { outputTypeRef: string; schemaRef: string; elementName?: string }
   | undefined => {
@@ -99,7 +104,7 @@ const resolveValidatableSchema = (
       schemaRef: getSchemaValueRef(value),
     };
   }
-  return getArrayResponseSchema(imports, value, getSchemaValueRef);
+  return getArrayResponseSchema(imports, value, getSchemaValueRef, library);
 };
 
 const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
@@ -121,7 +126,11 @@ const getGeneratedResponseType = (
     !!contentType &&
     isJsonContentType(contentType)
   ) {
-    const resolved = resolveValidatableSchema(response.imports, value);
+    const resolved = resolveValidatableSchema(
+      response.imports,
+      value,
+      getSchemaLibrary(output),
+    );
     if (resolved) return resolved.outputTypeRef;
   }
 
@@ -150,6 +159,7 @@ const getClientResultType = (
     response.imports,
     dataType,
     getSchemaValueRef,
+    getSchemaLibrary(output),
   );
   const shouldValidateResponse =
     override.angular.runtimeValidation.enabled &&
@@ -227,12 +237,25 @@ export const getRequestBodySchema = (
     return undefined;
   }
 
+  if (
+    getSchemaLibrary(output) === 'valibot' &&
+    (override.useDates || override.useDatesTransform)
+  ) {
+    throw new Error(
+      '`runtimeValidation.requestBodies` cannot be used with `useDates` and `schemas.type: "valibot"`: the parsed body is what gets sent, and the schema turns its date strings into `Date`.',
+    );
+  }
+
   // Under `preserveReadonlyRequestBodies: 'strip'` (the default) a body whose
   // spec has readOnly properties is typed `NonReadonly<Pet>`. Zod schemas carry
   // no readonly markers, so that is structurally `Pet` and parses with it.
   const definition =
     NON_READONLY_PATTERN.exec(body.definition)?.[1] ?? body.definition;
-  const schema = resolveValidatableSchema(body.imports, definition);
+  const schema = resolveValidatableSchema(
+    body.imports,
+    definition,
+    getSchemaLibrary(output),
+  );
   if (!schema) return undefined;
 
   return {
@@ -565,6 +588,7 @@ export const generateHttpClientImplementation = (
     response.imports,
     dataType,
     getSchemaValueRef,
+    getSchemaLibrary(context.output),
   );
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
@@ -585,7 +609,10 @@ export const generateHttpClientImplementation = (
   // `PetsOutput`. We therefore drop the cast on the validation path and let the
   // inferred return type flow naturally.
   const validationStrategy = override.angular.runtimeValidation.strategy;
-  const standardSchema = override.angular.runtimeValidation.standardSchema;
+  const standardSchema = resolveStandardSchema(
+    context.output,
+    override.angular.runtimeValidation,
+  );
   const validationPipe = shouldValidateResponse
     ? emitResponseValidation({
         schemaRef: schemaValueRef,
@@ -760,7 +787,10 @@ export const generateHttpClientImplementation = (
         schemaRef: validatedBody.schemaRef,
         operationName,
         strategy: override.angular.runtimeValidation.strategy,
-        standardSchema: override.angular.runtimeValidation.standardSchema,
+        standardSchema: resolveStandardSchema(
+          context.output,
+          override.angular.runtimeValidation,
+        ),
         inputExpression: body.implementation,
         isOptional: body.isOptional,
         encode: body.formatTypeCodecs,
@@ -867,7 +897,11 @@ export const generateHttpClientImplementation = (
     jsonSuccessValues.length === 1 &&
     override.angular.runtimeValidation.enabled &&
     isZodOutput
-      ? resolveValidatableSchema(response.imports, jsonSuccessValues[0])
+      ? resolveValidatableSchema(
+          response.imports,
+          jsonSuccessValues[0],
+          getSchemaLibrary(context.output),
+        )
       : undefined;
   const parsedJsonReturnType = jsonSchema?.outputTypeRef ?? jsonReturnType;
 
@@ -1334,11 +1368,13 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
       : []),
     ...(validatedBody ? [DEFER_IMPORT] : []),
-    // Only a composed array expression and `zod.encode` reference the `zod`
+    // Only a composed array expression and `zod.encode` reference the schema
     // namespace; a named schema calls `Schema.parse` on its own binding.
-    ...(implementation.includes('zod.array(') ||
-    implementation.includes('zod.encode(')
-      ? [getZodNamespaceImport(options.context.output.override)]
+    ...(composesArraySchema(
+      implementation,
+      getSchemaLibrary(options.context.output),
+    ) || implementation.includes('zod.encode(')
+      ? [getSchemaNamespaceImport(options.context.output)]
       : []),
     ...(baseUrl
       ? [

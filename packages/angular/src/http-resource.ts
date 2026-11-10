@@ -8,8 +8,11 @@ import {
   type ContextSpec,
   dedupeSchemaImports,
   emitResponseValidation,
+  composesArraySchema,
   encodeRouteParameters,
-  getZodNamespaceImport,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
+  resolveStandardSchema,
   getArrayResponseSchema,
   escapeRegExp,
   generateDependencyImports,
@@ -803,7 +806,12 @@ const resolveParseSchema = (
     return { importName: responseType, schemaRef: responseType };
   }
 
-  const arraySchema = getArrayResponseSchema(response.imports, responseType);
+  const arraySchema = getArrayResponseSchema(
+    response.imports,
+    responseType,
+    undefined,
+    getSchemaLibrary(output),
+  );
   return arraySchema
     ? { importName: arraySchema.elementName, schemaRef: arraySchema.schemaRef }
     : undefined;
@@ -853,14 +861,18 @@ const needsZodNamespaceImport = (
   response: GeneratorVerbOptions['response'],
   output: NormalizedOutputOptions,
 ): boolean =>
-  response.types.success.some((successType) =>
-    resolveParseSchema(
+  response.types.success.some((successType) => {
+    const schemaRef = resolveParseSchema(
       response,
       getSuccessTypeFactory(response, successType),
       output,
       successType.value,
-    )?.schemaRef.startsWith('zod.'),
-  );
+    )?.schemaRef;
+    return (
+      schemaRef !== undefined &&
+      composesArraySchema(schemaRef, getSchemaLibrary(output))
+    );
+  });
 
 const getHttpResourceVerbImports = (
   verbOptions: GeneratorVerbOptions,
@@ -878,7 +890,7 @@ const getHttpResourceVerbImports = (
 
   return [
     ...(isZodOutput && needsZodNamespaceImport(response, output)
-      ? [getZodNamespaceImport(output.override)]
+      ? [getSchemaNamespaceImport(output)]
       : []),
     ...responseImports.map((imp) =>
       parsedZodImportNames.has(imp.name) ? { ...imp, values: true } : imp,
@@ -925,8 +937,10 @@ const getParseExpression = (
         operationName,
         strategy: output.override.angular.runtimeValidation.strategy,
         context: 'parse-fn',
-        standardSchema:
-          output.override.angular.runtimeValidation.standardSchema,
+        standardSchema: resolveStandardSchema(
+          output,
+          output.override.angular.runtimeValidation,
+        ),
       })
     : undefined;
 };
@@ -1855,9 +1869,11 @@ export const generateHttpResourceClient: ClientBuilder = (
   const bodyValidationImports = validatedBody
     ? [
         DEFER_IMPORT,
-        ...(validatedBody.schemaRef.startsWith('zod.') ||
-        verbOptions.body.formatTypeCodecs
-          ? [getZodNamespaceImport(options.context.output.override)]
+        ...(composesArraySchema(
+          validatedBody.schemaRef,
+          getSchemaLibrary(options.context.output),
+        ) || verbOptions.body.formatTypeCodecs
+          ? [getSchemaNamespaceImport(options.context.output)]
           : []),
       ]
     : [];

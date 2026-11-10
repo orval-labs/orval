@@ -26,7 +26,8 @@ import {
   isPrimitiveResponseType,
   type GetterResponse,
   GetterPropType,
-  isObject,
+  getSchemaLibrary,
+  resolveStandardSchema,
   isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
@@ -177,14 +178,15 @@ export const generateAngularHttpRequestFunction = (
   );
   // Detect if Zod runtime validation should be applied
   const responseType = response.definition.success || 'unknown';
-  const isZodOutput =
-    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  const schemaLibrary = getSchemaLibrary(context.output);
+  const isZodOutput = schemaLibrary !== undefined;
   // An inline array response (`Item[]`) is validated through its element
   // schema, since the exact-name check never matches it (#3718, #4106).
   const responseArraySchema = getArrayResponseSchema(
     response.imports,
     responseType,
     getSchemaValueRef,
+    schemaLibrary,
   );
   const shouldValidateResponse =
     override.query.runtimeValidation?.enabled &&
@@ -278,7 +280,10 @@ export const generateAngularHttpRequestFunction = (
       operationName,
       strategy: override.query.runtimeValidation?.strategy ?? 'throw',
       context: 'rxjs-map',
-      standardSchema: override.query.runtimeValidation?.standardSchema,
+      standardSchema: resolveStandardSchema(
+        context.output,
+        override.query.runtimeValidation,
+      ),
     })}`;
   }
 
@@ -357,7 +362,11 @@ export const generateAxiosRequestFunction = (
     isFormUrlEncoded,
   });
 
-  const dateDeserializer = override.useDatesTransform
+  // A Valibot schema type keeps date strings typed as strings here.
+  const useDatesTransform =
+    override.useDatesTransform &&
+    getSchemaLibrary(context.output) !== 'valibot';
+  const dateDeserializer = useDatesTransform
     ? generateResponseDateDeserializer({ operationName, response, context })
     : undefined;
   // Emitted AFTER the operation block: the orval writer prepends the
@@ -377,7 +386,7 @@ export const generateAxiosRequestFunction = (
   // would be an unreferenced `const` — a consumer building with
   // `noUnusedLocals`/`no-unused-vars` would fail on it.
   const requestSerializer =
-    override.useDatesTransform && getIsBodyVerb(verb)
+    useDatesTransform && getIsBodyVerb(verb)
       ? generateRequestDateSerializer({ operationName, body, context })
       : undefined;
   const requestSerializerImplementation = requestSerializer
