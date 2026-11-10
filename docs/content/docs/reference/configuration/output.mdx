@@ -2700,7 +2700,7 @@ Emit optional object properties with `v.exactOptional(schema)` instead of `v.opt
 
 Emit one exported Valibot constant per `#/components/schemas/*` entry instead of inlining every `$ref`. See [Reusable Schemas](/docs/guides/valibot#reusable-schemas) for the output and the limitations.
 
-With `client: 'valibot'` it can't be combined with [`schemas`](#schemas). `schemas: { type: 'valibot' }` always writes reusable constants and does not need this option.
+With `client: 'valibot'`, this option and [`schemas`](#schemas) can't be set together. `schemas: { type: 'valibot' }` always writes reusable constants and does not need this option.
 
 ---
 
@@ -3469,7 +3469,7 @@ touches only the schema-declared `format: date`/`date-time` fields.
 **Type:** `boolean | { strategy?: 'throw' | 'both'; standardSchema?: boolean }`
 **Default:** `false`
 
-Enable runtime validation for fetch client responses, through Zod by default. Requires `schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
+Enable runtime validation for fetch client responses, through Zod by default. Requires `schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`. Valibot schemas are validated through [`standardSchema`](#standardschema), so the Zod calls and errors below do not apply to them. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
 
 This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for `void`/`unknown` responses, non-JSON responses and ndjson streams. Inline scalar JSON responses are validated through a generated schema.
 
@@ -3502,9 +3502,9 @@ override: {
 
 Limits:
 
-- Generated schemas need Zod 3.24 or newer.
-- Orval still generates Zod schemas, so other validators need your own schema values.
-- Inline array responses still use `zod.array`, so Zod stays a runtime dependency there.
+- Generated Zod schemas need Zod 3.24 or newer.
+- Orval generates Zod and Valibot schemas. Other validators need your own schema values.
+- Inline array responses use `zod.array`, or `valibot.array` with `schemas: { type: 'valibot' }`, so that library stays a runtime dependency there.
 - Angular `requestBodies` encodes a body with [`formatType`](#formattype) codecs back through `zod.encode`.
 
 ### arrayFormat

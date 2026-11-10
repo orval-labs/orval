@@ -2248,7 +2248,7 @@ export default defineConfig({
 
 为每个 `#/components/schemas/*` 条目生成一个导出的 Valibot 常量，而不是内联每个 `$ref`。输出和限制见[可复用 Schema](/zh/docs/guides/valibot#可复用-schema)。
 
-使用 `client: 'valibot'` 时不能与 [`schemas`](#schemas) 同时使用。`schemas: { type: 'valibot' }` 总是生成可复用常量，无需此选项。
+使用 `client: 'valibot'` 时，此选项不能与 [`schemas`](#schemas) 同时设置。`schemas: { type: 'valibot' }` 总是生成可复用常量，无需此选项。
 
 ---
 

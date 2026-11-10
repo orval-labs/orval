@@ -93,7 +93,7 @@ export const ListPetsResponse = v.array(Pet);
 
 ### 限制
 
-- 使用 `client: 'valibot'` 时不能与 `output.schemas` 同时使用：生成时会报错。要把 schema 写入单独的模块，请在 HTTP client 上使用 `schemas: { type: 'valibot' }`。
+- 使用 `client: 'valibot'` 时，`generateReusableSchemas` 不能与 `output.schemas` 同时设置：生成时会报错。要把 schema 写入单独的模块，请在 HTTP client 上使用 `schemas: { type: 'valibot' }`。
 - 当常量的校验结果可能不同时，`$ref` 仍会被内联，例如表单请求体、`readOnly` 和 `writeOnly` 属性，以及部分 `allOf`、`oneOf` 和 `anyOf` 成员。
 - 常量保留所有属性，只有在所有位置都是 `strict` 时才是 `strict`。`strict` 不同的位置，或按 operation 覆盖 `exactOptional` 时，其 schema 会被内联。
 - 带 `discriminator` 的 `oneOf` 或 `anyOf`，当选项是引用时生成 `v.union`。
