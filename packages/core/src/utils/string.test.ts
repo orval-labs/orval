@@ -36,21 +36,29 @@ describe('dedupeUnionType', () => {
       `({\n  /** The event's ID. */\n  id: string;\n  team_id?: string | null;\n}) & {\n  event_type: '${eventType}';\n}`;
 
     it('should keep members whole when their JSDoc has an apostrophe', () => {
-      const union = [member('a.created'), member('b.created'), member('a.created')].join(' | ');
+      const union = [
+        member('a.created'),
+        member('b.created'),
+        member('a.created'),
+      ].join(' | ');
 
-      expect(dedupeUnionType(union)).toBe([member('a.created'), member('b.created')].join(' | '));
+      expect(dedupeUnionType(union)).toBe(
+        [member('a.created'), member('b.created')].join(' | '),
+      );
     });
 
     it('should never split on a | inside a comment', () => {
-      expect(dedupeUnionType('/** a | b */ A | /** a | b */ B | /** a | b */ B')).toBe(
-        '/** a | b */ A | /** a | b */ B',
-      );
+      expect(
+        dedupeUnionType('/** a | b */ A | /** a | b */ B | /** a | b */ B'),
+      ).toBe('/** a | b */ A | /** a | b */ B');
     });
 
     it('should ignore a bracket or a double quote inside a comment', () => {
       const withComment = '{ /** a <\' b, "1) first */ x: string | null }';
 
-      expect(dedupeUnionType(`${withComment} | ${withComment}`)).toBe(withComment);
+      expect(dedupeUnionType(`${withComment} | ${withComment}`)).toBe(
+        withComment,
+      );
     });
 
     it('should handle an empty or unterminated comment', () => {
