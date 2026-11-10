@@ -243,7 +243,8 @@ export const generateMcp: ClientBuilder = (verbOptions, options) => {
   const pathParamsType = verbOptions.params
     .map((param, index) => {
       const paramName = originalParamNames[index];
-      const paramType = param.definition.split(': ')[1];
+      const { definition } = param;
+      const paramType = definition.slice(definition.indexOf(':') + 1).trim();
       return `    ${getKey(paramName)}: ${paramType}`;
     })
     .join(',\n');
