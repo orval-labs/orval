@@ -400,6 +400,8 @@ export const generateClientHeader: GeneratorClientHeader = async ({
       ? `${standardSchemaHelper}\n${normalizedHeader.implementation}`
       : normalizedHeader.implementation,
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
+    transformClientImplementation:
+      normalizedHeader.transformClientImplementation,
     sharedTypes: normalizedHeader.sharedTypes,
     sharedExports: normalizedHeader.sharedExports,
   };

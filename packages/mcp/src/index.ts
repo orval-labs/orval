@@ -29,7 +29,7 @@ import {
   upath,
   type Verbs,
 } from '@orval/core';
-import { generateClient, generateFetchHeader } from '@orval/fetch';
+import { builder as fetchBuilder, generateFetchHeader } from '@orval/fetch';
 import {
   generateZodSections,
   getZodImportSource,
@@ -674,6 +674,7 @@ const generateHttpClientFiles = async (
 
   const header = getHeader(output.override.header, info);
 
+  const { client: generateFetchClient } = fetchBuilder()();
   const clients = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) => {
       const fullRoute = getFullRoute(
@@ -690,7 +691,7 @@ const generateHttpClientFiles = async (
         output: output.target,
       };
 
-      return generateClient(verbOption, options, output.client, output);
+      return generateFetchClient(verbOption, options, output.client, output);
     }),
   );
 
@@ -769,7 +770,10 @@ const generateHttpClientFiles = async (
     importImplementation,
     mutatorImports,
     fetchHeader,
-    clientImplementation,
+    typeof rawFetchHeader === 'string'
+      ? clientImplementation
+      : (rawFetchHeader.transformClientImplementation?.(clientImplementation) ??
+        clientImplementation),
   ].join('\n');
   return [
     {

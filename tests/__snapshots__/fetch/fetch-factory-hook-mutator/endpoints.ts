@@ -61,6 +61,28 @@ export type HTTPStatusCodes =
   | HTTPStatusCode4xx
   | HTTPStatusCode5xx;
 
+const getHeaders = (
+  h?: NonNullable<RequestInit['headers']>,
+): Record<string, string | readonly string[]> => {
+  if (!h) return {};
+  if (h instanceof Headers) return Object.fromEntries(h.entries());
+  if (Symbol.iterator in h) {
+    return Object.fromEntries(
+      Array.from(
+        h as Iterable<Iterable<string>>,
+        (entry) => Array.from(entry) as [string, string],
+      ),
+    );
+  }
+  const headers: Record<string, string | readonly string[]> = {};
+  for (const [name, value] of Object.entries<
+    string | readonly string[] | undefined
+  >(h)) {
+    if (value !== undefined) headers[name] = value;
+  }
+  return headers;
+};
+
 export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
   const getGetOrderDetailsUrl = (orderId: string) => {
     return `/orders/${orderId}`;
@@ -308,28 +330,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     appointment: Appointment,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateAppointmentResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       appointment: Appointment,
@@ -410,28 +410,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     appointmentWithDuplicateDate: AppointmentWithDuplicateDate,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateAppointmentDuplicateDateResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       appointmentWithDuplicateDate: AppointmentWithDuplicateDate,
@@ -495,28 +473,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     reminderUpdate?: ReminderUpdate,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateAppointmentReminderResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       appointmentId: string,
@@ -586,28 +542,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     shelterIntake: ShelterIntake,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateShelterIntakeResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       shelterId: string,
@@ -694,28 +628,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     shelterRecords: ShelterRecords,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateShelterRecordsResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       shelterId: string,
@@ -812,28 +724,6 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     appointmentWindow: AppointmentWindow,
     options?: Parameters<ReturnType<typeof useCustomFetch>>[1],
   ) => Promise<updateAppointmentWindowResponse>) => {
-    const getHeaders = (
-      h?: NonNullable<RequestInit['headers']>,
-    ): Record<string, string | readonly string[]> => {
-      if (!h) return {};
-      if (h instanceof Headers) return Object.fromEntries(h.entries());
-      if (Symbol.iterator in h) {
-        return Object.fromEntries(
-          Array.from(
-            h as Iterable<Iterable<string>>,
-            (entry) => Array.from(entry) as [string, string],
-          ),
-        );
-      }
-      const headers: Record<string, string | readonly string[]> = {};
-      for (const [name, value] of Object.entries<
-        string | readonly string[] | undefined
-      >(h)) {
-        if (value !== undefined) headers[name] = value;
-      }
-      return headers;
-    };
-
     const customFetcher = useCustomFetch();
     return (
       appointmentId: string,

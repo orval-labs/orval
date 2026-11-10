@@ -1030,6 +1030,17 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       },
     });
 
+  it('includes the helper when generating a standalone client operation', async () => {
+    const { implementation } = await generateClient(
+      verbOptionsWithHeaders(),
+      makeOptions(makeContext()),
+      OutputClient.FETCH,
+    );
+
+    expect(implementation).toContain('const getHeaders =');
+    expect(implementation).toContain('...getHeaders(options?.headers)');
+  });
+
   it('keeps static body headers without referencing disabled request options', () => {
     const verb = verbOptionsWithHeaders();
     verb.override.requestOptions = false;

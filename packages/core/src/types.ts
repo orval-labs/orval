@@ -2664,6 +2664,7 @@ export interface SharedTypeDeclaration {
 
 export type HeaderResult = {
   implementation: string;
+  transformClientImplementation?: (implementation: string) => string;
   sharedTypes?: SharedTypeDeclaration[];
   sharedExports?: SharedExports;
 };
@@ -3009,6 +3010,7 @@ export interface GeneratorApiOperations {
 export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
+  transformClientImplementation?: HeaderResult['transformClientImplementation'];
   sharedTypes?: SharedTypeDeclaration[];
   sharedExports?: SharedExports;
 }

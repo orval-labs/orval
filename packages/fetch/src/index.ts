@@ -29,6 +29,7 @@ import {
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getStatusCodeType,
+  getUniqueName,
   getZodNamespaceImportSource,
   hasSchemaImport,
   HTTP_STATUS_CODE_SHARED_TYPES,
@@ -74,6 +75,9 @@ import {
   generateSharedRequestFunction,
   isSharedRuntimeStyle,
 } from './shared-runtime-style';
+
+const FETCH_HEADERS_CALL = 'getHeaders(options?.headers)';
+const FETCH_HEADERS_REFERENCE = `/* orval:fetch-headers */ ${FETCH_HEADERS_CALL}`;
 
 export {
   generateFetchExtraFiles,
@@ -169,6 +173,8 @@ interface RequestFunctionOptions {
    * caller such as a TanStack Query `queryFn` can pass its `AbortSignal`.
    */
   signalOnlyOptions?: boolean;
+  /** The client header will provide the helper for the assembled module. */
+  hoistHeadersHelper?: boolean;
 }
 
 /**
@@ -195,7 +201,10 @@ const generateRequestFunctionParts = (
     params,
   }: GeneratorVerbOptions,
   { route: _route, context, pathRoute }: GeneratorOptions,
-  { signalOnlyOptions = false }: RequestFunctionOptions = {},
+  {
+    signalOnlyOptions = false,
+    hoistHeadersHelper = false,
+  }: RequestFunctionOptions = {},
 ) => {
   const route = encodeRouteParameters(
     _route,
@@ -708,9 +717,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   } else {
     globalFetchOptions = '';
   }
+  const usesHeadersHelper = headersToAdd.length > 0 && isRequestOptions;
+  const headersCall = hoistHeadersHelper
+    ? FETCH_HEADERS_REFERENCE
+    : FETCH_HEADERS_CALL;
+  const inlineHeadersHelper =
+    usesHeadersHelper && !hoistHeadersHelper ? GET_HEADERS_HELPER : '';
   const fetchHeadersOption =
     headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}${isRequestOptions ? ', ...getHeaders(options?.headers)' : ''} }`
+      ? `headers: { ${headersToAdd.join(',')}${usesHeadersHelper ? `, ...${headersCall}` : ''} }`
       : '';
   const requestBodyParams = generateBodyOptions(
     requestSerializer
@@ -949,11 +964,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const exportKeyword = isFactoryMode ? 'const' : 'export const';
   let fetchImplementation = `${exportKeyword} ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
-  ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
+  ${inlineHeadersHelper}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
     fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
-    ${fetchHeadersOption && isRequestOptions ? GET_HEADERS_HELPER : ''}${fetchImplementationBody}}
+    ${inlineHeadersHelper}${fetchImplementationBody}}
   `;
   }
 
@@ -1066,7 +1081,11 @@ export const getFetchResponseValidationImports = (
 };
 
 /** Builds the full fetch client output (imports + implementation) for one verb. */
-export const generateClient: ClientBuilder = (verbOptions, options) => {
+const generateFetchOperation = (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+  hoistHeadersHelper: boolean,
+) => {
   if (isSharedRuntimeStyle(options.context.output)) {
     return generateSharedClient(verbOptions, options);
   }
@@ -1089,6 +1108,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   const { responseTypes, implementation } = generateRequestFunctionParts(
     normalizedVerbOptions,
     options,
+    { hoistHeadersHelper },
   );
 
   // Types declared inside the factory closure would be unreachable for
@@ -1109,14 +1129,17 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
+export const generateClient: ClientBuilder = (verbOptions, options) =>
+  generateFetchOperation(verbOptions, options, false);
+
 export const generateFetchTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
   return `get${pascal(sanTitle)}`;
 };
 
 /**
- * Emits HTTP status-code union types at the top of the generated file when they
- * are needed, and opens the factory closure in `httpClientInjection: 'factory'` mode.
+ * Emits shared declarations before the operations and opens the factory
+ * closure in `httpClientInjection: 'factory'` mode.
  */
 export const generateFetchHeader: ClientHeaderBuilder = ({
   title,
@@ -1134,11 +1157,37 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
     ? output.override.fetch.includeHttpResponseReturnType
     : needsHttpStatusCodeTypes(clientImplementation);
 
-  if (!needsStatusCodeTypes) return implementation;
+  if (!clientImplementation.includes(FETCH_HEADERS_REFERENCE)) {
+    return needsStatusCodeTypes
+      ? { implementation, sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES }
+      : implementation;
+  }
+
+  // Reserve names from all operations in this module, including local
+  // parameters and references to imported mutators.
+  const withoutReferences = clientImplementation.replaceAll(
+    FETCH_HEADERS_REFERENCE,
+    '',
+  );
+  const helperName = getUniqueName(
+    'getHeaders',
+    new Set(withoutReferences.match(/\bgetHeaders\d*\b/g)),
+  );
+  const helper = GET_HEADERS_HELPER.replace(
+    'const getHeaders',
+    `const ${helperName}`,
+  ).replace(/^ {2}/gm, '');
 
   return {
-    implementation,
-    sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES,
+    implementation: `${helper}\n${implementation}`,
+    transformClientImplementation: (source) =>
+      source.replaceAll(
+        FETCH_HEADERS_REFERENCE,
+        `${helperName}(options?.headers)`,
+      ),
+    ...(needsStatusCodeTypes
+      ? { sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES }
+      : {}),
   };
 };
 
@@ -1169,7 +1218,8 @@ export const generateFetchFooter: ClientFooterBuilder = ({
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
-  client: generateClient,
+  client: (verbOptions, options) =>
+    generateFetchOperation(verbOptions, options, true),
   header: generateFetchHeader,
   title: generateFetchTitle,
   footer: generateFetchFooter,

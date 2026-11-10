@@ -30,6 +30,21 @@ import type {
   UploadPetBody
 } from './models';
 
+const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+  if (!h) return {};
+  if (h instanceof Headers) return Object.fromEntries(h.entries());
+  if (Symbol.iterator in h) {
+    return Object.fromEntries(
+      Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+    );
+  }
+  const headers: Record<string, string | readonly string[]> = {};
+  for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+    if (value !== undefined) headers[name] = value;
+  }
+  return headers;
+};
+
 export const getListPetsUrl = (params?: ListPetsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -105,21 +120,7 @@ export const getCreatePetUrl = () => {
 
 export const createPet = async (createPetBody: CreatePetBody, options?: RequestInit): Promise<Pet> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getCreatePetUrl(),
+  const res = await fetch(getCreatePetUrl(),
   {
     ...options,
     method: 'POST',
@@ -219,21 +220,7 @@ export const getUpdatePetUrl = (petId: number,) => {
 export const updatePet = async (petId: number,
     updatePetBody: UpdatePetBody, options?: RequestInit): Promise<Pet> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getUpdatePetUrl(petId),
+  const res = await fetch(getUpdatePetUrl(petId),
   {
     ...options,
     method: 'PATCH',
@@ -283,21 +270,7 @@ export const getReplacePetUrl = (petId: number,) => {
 export const replacePet = async (petId: number,
     replacePetBody: ReplacePetBody, options?: RequestInit): Promise<Pet> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getReplacePetUrl(petId),
+  const res = await fetch(getReplacePetUrl(petId),
   {
     ...options,
     method: 'PUT',
@@ -547,21 +520,7 @@ export const submitForm = async (submitFormBody: SubmitFormBody, options?: Reque
     const formUrlEncoded = new URLSearchParams();
 formUrlEncoded.append(`name`, submitFormBody.name);
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getSubmitFormUrl(),
+  const res = await fetch(getSubmitFormUrl(),
   {
     ...options,
     method: 'POST',
