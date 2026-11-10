@@ -315,7 +315,8 @@ const decodeResponseBody = async (
 };
 
 export const prepareRequest = <Options extends object = CallOptions>(args: ExecuteArgs<Options>) => {
-  const { fetch: fetchFn = globalThis.fetch, ...options } = args.options ?? {};
+  const callOptions: CallOptions = args.options ?? {};
+  const { fetch: fetchFn = globalThis.fetch, ...options } = callOptions;
   const init: RequestInit = {
     ...options,
     method: args.method,
@@ -326,8 +327,10 @@ export const prepareRequest = <Options extends object = CallOptions>(args: Execu
       ...getHeaders(args.headers),
       ...getHeaders(args.options?.headers),
     },
-    body: encodeRequestBody(args),
   };
+  const body = encodeRequestBody(args);
+  if (body === undefined) delete init.body;
+  else init.body = body;
 
   return { fetchFn, init };
 };
@@ -354,12 +357,17 @@ export const execute = async <R>(
     const err: globalThis.Error & { info?: unknown; status?: number } =
       new globalThis.Error();
     // A download's error body is text, decoded by the declared error types.
+    const {
+      deserializeResponseDates: _deserializeResponseDates,
+      validateResponse: _validateResponse,
+      responseType: _responseType,
+      ...errorArgs
+    } = args;
+    const responseType =
+      args.responseType === 'blob' ? args.errorResponseType : args.responseType;
     err.info = await decodeResponseBody(res, {
-      ...args,
-      responseType:
-        args.responseType === 'blob' ? args.errorResponseType : args.responseType,
-      deserializeResponseDates: undefined,
-      validateResponse: undefined,
+      ...errorArgs,
+      ...(responseType !== undefined ? { responseType } : {}),
     });
     err.status = res.status;
     throw err;
@@ -419,6 +427,7 @@ export const execute = <Result>(
     hasSecondArg
       ? `const { init } = runtime.prepareRequest(args);
   const options = { ...args.options, ...init };
+  if (init.body === undefined) delete options.body;
   const mutatorOptions = args.schema === undefined ? options : { ...options, schema: args.schema as never };
   return fetcher(args.url, mutatorOptions${passesErrorResponses ? ', { errorResponses: args.errorResponses ?? [] }' : ''});`
       : 'return fetcher(args.url);'

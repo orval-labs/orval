@@ -48,7 +48,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
   execute<listPetsResponse>({
     url: getListPetsUrl(params),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getListPetsQueryKey = (
@@ -148,7 +148,7 @@ export const createPets = (
     method: 'POST',
     body: createPetsBody,
     contentType: 'application/json',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getCreatePetsMutationKey = () => ['createPets'] as const;
@@ -235,7 +235,7 @@ export const showPetById = (petId: string, options?: CallOptions) =>
   execute<showPetByIdResponse>({
     url: getShowPetByIdUrl(petId),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getShowPetByIdQueryKey = (petId: MaybeRefOrGetter<string>) => {
@@ -333,7 +333,7 @@ export const deletePetById = (petId: string, options?: CallOptions) =>
     url: getDeletePetByIdUrl(petId),
     method: 'DELETE',
     responseType: 'void',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getDeletePetByIdMutationKey = () => ['deletePetById'] as const;
@@ -418,7 +418,7 @@ export const healthCheck = (options?: CallOptions) =>
     url: getHealthCheckUrl(),
     method: 'GET',
     responseType: 'auto',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getHealthCheckQueryKey = () => {
@@ -507,7 +507,7 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
   execute<showPetWithOwnerResponse>({
     url: getShowPetWithOwnerUrl(petId),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getShowPetWithOwnerQueryKey = (

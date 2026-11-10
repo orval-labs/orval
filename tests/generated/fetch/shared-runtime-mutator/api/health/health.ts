@@ -24,5 +24,5 @@ export const healthCheck = (options?: CallOptions) =>
     url: getHealthCheckUrl(),
     method: 'GET',
     responseType: 'auto',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });

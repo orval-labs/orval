@@ -32,7 +32,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
   execute<listPetsResponse>({
     url: getListPetsUrl(params),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type createPetsResponse = ResponseOf<{ 200: Pet; default: Error }>;
@@ -56,7 +56,7 @@ export const createPets = (
     method: 'POST',
     body: createPetsBody,
     contentType: 'application/json',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type showPetByIdResponse = ResponseOf<{ 200: Pet; default: Error }>;
@@ -72,7 +72,7 @@ export const showPetById = (petId: string, options?: CallOptions) =>
   execute<showPetByIdResponse>({
     url: getShowPetByIdUrl(petId),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type deletePetByIdResponse = ResponseOf<{ 204: void; default: Error }>;
@@ -89,7 +89,7 @@ export const deletePetById = (petId: string, options?: CallOptions) =>
     url: getDeletePetByIdUrl(petId),
     method: 'DELETE',
     responseType: 'void',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type healthCheckResponse = ResponseOf<{ 200: string; default: Error }>;
@@ -106,7 +106,7 @@ export const healthCheck = (options?: CallOptions) =>
     url: getHealthCheckUrl(),
     method: 'GET',
     responseType: 'auto',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type showPetWithOwnerResponse = ResponseOf<{
@@ -125,5 +125,5 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
   execute<showPetWithOwnerResponse>({
     url: getShowPetWithOwnerUrl(petId),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });

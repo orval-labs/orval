@@ -561,7 +561,7 @@ export const generateSharedRequestFunction = (
             ? ['serializeResponseHeaders: true']
             : []),
         ]),
-    'options',
+    '...(options !== undefined ? { options } : {})',
   ];
 
   // A client-config mutator returns the raw response, so its dates are

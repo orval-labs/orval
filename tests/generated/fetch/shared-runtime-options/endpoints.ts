@@ -42,7 +42,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
     validateResponse: (data) => Pets.parse(data),
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type createPetsResponseSuccess = ResponseOf<
@@ -74,7 +74,7 @@ export const createPets = (
     validateResponse: (data) => Pet.parse(data),
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type showPetByIdResponseSuccess = ResponseOf<
@@ -98,7 +98,7 @@ export const showPetById = (petId: string, options?: CallOptions) =>
     validateResponse: (data) => Pet.parse(data),
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type deletePetByIdResponseSuccess = ResponseOf<
@@ -122,7 +122,7 @@ export const deletePetById = (petId: string, options?: CallOptions) =>
     reviver: fetchReviverMutator,
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type healthCheckResponseSuccess = ResponseOf<
@@ -146,7 +146,7 @@ export const healthCheck = (options?: CallOptions) =>
     reviver: fetchReviverMutator,
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type showPetWithOwnerResponseSuccess = ResponseOf<
@@ -170,5 +170,5 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
     validateResponse: (data) => PetWithTag.parse(data),
     throwOnError: true,
     serializeResponseHeaders: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
