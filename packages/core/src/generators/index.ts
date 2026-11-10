@@ -5,6 +5,7 @@ export * from './imports';
 export * from './input-filters';
 export * from './models-inline';
 export * from './mutator';
+export { withMutatorSourceCache } from './mutator-source';
 export * from './options';
 export * from './parameter-definition';
 export * from './runtime-validation';

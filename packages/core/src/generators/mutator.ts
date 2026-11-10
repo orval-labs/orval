@@ -1,10 +1,10 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { styleText } from 'node:util';
 
 import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
 import { getFileInfo, getImportExtension, pascal, upath } from '../utils';
 import { getMutatorInfo } from './mutator-info';
+import { readMutatorSource } from './mutator-source';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
@@ -62,10 +62,10 @@ export async function generateMutator({
     );
   }
 
-  let rawFile = path.isAbsolute(inspectionPath)
-    ? await fs.promises.readFile(inspectionPath, 'utf8')
-    : '';
-  rawFile = removeComments(rawFile);
+  const source = path.isAbsolute(inspectionPath)
+    ? await readMutatorSource(inspectionPath)
+    : undefined;
+  const rawFile = removeComments(source?.content ?? '');
 
   const hasErrorType =
     !!rawFile &&
@@ -88,12 +88,16 @@ export async function generateMutator({
   // No `tsconfig` here: the inspection bundle is discarded after its arity is
   // read, so it is built at esbuild's default target rather than the project's.
   // See the note on `bundleFile`.
-  const mutatorInfo = await getMutatorInfo(inspectionPath, {
-    root: workspace,
-    namedExport: mutatorInfoName,
-    alias: mutator.alias,
-    external: mutator.external,
-  });
+  const mutatorInfo = await getMutatorInfo(
+    inspectionPath,
+    {
+      root: workspace,
+      namedExport: mutatorInfoName,
+      alias: mutator.alias,
+      external: mutator.external,
+    },
+    source,
+  );
 
   if (!mutatorInfo) {
     throw new Error(

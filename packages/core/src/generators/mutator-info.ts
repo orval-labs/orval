@@ -1,11 +1,10 @@
-import { createHash } from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 
 import { Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
 
 import type { GeneratorMutatorParsingInfo } from '../types';
+import { type MutatorSource, readMutatorSource } from './mutator-source';
 
 /**
  * `generateMutator` runs once per operation, and every operation usually shares
@@ -25,6 +24,7 @@ export async function getMutatorInfo(
     alias?: Record<string, string>;
     external?: string[];
   },
+  source?: MutatorSource,
 ): Promise<GeneratorMutatorParsingInfo | undefined> {
   const {
     root = process.cwd(),
@@ -49,7 +49,7 @@ export async function getMutatorInfo(
     resolvedPath,
     namedExport,
     alias ?? null,
-    hashFile(resolvedPath),
+    source?.hash ?? (await hashFile(resolvedPath)),
   ]);
 
   let info = mutatorInfoCache.get(key);
@@ -66,9 +66,9 @@ export async function getMutatorInfo(
 }
 
 /** `null` for a missing file, which lets esbuild report the error. */
-function hashFile(filePath: string): string | null {
+async function hashFile(filePath: string): Promise<string | null> {
   try {
-    return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    return (await readMutatorSource(filePath)).hash;
   } catch {
     return null;
   }

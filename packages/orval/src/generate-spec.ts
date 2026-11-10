@@ -13,6 +13,7 @@ import {
   removeFilesAndEmptyFolders,
   SupportedFormatter,
   upath,
+  withMutatorSourceCache,
 } from '@orval/core';
 
 import { importSpecs } from './import-specs';
@@ -70,6 +71,16 @@ const relativeToParent = (parent: string, child: string): string =>
  * await generateSpec(process.cwd(), normalizedOptions, 'my-project');
  */
 export async function generateSpec(
+  workspace: string,
+  options: NormalizedOptions,
+  projectName?: string,
+) {
+  return withMutatorSourceCache(() =>
+    generateSpecFiles(workspace, options, projectName),
+  );
+}
+
+async function generateSpecFiles(
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
