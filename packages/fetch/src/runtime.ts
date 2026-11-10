@@ -365,8 +365,6 @@ export const execute = async <R>(
   const res = await fetchFn(args.url, init);
 
   if (args.throwOnError && !res.ok) {
-    const err: globalThis.Error & { info?: unknown; status?: number } =
-      new globalThis.Error();
     const {
       deserializeResponseDates: _deserializeResponseDates,
       validateResponse: _validateResponse,
@@ -375,12 +373,11 @@ export const execute = async <R>(
     } = args;
     const responseType =
       args.responseType === 'blob' ? args.errorResponseType : args.responseType;
-    err.info = await decodeResponseBody(res, {
+    const info = await decodeResponseBody(res, {
       ...errorArgs,
       ...(responseType !== undefined ? { responseType } : {}),
     });
-    err.status = res.status;
-    throw err;
+    throw Object.assign(new globalThis.Error(), { info, status: res.status });
   }
 
   if (args.responseType === 'stream') {
