@@ -24,6 +24,7 @@ body:
       options:
         - axios
         - fetch
+        - effect
         - hono
         - angular
         - angular-query
@@ -35,6 +36,7 @@ body:
         - swr
         - zod
         - mcp
+        - valibot
         - other
     validations:
       required: true
