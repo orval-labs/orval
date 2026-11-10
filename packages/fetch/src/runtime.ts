@@ -380,16 +380,15 @@ export const execute = async <R>(
     throw Object.assign(new globalThis.Error(), { info, status: res.status });
   }
 
+  const headers = getResponseHeaders(res, args);
   if (args.responseType === 'stream') {
-    if (args.returnData) return res as R;
-    const headers = getResponseHeaders(res, args);
-    return { status: res.status, stream: res, headers } as R;
+    return (
+      args.returnData ? res : { status: res.status, stream: res, headers }
+    ) as R;
   }
 
   const data = await decodeResponseBody(res, args);
-  if (args.returnData) return data as R;
-  const headers = getResponseHeaders(res, args);
-  return { data, status: res.status, headers } as R;
+  return (args.returnData ? data : { data, status: res.status, headers }) as R;
 };
 `;
 
