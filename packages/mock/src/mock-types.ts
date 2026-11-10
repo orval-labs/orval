@@ -331,6 +331,7 @@ export function formatMockFactoryDeclaration(
 
 export function getSchemaTypeNamesFromResponses(
   responses: ResReqTypesValue[],
+  useReadonlyArrays = false,
 ): string[] {
   const names = new Set<string>();
 
@@ -351,7 +352,10 @@ export function getSchemaTypeNamesFromResponses(
       continue;
     }
 
-    const baseType = value.endsWith('[]') ? value.slice(0, -2) : value;
+    const arrayItemType = value.endsWith('[]') ? value.slice(0, -2) : value;
+    const baseType = useReadonlyArrays
+      ? arrayItemType.replace(/^readonly /, '')
+      : arrayItemType;
     if (/^[A-Z]\w*$/.test(baseType)) {
       names.add(baseType);
     }
@@ -398,7 +402,10 @@ export function getStrictMockSchemaKindsFromResponses(
       continue;
     }
 
-    const baseType = value.endsWith('[]') ? value.slice(0, -2) : value;
+    const arrayItemType = value.endsWith('[]') ? value.slice(0, -2) : value;
+    const baseType = context?.output.override.useReadonlyArrays
+      ? arrayItemType.replace(/^readonly /, '')
+      : arrayItemType;
     if (!/^[A-Z]\w*$/.test(baseType)) {
       continue;
     }

@@ -1299,6 +1299,7 @@ export async function normalizeOptions(
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
           outputOptions.override?.enumGenerationType ?? 'const',
+        useReadonlyArrays: outputOptions.override?.useReadonlyArrays ?? false,
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier ?? false,
         preserveReadonlyRequestBodies:

@@ -284,8 +284,18 @@ export function getResponsesMockDefinition({
       }
     }
 
-    if (!definition || generalJSTypesWithArray.includes(definition)) {
-      const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
+    const scalarDefinition =
+      context.output.override.useReadonlyArrays && definition
+        ? definition.replace(/^readonly /, '')
+        : definition;
+    if (
+      !scalarDefinition ||
+      generalJSTypesWithArray.includes(scalarDefinition)
+    ) {
+      const value = getMockScalarJsTypes(
+        scalarDefinition,
+        mockOptionsWithoutFunc,
+      );
 
       result.definitions.push(
         transformer ? transformer(value, returnType) : value,

@@ -159,7 +159,10 @@ export async function writeSplitMode({
 
     implementationData += generateTargetMutatorImports(target, implementation);
 
-    implementationData += generateOrvalHelperTypes(implementation);
+    implementationData += generateOrvalHelperTypes(
+      implementation,
+      output.override.useReadonlyArrays,
+    );
 
     implementationData += `\n${implementation}`;
 

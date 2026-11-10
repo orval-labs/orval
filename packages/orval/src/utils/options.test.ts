@@ -4094,6 +4094,33 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it.each([undefined, false, true])(
+    'normalizes useReadonlyArrays=%s',
+    async (useReadonlyArrays) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: { target: 'gen.ts', override: { useReadonlyArrays } },
+          },
+          workspace,
+        );
+        expect(normalized.output.override.useReadonlyArrays).toBe(
+          useReadonlyArrays ?? false,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
   describe('formatType normalization', () => {
     it('returns undefined formatType when not configured', async () => {
       const workspace = await createTempWorkspace();

@@ -237,7 +237,10 @@ export async function writeTagsOperationsSplitMode({
 
             data += '\n\n';
 
-            data += generateOrvalHelperTypes(operation.implementation);
+            data += generateOrvalHelperTypes(
+              operation.implementation,
+              output.override.useReadonlyArrays,
+            );
 
             data += operation.implementation;
 

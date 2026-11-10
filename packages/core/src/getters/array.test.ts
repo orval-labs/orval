@@ -94,4 +94,116 @@ describe('getArray', () => {
     expect(result.schemas).toHaveLength(1);
     expect(result.schemas[0].name).toBe('MyTupleItem1');
   });
+
+  it.each([undefined, false, true])(
+    'emits array types with useReadonlyArrays=%s',
+    (useReadonlyArrays) => {
+      const testContext = createTestContextSpec({
+        override: { useReadonlyArrays, suppressReadonlyModifier: true },
+      });
+      const result = getArray({
+        schema: { type: 'array', readOnly: true, items: { type: 'string' } },
+        context: testContext,
+      });
+      expect(result.value).toBe(
+        useReadonlyArrays ? 'readonly string[]' : 'string[]',
+      );
+      expect(result.hasReadonlyProps).toBe(false);
+    },
+  );
+
+  it('preserves existing OpenAPI readOnly handling when the option is absent', () => {
+    expect(
+      getArray({
+        schema: { type: 'array', readOnly: true, items: { type: 'string' } },
+        context,
+      }).value,
+    ).toBe('readonly string[]');
+  });
+
+  it('preserves the existing nested readOnly array output by default', () => {
+    expect(
+      getArray({
+        schema: {
+          type: 'array',
+          items: { type: 'array', readOnly: true, items: { type: 'string' } },
+        },
+        context,
+      }).value,
+    ).toBe('readonly string[][]');
+  });
+
+  it('parenthesizes nested readonly, nullable, union, and intersection items', () => {
+    const testContext = createTestContextSpec({
+      override: { useReadonlyArrays: true },
+      spec: {
+        components: {
+          schemas: {
+            First: { type: 'object', properties: { id: { type: 'string' } } },
+            Second: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+            },
+          },
+        },
+      },
+    });
+    const arrayOf = (items: OpenApiSchemaObject) =>
+      getArray({ schema: { type: 'array', items }, context: testContext })
+        .value;
+
+    expect(arrayOf({ type: 'array', items: { type: 'string' } })).toBe(
+      'readonly (readonly string[])[]',
+    );
+    expect(arrayOf({ type: ['string', 'null'] })).toBe(
+      'readonly (string | null)[]',
+    );
+    expect(arrayOf({ oneOf: [{ type: 'string' }, { type: 'number' }] })).toBe(
+      'readonly (string | number)[]',
+    );
+    expect(
+      arrayOf({
+        allOf: [
+          { $ref: '#/components/schemas/First' },
+          { $ref: '#/components/schemas/Second' },
+        ],
+      }),
+    ).toBe('readonly (First & Second)[]');
+  });
+
+  it('emits readonly tuples with nested array items and a union rest', () => {
+    const testContext = createTestContextSpec({
+      override: { useReadonlyArrays: true },
+    });
+    expect(
+      getArray({
+        schema: {
+          type: 'array',
+          prefixItems: [{ type: 'array', items: { type: 'string' } }],
+          items: { oneOf: [{ type: 'string' }, { type: 'number' }] },
+        },
+        context: testContext,
+      }).value,
+    ).toBe('readonly [readonly string[], ...(string | number)[]]');
+    expect(
+      getArray({
+        schema: {
+          type: 'array',
+          prefixItems: [{ type: 'string' }],
+          items: { type: 'array', items: { type: 'number' } },
+        },
+        context: testContext,
+      }).value,
+    ).toBe('readonly [string, ...(readonly number[])[]]');
+  });
+
+  it('emits readonly unknown arrays for untyped OpenAPI 3.1 arrays', () => {
+    const testContext = createTestContextSpec({
+      override: { useReadonlyArrays: true },
+      spec: { openapi: '3.1.0' },
+    });
+    expect(
+      getArray({ schema: { type: 'array' }, context: testContext }).value,
+    ).toBe('readonly unknown[]');
+  });
 });

@@ -669,6 +669,29 @@ describe('extractArrayItemMock', () => {
       expect(importsReadonly).toHaveLength(0);
     });
 
+    it('extracts readonly array items when useReadonlyArrays is enabled', () => {
+      const context = createContextWithArrayItems();
+      context.output.override.useReadonlyArrays = true;
+      const splitMockImplementations: string[] = [];
+      const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];
+
+      const call = extract({
+        items: { type: 'object', properties: { a: { type: 'string' } } },
+        propertyName: 'readonly Foo[]',
+        operationId: 'getFoo',
+        tags: [],
+        mapValue: '{a: faker.string.alpha()}',
+        context,
+        splitMockImplementations,
+        imports,
+      });
+
+      expect(call).toBeDefined();
+      expect(splitMockImplementations).toHaveLength(1);
+      expect(splitMockImplementations[0]).toContain('Foo');
+      expect(imports).toEqual([{ name: 'Foo' }]);
+    });
+
     it('bails out (inlines) for a bare ref-name response whose items are a multi-ref allOf without direct properties', () => {
       const splitMockImplementations: string[] = [];
       const imports: Parameters<typeof extractArrayItemMock>[0]['imports'] = [];

@@ -655,7 +655,9 @@ const buildInPlaceItemsStatements = ({
       // The loop bound keeps the index in range, so the read is asserted
       // non-null for `noUncheckedIndexedAccess`; the write stays unasserted.
       accessor: `${element}!`,
-      writeAccessor: element,
+      writeAccessor: context.output.override.useReadonlyArrays
+        ? `${mutableCast(accessor)}[${index}]`
+        : element,
       context,
       visitedRefs,
       depth: depth + 1,

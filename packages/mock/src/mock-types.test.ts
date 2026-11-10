@@ -1,7 +1,10 @@
 import type { ResReqTypesValue } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createTestContextSpec } from '../../core/src/test-utils';
+import {
+  createTestContextSpec,
+  createTestResReqTypesValue,
+} from '../../core/src/test-utils';
 import {
   applyStrictMockReturnType,
   buildStrictMockTypeFileHeader,
@@ -287,6 +290,13 @@ describe('mock-types', () => {
   });
 
   describe('getSchemaTypeNamesFromResponses', () => {
+    it('collects schema names from readonly array response values', () => {
+      const responses = [
+        createTestResReqTypesValue({ value: 'readonly Pet[]', imports: [] }),
+      ];
+      expect(getSchemaTypeNamesFromResponses(responses, true)).toEqual(['Pet']);
+    });
+
     it('ignores value and schema-factory imports', () => {
       const responses = [
         {

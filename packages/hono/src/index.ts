@@ -815,11 +815,13 @@ const generateContextFile = ({
   verbs,
   schemaModule,
   tsconfig,
+  useReadonlyArrays,
 }: {
   path: string;
   verbs: GeneratorVerbOptions[];
   schemaModule: string;
   tsconfig?: Tsconfig;
+  useReadonlyArrays?: boolean;
 }) => {
   let content = `import type { Context, Env } from 'hono';\n\n`;
 
@@ -850,7 +852,7 @@ const generateContextFile = ({
   );
 
   if (contexts.some((context) => context.includes('NonReadonly<'))) {
-    content += getOrvalGeneratedTypes();
+    content += getOrvalGeneratedTypes(useReadonlyArrays);
     content += '\n';
   }
 
@@ -891,6 +893,7 @@ const generateContextFiles = (
         path,
         schemaModule: schemaModule,
         tsconfig: output.tsconfig,
+        useReadonlyArrays: output.override.useReadonlyArrays,
       });
       return { content: `${header}${code}`, path };
     });
@@ -902,6 +905,7 @@ const generateContextFiles = (
     path,
     schemaModule: schemaModule,
     tsconfig: output.tsconfig,
+    useReadonlyArrays: output.override.useReadonlyArrays,
   });
 
   return [

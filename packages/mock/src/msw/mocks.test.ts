@@ -13,6 +13,61 @@ import {
 import { getMockWithoutFunc, getResponsesMockDefinition } from './mocks';
 
 describe('getResponsesMockDefinition', () => {
+  it('keeps native enum casts and imports for readonly inline array responses', () => {
+    const result = getResponsesMockDefinition({
+      operationId: 'getColors',
+      tags: [],
+      returnType: 'readonly GetColors200Item[]',
+      responses: [
+        createTestResReqTypesValue({
+          value: 'readonly GetColors200Item[]',
+          type: 'array',
+          originalSchema: {
+            type: 'array',
+            items: { type: 'string', enum: ['red', 'blue'] },
+          },
+        }),
+      ],
+      mockOptionsWithoutFunc: {},
+      context: createTestContextSpec({
+        override: {
+          useReadonlyArrays: true,
+          enumGenerationType: EnumGeneration.ENUM,
+        },
+      }),
+      splitMockImplementations: [],
+    });
+
+    expect(result.definitions[0]).toContain('as GetColors200Item[]');
+    expect(result.imports).toContainEqual({ name: 'GetColors200Item' });
+  });
+
+  it.each(['number', 'string'])(
+    'generates scalar array mocks for readonly %s[] responses',
+    (type) => {
+      const result = getResponsesMockDefinition({
+        operationId: 'listValues',
+        tags: [],
+        returnType: `readonly ${type}[]`,
+        responses: [
+          createTestResReqTypesValue({
+            value: `readonly ${type}[]`,
+            originalSchema: undefined,
+          }),
+        ],
+        mockOptionsWithoutFunc: { arrayMin: 1, arrayMax: 1 },
+        context: createTestContextSpec({
+          override: { useReadonlyArrays: true },
+        }),
+        splitMockImplementations: [],
+      });
+
+      expect(result.definitions).toHaveLength(1);
+      expect(result.definitions[0]).toContain('Array.from(');
+      expect(result.definitions[0]).not.toContain('undefined');
+    },
+  );
+
   it('aggregates imports when response.imports is undefined (#3590)', () => {
     const context = createTestContextSpec();
 

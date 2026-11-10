@@ -4088,6 +4088,23 @@ Create intermediate type aliases for `anyOf`/`oneOf`/`allOf`.
 
 Suppress `readonly` modifier on properties.
 
+### useReadonlyArrays
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate readonly array and tuple types for schemas in request and response models.
+Mutable arrays are assignable to these types. This controls collection types
+independently of OpenAPI `readOnly` properties, `suppressReadonlyModifier`, and
+`preserveReadonlyRequestBodies`. It affects TypeScript types only and does not
+freeze values at runtime.
+
+```ts
+override: {
+  useReadonlyArrays: true,
+}
+```
+
 ### preserveReadonlyRequestBodies
 
 **Type:** `'strip' | 'preserve'`

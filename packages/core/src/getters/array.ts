@@ -41,6 +41,7 @@ export function getArray({
   const itemSuffix =
     // oxlint-disable-next-line typescript/no-unnecessary-condition
     context.output.override.components.schemas.itemSuffix ?? '';
+  const useReadonlyArrays = context.output.override.useReadonlyArrays ?? false;
   if (schemaPrefixItems) {
     const resolvedObjects: ResolverValue[] = schemaPrefixItems.map(
       (item, index) =>
@@ -62,14 +63,21 @@ export function getArray({
       });
       resolvedObjects.push({
         ...additional,
-        value: `...${additional.value}[]`,
+        value: `...${
+          useReadonlyArrays &&
+          (additional.value.includes('|') ||
+            additional.value.includes('&') ||
+            additional.value.startsWith('readonly '))
+            ? `(${additional.value})`
+            : additional.value
+        }[]`,
       });
     }
     return {
       type: 'array',
       isEnum: false,
       isRef: false,
-      value: `[${resolvedObjects.map((o) => o.value).join(', ')}]`,
+      value: `${useReadonlyArrays ? 'readonly ' : ''}[${resolvedObjects.map((o) => o.value).join(', ')}]`,
       imports: resolvedObjects.flatMap((o) => o.imports),
       schemas: resolvedObjects.flatMap((o) => o.schemas),
       dependencies: resolvedObjects.flatMap((o) => o.dependencies),
@@ -87,12 +95,15 @@ export function getArray({
     });
     return {
       value: `${
-        schema.readOnly === true &&
-        !context.output.override.suppressReadonlyModifier
+        useReadonlyArrays ||
+        (schema.readOnly === true &&
+          !context.output.override.suppressReadonlyModifier)
           ? 'readonly '
           : ''
       }${
-        resolvedObject.value.includes('|') || resolvedObject.value.includes('&')
+        resolvedObject.value.includes('|') ||
+        resolvedObject.value.includes('&') ||
+        (useReadonlyArrays && resolvedObject.value.startsWith('readonly '))
           ? `(${resolvedObject.value})[]`
           : `${resolvedObject.value}[]`
       }`,
@@ -109,7 +120,7 @@ export function getArray({
     // oxlint-disable-next-line typescript/no-unnecessary-condition
   } else if (compareVersions(context.spec.openapi ?? '3.0.0', '3.1', '>=')) {
     return {
-      value: 'unknown[]',
+      value: useReadonlyArrays ? 'readonly unknown[]' : 'unknown[]',
       imports: [],
       schemas: [],
       dependencies: [],
