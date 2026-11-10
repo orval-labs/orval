@@ -32,7 +32,7 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
     method: 'GET',
     validateResponse: (data) => Pets.parse(data),
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getCreatePetsUrl = (params: CreatePetsParams) => {
@@ -56,7 +56,7 @@ export const createPets = (
     contentType: 'application/json',
     validateResponse: (data) => Pet.parse(data),
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getShowPetByIdUrl = (petId: string) => {
@@ -72,7 +72,7 @@ export const showPetById = (petId: string, options?: CallOptions) =>
     method: 'GET',
     validateResponse: (data) => Pet.parse(data),
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getDeletePetByIdUrl = (petId: string) => {
@@ -88,7 +88,7 @@ export const deletePetById = (petId: string, options?: CallOptions) =>
     method: 'DELETE',
     responseType: 'void',
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getHealthCheckUrl = () => {
@@ -104,7 +104,7 @@ export const healthCheck = (options?: CallOptions) =>
     method: 'GET',
     responseType: 'auto',
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export const getShowPetWithOwnerUrl = (petId: string) => {
@@ -120,5 +120,5 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
     method: 'GET',
     validateResponse: (data) => PetWithTag.parse(data),
     returnData: true,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });

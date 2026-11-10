@@ -35,7 +35,7 @@ export const getOrderDetails = (orderId: string, options?: CallOptions) =>
       status === 200
         ? deserializeGetOrderDetailsResponse(data as OrderDetails)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeGetOrderDetailsResponse = (
@@ -75,7 +75,7 @@ export const getPetProfile = (petId: string, options?: CallOptions) =>
       status === 200
         ? deserializeGetPetProfileResponse(data as Cat | Dog)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeGetPetProfileResponse = (data: Cat | Dog): Cat | Dog => {
@@ -109,7 +109,7 @@ export const getAuditRecord = (auditId: string, options?: CallOptions) =>
       status === 200
         ? deserializeGetAuditRecordResponse(data as AuditRecord)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
@@ -147,7 +147,7 @@ export const listShelterPets = (shelterId: string, options?: CallOptions) =>
       status === 200
         ? deserializeListShelterPetsResponse(data as Cat | Dog)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeListShelterPetsResponse = (data: Cat | Dog): Cat | Dog => {
@@ -186,7 +186,7 @@ export const getShelterLastInspection = (
       status === 200
         ? deserializeGetShelterLastInspectionResponse(data as LastInspection)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeGetShelterLastInspectionResponse = (
@@ -207,7 +207,7 @@ export const listOrderNumbers = (options?: CallOptions) =>
   execute<listOrderNumbersResponse>({
     url: getListOrderNumbersUrl(),
     method: 'GET',
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 export type updateAppointmentResponse = ResponseOf<{ 200: Appointment }>;
@@ -229,7 +229,7 @@ export const updateAppointment = (
       status === 200
         ? deserializeUpdateAppointmentResponse(data as Appointment)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateAppointmentResponse = (
@@ -302,7 +302,7 @@ export const updateAppointmentDuplicateDate = (
             data as AppointmentWithDuplicateDate,
           )
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateAppointmentDuplicateDateResponse = (
@@ -352,7 +352,7 @@ export const updateAppointmentReminder = (
       status === 200
         ? deserializeUpdateAppointmentReminderResponse(data as Appointment)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateAppointmentReminderResponse = (
@@ -407,7 +407,7 @@ export const updateShelterIntake = (
       status === 200
         ? deserializeUpdateShelterIntakeResponse(data as ShelterIntake)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateShelterIntakeResponse = (
@@ -477,7 +477,7 @@ export const updateShelterRecords = (
       status === 200
         ? deserializeUpdateShelterRecordsResponse(data as ShelterRecords)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateShelterRecordsResponse = (
@@ -559,7 +559,7 @@ export const updateAppointmentWindow = (
       status === 200
         ? deserializeUpdateAppointmentWindowResponse(data as AppointmentWindow)
         : data,
-    options,
+    ...(options !== undefined ? { options } : {}),
   });
 
 const deserializeUpdateAppointmentWindowResponse = (

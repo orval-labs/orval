@@ -1231,7 +1231,13 @@ describe('shared runtime options', () => {
       'decodes a download error (errorResponseType %s, %s) apart from the blob',
       async (errorResponseType, contentType, info) => {
         const failure = await call(
-          { responseType: 'blob', throwOnError: true, errorResponseType },
+          {
+            responseType: 'blob',
+            throwOnError: true,
+            errorResponseType,
+            deserializeResponseDates: () => 'deserialized',
+            validateResponse: () => 'validated',
+          },
           '{"title":"nope"}',
           404,
           contentType,
@@ -1291,6 +1297,7 @@ function typeCheckFiles(
 ) {
   const compilerOptions: ts.CompilerOptions = {
     strict: true,
+    exactOptionalPropertyTypes: true,
     noEmit: true,
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
@@ -1498,6 +1505,8 @@ export const mutator = async <T>(url: string, options: RequestInit): Promise<{ d
     files['/proj/src/consumer.ts'] = `
 import { listPets } from './api/endpoints';
 const request = listPets({ id: 1, name: 'Pet' });
+const explicitUndefined = listPets({ id: 1, name: 'Pet' }, undefined);
+void explicitUndefined;
 const expected: Promise<{ data: { id: number; name: string }[] }> = request;
 void expected;
 `;
@@ -1769,6 +1778,7 @@ export const customFetch = async <T>(
         {
           baseUrl: 'https://api.test',
           fetch: fetchOverride,
+          body: 'overridden',
           headers: new Headers({ 'X-Trace': 'trace' }),
         },
       );
@@ -1783,6 +1793,47 @@ export const customFetch = async <T>(
         body: JSON.stringify({ id: 1, name: 'Pet' }),
         headers: { 'Content-Type': 'application/json', 'x-trace': 'trace' },
       });
+
+      const execute = config.execute as (
+        args: {
+          url: string;
+          method: string;
+          body?: unknown;
+          contentType?: string;
+          options: RequestInit;
+        },
+        fetcher: typeof customFetch,
+      ) => typeof result;
+      await execute(
+        { url: '/pets', method: 'GET', options: { body: 'ignored' } },
+        customFetch,
+      );
+      expect(receivedOptions?.body).toBeUndefined();
+      expect(receivedOptions).not.toHaveProperty('body');
+      await execute(
+        {
+          url: '/pets',
+          method: 'POST',
+          body: undefined,
+          options: { body: 'ignored' },
+        },
+        customFetch,
+      );
+      expect(receivedOptions?.body).toBeUndefined();
+      expect(receivedOptions).not.toHaveProperty('body');
+      for (const body of [null, '']) {
+        await execute(
+          {
+            url: '/pets',
+            method: 'POST',
+            body,
+            contentType: 'text/plain',
+            options: { body: 'ignored' },
+          },
+          customFetch,
+        );
+        expect(receivedOptions?.body).toBe(body);
+      }
     },
   );
 });
@@ -1848,6 +1899,42 @@ execute({ url: '/pets', method: 'GET' }, customFetchFetcher<object>);
     }
     return typeCheckFiles(files);
   };
+
+  it('compiles a generated plain operation with omitted or undefined options', async () => {
+    const options = makeSharedOptions();
+    const verbOptions = makeVerbOptions();
+    const client = generateSharedClient(verbOptions, options);
+    const imports = client.imports
+      .map(
+        ({ name, values, importPath }) =>
+          `import ${values ? '' : 'type '}{ ${name} } from '${importPath}';`,
+      )
+      .join('\n');
+    const extraFiles = await generateFetchExtraFiles(
+      { listPets: verbOptions },
+      options.context.output,
+      options.context,
+    );
+    const files = Object.fromEntries(
+      extraFiles.map(({ path, content }) => [path, content]),
+    );
+    files['/proj/src/api/endpoints.ts'] = `${imports}
+type Pet = { id: number; name: string };
+${client.implementation}`;
+    files['/proj/src/consumer.ts'] = `
+import { listPets } from './api/endpoints';
+void listPets();
+void listPets(undefined);
+`;
+
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+  });
 
   it.each([
     'RequestInit',
