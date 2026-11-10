@@ -1,10 +1,12 @@
 import {
+  type ContextSpec,
   isObject,
   isSchemaNullable,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
 } from '@orval/core';
 
+import { getLocalRefTarget, getRef } from './refs';
 import { ALTERNATIVE_KEYS } from './schema-keys';
 import {
   hasProperties,
@@ -15,20 +17,22 @@ import {
 // `readOnly` properties are left out of requests, `writeOnly` ones of responses.
 type Direction = 'readOnly' | 'writeOnly';
 
-const isHidden = (
-  schema: OpenApiSchemaObject | undefined,
-  direction: Direction,
-): boolean => isNonBoolean(schema) && schema[direction] === true;
+type IsHidden = (schema: OpenApiSchemaObject | undefined) => boolean;
+
+const byFlag =
+  (direction: Direction): IsHidden =>
+  (schema) =>
+    isNonBoolean(schema) && schema[direction] === true;
 
 const hiddenKeys = (
   schema: OpenApiNonBooleanSchemaObject,
-  direction: Direction,
+  isHidden: IsHidden,
 ): string[] => [
   ...Object.entries(isObject(schema.properties) ? schema.properties : {})
-    .filter(([, property]) => isHidden(property, direction))
+    .filter(([, property]) => isHidden(property))
     .map(([key]) => key),
   ...(Array.isArray(schema.allOf) ? schema.allOf : []).flatMap((member) =>
-    isNonBoolean(member) ? hiddenKeys(member, direction) : [],
+    isNonBoolean(member) ? hiddenKeys(member, isHidden) : [],
   ),
 ];
 
@@ -74,24 +78,25 @@ const closeIfEmptied = (
 const strip = (
   input: OpenApiNonBooleanSchemaObject,
   inherited: ReadonlySet<string>,
-  direction: Direction,
+  isHidden: IsHidden,
+  keepProperties = false,
 ): OpenApiNonBooleanSchemaObject => {
   const schema = toCanonicalNullable(input);
-  const hidden = new Set([...inherited, ...hiddenKeys(schema, direction)]);
+  const hidden = new Set([...inherited, ...hiddenKeys(schema, isHidden)]);
   // Hidden keys are also hidden from the `required` of sibling members.
   const nested = (
     member: OpenApiSchemaObject,
     shared: ReadonlySet<string> = new Set(),
   ): OpenApiSchemaObject =>
     isNonBoolean(member)
-      ? closeIfEmptied(member, strip(member, shared, direction))
+      ? closeIfEmptied(member, strip(member, shared, isHidden, keepProperties))
       : member;
   const result: OpenApiNonBooleanSchemaObject = { ...schema };
 
   if (isObject(schema.properties)) {
     result.properties = Object.fromEntries(
       Object.entries(schema.properties)
-        .filter(([, property]) => !isHidden(property, direction))
+        .filter(([, property]) => keepProperties || !isHidden(property))
         .map(([key, property]) => [key, nested(property)]),
     );
   }
@@ -111,7 +116,9 @@ const strip = (
   if (Array.isArray(schema.allOf)) {
     // A member left with nothing is dropped, as it would be an open object.
     const members = schema.allOf.map((member) =>
-      isNonBoolean(member) ? strip(member, hidden, direction) : member,
+      isNonBoolean(member)
+        ? strip(member, hidden, isHidden, keepProperties)
+        : member,
     );
     const kept = members.filter(
       (member, index) => !isEmptied(schema.allOf?.[index], member),
@@ -131,4 +138,34 @@ export const omitDirectional = (
   schema: OpenApiNonBooleanSchemaObject,
   direction: Direction,
 ): OpenApiNonBooleanSchemaObject =>
-  closeIfEmptied(schema, strip(schema, new Set(), direction));
+  closeIfEmptied(schema, strip(schema, new Set(), byFlag(direction)));
+
+/**
+ * A schema whose `writeOnly` properties are optional, also those that reference
+ * a `writeOnly` schema, directly or through a one-member `allOf`. A component constant is shared by requests and
+ * responses, and a response leaves those properties out.
+ */
+export const relaxWriteOnly = (
+  schema: OpenApiNonBooleanSchemaObject,
+  context: ContextSpec,
+): OpenApiNonBooleanSchemaObject => {
+  const isWriteOnly: IsHidden = (property) => {
+    const seen = new Set<string>();
+    let current: unknown = property;
+    while (isObject(current)) {
+      if (current.writeOnly === true) return true;
+      // `allOf: [{ $ref }]` is how OpenAPI 3.0 adds a description to a
+      // reference, so a single member is followed like the reference itself.
+      if (Array.isArray(current.allOf) && current.allOf.length === 1) {
+        current = current.allOf[0];
+        continue;
+      }
+      const ref = getRef(current);
+      if (ref === undefined || seen.has(ref)) return false;
+      seen.add(ref);
+      current = getLocalRefTarget(ref, context);
+    }
+    return false;
+  };
+  return strip(schema, new Set(), isWriteOnly, true);
+};

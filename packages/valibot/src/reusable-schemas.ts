@@ -7,8 +7,14 @@ import {
 
 import { dereference } from './dereference';
 import type { ValibotNode } from './nodes';
+import { relaxWriteOnly } from './read-only';
 import { createRefPolicy, getComponentModes } from './ref-policy';
-import { collectRefNames, resolveComponentName, toComponentRef } from './refs';
+import {
+  collectRefNames,
+  isSchemasOutput,
+  resolveComponentName,
+  toComponentRef,
+} from './refs';
 import { renderValibot } from './render';
 import { hasReadonlyPipe, renderValibotType } from './render-type';
 import { generateValibotValidationSchemaDefinition } from './schema';
@@ -77,9 +83,12 @@ const generateComponent = (
     { ...context, parents: [toComponentRef(key)] },
     createRefPolicy({ context, strict, exactOptional }),
   );
-  return generateValibotValidationSchemaDefinition(resolved, context, strict, {
-    required: true,
-  });
+  return generateValibotValidationSchemaDefinition(
+    isSchemasOutput(context) ? relaxWriteOnly(resolved, context) : resolved,
+    context,
+    strict,
+    { required: true },
+  );
 };
 
 // The input type of each constant on a cycle: `<Name>Input`, numbered when
@@ -101,12 +110,38 @@ const allocateInputTypeNames = (
   return names;
 };
 
+export interface ComponentTypeNames {
+  output: string;
+  input: string;
+}
+
+export interface ValibotComponentConst {
+  /** The identifier the constant is declared as. */
+  name: string;
+  expression: string;
+  /**
+   * The output and input types a constant on a cycle declares, which its
+   * `v.lazy` getters are typed with.
+   */
+  types?: {
+    outputName: string;
+    output: string;
+    inputName: string;
+    input: string;
+  };
+}
+
 /**
- * One `export const` per component schema, dependencies first. A reference
- * that closes a cycle reads through `v.lazy`, typed with the input and output
- * types declared for every constant on a cycle.
+ * One constant per component schema. A constant comes after every constant it
+ * reads; a reference that closes a cycle reads through `v.lazy`, typed with the
+ * input and output types declared for every constant on a cycle. By default
+ * the output type has the name of the constant and the input type is
+ * `<Name>Input`; `typeNamesOf` names them otherwise.
  */
-export const generateValibotComponents = (context: ContextSpec): string => {
+export const generateValibotComponentConsts = (
+  context: ContextSpec,
+  typeNamesOf?: (name: string) => ComponentTypeNames,
+): ValibotComponentConst[] => {
   const names = getComponentNames(context);
   const nodes = new Map(
     Object.entries(getComponents(context)).flatMap(([key, schema]) => {
@@ -122,9 +157,19 @@ export const generateValibotComponents = (context: ContextSpec): string => {
   const { order, cyclicEdges } = orderByDependencies(graph);
   // The declared types name each other, so no type reads a constant whose
   // type depends on it.
-  const declared = allocateInputTypeNames(
-    nodesOnCycles(graph),
-    new Set(nodes.keys()),
+  const onCycles = nodesOnCycles(graph);
+  const typeNames: ReadonlyMap<string, ComponentTypeNames> = typeNamesOf
+    ? new Map([...onCycles].map((name) => [name, typeNamesOf(name)] as const))
+    : new Map(
+        [...allocateInputTypeNames(onCycles, new Set(nodes.keys()))].map(
+          ([name, input]) => [name, { output: name, input }] as const,
+        ),
+      );
+  const declared = new Map(
+    [...typeNames].map(([name, { input }]) => [name, input] as const),
+  );
+  const outputNames = new Map(
+    [...typeNames].map(([name, { output }]) => [name, output] as const),
   );
   const { exactOptional } = context.output.override.valibot;
 
@@ -142,32 +187,64 @@ export const generateValibotComponents = (context: ContextSpec): string => {
     }
   }
 
-  const declareTypes = (name: string, inputName: string, node: ValibotNode) =>
-    (['output', 'input'] as const).map((direction) => {
-      const type = renderValibotType(node, {
-        direction,
-        exactOptional,
-        declared,
-        readonlyRefs: readonlyRefsOf(name),
-      });
-      return `export type ${direction === 'output' ? name : inputName} = ${type};`;
+  const typeOf = (
+    name: string,
+    node: ValibotNode,
+    direction: 'output' | 'input',
+  ) =>
+    renderValibotType(node, {
+      direction,
+      exactOptional,
+      declared,
+      outputNames,
+      readonlyRefs: readonlyRefsOf(name),
     });
 
-  return order
-    .flatMap((name) => {
-      const node = nodes.get(name);
-      if (!node) return [];
-      const inputName = declared.get(name);
-      const lazyRefs = new Map(
-        [...(cyclicEdges.get(name) ?? [])].flatMap((target) => {
-          const input = declared.get(target);
-          return input === undefined ? [] : [[target, input] as const];
-        }),
-      );
-      return [
-        ...(inputName === undefined ? [] : declareTypes(name, inputName, node)),
-        `export const ${name} = ${renderValibot(node, { exactOptional, lazyRefs })}`,
-      ];
-    })
-    .join('\n\n');
+  return order.flatMap((name) => {
+    const node = nodes.get(name);
+    if (!node) return [];
+    const own = typeNames.get(name);
+    const lazyRefs = new Map(
+      [...(cyclicEdges.get(name) ?? [])].flatMap((target) => {
+        const input = declared.get(target);
+        return input === undefined ? [] : [[target, input] as const];
+      }),
+    );
+    return [
+      {
+        name,
+        expression: renderValibot(node, { exactOptional, lazyRefs, outputNames }),
+        ...(own === undefined
+          ? {}
+          : {
+              types: {
+                outputName: own.output,
+                output: typeOf(name, node, 'output'),
+                inputName: own.input,
+                input: typeOf(name, node, 'input'),
+              },
+            }),
+      },
+    ];
+  });
 };
+
+/**
+ * One `export const` per component schema, dependencies first, each constant
+ * on a cycle after its output and input types. Empty when the document has no
+ * component schemas.
+ */
+export const generateValibotComponents = (context: ContextSpec): string =>
+  generateValibotComponentConsts(context)
+    .map(({ name, expression, types }) =>
+      [
+        ...(types === undefined
+          ? []
+          : [
+              `export type ${types.outputName} = ${types.output};`,
+              `export type ${types.inputName} = ${types.input};`,
+            ]),
+        `export const ${name} = ${expression}`,
+      ].join('\n\n'),
+    )
+    .join('\n\n');

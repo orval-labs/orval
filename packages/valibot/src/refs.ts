@@ -2,6 +2,7 @@ import {
   type ContextSpec,
   getAtPath,
   getRefInfo,
+  getSchemaLibrary,
   isObject,
   isString,
   type OpenApiSchemaObject,
@@ -14,8 +15,13 @@ const COMPONENT_SCHEMA_PREFIX = '#/components/schemas/';
 // Globals the generated code calls, which a constant must not shadow.
 const RESERVED_NAMES: ReadonlySet<string> = new Set(['Date', 'RegExp']);
 
+/** Whether the schemas are written for `schemas: { type: 'valibot' }`. */
+export const isSchemasOutput = (context: ContextSpec): boolean =>
+  getSchemaLibrary(context.output) === 'valibot';
+
 export const isReusableSchemasEnabled = (context: ContextSpec): boolean =>
-  context.output.override.valibot.generateReusableSchemas;
+  context.output.override.valibot.generateReusableSchemas ||
+  isSchemasOutput(context);
 
 /** The `$ref` of a schema, if any. An empty `$ref` points at nothing. */
 export const getRef = (schema: unknown): string | undefined =>

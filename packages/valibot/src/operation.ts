@@ -40,6 +40,7 @@ type BodyOrResponse =
 const selectMedia = (
   data: BodyOrResponse | undefined,
   context: ContextSpec,
+  anyMediaType = false,
 ): MediaSchema | undefined => {
   if (!data) return;
   const { content } = resolveRef<
@@ -59,9 +60,11 @@ const selectMedia = (
           ]
         : [],
   );
-  return MEDIA_TYPES.map((pattern) =>
-    schemas.find(({ contentType }) => pattern.test(contentType)),
-  ).find(Boolean);
+  return (
+    MEDIA_TYPES.map((pattern) =>
+      schemas.find(({ contentType }) => pattern.test(contentType)),
+    ).find(Boolean) ?? (anyMediaType ? schemas[0] : undefined)
+  );
 };
 
 const describeSite = (operation: string | undefined, site: string): string =>
@@ -77,6 +80,8 @@ interface ParseBodyAndResponseOptions {
   isRequest: boolean;
   // The operation, named when its schema is too large to inline.
   operation?: string;
+  // Also takes a media type with no schema of its own here, such as XML.
+  anyMediaType?: boolean;
 }
 
 export const parseBodyAndResponse = ({
@@ -87,9 +92,10 @@ export const parseBodyAndResponse = ({
   generate,
   isRequest,
   operation,
+  anyMediaType,
 }: ParseBodyAndResponseOptions): ValibotNode | undefined => {
   if (!generate) return;
-  const media = selectMedia(data, context);
+  const media = selectMedia(data, context, anyMediaType);
   if (!media) return;
 
   // Form parts are rebuilt from the inlined tree.
@@ -115,6 +121,39 @@ export const parseBodyAndResponse = ({
     ? withFileParts(node, resolved, media.encoding)
     : node;
 };
+
+interface ParseSchemaOptions {
+  schema: OpenApiSchemaObject;
+  context: ContextSpec;
+  strict: boolean;
+  exactOptional: boolean;
+  label: string;
+  direction: 'readOnly' | 'writeOnly';
+}
+
+/** One schema without the properties its direction must not carry. */
+export const parseDirectionalSchema = ({
+  schema,
+  context,
+  strict,
+  exactOptional,
+  label,
+  direction,
+}: ParseSchemaOptions): ValibotNode =>
+  generateValibotValidationSchemaDefinition(
+    omitDirectional(
+      dereference(
+        schema,
+        context,
+        createRefPolicy({ context, direction, strict, exactOptional }),
+        { label },
+      ),
+      direction,
+    ),
+    context,
+    strict,
+    { required: true },
+  );
 
 const isSuccessWithBody = (code: string) =>
   code.startsWith('2') && code !== '204' && code !== '205';

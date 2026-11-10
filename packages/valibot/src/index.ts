@@ -34,6 +34,7 @@ export type {
   ValibotSchema,
 } from './nodes';
 export { generateValibotSchemasInline } from './schemas-inline';
+export { generateValibotSchemasModule } from './schemas-module';
 export {
   generateValibotValidationSchemaDefinition,
   type SchemaRules,
