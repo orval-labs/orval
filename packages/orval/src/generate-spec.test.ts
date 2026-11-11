@@ -431,7 +431,9 @@ describe('generateSpec - inline Fetch headers helper', () => {
           implementation.match(/^\s*(?:export )?const getHeaders2 =/gm),
         ).toHaveLength(1);
         expect(
-          implementation.match(/\.\.\.getHeaders2\(options\?\.headers\)/g),
+          implementation.match(
+            /headers: getHeaders2\([^\n]+options\?\.headers\)/g,
+          ),
         ).toHaveLength(2);
         expect(implementation).not.toContain('orval:fetch-headers');
       } finally {

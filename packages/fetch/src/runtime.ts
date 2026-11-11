@@ -19,19 +19,29 @@ import { HTTP_STATUS_CODE_SHARED_TYPES } from '@orval/core';
 //    construction, and skipping the `undefined` values is what the caller
 //    wants anyway: passed through, they reach the wire as the literal text
 //    "undefined".
-export const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
+// Walk higher-priority sources first. Record a source's names only after
+// collecting its entries, so repeated headers within that source keep their
+// spelling and the same object-entry semantics as before.
+// The resulting record has the values accepted by the current RequestInit
+// declaration. DOM accepts strings, while some other runtimes accept arrays.
+export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: RequestInit['headers'][]) => {
+    const seen = new Set<string>();
+    const layers: [string, string | readonly string[]][][] = [];
+    for (const source of sources.reverse()) {
+      if (!source) continue;
+      const entries = source instanceof Headers
+        ? source.entries()
+        : Symbol.iterator in source
+          ? Array.from(source as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])
+          : Object.entries<string | readonly string[] | undefined>(source);
+      const layer: [string, string | readonly string[]][] = [];
+      for (const [name, value] of entries) {
+        if (value !== undefined && !seen.has(name.toLowerCase())) layer.push([name, value]);
+      }
+      for (const [name] of layer) seen.add(name.toLowerCase());
+      layers.push(layer);
     }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
+    return Object.fromEntries(layers.reverse().flat()) as Extract<RequestInit['headers'], Record<string, unknown>>;
   };
 `;
 
@@ -95,6 +105,7 @@ export interface ExecuteArgs<Options extends object = CallOptions> {
   method: HttpMethod;
   body?: unknown;
   contentType?: string;
+  accept?: string;
   headers?: RequestInit['headers'];
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
@@ -331,13 +342,16 @@ export const prepareRequest = <Options extends object = CallOptions>(args: Execu
   const init: RequestInit = {
     ...options,
     method: args.method,
-    headers: {
-      ...(args.contentType && args.contentType !== 'multipart/form-data'
-        ? { 'Content-Type': args.contentType }
-        : {}),
-      ...getHeaders(args.headers),
-      ...getHeaders(args.options?.headers),
-    },
+    headers: getHeaders(
+      {
+        ...(args.contentType && args.contentType !== 'multipart/form-data'
+          ? { 'Content-Type': args.contentType }
+          : {}),
+        ...(args.accept ? { Accept: args.accept } : {}),
+      },
+      args.headers,
+      callOptions.headers,
+    ),
   };
   const body = encodeRequestBody(args);
   if (body === undefined) delete init.body;

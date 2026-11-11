@@ -76,8 +76,7 @@ import {
   isSharedRuntimeStyle,
 } from './shared-runtime-style';
 
-const FETCH_HEADERS_CALL = 'getHeaders(options?.headers)';
-const FETCH_HEADERS_REFERENCE = `/* orval:fetch-headers */ ${FETCH_HEADERS_CALL}`;
+const FETCH_HEADERS_REFERENCE = '/* orval:fetch-headers */ getHeaders(';
 
 export {
   generateFetchExtraFiles,
@@ -689,27 +688,25 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
         )
       : [];
 
-  const headersToAdd: string[] = [
+  const defaultHeaders = [
     ...(body.contentType && !isFormDataContentType(body.contentType)
       ? [`'Content-Type': '${jsStringLiteralEscape(body.contentType)}'`]
       : []),
     ...(isNdJson && response.contentTypes.length === 1
       ? [`Accept: '${jsStringLiteralEscape(response.contentTypes[0])}'`]
       : []),
-    ...overrideHeaders,
-    ...(headers ? ['...headers'] : []),
+  ];
+  const headerSources = [
+    ...(defaultHeaders.length > 0 ? [`{ ${defaultHeaders.join(',')} }`] : []),
+    ...(overrideHeaders.length > 0 ? [`{ ${overrideHeaders.join(',')} }`] : []),
+    ...(headers ? ['headers'] : []),
   ];
 
   let globalFetchOptions;
   if (isObject(override.requestOptions)) {
-    // If both requestOptions and fetchHeadersOptions will be adding a header, we must merge them to avoid multiple properties with the same name
-    const shouldMergeFetchOptionHeaders =
-      headersToAdd.length > 0 && 'headers' in override.requestOptions;
     const globalFetchOptionsObject = { ...override.requestOptions };
-    if (shouldMergeFetchOptionHeaders && override.requestOptions.headers) {
-      // Remove the headers from the object going into globalFetchOptions
+    if (headerSources.length > 0 && override.requestOptions.headers) {
       delete globalFetchOptionsObject.headers;
-      // Add it to the dedicated headers object
     }
     globalFetchOptions = stringify(globalFetchOptionsObject)
       ?.slice(1, -1)
@@ -717,15 +714,17 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   } else {
     globalFetchOptions = '';
   }
-  const usesHeadersHelper = headersToAdd.length > 0 && isRequestOptions;
+  const usesHeadersHelper =
+    headerSources.length > 0 && (isRequestOptions || headerSources.length > 1);
   const headersCall = hoistHeadersHelper
     ? FETCH_HEADERS_REFERENCE
-    : FETCH_HEADERS_CALL;
+    : 'getHeaders(';
   const inlineHeadersHelper =
     usesHeadersHelper && !hoistHeadersHelper ? GET_HEADERS_HELPER : '';
-  const fetchHeadersOption =
-    headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}${usesHeadersHelper ? `, ...${headersCall}` : ''} }`
+  const fetchHeadersOption = usesHeadersHelper
+    ? `headers: ${headersCall}${headerSources.join(', ')}${isRequestOptions ? ', options?.headers' : ''})`
+    : headerSources.length > 0
+      ? `headers: ${headers ? '{ ...headers }' : headerSources[0]}`
       : '';
   const requestBodyParams = generateBodyOptions(
     requestSerializer
@@ -1181,10 +1180,7 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   return {
     implementation: `${helper}\n${implementation}`,
     transformClientImplementation: (source) =>
-      source.replaceAll(
-        FETCH_HEADERS_REFERENCE,
-        `${helperName}(options?.headers)`,
-      ),
+      source.replaceAll(FETCH_HEADERS_REFERENCE, `${helperName}(`),
     ...(needsStatusCodeTypes
       ? { sharedTypes: HTTP_STATUS_CODE_SHARED_TYPES }
       : {}),

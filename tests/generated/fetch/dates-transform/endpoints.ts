@@ -18,26 +18,32 @@ import type {
   ShelterRecords,
 } from './model';
 
-const getHeaders = (
-  h?: NonNullable<RequestInit['headers']>,
-): Record<string, string | readonly string[]> => {
-  if (!h) return {};
-  if (h instanceof Headers) return Object.fromEntries(h.entries());
-  if (Symbol.iterator in h) {
-    return Object.fromEntries(
-      Array.from(
-        h as Iterable<Iterable<string>>,
-        (entry) => Array.from(entry) as [string, string],
-      ),
-    );
+const getHeaders = (...sources: RequestInit['headers'][]) => {
+  const seen = new Set<string>();
+  const layers: [string, string | readonly string[]][][] = [];
+  for (const source of sources.reverse()) {
+    if (!source) continue;
+    const entries =
+      source instanceof Headers
+        ? source.entries()
+        : Symbol.iterator in source
+          ? Array.from(
+              source as Iterable<Iterable<string>>,
+              (entry) => Array.from(entry) as [string, string],
+            )
+          : Object.entries<string | readonly string[] | undefined>(source);
+    const layer: [string, string | readonly string[]][] = [];
+    for (const [name, value] of entries) {
+      if (value !== undefined && !seen.has(name.toLowerCase()))
+        layer.push([name, value]);
+    }
+    for (const [name] of layer) seen.add(name.toLowerCase());
+    layers.push(layer);
   }
-  const headers: Record<string, string | readonly string[]> = {};
-  for (const [name, value] of Object.entries<
-    string | readonly string[] | undefined
-  >(h)) {
-    if (value !== undefined) headers[name] = value;
-  }
-  return headers;
+  return Object.fromEntries(layers.reverse().flat()) as Extract<
+    RequestInit['headers'],
+    Record<string, unknown>
+  >;
 };
 
 export type getOrderDetailsResponse200 = {
@@ -363,10 +369,10 @@ export const updateAppointment = async (
   const res = await fetch(getUpdateAppointmentUrl(), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(serializeUpdateAppointmentRequest(appointment)),
   });
 
@@ -451,10 +457,10 @@ export const updateAppointmentDuplicateDate = async (
   const res = await fetch(getUpdateAppointmentDuplicateDateUrl(), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(
       serializeUpdateAppointmentDuplicateDateRequest(
         appointmentWithDuplicateDate,
@@ -528,10 +534,10 @@ export const updateAppointmentReminder = async (
   const res = await fetch(getUpdateAppointmentReminderUrl(appointmentId), {
     ...options,
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(
       serializeUpdateAppointmentReminderRequest(reminderUpdate),
     ),
@@ -607,10 +613,10 @@ export const updateShelterIntake = async (
   const res = await fetch(getUpdateShelterIntakeUrl(shelterId), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(serializeUpdateShelterIntakeRequest(shelterIntake)),
   });
 
@@ -697,10 +703,10 @@ export const updateShelterRecords = async (
   const res = await fetch(getUpdateShelterRecordsUrl(shelterId), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(serializeUpdateShelterRecordsRequest(shelterRecords)),
   });
 
@@ -798,10 +804,10 @@ export const updateAppointmentWindow = async (
   const res = await fetch(getUpdateAppointmentWindowUrl(appointmentId), {
     ...options,
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
     body: JSON.stringify(
       serializeUpdateAppointmentWindowRequest(appointmentWindow),
     ),
