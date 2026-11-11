@@ -1050,14 +1050,28 @@ ${generateRequestFunction(verb, makeOptions(context))}
 
 describe('inline optional form mutator types (#4507)', () => {
   it.each([
-    ['multipart/form-data', false, true],
-    ['multipart/form-data', true, true],
-    ['application/x-www-form-urlencoded', false, true],
-    ['application/x-www-form-urlencoded', true, true],
-    ['multipart/form-data', false, false],
+    ['multipart/form-data', false, true, true],
+    ['multipart/form-data', true, true, true],
+    ['application/x-www-form-urlencoded', false, true, true],
+    ['application/x-www-form-urlencoded', true, true, true],
+    ['multipart/form-data', false, false, true],
+    ['multipart/form-data', false, true, { body: 'global default' }],
+    ['multipart/form-data', true, true, { body: 'global default' }],
+    [
+      'application/x-www-form-urlencoded',
+      false,
+      true,
+      { body: 'global default' },
+    ],
+    [
+      'application/x-www-form-urlencoded',
+      true,
+      true,
+      { body: 'global default' },
+    ],
   ] as const)(
-    'accepts a custom encoded %s body (hook: %s, declared body: %s)',
-    (contentType, hook, declaredBody) => {
+    'accepts a custom encoded %s body (hook: %s, declared body: %s, options: %j)',
+    (contentType, hook, declaredBody, requestOptions) => {
       const context = makeContext();
       context.output.override.components.requestBodies.suffix = 'Body';
       const body = getBody({
@@ -1093,7 +1107,7 @@ describe('inline optional form mutator types (#4507)', () => {
           operationName: 'listPets',
           context,
         }),
-        override: { requestOptions: true, formUrlEncoded: true },
+        override: { requestOptions, formUrlEncoded: true },
         formData: encoder,
         formUrlEncoded: encoder,
         mutator: {

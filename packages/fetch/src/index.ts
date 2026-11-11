@@ -700,12 +700,18 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     ...(headers ? ['...headers'] : []),
   ];
 
+  const isFormBody =
+    (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded);
+  const isOptionalFormBody = isFormBody && body.isOptional;
   let globalFetchOptions;
   if (isObject(override.requestOptions)) {
     // If both requestOptions and fetchHeadersOptions will be adding a header, we must merge them to avoid multiple properties with the same name
     const shouldMergeFetchOptionHeaders =
       headersToAdd.length > 0 && 'headers' in override.requestOptions;
     const globalFetchOptionsObject = { ...override.requestOptions };
+    if (isOptionalFormBody) {
+      delete globalFetchOptionsObject.body;
+    }
     if (shouldMergeFetchOptionHeaders && override.requestOptions.headers) {
       // Remove the headers from the object going into globalFetchOptions
       delete globalFetchOptionsObject.headers;
@@ -737,9 +743,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isFormData,
     isFormUrlEncoded,
   );
-  const isFormBody =
-    (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded);
-  const isOptionalFormBody = isFormBody && body.isOptional;
   const fetchBodyOption =
     requestBodyParams && !isOptionalFormBody
       ? isFormBody ||
