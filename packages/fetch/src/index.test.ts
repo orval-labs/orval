@@ -11,6 +11,8 @@ import type {
   ResReqTypesValue,
 } from '@orval/core';
 import {
+  getBody,
+  getProps,
   GetterPropType,
   HTTP_STATUS_CODE_SHARED_TYPES,
   logger,
@@ -34,6 +36,7 @@ import {
   generateRequestFunction,
   getFetchResponseValidationImports,
 } from './index';
+import { typeCheckFiles } from './test-utils';
 
 type OpenApiParameterLike = OpenApiParameterObject | OpenApiReferenceObject;
 
@@ -926,6 +929,202 @@ describe('generateRequestFunction — response status precedence', () => {
       generateRequestFunction(verbOptions, makeOptions(makeContext())),
     ).toThrow(/not a status code/);
   });
+});
+
+describe('inline optional form bodies (#4507)', () => {
+  it.each([
+    ['multipart/form-data', 'fetch', true],
+    ['multipart/form-data', 'fetch', false],
+    ['multipart/form-data', 'mutator', true],
+    ['multipart/form-data', 'custom-headers', true],
+    ['multipart/form-data', 'hook', true],
+    ['application/x-www-form-urlencoded', 'fetch', true],
+    ['application/x-www-form-urlencoded', 'fetch', false],
+    ['application/x-www-form-urlencoded', 'mutator', true],
+    ['application/x-www-form-urlencoded', 'hook', true],
+  ] as const)(
+    'typechecks and sends %s bodies (transport: %s, options: %s)',
+    async (contentType, transport, requestOptions) => {
+      const context = makeContext();
+      context.output.override.components.requestBodies.suffix = 'Body';
+      const body = getBody({
+        operationName: 'listPets',
+        context,
+        requestBody: {
+          content: {
+            [contentType]: {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+      const verb = makeVerbOptions({
+        verb: Verbs.POST,
+        body,
+        props: getProps({
+          body,
+          params: [],
+          operationName: 'listPets',
+          context,
+        }),
+        override: {
+          requestOptions: requestOptions ? { body: 'global default' } : false,
+          formUrlEncoded: true,
+          fetch: { includeHttpResponseReturnType: true },
+        },
+        mutator:
+          transport !== 'fetch'
+            ? {
+                name: transport === 'hook' ? 'useCustomFetch' : 'customFetch',
+                path: './custom-fetch',
+                default: false,
+                hasErrorType: false,
+                errorTypeName: '',
+                hasSecondArg: true,
+                hasThirdArg: false,
+                isHook: transport === 'hook',
+              }
+            : undefined,
+      });
+      const source = `
+type Pet = { name?: string };
+${body.schemas.map((schema) => schema.model).join('\n')}
+type MutatorOptions = ${transport === 'custom-headers' ? "Omit<RequestInit, 'headers'> & { headers?: Record<string, string | undefined> }" : 'RequestInit'} & { traceId?: string };
+declare function customFetch<T>(url: string, options: MutatorOptions): Promise<T>;
+declare function useCustomFetch(): typeof customFetch;
+${generateRequestFunction(verb, makeOptions(context))}
+`;
+      expect(
+        typeCheckFiles({ '/form.ts': source }, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+
+      const requests: RequestInit[] = [];
+      const fetch = (_url: string, options: RequestInit) => {
+        requests.push(options);
+        return Promise.resolve(new Response(null, { status: 204 }));
+      };
+      const { outputText } = ts.transpileModule(source, {
+        compilerOptions: { module: ts.ModuleKind.CommonJS },
+      });
+      const listPets = runInNewContext(
+        `${outputText}; ${transport === 'hook' ? 'useListPetsHook()' : 'listPets'}`,
+        {
+          exports: {},
+          fetch,
+          customFetch: fetch,
+          useCustomFetch: () => fetch,
+          FormData,
+          URLSearchParams,
+          Headers,
+        },
+      ) as (
+        body?: { name?: string },
+        options?: RequestInit,
+      ) => Promise<unknown>;
+
+      const options = { body: 'must be overridden', traceId: 'trace' };
+      await listPets(undefined, options);
+      expect(requests[0]).not.toHaveProperty('body');
+      if (requestOptions)
+        expect(requests[0]).toHaveProperty('traceId', 'trace');
+      expect(new Request('https://example.com', requests[0]).body).toBeNull();
+      await listPets({});
+      await listPets({ name: 'Fido' });
+      const Form =
+        contentType === 'multipart/form-data' ? FormData : URLSearchParams;
+      expect(requests[1].body).toBeInstanceOf(Form);
+      expect(requests[2].body).toBeInstanceOf(Form);
+      expect((requests[2].body as FormData | URLSearchParams).get('name')).toBe(
+        'Fido',
+      );
+    },
+  );
+});
+
+describe('inline optional form mutator types (#4507)', () => {
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+  ])(
+    'preserves schema inference (hook: %s, shadowed RequestInit: %s)',
+    (hook, shadowed) => {
+      const context = makeContext([], false, {
+        path: './model',
+        type: 'zod',
+        splitByTags: false,
+      });
+      context.output.override.includeZodSchemaInArguments = true;
+      const verb = makeVerbOptions({
+        verb: Verbs.POST,
+        body: {
+          definition: 'UploadBody',
+          implementation: 'uploadBody',
+          contentType: 'multipart/form-data',
+          isOptional: true,
+          formData: 'const formData = new FormData();\n',
+        },
+        props: [
+          {
+            name: 'uploadBody',
+            definition: 'uploadBody?: UploadBody',
+            implementation: 'uploadBody?: UploadBody',
+            required: false,
+            default: undefined,
+            type: GetterPropType.BODY,
+          },
+        ],
+        response: {
+          definition: { success: 'Pet', errors: '' },
+          imports: [{ name: 'Pet' }],
+          types: {
+            success: [successType({ key: '200', value: 'Pet', isRef: true })],
+          },
+        },
+        override: {
+          requestOptions: true,
+          fetch: {
+            includeHttpResponseReturnType: false,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+        mutator: {
+          name: hook ? 'useCustomFetch' : 'customFetch',
+          path: './custom-fetch',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: '',
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: hook,
+        },
+      });
+      const source = `
+${shadowed ? 'type RequestInit = { requiredModelField: string };' : ''}
+type UploadBody = { name?: string };
+type Pet = { id: string };
+declare const Pet: { parse(value: unknown): Pet };
+declare function customFetch<T>(url: string, options: globalThis.RequestInit & { schema?: { parse(value: unknown): T } }): Promise<T>;
+declare function useCustomFetch(): typeof customFetch;
+${generateRequestFunction(verb, makeOptions(context))}
+const result: Promise<Pet> = ${hook ? 'useListPetsHook()' : 'listPets'}();
+`;
+      expect(
+        typeCheckFiles({ '/form-schema.ts': source }, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+    },
+  );
 });
 
 describe('generateRequestFunction — Content-Type header escaping', () => {

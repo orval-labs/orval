@@ -141,11 +141,16 @@ export const createPets = async (
           return formData;
         })();
 
-  const res = await fetch(getCreatePetsUrl(version), {
+  const requestInit: globalThis.RequestInit = {
     ...options,
     method: 'POST',
-    body: formData,
-  });
+  };
+  if (formData === undefined) {
+    delete requestInit.body;
+  } else {
+    requestInit.body = formData;
+  }
+  const res = await fetch(getCreatePetsUrl(version), requestInit);
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 

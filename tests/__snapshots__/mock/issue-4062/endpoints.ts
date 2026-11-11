@@ -41,11 +41,16 @@ export const createUpload = async (
           return formData;
         })();
 
-  const res = await fetch(getCreateUploadUrl(), {
+  const requestInit: globalThis.RequestInit = {
     ...options,
     method: 'POST',
-    body: formData,
-  });
+  };
+  if (formData === undefined) {
+    delete requestInit.body;
+  } else {
+    requestInit.body = formData;
+  }
+  const res = await fetch(getCreateUploadUrl(), requestInit);
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 

@@ -92,13 +92,18 @@ export const postApiAppOssIdentityUserImportUsersFromFile = async (
           return formData;
         })();
 
+  const requestInit: globalThis.RequestInit = {
+    ...options,
+    method: 'POST',
+  };
+  if (formData === undefined) {
+    delete requestInit.body;
+  } else {
+    requestInit.body = formData;
+  }
   const res = await fetch(
     getPostApiAppOssIdentityUserImportUsersFromFileUrl(params),
-    {
-      ...options,
-      method: 'POST',
-      body: formData,
-    },
+    requestInit,
   );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
