@@ -1139,8 +1139,9 @@ should not preserve readonly request fields by default.
 ### Error Handling
 
 Without Standard Schema, Zod validation throws a `ZodError`. With
-`standardSchema: true`, validation throws a `StandardSchemaError` with an
-`issues` array. Valibot uses Standard Schema automatically.
+`runtimeValidation: { standardSchema: true }`, or always with
+`schemas: { type: 'valibot' }`, validation throws a `StandardSchemaError` with an
+`issues` array.
 
 For `HttpClient` services, handle it in your subscription, effect, or error
 interceptor:

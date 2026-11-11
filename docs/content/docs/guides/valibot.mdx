@@ -175,7 +175,7 @@ export default defineConfig({
 });
 ```
 
-Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.path` itself when it names a file. Each schema also exports the types `X` (`v.InferInput`) and `XOutput` (`v.InferOutput`).
+Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.path` itself when it names a file. Each schema also exports the types `X` (`v.InferInput`) and `XOutput` (`v.InferOutput`). A schema on a cycle declares both types in full instead, because they cannot be inferred, so its recursive fields keep their types.
 
 - Validation runs through the `runtimeValidation` option of `override.fetch` for `fetch` and for `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` with `httpClient: 'fetch'`, `override.angular` for `angular`, and `override.query` for `angular-query`. It is off by default.
 - [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on, because Valibot schemas have no `parse` method. Validation errors are therefore `StandardSchemaError`, not `ValiError`, and async schemas are not supported.
@@ -188,7 +188,6 @@ The following fail with a configuration error: `schemas.mode: 'split'`, `schemas
 Known limits:
 
 - Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
-- A cycle is validated at runtime, but the type of the field that closes it is `unknown`.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 
 ## Combining with HTTP Clients
