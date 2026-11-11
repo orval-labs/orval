@@ -1050,6 +1050,85 @@ ${generateRequestFunction(verb, makeOptions(context))}
 
 describe('inline optional form mutator types (#4507)', () => {
   it.each([
+    ['multipart/form-data', false, true],
+    ['multipart/form-data', true, true],
+    ['application/x-www-form-urlencoded', false, true],
+    ['application/x-www-form-urlencoded', true, true],
+    ['multipart/form-data', false, false],
+  ] as const)(
+    'accepts a custom encoded %s body (hook: %s, declared body: %s)',
+    (contentType, hook, declaredBody) => {
+      const context = makeContext();
+      context.output.override.components.requestBodies.suffix = 'Body';
+      const body = getBody({
+        operationName: 'listPets',
+        context,
+        requestBody: {
+          content: {
+            [contentType]: {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+          },
+        },
+      });
+      const encoder = {
+        name: 'encodeForm',
+        path: './encode-form',
+        isHook: false,
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: false,
+        hasThirdArg: false,
+      };
+      const verb = makeVerbOptions({
+        verb: Verbs.POST,
+        body,
+        props: getProps({
+          body,
+          params: [],
+          operationName: 'listPets',
+          context,
+        }),
+        override: { requestOptions: true, formUrlEncoded: true },
+        formData: encoder,
+        formUrlEncoded: encoder,
+        mutator: {
+          ...encoder,
+          name: hook ? 'useCustomFetch' : 'customFetch',
+          path: './custom-fetch',
+          hasSecondArg: true,
+          isHook: hook,
+        },
+      });
+      const source = `
+type Pet = { name?: string };
+${body.schemas.map((schema) => schema.model).join('\n')}
+type CustomForm = { payload: string };
+type MutatorOptions = { method?: string; headers?: Record<string, string>; ${declaredBody ? 'body?: CustomForm' : ''} };
+declare function encodeForm(input: { name?: string }): CustomForm;
+declare function customFetch<T>(url: string, options: MutatorOptions): Promise<T>;
+declare function useCustomFetch(): typeof customFetch;
+${generateRequestFunction(verb, makeOptions(context))}
+`;
+      const files = { '/custom-form.ts': source };
+      expect(
+        typeCheckFiles(files, [
+          'lib.es2022.d.ts',
+          'lib.dom.d.ts',
+          'lib.dom.iterable.d.ts',
+        ]),
+      ).toEqual([]);
+      if (contentType === 'multipart/form-data') {
+        expect(typeCheckFiles(files)).toEqual([]);
+      }
+    },
+  );
+
+  it.each([
     [false, false],
     [true, false],
     [false, true],

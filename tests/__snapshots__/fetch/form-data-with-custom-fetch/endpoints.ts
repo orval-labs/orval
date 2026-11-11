@@ -142,8 +142,9 @@ export const createPets = async (
           return formData;
         })();
 
-  const requestInit: Pick<globalThis.RequestInit, 'body'> &
-    NonNullable<Parameters<typeof customFetch>[1]> = {
+  const requestInit: { body?: unknown } & NonNullable<
+    Parameters<typeof customFetch>[1]
+  > = {
     ...options,
     method: 'POST',
   };

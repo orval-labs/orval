@@ -797,8 +797,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   );
   const mutatorOptionsType = `NonNullable<${getRequestOptionsType(mutator)}>`;
   // Parameters erases generic schema types; infer the concrete schema at the call site.
+  // Some mutators do not declare body in their options type.
   const requestInitType = mutator?.hasSecondArg
-    ? `Pick<globalThis.RequestInit, 'body'> & ${includeZodSchema ? `Omit<${mutatorOptionsType}, 'schema'>` : mutatorOptionsType}`
+    ? `{ body?: unknown } & ${includeZodSchema ? `Omit<${mutatorOptionsType}, 'schema'>` : mutatorOptionsType}`
     : 'globalThis.RequestInit';
   const requestInitImplementation = isOptionalFormBody
     ? `const ${requestInitName}: ${requestInitType} = ${getFetchRequestInit()};
