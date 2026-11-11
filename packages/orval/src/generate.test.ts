@@ -188,7 +188,9 @@ describe('generate - outdated', () => {
       generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
         outdated: true,
       }),
-    ).rejects.toThrow(/outdated generated file/);
+    ).rejects.toThrow(
+      'Process failed with 1 outdated generated file(s) due to outdated option',
+    );
   });
 
   it('enables the check with outdatedStrict alone', async () => {
@@ -199,7 +201,9 @@ describe('generate - outdated', () => {
       generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
         outdatedStrict: true,
       }),
-    ).rejects.toThrow(/outdated generated file/);
+    ).rejects.toThrow(
+      'Process failed with 1 outdated generated file(s) due to outdatedStrict option',
+    );
   });
 
   it('rejects strict checking with watch before starting generation', async () => {

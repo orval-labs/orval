@@ -63,7 +63,7 @@ async function generateWithReporter(
         logger.error(`${file.status}: ${path.relative(workspace, file.path)}`);
       }
       throw new Error(
-        `Process failed with ${outdated.length} outdated generated file(s) due to outdated option`,
+        `Process failed with ${outdated.length} outdated generated file(s) due to ${options?.outdatedStrict ? 'outdatedStrict' : 'outdated'} option`,
       );
     }
     logger.info('All generated files are up to date');
