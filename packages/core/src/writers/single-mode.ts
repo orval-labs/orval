@@ -230,7 +230,10 @@ export async function writeSingleMode({
     if (!output.schemas && needSchema) {
       data += generateSchemasInline
         ? generateSchemasInline(data)
-        : generateModelsInline(builder.schemas);
+        : generateModelsInline(
+            builder.schemas,
+            output.override.deduplicateModels,
+          );
     }
 
     data += `${implementation.trim()}\n`;

@@ -4046,6 +4046,28 @@ Emit named primitive schemas as branded types.
 
 Use TypeScript `type` instead of `interface`.
 
+### deduplicateModels
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Reuse identical object type aliases within each generated module. The first
+definition keeps its body; later definitions keep their exported names and
+leading JSDoc but become aliases when that shortens the generated source:
+
+```ts
+export type First = { id: string };
+export type Second = First;
+```
+
+Enable with `output.override.deduplicateModels: true`. Combine with
+`useTypeOverInterfaces: true` to include object models normally emitted as
+interfaces. Interfaces, generic declarations, `unique symbol` types and runtime
+values such as enums are left unchanged. Property documentation, modifiers and
+imported bindings must match. Definitions in separate modules are not shared,
+so no cross-file imports are added. This reduces generated TypeScript source, not runtime
+JavaScript.
+
 ### useNamedParameters
 
 **Type:** `Boolean`

@@ -109,7 +109,11 @@ export async function writeTagsOperationsSplitMode({
   if (globalSchemasPath) {
     const schemasData = generateSchemasInline
       ? header + generateSchemasInline()
-      : header + generateModelsInline(builder.schemas);
+      : header +
+        generateModelsInline(
+          builder.schemas,
+          output.override.deduplicateModels,
+        );
 
     await writeGeneratedFile(globalSchemasPath, schemasData);
   }
@@ -189,7 +193,11 @@ export async function writeTagsOperationsSplitMode({
 
             if (hasOperationSchemas) {
               const schemasData =
-                header + generateModelsInline(operationSchemas);
+                header +
+                generateModelsInline(
+                  operationSchemas,
+                  output.override.deduplicateModels,
+                );
               await writeGeneratedFile(operationSchemasPath, schemasData);
             }
 

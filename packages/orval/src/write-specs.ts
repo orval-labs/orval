@@ -885,7 +885,8 @@ async function writeSpecsInternal(
           namesAFile(schemasPath)
             ? schemasPath
             : path.join(schemasPath, `index${fileExtension}`),
-          header + generateModelsInline(schemas),
+          header +
+            generateModelsInline(schemas, output.override.deduplicateModels),
         );
       } else if (schemaOutputPlan) {
         await writeRoutedSchemas({

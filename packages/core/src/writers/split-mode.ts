@@ -152,7 +152,11 @@ export async function writeSplitMode({
     if (schemasPath) {
       const schemasData = generateSchemasInline
         ? header + generateSchemasInline()
-        : header + generateModelsInline(builder.schemas);
+        : header +
+          generateModelsInline(
+            builder.schemas,
+            output.override.deduplicateModels,
+          );
 
       await writeGeneratedFile(schemasPath, schemasData);
     }

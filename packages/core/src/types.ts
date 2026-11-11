@@ -203,6 +203,8 @@ export interface NormalizedOverrideOutput {
   useDatesTransform?: boolean;
   formatType?: NormalizedFormatTypeMap;
   useTypeOverInterfaces?: boolean;
+  /** Reuse identical object type aliases within each generated module. @default false */
+  deduplicateModels?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useBrandedTypes?: boolean;
@@ -993,6 +995,8 @@ export interface OverrideOutput {
   useDatesTransform?: boolean;
   formatType?: FormatTypeMap;
   useTypeOverInterfaces?: boolean;
+  /** Reuse identical object type aliases within each generated module. @default false */
+  deduplicateModels?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   /**

@@ -145,7 +145,11 @@ export async function writeTagsMode({
       schemasPath,
       generateSchemasInline
         ? header + generateSchemasInline()
-        : header + generateModelsInline(builder.schemas),
+        : header +
+            generateModelsInline(
+              builder.schemas,
+              output.override.deduplicateModels,
+            ),
     );
   }
 
