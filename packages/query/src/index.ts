@@ -90,8 +90,6 @@ export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   const innerHeader = getQueryHeader(params);
   const innerImpl =
     typeof innerHeader === 'string' ? innerHeader : innerHeader.implementation;
-  const innerSharedTypes =
-    typeof innerHeader === 'string' ? undefined : innerHeader.sharedTypes;
 
   const ownImplementation = `${
     params.hasAwaitedType
@@ -109,14 +107,9 @@ ${needsWithQueryKey ? `${WITH_QUERY_KEY_HELPER}\n\n` : ''}${
     needsSolidAccessor ? `${SOLID_ACCESSOR_HELPER}\n\n` : ''
   }`;
 
-  if (innerSharedTypes && innerSharedTypes.length > 0) {
-    return {
-      implementation: ownImplementation,
-      sharedTypes: innerSharedTypes,
-    };
-  }
-
-  return ownImplementation;
+  return typeof innerHeader === 'string'
+    ? ownImplementation
+    : { ...innerHeader, implementation: ownImplementation };
 };
 
 export const generateQuery: ClientBuilder = async (

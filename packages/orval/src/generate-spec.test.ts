@@ -361,6 +361,86 @@ const createTempWorkspace = async () => {
   return mkdtemp(path.join(os.tmpdir(), 'orval-gen-spec-'));
 };
 
+describe('generateSpec - inline Fetch headers helper', () => {
+  const jsonPost = (operationId: string) => ({
+    operationId,
+    tags: ['pets'],
+    requestBody: {
+      required: true,
+      content: { 'application/json': { schema: { type: 'string' as const } } },
+    },
+    responses: { '204': { description: 'Saved' } },
+  });
+  const spec: OpenApiDocument = {
+    ...PETSTORE_SPEC,
+    paths: {
+      '/pets': { post: jsonPost('savePet') },
+      '/headers': { post: jsonPost('getHeaders') },
+      '/status': {
+        get: {
+          operationId: 'getStatus',
+          tags: ['status'],
+          responses: { '204': { description: 'OK' } },
+        },
+      },
+    },
+  };
+
+  it.each([
+    { client: 'fetch', mode: 'single' },
+    { client: 'fetch', mode: 'split' },
+    { client: 'fetch', mode: 'tags' },
+    { client: 'fetch', mode: 'tags-split' },
+    { client: 'fetch', mode: 'tags-operations' },
+    { client: 'fetch', mode: 'tags-operations-split' },
+    { client: 'react-query', mode: 'single' },
+    { client: 'swr', mode: 'single' },
+  ] as const)(
+    'shares the helper in $client $mode output',
+    async ({ client, mode }) => {
+      const workspace = await createTempWorkspace();
+
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec },
+            output: {
+              target: './endpoints.ts',
+              client,
+              httpClient: 'fetch',
+              mode,
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+
+        const files = (await readdir(workspace, { recursive: true })).filter(
+          (file) => file.endsWith('.ts'),
+        );
+        const contents = await Promise.all(
+          files.map((file) =>
+            fs.promises.readFile(path.join(workspace, file), 'utf8'),
+          ),
+        );
+        const implementation = contents.join('\n');
+
+        // The operation keeps its public name and both requests use the helper.
+        expect(implementation).toContain('export const getHeaders =');
+        expect(
+          implementation.match(/^\s*(?:export )?const getHeaders2 =/gm),
+        ).toHaveLength(1);
+        expect(
+          implementation.match(/\.\.\.getHeaders2\(options\?\.headers\)/g),
+        ).toHaveLength(2);
+        expect(implementation).not.toContain('orval:fetch-headers');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe('generateSpec - unchanged formatted output', () => {
   it('keeps mtimes when prettier produces the same final files', async () => {
     const workspace = await createTempWorkspace();

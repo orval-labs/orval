@@ -149,7 +149,10 @@ export async function generateTarget(
           : '';
 
       target.implementation =
-        inlinedSharedTypes + header.implementation + target.implementation;
+        inlinedSharedTypes +
+        header.implementation +
+        (header.transformClientImplementation?.(target.implementation) ??
+          target.implementation);
 
       const footer = await builder.footer({
         outputClient: options.client,

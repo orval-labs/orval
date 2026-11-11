@@ -18,6 +18,28 @@ import type {
   ShelterRecords,
 } from './model';
 
+const getHeaders = (
+  h?: NonNullable<RequestInit['headers']>,
+): Record<string, string | readonly string[]> => {
+  if (!h) return {};
+  if (h instanceof Headers) return Object.fromEntries(h.entries());
+  if (Symbol.iterator in h) {
+    return Object.fromEntries(
+      Array.from(
+        h as Iterable<Iterable<string>>,
+        (entry) => Array.from(entry) as [string, string],
+      ),
+    );
+  }
+  const headers: Record<string, string | readonly string[]> = {};
+  for (const [name, value] of Object.entries<
+    string | readonly string[] | undefined
+  >(h)) {
+    if (value !== undefined) headers[name] = value;
+  }
+  return headers;
+};
+
 export const getGetOrderDetailsUrl = (orderId: string) => {
   return `/orders/${orderId}`;
 };
@@ -282,27 +304,6 @@ export const updateAppointment = async (
   appointment: Appointment,
   options?: RequestInit,
 ): Promise<Appointment> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateAppointmentUrl(), {
     ...options,
     method: 'PUT',
@@ -382,27 +383,6 @@ export const updateAppointmentDuplicateDate = async (
   appointmentWithDuplicateDate: AppointmentWithDuplicateDate,
   options?: RequestInit,
 ): Promise<AppointmentWithDuplicateDate> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateAppointmentDuplicateDateUrl(), {
     ...options,
     method: 'PUT',
@@ -469,27 +449,6 @@ export const updateAppointmentReminder = async (
   reminderUpdate?: ReminderUpdate,
   options?: RequestInit,
 ): Promise<Appointment> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateAppointmentReminderUrl(appointmentId), {
     ...options,
     method: 'PATCH',
@@ -559,27 +518,6 @@ export const updateShelterIntake = async (
   shelterIntake: ShelterIntake,
   options?: RequestInit,
 ): Promise<ShelterIntake> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateShelterIntakeUrl(shelterId), {
     ...options,
     method: 'PUT',
@@ -662,27 +600,6 @@ export const updateShelterRecords = async (
   shelterRecords: ShelterRecords,
   options?: RequestInit,
 ): Promise<ShelterRecords> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateShelterRecordsUrl(shelterId), {
     ...options,
     method: 'PUT',
@@ -775,27 +692,6 @@ export const updateAppointmentWindow = async (
   appointmentWindow: AppointmentWindow,
   options?: RequestInit,
 ): Promise<AppointmentWindow> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getUpdateAppointmentWindowUrl(appointmentId), {
     ...options,
     method: 'PUT',

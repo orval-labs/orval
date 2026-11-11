@@ -880,8 +880,6 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) => {
   const innerHeader = getSwrHeader(params);
   const innerImpl =
     typeof innerHeader === 'string' ? innerHeader : innerHeader.implementation;
-  const innerSharedTypes =
-    typeof innerHeader === 'string' ? undefined : innerHeader.sharedTypes;
 
   const ownImplementation = `
   ${
@@ -901,14 +899,9 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) => {
   ${innerImpl}
  `;
 
-  if (innerSharedTypes && innerSharedTypes.length > 0) {
-    return {
-      implementation: ownImplementation,
-      sharedTypes: innerSharedTypes,
-    };
-  }
-
-  return ownImplementation;
+  return typeof innerHeader === 'string'
+    ? ownImplementation
+    : { ...innerHeader, implementation: ownImplementation };
 };
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {

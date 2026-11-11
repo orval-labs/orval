@@ -270,7 +270,9 @@ export async function generateTargetForTagsOperations(
         return {
           operationName: operation.operationName,
           imports: operation.imports,
-          implementation: operation.implementation,
+          implementation:
+            header.transformClientImplementation?.(operation.implementation) ??
+            operation.implementation,
           mockOutputs: wrappedMockOutputs.map((m) => flattenMockOutput(m)),
           mockOutputsFull: wrappedMockOutputs,
           mutators: operation.mutator ? [operation.mutator] : undefined,

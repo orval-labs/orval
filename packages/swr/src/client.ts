@@ -44,7 +44,9 @@ export const generateSwrRequestFunction = (
 ) => {
   return options.context.output.httpClient === OutputHttpClient.AXIOS
     ? generateAxiosRequestFunction(verbOptions, options)
-    : generateFetchRequestFunction(verbOptions, options);
+    : generateFetchRequestFunction(verbOptions, options, {
+        hoistHeadersHelper: true,
+      });
 };
 
 const generateAxiosRequestFunction = (

@@ -11,6 +11,28 @@ import type {
   PatchThingBody,
 } from './handlers';
 
+const getHeaders = (
+  h?: NonNullable<RequestInit['headers']>,
+): Record<string, string | readonly string[]> => {
+  if (!h) return {};
+  if (h instanceof Headers) return Object.fromEntries(h.entries());
+  if (Symbol.iterator in h) {
+    return Object.fromEntries(
+      Array.from(
+        h as Iterable<Iterable<string>>,
+        (entry) => Array.from(entry) as [string, string],
+      ),
+    );
+  }
+  const headers: Record<string, string | readonly string[]> = {};
+  for (const [name, value] of Object.entries<
+    string | readonly string[] | undefined
+  >(h)) {
+    if (value !== undefined) headers[name] = value;
+  }
+  return headers;
+};
+
 export type getThingsResponse200 = {
   data: string[];
   status: 200;
@@ -61,27 +83,6 @@ export const createThing = async (
   createThingBody?: CreateThingBody,
   options?: RequestInit,
 ): Promise<createThingResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getCreateThingUrl(), {
     ...options,
     method: 'POST',
@@ -120,27 +121,6 @@ export const replaceThing = async (
   replaceThingBody?: ReplaceThingBody,
   options?: RequestInit,
 ): Promise<replaceThingResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getReplaceThingUrl(), {
     ...options,
     method: 'PUT',
@@ -181,27 +161,6 @@ export const patchThing = async (
   patchThingBody?: PatchThingBody,
   options?: RequestInit,
 ): Promise<patchThingResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getPatchThingUrl(), {
     ...options,
     method: 'PATCH',

@@ -120,6 +120,7 @@ const withDefaults = (adapter: FrameworkAdapterConfig): FrameworkAdapter => {
         ? generateAxiosRequestFunction(verbOptions, options, composed)
         : generateFetchRequestFunction(verbOptions, options, {
             signalOnlyOptions: verbOptions.override.query.signal,
+            hoistHeadersHelper: true,
           });
     },
 

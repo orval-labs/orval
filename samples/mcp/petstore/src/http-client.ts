@@ -25,6 +25,28 @@ import type {
   User,
 } from './http-schemas';
 
+const getHeaders = (
+  h?: NonNullable<RequestInit['headers']>,
+): Record<string, string | readonly string[]> => {
+  if (!h) return {};
+  if (h instanceof Headers) return Object.fromEntries(h.entries());
+  if (Symbol.iterator in h) {
+    return Object.fromEntries(
+      Array.from(
+        h as Iterable<Iterable<string>>,
+        (entry) => Array.from(entry) as [string, string],
+      ),
+    );
+  }
+  const headers: Record<string, string | readonly string[]> = {};
+  for (const [name, value] of Object.entries<
+    string | readonly string[] | undefined
+  >(h)) {
+    if (value !== undefined) headers[name] = value;
+  }
+  return headers;
+};
+
 export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
 export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
 export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
@@ -123,27 +145,6 @@ export const filterPetsByStatus = async (
   pet?: Pet,
   options?: RequestInit,
 ): Promise<filterPetsByStatusResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<
-      string | readonly string[] | undefined
-    >(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
   const res = await fetch(getFilterPetsByStatusUrl(params), {
     ...options,
     method: 'POST',

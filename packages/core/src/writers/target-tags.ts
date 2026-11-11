@@ -341,7 +341,8 @@ export async function generateTargetForTags(
           implementation:
             inlinedSharedTypes +
             header.implementation +
-            target.implementation +
+            (header.transformClientImplementation?.(target.implementation) ??
+              target.implementation) +
             footer.implementation,
           mockOutputs: wrappedMockOutputs,
           imports: target.imports,
