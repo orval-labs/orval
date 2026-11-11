@@ -35,9 +35,32 @@ export const GET_HEADERS_HELPER = `  const getHeaders = (h?: NonNullable<Request
   };
 `;
 
-const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
-  ({ code }) => `export ${code}`,
-).join('\n');
+// A union of more than eight codes is split into private aliases of eight,
+// which a formatter keeps on one line each instead of one line per code.
+const STATUS_CODES_PER_LINE = 8;
+// `HTTPStatusCodes` is derived from the wildcard lookup in the template.
+const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.filter(
+  ({ name }) => name !== 'HTTPStatusCodes',
+)
+  .map(({ name, code }) => {
+    const codes = code.match(/\b[1-5]\d\d\b/g) ?? [];
+    if (codes.length <= STATUS_CODES_PER_LINE) return `export ${code}`;
+    const parts = Array.from(
+      { length: Math.ceil(codes.length / STATUS_CODES_PER_LINE) },
+      (_, index) => ({
+        name: `${name}${String.fromCodePoint(65 + index)}`,
+        codes: codes.slice(
+          index * STATUS_CODES_PER_LINE,
+          (index + 1) * STATUS_CODES_PER_LINE,
+        ),
+      }),
+    );
+    return [
+      ...parts.map((part) => `type ${part.name} = ${part.codes.join(' | ')};`),
+      `export type ${name} = ${parts.map((part) => part.name).join(' | ')};`,
+    ].join('\n');
+  })
+  .join('\n');
 
 // The runtime names fetch types only through `RequestInit`: `BodyInit` and
 // `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
@@ -45,6 +68,15 @@ const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.map(
 // a mutator typed for `includeZodSchemaInArguments` may declare any optional
 // `schema` (`schema?: ZodType`), but not a required one, since operations
 // without a validated response pass none.
+//
+// The template carries no comments of its own, since they would ship in every
+// generated runtime. In `serializeQuery`, `encodedEntries` are pre-encoded and
+// bypass `URLSearchParams`: delimited arrays are joined with a percent-encoded
+// separator (URLSearchParams would write a space as '+'), and deepObject
+// params keep their brackets. Plain-object form params are flattened into
+// their own keys, or written as one key of comma-joined prop,value pairs. In
+// `execute`, a download's error body is text, decoded by the declared error
+// media types (`errorResponseType`).
 export const RUNTIME_TEMPLATE = `${statusCodeTypes}
 
 export type HttpMethod =
@@ -99,25 +131,22 @@ export interface Stream<T> {
   readonly __orvalStream: T;
 }
 
-type WildcardKey = '1XX' | '2XX' | '3XX' | '4XX' | '5XX';
-type WildcardStatus<K> = K extends '1XX'
-  ? HTTPStatusCode1xx
-  : K extends '2XX'
-    ? HTTPStatusCode2xx
-    : K extends '3XX'
-      ? HTTPStatusCode3xx
-      : K extends '4XX'
-        ? HTTPStatusCode4xx
-        : K extends '5XX'
-          ? HTTPStatusCode5xx
-          : never;
+type WildcardStatus = {
+  '1XX': HTTPStatusCode1xx;
+  '2XX': HTTPStatusCode2xx;
+  '3XX': HTTPStatusCode3xx;
+  '4XX': HTTPStatusCode4xx;
+  '5XX': HTTPStatusCode5xx;
+};
+type WildcardKey = keyof WildcardStatus;
+export type HTTPStatusCodes = WildcardStatus[WildcardKey];
 type DeclaredStatuses<R> = {
   [K in Exclude<keyof R, 'default'>]: StatusFor<R, K>;
 }[Exclude<keyof R, 'default'>];
 type StatusFor<R, K extends keyof R> = K extends number
   ? K
   : K extends WildcardKey
-    ? Exclude<WildcardStatus<K>, Extract<keyof R, number>>
+    ? Exclude<WildcardStatus[K], Extract<keyof R, number>>
     : K extends 'default'
       ? [Exclude<keyof R, 'default'>] extends [never]
         ? number
@@ -151,30 +180,25 @@ export interface QueryMeta {
 }
 
 const stringifyValue = (value: unknown) =>
-  value === null
-    ? 'null'
-    : value instanceof Date
-      ? value.toISOString()
-      : Array.isArray(value)
-        ? value.join(',')
-        : typeof value === 'string' ||
-            typeof value === 'number' ||
-            typeof value === 'boolean'
-          ? String(value)
-          : JSON.stringify(value);
+  value instanceof Date
+    ? value.toISOString()
+    : Array.isArray(value)
+      ? value.join(',')
+      : typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ? String(value)
+        : JSON.stringify(value);
 
 export const serializeQuery = (
   params: Record<string, unknown> | undefined,
   meta: QueryMeta = {},
 ): string => {
   const normalizedParams = new URLSearchParams();
-  // Pre-encoded entries that bypass URLSearchParams.
   const encodedEntries: string[] = [];
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (Array.isArray(value)) {
-      // Joined with a percent-encoded separator; URLSearchParams would write
-      // the space as '+'.
       const delimiter = meta.pipeDelimited?.includes(key)
         ? '%7C'
         : meta.spaceDelimited?.includes(key)
@@ -190,16 +214,10 @@ export const serializeQuery = (
         );
         return;
       }
-      if (meta.explode?.includes(key) || meta.repeat?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key, stringifyValue(v));
-        });
-        return;
-      }
-      if (meta.brackets?.includes(key)) {
-        value.forEach((v) => {
-          normalizedParams.append(key + '[]', stringifyValue(v));
-        });
+      const repeated = meta.explode?.includes(key) || meta.repeat?.includes(key);
+      if (repeated || meta.brackets?.includes(key)) {
+        const name = repeated ? key : key + '[]';
+        value.forEach((v) => normalizedParams.append(name, stringifyValue(v)));
         return;
       }
       if (meta.comma?.includes(key)) {
@@ -212,17 +230,13 @@ export const serializeQuery = (
       !(value instanceof Date) &&
       (meta.flattenObject?.includes(key) || meta.commaObject?.includes(key))
     ) {
-      // Plain-object form-style params: flatten writes each property as its own
-      // key, comma writes one key with prop,value pairs.
       const commaParts: string[] = [];
       Object.entries(value).forEach(([subKey, subValue]) => {
         const items = (Array.isArray(subValue) ? subValue : [subValue])
           .filter((v) => v !== undefined)
           .map(stringifyValue);
         if (meta.flattenObject?.includes(key)) {
-          items.forEach((item) => {
-            normalizedParams.append(subKey, item);
-          });
+          items.forEach((item) => normalizedParams.append(subKey, item));
         } else if (items.length > 0) {
           commaParts.push(subKey, ...items);
         }
@@ -243,9 +257,7 @@ export const serializeQuery = (
               '[' +
               encodeURIComponent(subKey) +
               ']=' +
-              (subValue === null
-                ? 'null'
-                : encodeURIComponent(stringifyValue(subValue))),
+              encodeURIComponent(stringifyValue(subValue)),
           );
         }
       });
@@ -295,11 +307,10 @@ const decodeResponseBody = async (
       : data;
   };
 
-  if (responseType === 'blob') {
-    return [204, 205, 304].includes(res.status) ? null : await res.blob();
-  }
+  const noContent = [204, 205, 304].includes(res.status);
+  if (responseType === 'blob') return noContent ? null : await res.blob();
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const body = noContent ? null : await res.text();
 
   if (responseType === 'text') return body !== null ? body : '';
 
@@ -354,9 +365,6 @@ export const execute = async <R>(
   const res = await fetchFn(args.url, init);
 
   if (args.throwOnError && !res.ok) {
-    const err: globalThis.Error & { info?: unknown; status?: number } =
-      new globalThis.Error();
-    // A download's error body is text, decoded by the declared error types.
     const {
       deserializeResponseDates: _deserializeResponseDates,
       validateResponse: _validateResponse,
@@ -365,24 +373,22 @@ export const execute = async <R>(
     } = args;
     const responseType =
       args.responseType === 'blob' ? args.errorResponseType : args.responseType;
-    err.info = await decodeResponseBody(res, {
+    const info = await decodeResponseBody(res, {
       ...errorArgs,
       ...(responseType !== undefined ? { responseType } : {}),
     });
-    err.status = res.status;
-    throw err;
+    throw Object.assign(new globalThis.Error(), { info, status: res.status });
   }
 
+  const headers = getResponseHeaders(res, args);
   if (args.responseType === 'stream') {
-    if (args.returnData) return res as R;
-    const headers = getResponseHeaders(res, args);
-    return { status: res.status, stream: res, headers } as R;
+    return (
+      args.returnData ? res : { status: res.status, stream: res, headers }
+    ) as R;
   }
 
   const data = await decodeResponseBody(res, args);
-  if (args.returnData) return data as R;
-  const headers = getResponseHeaders(res, args);
-  return { data, status: res.status, headers } as R;
+  return (args.returnData ? data : { data, status: res.status, headers }) as R;
 };
 `;
 
