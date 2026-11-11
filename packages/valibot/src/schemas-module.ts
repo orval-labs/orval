@@ -74,7 +74,12 @@ interface SchemaEntry {
    * The input and output types of a constant on a cycle, declared because
    * they cannot be inferred from the constant.
    */
-  types?: { input: string; output: string };
+  types?: {
+    inputName: string;
+    input: string;
+    outputName: string;
+    output: string;
+  };
 }
 
 const renderEntry = ({
@@ -85,8 +90,8 @@ const renderEntry = ({
 }: SchemaEntry) =>
   [
     `export const ${constName} = ${expression};`,
-    `export type ${constName} = ${types?.input ?? `v.InferInput<typeof ${constName}>`};`,
-    `export type ${name}Output = ${types?.output ?? `v.InferOutput<typeof ${constName}>`};`,
+    `export type ${types?.inputName ?? constName} = ${types?.input ?? `v.InferInput<typeof ${constName}>`};`,
+    `export type ${types?.outputName ?? `${name}Output`} = ${types?.output ?? `v.InferOutput<typeof ${constName}>`};`,
     ...(constName === name ? [] : [`export { ${constName} as ${name} };`]),
   ].join('\n');
 
@@ -358,9 +363,7 @@ export const generateValibotSchemasModule = (
     name: contractNames.get(name) ?? name,
     constName: name,
     expression,
-    ...(types === undefined
-      ? {}
-      : { types: { input: types.input, output: types.output } }),
+    ...(types === undefined ? {} : { types }),
   }));
   const components = new Set(entries.map(({ name }) => name));
   const taken = new Set(components);

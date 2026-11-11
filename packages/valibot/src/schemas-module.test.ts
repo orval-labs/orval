@@ -25,6 +25,47 @@ const moduleOf = (schemas: Record<string, OpenApiSchemaObject>) => {
 };
 
 describe('generateValibotSchemasModule', () => {
+  it('types the getters of a cycle with the exported input and output types', () => {
+    const source = moduleOf({
+      Node: {
+        type: 'object',
+        required: ['next'],
+        properties: { next: { $ref: '#/components/schemas/Edge' } },
+      },
+      Edge: {
+        type: 'object',
+        properties: { to: { $ref: '#/components/schemas/Node' } },
+      },
+    });
+
+    expect(source).toContain(
+      'v.lazy((): v.GenericSchema<Node, NodeOutput> => Node)',
+    );
+    expect(source).toContain(
+      'export type Edge = {\n  to?: Node | undefined;\n};',
+    );
+    expect(source).toContain(
+      'export type EdgeOutput = {\n  to?: NodeOutput | undefined;\n};',
+    );
+    expect(source).not.toContain('v.InferInput<typeof Edge>');
+  });
+
+  it('names the types of a renamed recursive constant like its exports', () => {
+    const source = moduleOf({
+      Date: {
+        type: 'object',
+        properties: { parent: { $ref: '#/components/schemas/Date' } },
+      },
+    });
+
+    expect(source).toContain(
+      'v.lazy((): v.GenericSchema<DateSchema, DateOutput> => DateSchema)',
+    );
+    expect(source).toContain('export type DateSchema = {');
+    expect(source).toContain('export type DateOutput = {');
+    expect(source).toContain('export { DateSchema as Date };');
+  });
+
   it('is empty when there is nothing to declare', () => {
     expect(moduleOf({})).toBe('');
   });
