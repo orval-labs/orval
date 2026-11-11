@@ -1,5 +1,6 @@
 import {
   type ContextSpec,
+  nodesOnCycles,
   type OpenApiSchemaObject,
   orderByDependencies,
 } from '@orval/core';
@@ -9,6 +10,7 @@ import type { ValibotNode } from './nodes';
 import { createRefPolicy, getComponentModes } from './ref-policy';
 import { collectRefNames, resolveComponentName, toComponentRef } from './refs';
 import { renderValibot } from './render';
+import { hasReadonlyPipe, renderValibotType } from './render-type';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
 // Names depend on the spec and on the component naming options, so a spec
@@ -80,9 +82,29 @@ const generateComponent = (
   });
 };
 
+// The input type of each constant on a cycle: `<Name>Input`, numbered when
+// a component or an earlier input type already has that name.
+const allocateInputTypeNames = (
+  onCycles: ReadonlySet<string>,
+  componentNames: ReadonlySet<string>,
+): Map<string, string> => {
+  const taken = new Set(componentNames);
+  const names = new Map<string, string>();
+  for (const name of onCycles) {
+    let inputName = `${name}Input`;
+    for (let count = 2; taken.has(inputName); count++) {
+      inputName = `${name}Input${count}`;
+    }
+    taken.add(inputName);
+    names.set(name, inputName);
+  }
+  return names;
+};
+
 /**
  * One `export const` per component schema, dependencies first. A reference
- * that closes a cycle reads through `v.lazy`.
+ * that closes a cycle reads through `v.lazy`, typed with the input and output
+ * types declared for every constant on a cycle.
  */
 export const generateValibotComponents = (context: ContextSpec): string => {
   const names = getComponentNames(context);
@@ -98,19 +120,54 @@ export const generateValibotComponents = (context: ContextSpec): string => {
     [...nodes].map(([name, node]) => [name, collectRefNames(node)] as const),
   );
   const { order, cyclicEdges } = orderByDependencies(graph);
+  // The declared types name each other, so no type reads a constant whose
+  // type depends on it.
+  const declared = allocateInputTypeNames(
+    nodesOnCycles(graph),
+    new Set(nodes.keys()),
+  );
   const { exactOptional } = context.output.override.valibot;
+
+  // The constants each one reads directly, not through `v.lazy`, that are a
+  // pipe holding `v.readonly()`. Dependencies come first in `order`.
+  const readonlyConsts = new Set<string>();
+  const readonlyRefsOf = (name: string) => {
+    const lazy = cyclicEdges.get(name);
+    return new Set([...readonlyConsts].filter((target) => !lazy?.has(target)));
+  };
+  for (const name of order) {
+    const node = nodes.get(name);
+    if (node && hasReadonlyPipe(node, readonlyRefsOf(name))) {
+      readonlyConsts.add(name);
+    }
+  }
+
+  const declareTypes = (name: string, inputName: string, node: ValibotNode) =>
+    (['output', 'input'] as const).map((direction) => {
+      const type = renderValibotType(node, {
+        direction,
+        exactOptional,
+        declared,
+        readonlyRefs: readonlyRefsOf(name),
+      });
+      return `export type ${direction === 'output' ? name : inputName} = ${type};`;
+    });
 
   return order
     .flatMap((name) => {
       const node = nodes.get(name);
-      return node
-        ? [
-            `export const ${name} = ${renderValibot(node, {
-              exactOptional,
-              lazyRefs: cyclicEdges.get(name),
-            })}`,
-          ]
-        : [];
+      if (!node) return [];
+      const inputName = declared.get(name);
+      const lazyRefs = new Map(
+        [...(cyclicEdges.get(name) ?? [])].flatMap((target) => {
+          const input = declared.get(target);
+          return input === undefined ? [] : [[target, input] as const];
+        }),
+      );
+      return [
+        ...(inputName === undefined ? [] : declareTypes(name, inputName, node)),
+        `export const ${name} = ${renderValibot(node, { exactOptional, lazyRefs })}`,
+      ];
     })
     .join('\n\n');
 };

@@ -102,4 +102,62 @@ export default defineConfig({
     { generateReusableSchemas: true },
     'tags-split',
   ),
+  // `regressions/valibot-model-types.ts` checks these against the models.
+  'model-types': valibotProject('model-types', 'valibot-model-types', {
+    generateReusableSchemas: true,
+  }),
+  'model-types-models': {
+    output: {
+      target: '../generated/valibot/model-types-models/endpoints.ts',
+      schemas: '../generated/valibot/model-types-models/model',
+      client: 'fetch' as const,
+      clean: true,
+      formatter: 'prettier' as const,
+    },
+    input: { target: '../specifications/valibot-model-types.yaml' },
+  },
+  'model-types-exact-optional': valibotProject(
+    'model-types-exact-optional',
+    'valibot-model-types',
+    { generateReusableSchemas: true, exactOptional: true },
+  ),
+  'model-types-format-type': (() => {
+    const project = valibotProject(
+      'model-types-format-type',
+      'valibot-model-types',
+      { generateReusableSchemas: true },
+    );
+    return {
+      ...project,
+      output: {
+        ...project.output,
+        override: {
+          ...project.output.override,
+          formatType: {
+            'date-time': {
+              type: 'Dayjs',
+              decode: 'dayjs',
+              decodeImport: {
+                name: 'dayjs',
+                importPath: 'dayjs',
+                default: true,
+              },
+            },
+          },
+        },
+      },
+    };
+  })(),
+  'recursive-file': (() => {
+    const project = valibotProject('recursive-file', 'valibot-recursive-file', {
+      generateReusableSchemas: true,
+    });
+    return {
+      ...project,
+      output: {
+        ...project.output,
+        override: { ...project.output.override, useDates: true },
+      },
+    };
+  })(),
 });
