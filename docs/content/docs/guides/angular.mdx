@@ -1138,9 +1138,9 @@ should not preserve readonly request fields by default.
 
 ### Error Handling
 
-When validation fails, Zod throws a `ZodError`. With `schemas: { type: 'valibot' }`,
-validation runs through Standard Schema and the error is a `StandardSchemaError`
-with the same `issues` array, so check for that name instead.
+Without Standard Schema, Zod validation throws a `ZodError`. With
+`standardSchema: true`, validation throws a `StandardSchemaError` with an
+`issues` array. Valibot uses Standard Schema automatically.
 
 For `HttpClient` services, handle it in your subscription, effect, or error
 interceptor:
@@ -1149,7 +1149,7 @@ interceptor:
 this.petService.getPet().subscribe({
   next: (pet) => console.log('Validated pet:', pet),
   error: (err) => {
-    if (err.name === 'ZodError') {
+    if (err.name === 'ZodError' || err.name === 'StandardSchemaError') {
       console.error('Response validation failed:', err.issues);
     }
   },
