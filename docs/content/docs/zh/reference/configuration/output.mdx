@@ -4037,6 +4037,34 @@ getUser(user.id); // OK
 
 配置或移除 request options。设为 `false` 可完全移除。
 
+使用 [`mutator`](#mutator) 时，对象形式的 `requestOptions` 会作为 mutator options 参数的默认值（大多数 client（如 `axios`）为第二个参数；`angular` client 为第三个参数，因为其第二个参数是 `HttpClient`），并与调用方传入的 `options` 合并（调用方的值优先）：
+
+```ts
+// 生成的代码
+return customInstance<Pet>(
+  { url: `/pets`, method: 'GET' },
+  { paramsSerializer: { indexes: null }, ...options },
+);
+```
+
+因此 mutator 的 options 参数必须是对象类型。对于 `axios` client，应使用 `AxiosRequestConfig` 或其扩展类型。如需额外标志，请将其作为该对象的字段，而不是单独的原始类型参数：
+
+```ts title="custom-instance.ts"
+type RequestOptions = AxiosRequestConfig & { withTimeout?: boolean };
+
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  { withTimeout, ...options }: RequestOptions = {},
+): Promise<T> =>
+  AXIOS_INSTANCE({
+    ...config,
+    ...options,
+    ...(withTimeout ? { timeout: 1000 } : {}),
+  }).then(({ data }) => data);
+```
+
+生成函数的 `options` 参数类型为 `SecondParameter<typeof customInstance>`（`angular` client 为 `ThirdParameter<typeof customInstance>`），`requestOptions` 中的值必须符合该类型。
+
 ### jsDoc.filter
 
 **类型：** `Function`

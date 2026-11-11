@@ -5139,6 +5139,34 @@ getUser(user.id); // OK
 
 Configure or remove request options. Set to `false` to remove entirely.
 
+When you use a [`mutator`](#mutator), the object form sets default values for the mutator's options argument. That's the second argument for most clients, such as `axios`, and the third argument for the `angular` client, whose second argument is the `HttpClient`. Callers can still pass their own options, which override these defaults:
+
+```ts
+// generated
+return customInstance<Pet>(
+  { url: `/pets`, method: 'GET' },
+  { paramsSerializer: { indexes: null }, ...options },
+);
+```
+
+This merge only works when the mutator's options parameter is an object. For the `axios` client, use `AxiosRequestConfig` or a type that extends it. If you need extra flags, add them as fields on that object. Don't use a separate primitive parameter:
+
+```ts title="custom-instance.ts"
+type RequestOptions = AxiosRequestConfig & { withTimeout?: boolean };
+
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  { withTimeout, ...options }: RequestOptions = {},
+): Promise<T> =>
+  AXIOS_INSTANCE({
+    ...config,
+    ...options,
+    ...(withTimeout ? { timeout: 1000 } : {}),
+  }).then(({ data }) => data);
+```
+
+Generated functions type their `options` parameter as `SecondParameter<typeof customInstance>`, or `ThirdParameter<typeof customInstance>` for the `angular` client. The value you set in `requestOptions` must match that type.
+
 ### jsDoc.filter
 
 **Type:** `Function`
