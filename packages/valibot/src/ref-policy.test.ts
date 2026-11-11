@@ -1,14 +1,11 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { mayCheckNothing } from '../../core/src/schema-graph/ref-policy';
 import { createTestContextSpec } from '../../core/src/test-utils';
 import { dereference } from './dereference';
 import { parseBodyAndResponse } from './operation';
-import {
-  createRefPolicy,
-  getComponentModes,
-  mayCheckNothing,
-} from './ref-policy';
+import { createRefPolicy, getComponentModes } from './ref-policy';
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 

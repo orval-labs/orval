@@ -1,9 +1,9 @@
 import type { OpenApiSchemaObject } from '@orval/core';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
+import { MAX_INLINE_NODES } from '../../core/src/schema-graph/inline-budget';
 import { createTestContextSpec } from '../../core/src/test-utils';
 import { dereference } from './dereference';
-import { MAX_INLINE_NODES } from './inline-budget';
 import { createRefPolicy, getComponentModes } from './ref-policy';
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });

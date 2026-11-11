@@ -1,9 +1,9 @@
-import { isObject, omitBy } from '@orval/core';
-
+import { isObject } from '../utils/assertion';
+import { omitBy } from '../utils/collection';
 import { getRef } from './refs';
 
 /** Finds the schema a `$ref` points at. */
-export type RefLookup = (ref: string) => unknown;
+type RefLookup = (ref: string) => unknown;
 
 export interface ResolvedAlias {
   schema: unknown;

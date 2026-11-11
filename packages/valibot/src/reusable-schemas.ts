@@ -3,18 +3,14 @@ import {
   nodesOnCycles,
   type OpenApiSchemaObject,
   orderByDependencies,
+  relaxWriteOnly,
+  toComponentRef,
 } from '@orval/core';
 
 import { dereference } from './dereference';
 import type { ValibotNode } from './nodes';
-import { relaxWriteOnly } from './read-only';
 import { createRefPolicy, getComponentModes } from './ref-policy';
-import {
-  collectRefNames,
-  isSchemasOutput,
-  resolveComponentName,
-  toComponentRef,
-} from './refs';
+import { collectRefNames, isSchemasOutput, resolveComponentName } from './refs';
 import { renderValibot } from './render';
 import { hasReadonlyPipe, renderValibotType } from './render-type';
 import { generateValibotValidationSchemaDefinition } from './schema';

@@ -8,14 +8,14 @@ import {
   type OpenApiSchemaObject,
   isString,
   resolveRef,
+  omitDirectional,
+  getLocalRefTarget,
 } from '@orval/core';
 
 import { dereference } from './dereference';
 import { withFileParts, type PartEncoding } from './form-data';
 import { plainNode, type ValibotNode } from './nodes';
-import { omitDirectional } from './read-only';
 import { createRefPolicy } from './ref-policy';
-import { getLocalRefTarget } from './refs';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
 const JSON_TYPE = /^application\/([^/;]+\+)?json$/;

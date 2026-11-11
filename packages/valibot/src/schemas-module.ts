@@ -15,6 +15,9 @@ import {
   pascal,
   resolveRef,
   sanitize,
+  getLocalRefTarget,
+  getRef,
+  toComponentRef,
 } from '@orval/core';
 
 import { startRun, warnOnce } from './logger';
@@ -24,7 +27,6 @@ import {
   parseDirectionalSchema,
   parseParameters,
 } from './operation';
-import { getLocalRefTarget, getRef, toComponentRef } from './refs';
 import { renderValibot } from './render';
 import {
   generateValibotComponentConsts,

@@ -1,4 +1,4 @@
-import { createLogger } from '@orval/core';
+import { createLogger, type SchemaWalkReporter } from '@orval/core';
 
 export const logger = createLogger('@orval/valibot');
 
@@ -21,4 +21,10 @@ export const warnOnce = (message: string): void => {
   if (warned.has(message)) return;
   warned.add(message);
   logger.warn(message);
+};
+
+export const reporter: SchemaWalkReporter = {
+  library: 'valibot',
+  warn: warnOnce,
+  verbose: (message) => logger.verbose(message),
 };

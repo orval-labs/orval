@@ -1,10 +1,8 @@
-import {
-  isNullOnlyEnum,
-  isObject,
-  type OpenApiNonBooleanSchemaObject,
-  type OpenApiSchemaObject,
-} from '@orval/core';
-
+import type {
+  OpenApiNonBooleanSchemaObject,
+  OpenApiSchemaObject,
+} from '../types';
+import { isNullOnlyEnum, isObject } from '../utils/assertion';
 import { COMPOSITION_KEYS, type CompositionKey } from './schema-keys';
 
 type SchemaType =
