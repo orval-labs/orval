@@ -7,7 +7,6 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '@orval/core';
-import ts from 'typescript';
 import * as v from 'valibot';
 import { describe, expect, it } from 'vite-plus/test';
 
@@ -16,6 +15,7 @@ import { allocateConstName } from './const-names';
 import { parseBodyAndResponse, parseParameters } from './operation';
 import { renderValibot } from './render';
 import { generateValibotComponents } from './reusable-schemas';
+import { scriptOf } from './script-helpers';
 
 const ref = (name: string) => ({
   $ref: `#/components/schemas/${name}`,
@@ -51,14 +51,6 @@ const contextOf = (
     },
   });
 
-// The module as a script: types stripped, exports dropped.
-const javascriptOf = (code: string) =>
-  ts
-    .transpileModule(code, {
-      compilerOptions: { target: ts.ScriptTarget.ES2022 },
-    })
-    .outputText.replaceAll(/^export /gm, '');
-
 // Evaluates the whole module, so a constant read before its declaration throws.
 const load = (
   schemas: Record<string, OpenApiSchemaObject>,
@@ -67,7 +59,7 @@ const load = (
   const code = generateValibotComponents(contextOf(schemas, options));
   const names = Object.keys(schemas);
   const module = runInNewContext(
-    `${javascriptOf(code)}\n;({ ${names.join(', ')} })`,
+    `${scriptOf(code)}\n;({ ${names.join(', ')} })`,
     { v, toDay: (value: string) => ({ day: value }) },
   ) as Record<string, v.GenericSchema>;
   const ok = (name: string, input: unknown) =>
