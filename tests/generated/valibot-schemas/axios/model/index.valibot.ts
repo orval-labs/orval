@@ -28,10 +28,18 @@ export type ErrorOutput = v.InferOutput<typeof Error>;
 
 export const Tree = v.object({
   name: v.string(),
-  children: v.optional(v.array(v.lazy((): v.GenericSchema => Tree))),
+  children: v.optional(
+    v.array(v.lazy((): v.GenericSchema<Tree, TreeOutput> => Tree)),
+  ),
 });
-export type Tree = v.InferInput<typeof Tree>;
-export type TreeOutput = v.InferOutput<typeof Tree>;
+export type Tree = {
+  name: string;
+  children?: Tree[] | undefined;
+};
+export type TreeOutput = {
+  name: string;
+  children?: TreeOutput[] | undefined;
+};
 
 export const ListPetsParams = v.object({
   limit: v.pipe(v.number(), v.integer()),

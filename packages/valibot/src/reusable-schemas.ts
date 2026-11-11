@@ -213,7 +213,11 @@ export const generateValibotComponentConsts = (
     return [
       {
         name,
-        expression: renderValibot(node, { exactOptional, lazyRefs, outputNames }),
+        expression: renderValibot(node, {
+          exactOptional,
+          lazyRefs,
+          outputNames,
+        }),
         ...(own === undefined
           ? {}
           : {

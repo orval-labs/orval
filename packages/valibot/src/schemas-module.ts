@@ -70,13 +70,23 @@ interface SchemaEntry {
   /** The declared constant, when it cannot be named as clients import it. */
   constName?: string;
   expression: string;
+  /**
+   * The input and output types of a constant on a cycle, declared because
+   * they cannot be inferred from the constant.
+   */
+  types?: { input: string; output: string };
 }
 
-const renderEntry = ({ name, constName = name, expression }: SchemaEntry) =>
+const renderEntry = ({
+  name,
+  constName = name,
+  expression,
+  types,
+}: SchemaEntry) =>
   [
     `export const ${constName} = ${expression};`,
-    `export type ${constName} = v.InferInput<typeof ${constName}>;`,
-    `export type ${name}Output = v.InferOutput<typeof ${constName}>;`,
+    `export type ${constName} = ${types?.input ?? `v.InferInput<typeof ${constName}>`};`,
+    `export type ${name}Output = ${types?.output ?? `v.InferOutput<typeof ${constName}>`};`,
     ...(constName === name ? [] : [`export { ${constName} as ${name} };`]),
   ].join('\n');
 
@@ -336,13 +346,22 @@ export const generateValibotSchemasModule = (
       getRefInfo(toComponentRef(key), context).name,
     ]),
   );
-  const entries: SchemaEntry[] = generateValibotComponentConsts(context).map(
-    ({ name, expression }) => ({
-      name: contractNames.get(name) ?? name,
-      constName: name,
-      expression,
+  // The module names each schema's input type like its constant and its
+  // output type `<Name>Output`, so a recursive getter is typed the same way.
+  const entries: SchemaEntry[] = generateValibotComponentConsts(
+    context,
+    (constName) => ({
+      input: constName,
+      output: `${contractNames.get(constName) ?? constName}Output`,
     }),
-  );
+  ).map(({ name, expression, types }) => ({
+    name: contractNames.get(name) ?? name,
+    constName: name,
+    expression,
+    ...(types === undefined
+      ? {}
+      : { types: { input: types.input, output: types.output } }),
+  }));
   const components = new Set(entries.map(({ name }) => name));
   const taken = new Set(components);
   const add = (
