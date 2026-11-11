@@ -154,7 +154,7 @@ if (result.success) {
 - 除非设置 [`generateReusableSchemas`](#可复用-schema)，否则每个 `$ref` 都会被内联，共享的 schema 可能让输出变得很大。内联单个 schema 超过 250,000 个 schema 节点时会报错并停止。
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
 - 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。与对象成员并列的开放成员（`additionalProperties: true`）会被省略，多余的键同样会被去掉。
-- 设置 `schemas: { type: 'valibot' }` 并开启 client 的 `runtimeValidation` 后，生成的 client 用 Valibot 校验响应。详见英文文档。
+- 设置 `schemas: { type: 'valibot' }` 并开启 client 的 `runtimeValidation` 后，生成的 client 用 Valibot 校验响应。支持 `fetch`、`httpClient: 'fetch'` 的 query 类 client 和 `swr`、`angular` 以及 `angular-query`；axios client 不校验响应。详见英文文档。
 
 ## 与 HTTP Client 结合使用
 
