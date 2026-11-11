@@ -931,6 +931,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   };
 
   let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions})${mutatorResponseTransform(false)};`;
+  const asyncInferredMutator =
+    mutator?.inferred && override.fetch.asyncInferredMutator;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -950,7 +952,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : `{${fetchExportName}}`;
     customFetchResponseImplementation = `
       const ${formattedDeconstructor} = ${mutator.name}();
-      return (${args}) => {
+      return ${asyncInferredMutator ? 'async ' : ''}(${args}) => {
         ${bodyForm}
         return ${fetchExportName}(${mutatorFetchFnOptions})${mutatorResponseTransform(true)};
       }
@@ -962,12 +964,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     : fetchResponseImplementation;
 
   const exportKeyword = isFactoryMode ? 'const' : 'export const';
-  let fetchImplementation = `${exportKeyword} ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
+  let fetchImplementation = `${exportKeyword} ${operationName} = ${!mutator?.inferred || asyncInferredMutator ? 'async ' : ''}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${inlineHeadersHelper}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
-    fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
+    fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = ${mutator.inferred ? '() => {' : `(): (${args}) => ${returnType} => {`}
     ${inlineHeadersHelper}${fetchImplementationBody}}
   `;
   }

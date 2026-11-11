@@ -1993,6 +1993,7 @@ export interface AxiosOptions {
 }
 
 export interface NormalizedFetchOptions {
+  asyncInferredMutator?: boolean;
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
   includeHttpErrorResponse?: boolean;
@@ -2018,6 +2019,8 @@ export interface NormalizedFetchOptions {
 export type FetchRuntimeImplementationStyle = 'inline' | 'shared';
 
 export interface FetchOptions {
+  /** Make inferred Promise-returning mutator operations async. @default false */
+  asyncInferredMutator?: boolean;
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
   /**

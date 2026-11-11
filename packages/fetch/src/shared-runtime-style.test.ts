@@ -1341,6 +1341,7 @@ void resultIsAny;
       includeHttpErrorResponse = false,
       mutatorName = 'customFetch',
       omitMutatorName = false,
+      asyncInferredMutator = false,
     } = {},
   ) => {
     const options = makeSharedOptions([], { mutator: true });
@@ -1371,7 +1372,7 @@ void resultIsAny;
               forceSuccessResponse: true,
               includeHttpErrorResponse,
             }
-          : { includeHttpResponseReturnType },
+          : { includeHttpResponseReturnType, asyncInferredMutator },
       },
       body: {
         definition: 'Pet',
@@ -1434,6 +1435,29 @@ type Pet = { id: number; name: string };
 ${client.implementation}`;
     return { client, files, verbOptions, options, mutator };
   };
+
+  it('makes only opted-in inferred operations async and preserves their result type', async () => {
+    const { client, files, verbOptions, options } = await generateClient(
+      false,
+      { asyncInferredMutator: true },
+    );
+    expect(client.implementation).toContain('listPets = async (');
+    files['/proj/src/custom-fetch.ts'] =
+      `export const customFetch = <T>(url: string, options: RequestInit): Promise<{ value: T }> => Promise.resolve({ value: {} as T });`;
+    files['/proj/src/check.ts'] =
+      `import { listPets } from './api/endpoints'; type Pet = { id: number; name: string }; const result: Promise<{ value: Pet[] }> = listPets({ id: 1, name: 'a' }); void result;`;
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+    verbOptions.override.fetch.asyncInferredMutator = false;
+    expect(generateSharedClient(verbOptions, options).implementation).toContain(
+      'listPets = (',
+    );
+  });
 
   it('shares an unnamed default mutator across operations with different local names', async () => {
     const { files, verbOptions, options, mutator } = await generateClient(
@@ -1717,10 +1741,16 @@ export const customFetch = async <T>(
     },
   );
 
-  it.each([false, true])(
-    'passes request options through and preserves an asynchronous=%s result',
-    async (asynchronous) => {
-      const { files } = await generateClient();
+  it.each([
+    [false, false],
+    [true, false],
+    [true, true],
+  ])(
+    'passes request options through with asynchronous=%s and opt-in=%s',
+    async (asynchronous, optIn) => {
+      const { files } = await generateClient(false, {
+        asyncInferredMutator: optIn,
+      });
       const evaluate = (
         source: string,
         dependencies: Partial<Record<string, Record<string, unknown>>> = {},
@@ -1783,9 +1813,9 @@ export const customFetch = async <T>(
         },
       );
 
-      expect(actual).toBe(result);
-      expect(await actual).toBe(envelope);
+      if (!optIn) expect(actual).toBe(result);
       expect(receivedUrl).toBe('/pets');
+      expect(await actual).toBe(envelope);
       expect(receivedOptions?.fetch).toBe(fetchOverride);
       expect(receivedOptions).toMatchObject({
         baseUrl: 'https://api.test',
@@ -1793,6 +1823,22 @@ export const customFetch = async <T>(
         body: JSON.stringify({ id: 1, name: 'Pet' }),
         headers: { 'Content-Type': 'application/json', 'x-trace': 'trace' },
       });
+      if (optIn) {
+        const error = new Error('serialization');
+        receivedUrl = undefined;
+        const rejected = listPets(
+          {
+            id: 1,
+            name: 'Pet',
+            toJSON() {
+              throw error;
+            },
+          } as { id: number; name: string },
+          {},
+        );
+        await expect(rejected).rejects.toBe(error);
+        expect(receivedUrl).toBeUndefined();
+      }
 
       const execute = config.execute as (
         args: {
