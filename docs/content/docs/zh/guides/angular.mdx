@@ -910,7 +910,7 @@ export default defineConfig({
 
 ### 错误处理
 
-当校验失败时，Zod 会抛出 `ZodError`。
+未使用 Standard Schema 时，Zod 校验失败会抛出 `ZodError`。设置 `runtimeValidation: { standardSchema: true }`，或使用 `schemas: { type: 'valibot' }`（始终启用）时，校验失败会抛出带 `issues` 数组的 `StandardSchemaError`。
 
 对于 `HttpClient` service，可在 subscription、effect 或 error interceptor 中处理：
 
@@ -918,7 +918,7 @@ export default defineConfig({
 this.petService.getPet().subscribe({
   next: (pet) => console.log('Validated pet:', pet),
   error: (err) => {
-    if (err.name === 'ZodError') {
+    if (err.name === 'ZodError' || err.name === 'StandardSchemaError') {
       console.error('Response validation failed:', err.issues);
     }
   },

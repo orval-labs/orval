@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas edge cases
+  version: 1.0.0
+paths:
+  /patterns:
+    get:
+      operationId: getPattern
+      responses:
+        '200':
+          description: A component named like a global the schemas use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegExp'
+  /things/{pet_id}:
+    get:
+      operationId: getThing
+      parameters:
+        - name: pet_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: A thing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+  /versions/{v}/things:
+    get:
+      operationId: listVersioned
+      parameters:
+        - name: v
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Things
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+  /bodies/both:
+    post:
+      operationId: postBoth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [json]
+              properties:
+                json:
+                  type: string
+          multipart/form-data:
+            schema:
+              type: object
+              required: [form]
+              properties:
+                form:
+                  type: string
+      responses:
+        '204':
+          description: Done
+  /bodies/xml:
+    post:
+      operationId: postXml
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '204':
+          description: Done
+  /bodies/login:
+    post:
+      operationId: postLogin
+      requestBody:
+        $ref: '#/components/requestBodies/Login'
+      responses:
+        '204':
+          description: Done
+  /item:
+    $ref: '#/components/pathItems/Item'
+  /days:
+    get:
+      operationId: listDays
+      responses:
+        '200':
+          description: Days
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: date-time
+  /day:
+    get:
+      operationId: getDay
+      responses:
+        '200':
+          description: A day
+          content:
+            application/json:
+              schema:
+                type: string
+                format: date-time
+  /nothing:
+    get:
+      operationId: getNothing
+      responses:
+        '200':
+          description: Nothing
+          content:
+            application/json:
+              schema:
+                type: 'null'
+  /rows:
+    post:
+      operationId: postRows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [name]
+                properties:
+                  name:
+                    type: string
+      responses:
+        '200':
+          description: An inline array that may be null
+          content:
+            application/json:
+              schema:
+                type: [array, 'null']
+                items:
+                  type: object
+                  required: [id]
+                  properties:
+                    id:
+                      type: integer
+components:
+  pathItems:
+    Item:
+      parameters:
+        - name: trace
+          in: query
+          required: true
+          schema:
+            type: string
+      get:
+        operationId: getItem
+        responses:
+          '204':
+            description: Done
+  requestBodies:
+    Login:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [user, password]
+            properties:
+              user:
+                type: string
+              password:
+                type: string
+                writeOnly: true
+  schemas:
+    RegExp:
+      type: object
+      required: [source]
+      properties:
+        source:
+          type: string
+          pattern: '^[a-z]+$'
+    Secret:
+      type: string
+      writeOnly: true
+    Account:
+      type: object
+      required: [id, secret, hint]
+      properties:
+        id:
+          type: integer
+        secret:
+          $ref: '#/components/schemas/Secret'
+        hint:
+          description: Wraps the reference to add a description.
+          allOf:
+            - $ref: '#/components/schemas/Secret'

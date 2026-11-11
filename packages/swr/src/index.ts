@@ -14,7 +14,7 @@ import {
   type GetterProps,
   GetterPropType,
   type GetterResponse,
-  getZodNamespaceImport,
+  getSchemaNamespaceImport,
   jsDoc,
   OutputHttpClient,
   pascal,
@@ -953,7 +953,7 @@ export const generateSwr: ClientBuilder = (verbOptions, options) => {
     imports: [
       ...imports,
       ...(fetchValidationImports?.composesZod
-        ? [getZodNamespaceImport(options.context.output.override)]
+        ? [getSchemaNamespaceImport(options.context.output)]
         : []),
     ],
     ...(isFetchHttpClient && { docComment: '' }),

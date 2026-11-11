@@ -19,6 +19,7 @@ import {
   getIsBodyVerb,
   getQueryDelimiter,
   getQueryParamsEncoding,
+  getSchemaLibrary,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
@@ -327,8 +328,13 @@ const generateImplementation = (
     (parameter) => parameter.name,
   );
 
-  const hasExplodedDateParams =
+  // Valibot schemas keep date params as strings, the schema converts them.
+  const paramsHoldDates =
     !!context.output.override.useDates &&
+    getSchemaLibrary(context.output) !== 'valibot';
+
+  const hasExplodedDateParams =
+    paramsHoldDates &&
     explodeParameters.some((parameter) => isDateTimeParam(parameter, context));
 
   // `pipeDelimited` / `spaceDelimited` arrays join their percent-encoded
@@ -340,7 +346,7 @@ const generateImplementation = (
     getQueryDelimiter(parameter.style),
   ]);
   const hasDelimitedDateParams =
-    !!context.output.override.useDates &&
+    paramsHoldDates &&
     delimitedParameters.some((parameter) =>
       isDateTimeParam(parameter, context),
     );
@@ -357,7 +363,7 @@ const generateImplementation = (
   );
 
   const hasDeepObjectDateParams =
-    context.output.override.useDates &&
+    paramsHoldDates &&
     deepObjectParameters.some((parameter) => {
       const { schema: schemaObject } = resolveSchemaRef(
         parameter.schema,
@@ -383,7 +389,7 @@ const generateImplementation = (
     );
 
   const hasDateParams =
-    !!context.output.override.useDates &&
+    paramsHoldDates &&
     parameterObjects
       .filter((parameter) => parameter.in === 'query')
       .some((parameter) => isDateTimeParam(parameter, context));

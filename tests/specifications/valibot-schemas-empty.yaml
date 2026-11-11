@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Nothing to validate
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '204':
+          description: Healthy

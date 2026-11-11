@@ -6,6 +6,11 @@ import { mergeDeep } from '../utils/merge-deep';
 import {
   emitRequestBodyValidation,
   emitResponseValidation,
+  composesArraySchema,
+  getArrayResponseSchema,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
+  resolveStandardSchema,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   hasSchemaImport,
@@ -16,6 +21,69 @@ import {
   rewriteImportsForResponseValidation,
 } from './runtime-validation';
 import { getStandardSchemaHelper } from './standard-schema-helper';
+
+describe('schema library helpers', () => {
+  const output = (type: 'typescript' | 'zod' | 'valibot') => ({
+    schemas: { path: './model', type, splitByTags: false },
+  });
+
+  it('names the validator library of the schemas output', () => {
+    expect(getSchemaLibrary({ schemas: undefined })).toBeUndefined();
+    expect(getSchemaLibrary({ schemas: './model' })).toBeUndefined();
+    expect(getSchemaLibrary(output('typescript'))).toBeUndefined();
+    expect(getSchemaLibrary(output('zod'))).toBe('zod');
+    expect(getSchemaLibrary(output('valibot'))).toBe('valibot');
+  });
+
+  it('keeps standardSchema as configured outside valibot', () => {
+    expect(resolveStandardSchema(output('zod'), {})).toBeUndefined();
+    expect(
+      resolveStandardSchema(output('zod'), { standardSchema: false }),
+    ).toBe(false);
+  });
+
+  it('turns standardSchema on for valibot and rejects an explicit false', () => {
+    expect(resolveStandardSchema(output('valibot'), {})).toBe(true);
+    expect(() =>
+      resolveStandardSchema(output('valibot'), { standardSchema: false }),
+    ).toThrow(/cannot be used with `schemas\.type: "valibot"`/);
+  });
+
+  it('composes an array with the library of the schemas', () => {
+    const imports = [{ name: 'Item' }];
+    expect(
+      getArrayResponseSchema(imports, 'Item[]', undefined, 'valibot')
+        ?.schemaRef,
+    ).toBe('valibot.array(Item)');
+    expect(getArrayResponseSchema(imports, 'Item[]')?.schemaRef).toBe(
+      'zod.array(Item)',
+    );
+  });
+
+  it('detects a composed array of the library only', () => {
+    expect(
+      composesArraySchema('parse(valibot.array(Item), x)', 'valibot'),
+    ).toBe(true);
+    expect(composesArraySchema('devalibot.array(Item)', 'valibot')).toBe(false);
+    expect(composesArraySchema('a.valibot.array(Item)', 'valibot')).toBe(false);
+    expect(composesArraySchema('zod.array(Item).parse(x)')).toBe(true);
+    expect(composesArraySchema('zod.array(Item)', 'valibot')).toBe(false);
+  });
+
+  it('imports the valibot namespace for valibot schemas', () => {
+    expect(
+      getSchemaNamespaceImport({
+        ...output('valibot'),
+        override: {} as never,
+      }),
+    ).toEqual({
+      name: 'valibot',
+      values: true,
+      namespaceImport: true,
+      importPath: 'valibot',
+    });
+  });
+});
 
 describe('isPrimitiveResponseSchema', () => {
   it.each<OpenApiSchemaObject>([

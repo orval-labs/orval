@@ -29,8 +29,11 @@ import {
   getSchemaOutputTypeRef,
   getSchemaValueRef,
   getStatusCodeType,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
   getUniqueName,
   getZodNamespaceImportSource,
+  resolveStandardSchema,
   hasSchemaImport,
   HTTP_STATUS_CODE_SHARED_TYPES,
   isPrimitiveResponseSchema,
@@ -262,8 +265,13 @@ const generateRequestFunctionParts = (
     (parameter) => parameter.name,
   );
 
-  const hasDateTimeParams = (group: OpenApiParameterObject[]) =>
+  // Valibot schemas type parameters as their wire strings: only the schema
+  // turns them into `Date`, and it validates responses, not parameters.
+  const paramsHoldDates =
     !!context.output.override.useDates &&
+    getSchemaLibrary(context.output) !== 'valibot';
+  const hasDateTimeParams = (group: OpenApiParameterObject[]) =>
+    paramsHoldDates &&
     group.some((parameter) => isDateTimeParam(parameter, context));
 
   // The generated expression that stringifies one query value or array item.
@@ -326,7 +334,7 @@ const generateRequestFunctionParts = (
   );
 
   const hasDeepObjectDateParams =
-    context.output.override.useDates &&
+    paramsHoldDates &&
     deepObjectParameters.some((parameter) => {
       const { schema } = resolveSchemaRef(parameter.schema, context);
 
@@ -520,6 +528,7 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     response.imports,
     responseType,
     getSchemaValueRef,
+    getSchemaLibrary(context.output),
   );
   const hasSchema =
     hasSchemaImport(response.imports, responseType) ||
@@ -530,8 +539,7 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
-  const isZodSchemasOutput =
-    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
+  const isZodSchemasOutput = getSchemaLibrary(context.output) !== undefined;
   // The generated parse returns the schema's zod output type, so the declared
   // response type must reference the `XOutput` alias. A custom mutator issues
   // the request itself — the generated parse never runs there — so its
@@ -758,7 +766,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     strategy: override.fetch.runtimeValidation.strategy,
     context: 'fetch-assign',
     inputExpression: 'parsedBody',
-    standardSchema: override.fetch.runtimeValidation.standardSchema,
+    standardSchema: resolveStandardSchema(
+      context.output,
+      override.fetch.runtimeValidation,
+    ),
   });
   // A custom mutator issues the request itself, so it cannot benefit from the
   // generated `Schema.parse()` call. Handing it the zod schema lets it validate
@@ -1071,9 +1082,8 @@ export const getFetchResponseValidationImports = (
   { operationName, response, mutator, override }: GeneratorVerbOptions,
   { context }: GeneratorOptions,
 ): FetchResponseValidationImports | undefined => {
-  const isZodOutput =
-    isObject(context.output.schemas) && context.output.schemas.type === 'zod';
-  if (!isZodOutput || !override.fetch.runtimeValidation.enabled) {
+  const library = getSchemaLibrary(context.output);
+  if (!library || !override.fetch.runtimeValidation.enabled) {
     return undefined;
   }
 
@@ -1099,7 +1109,8 @@ export const getFetchResponseValidationImports = (
   const isNamedSchema = hasSchemaImport(response.imports, responseType);
   const schemaImportName = isNamedSchema
     ? responseType
-    : getArrayResponseSchema(response.imports, responseType)?.elementName;
+    : getArrayResponseSchema(response.imports, responseType, undefined, library)
+        ?.elementName;
   if (schemaImportName === undefined) return undefined;
 
   return {
@@ -1142,7 +1153,14 @@ const generateFetchOperation = (
       }
     : verbOptions;
 
-  const imports = generateVerbImports(normalizedVerbOptions);
+  const imports = [
+    ...generateVerbImports(normalizedVerbOptions),
+    // Zod reaches a composed schema through `getFetchDependencies`.
+    ...(responseValidationImports?.composesZod &&
+    getSchemaLibrary(options.context.output) === 'valibot'
+      ? [getSchemaNamespaceImport(options.context.output)]
+      : []),
+  ];
   const { responseTypes, implementation } = generateRequestFunctionParts(
     normalizedVerbOptions,
     options,

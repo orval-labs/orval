@@ -26,11 +26,12 @@ import {
   getResponseStatusCondition,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
-  getZodNamespaceImport,
+  getSchemaLibrary,
+  getSchemaNamespaceImport,
+  resolveStandardSchema,
   GetterPropType,
   hasSchemaImport,
   isFormDataContentType,
-  isObject,
   isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   jsDoc,
@@ -171,8 +172,7 @@ const getResponseValidation = (
   const hasClientMutator = usesClientConfig(context.output, mutator);
   if (
     !override.fetch.runtimeValidation.enabled ||
-    !isObject(context.output.schemas) ||
-    context.output.schemas.type !== 'zod' ||
+    !getSchemaLibrary(context.output) ||
     (hasClientMutator && !passesZodSchemaToMutator(mutator, context)) ||
     isPrimitiveResponseType(responseType) ||
     response.contentTypes.some(isContentTypeNdJson)
@@ -182,7 +182,12 @@ const getResponseValidation = (
 
   const arraySchema = hasSchemaImport(response.imports, responseType)
     ? undefined
-    : getArrayResponseSchema(response.imports, responseType, getSchemaValueRef);
+    : getArrayResponseSchema(
+        response.imports,
+        responseType,
+        getSchemaValueRef,
+        getSchemaLibrary(context.output),
+      );
   if (!hasSchemaImport(response.imports, responseType) && !arraySchema) {
     return undefined;
   }
@@ -464,6 +469,10 @@ export const generateSharedRequestFunction = (
       strategy: override.fetch.runtimeValidation.strategy,
       context: 'fetch-assign',
       inputExpression: 'data',
+      standardSchema: resolveStandardSchema(
+        context.output,
+        override.fetch.runtimeValidation,
+      ),
     });
     // A primitive schema would reject an error body, so only a 2xx one is
     // validated, as inline does.
@@ -612,7 +621,7 @@ export const generateSharedClient = (
       ...generateVerbImports(importVerbOptions),
       ...getSharedRuntimeImports(verbOptions, options),
       ...(composesZod
-        ? [getZodNamespaceImport(options.context.output.override)]
+        ? [getSchemaNamespaceImport(options.context.output)]
         : []),
     ],
     docComment: '',

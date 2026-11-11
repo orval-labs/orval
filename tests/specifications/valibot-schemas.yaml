@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      tags: [pets]
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: x-trace
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inline array of a component
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+        '500':
+          description: An error named after the global
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: createPet
+      tags: [pets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: A component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+  /pets/{petId}/status:
+    get:
+      operationId: getPetStatus
+      tags: [pets]
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: An enum component
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetStatus'
+  /health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      responses:
+        '200':
+          description: A primitive response
+          content:
+            application/json:
+              schema:
+                type: string
+  /errors:
+    get:
+      operationId: getLastError
+      tags: [system]
+      responses:
+        '200':
+          description: A validated schema named Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /trees:
+    get:
+      operationId: getTree
+      tags: [system]
+      responses:
+        '200':
+          description: A cycle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tree'
+components:
+  schemas:
+    PetStatus:
+      type: string
+      enum: [available, sold]
+    Pet:
+      type: object
+      required: [id, name, status, bornAt, password]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/PetStatus'
+        bornAt:
+          type: string
+          format: date-time
+        password:
+          type: string
+          writeOnly: true
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: integer
+    Tree:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tree'

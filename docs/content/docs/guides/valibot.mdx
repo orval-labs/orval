@@ -93,7 +93,7 @@ Each constant on a cycle also gets two exported types: `Pet` for its output and 
 
 ### Limitations
 
-- It can't be combined with `output.schemas` yet: generation fails with an error.
+- With `client: 'valibot'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error. To write the schemas to their own module, set [`schemas.type`](#validating-http-client-responses) to `valibot` with an HTTP client.
 - A `$ref` is still inlined where a constant would validate differently, such as form bodies, `readOnly` and `writeOnly` properties, and some `allOf`, `oneOf` and `anyOf` members.
 - A constant keeps all its properties and is `strict` only when every location is. A location with a different `strict`, or an operation override of `exactOptional`, inlines its schemas.
 - A `oneOf` or `anyOf` with a `discriminator` becomes `v.union` when an option is a reference.
@@ -154,7 +154,41 @@ if (result.success) {
 - Every `$ref` is inlined unless [`generateReusableSchemas`](#reusable-schemas) is set, so shared schemas can make the output large. Inlining one schema stops with an error past 250,000 schema nodes.
 - `oneOf` does not check that exactly one alternative matches.
 - Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected. An open member (`additionalProperties: true`) next to an object member is left out, so extra keys are stripped too.
-- Valibot schemas are not wired into the HTTP clients yet: `schemas: { type: 'valibot' }` and runtime validation of responses are not available.
+
+## Validating HTTP Client Responses
+
+Set `schemas.type` to `valibot` and turn on the client's `runtimeValidation`. The generated client then validates responses with Valibot schemas instead of Zod.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: { path: './src/api/model', type: 'valibot' },
+      override: {
+        fetch: { runtimeValidation: true },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.path` itself when it names a file. Each schema also exports the types `X` (`v.InferInput`) and `XOutput` (`v.InferOutput`). A schema on a cycle declares both types in full instead, because they cannot be inferred, so its recursive fields keep their types.
+
+- Validation runs through the `runtimeValidation` option of `override.fetch` for `fetch` and for `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` with `httpClient: 'fetch'`, `override.angular` for `angular`, and `override.query` for `angular-query`. It is off by default.
+- [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on, because Valibot schemas have no `parse` method. Validation errors are therefore `StandardSchemaError`, not `ValiError`, and async schemas are not supported.
+- Axios clients do not validate.
+- Generated validation is skipped for custom mutators. With [`includeZodSchemaInArguments`](/docs/reference/configuration/output#includezodschemainarguments), the custom mutator of `fetch` or a fetch-backed client receives the schema as `schema` and validates the response itself through `schema['~standard'].validate()`. Angular clients do not pass the schema to a mutator.
+- `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. `useDatesTransform` turns on `useDates` and nothing more: the client adds no date deserializer.
+
+The following fail with a configuration error: `schemas.mode: 'split'`, `schemas.routes`, `schemas.splitByTags`, mock generators, `operationSchemas`, `factoryMethods`, `splitByContentType`, `standardSchema: false`, `override.formatType`, `override.useBigInt`, `override.namingConvention.properties`, Angular `runtimeValidation.requestBodies` with `useDates`, and the clients `zod`, `effect`, `valibot`, `hono` and `mcp`.
+
+Known limits:
+
+- Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
+- `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 
 ## Combining with HTTP Clients
 

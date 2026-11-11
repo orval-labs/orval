@@ -127,7 +127,7 @@ export default defineConfig({
     output: {
       schemas: {
         path: './api/model',
-        type: 'typescript', // 'typescript' | 'zod'
+        type: 'typescript', // 'typescript' | 'zod' | 'valibot'
         routes: {
           default: 'models',
           enum: 'types',
@@ -141,7 +141,7 @@ export default defineConfig({
 | 属性          | 类型      | 描述                                                      |
 | ------------- | --------- | --------------------------------------------------------- |
 | `path`        | `string`  | schema 输出的文件系统路径                                 |
-| `type`        | `string`  | `'typescript'`（默认）或 `'zod'`，可选                    |
+| `type`        | `string`  | `'typescript'`（默认）、`'zod'` 或 `'valibot'`，可选                    |
 | `importPath`  | `string`  | 可选的包导入说明符（见下文）                              |
 | `splitByTags` | `boolean` | 按 tag 将 schema 组织到子目录中（默认 `false`，见下文）   |
 | `routes`      | `object`  | 将枚举和其他 schema 分别输出到不同路由目录                |
@@ -2248,7 +2248,7 @@ export default defineConfig({
 
 为每个 `#/components/schemas/*` 条目生成一个导出的 Valibot 常量，而不是内联每个 `$ref`。输出和限制见[可复用 Schema](/zh/docs/guides/valibot#可复用-schema)。
 
-目前不能与 [`schemas`](#schemas) 同时使用。
+使用 `client: 'valibot'` 时，此选项不能与 [`schemas`](#schemas) 同时设置。`schemas: { type: 'valibot' }` 总是生成可复用常量，无需此选项。
 
 ---
 

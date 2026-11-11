@@ -3568,6 +3568,80 @@ describe('normalizeOptions', () => {
     }
   });
 
+  describe('schemas.type valibot', () => {
+    const normalizeSchemas = async (
+      schemas: Record<string, unknown>,
+      output: Record<string, unknown> = {},
+    ) => {
+      const workspace = await createTempWorkspace();
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              client: 'fetch',
+              target: './generated.ts',
+              schemas: { path: './model', type: 'valibot', ...schemas },
+              ...output,
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it('writes one module with the .valibot.ts extension', async () => {
+      const { output } = await normalizeSchemas({});
+      expect(output.schemaFileExtension).toBe('.valibot.ts');
+      expect((output.schemas as NormalizedSchemaOptions).mode).toBe('single');
+    });
+
+    it('accepts a path that names the module', async () => {
+      const { output } = await normalizeSchemas({ path: './model.valibot.ts' });
+      expect((output.schemas as NormalizedSchemaOptions).mode).toBe('single');
+    });
+
+    it.each([
+      ['mode split', { mode: 'split' }, /schemas\.mode "split"/],
+      ['routes', { routes: { default: 'models' } }, /schemas\.routes/],
+      ['splitByTags', { splitByTags: true }, /schemas\.splitByTags/],
+    ])('rejects %s', async (_, schemas, message) => {
+      await expect(normalizeSchemas(schemas)).rejects.toThrow(message);
+    });
+
+    it.each(['zod', 'effect', 'valibot', 'hono', 'mcp'])(
+      'rejects client %s',
+      async (client) => {
+        await expect(normalizeSchemas({}, { client })).rejects.toThrow(
+          `cannot be used with client "${client}"`,
+        );
+      },
+    );
+
+    it.each([
+      ['operationSchemas', { operationSchemas: './operations' }],
+      ['factoryMethods', { factoryMethods: {} }],
+    ])('rejects %s', async (_, output) => {
+      await expect(normalizeSchemas({}, output)).rejects.toThrow(
+        'schemas.type "valibot" cannot be combined with operationSchemas or factoryMethods',
+      );
+    });
+
+    it('rejects mock generators', async () => {
+      await expect(normalizeSchemas({}, { mock: true })).rejects.toThrow(
+        'schemas.type "valibot" cannot be combined with mock generators',
+      );
+    });
+  });
+
   describe('valibot generateReusableSchemas', () => {
     const normalizeValibot = async (
       output: Record<string, unknown>,

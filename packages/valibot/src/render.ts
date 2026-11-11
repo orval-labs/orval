@@ -24,6 +24,9 @@ export interface RenderOptions {
   // of the input type the module declares for it; the output type has the
   // name of the constant.
   lazyRefs?: ReadonlyMap<string, string>;
+  // The output type of a referenced constant when it is not named like the
+  // constant.
+  outputNames?: ReadonlyMap<string, string>;
 }
 
 interface RenderPosition {
@@ -71,7 +74,7 @@ const renderAction = (
 
 export const renderValibot = (
   input: ValibotNode,
-  { exactOptional = false, lazyRefs }: RenderOptions = {},
+  { exactOptional = false, lazyRefs, outputNames }: RenderOptions = {},
 ): string => {
   const renderEntries = (entries: ValibotEntry[]) =>
     entries.length === 0
@@ -125,7 +128,7 @@ export const renderValibot = (
         const inputType = lazyRefs?.get(name);
         return inputType === undefined
           ? name
-          : `v.lazy((): v.GenericSchema<${inputType}, ${name}> => ${name})`;
+          : `v.lazy((): v.GenericSchema<${inputType}, ${outputNames?.get(name) ?? name}> => ${name})`;
       }
       case 'variant': {
         return `v.variant(${toJsLiteral(schema.key)}, [${schema.options.map((option) => render(option, { inIntersection })).join(', ')}])`;

@@ -1063,6 +1063,24 @@ describe('shared runtime options', () => {
     },
   );
 
+  it('validates through Standard Schema when standardSchema is set', () => {
+    const { implementation } = generateSharedClient(
+      verbOptions({
+        runtimeValidation: {
+          enabled: true,
+          strategy: 'throw',
+          standardSchema: true,
+        },
+      }),
+      makeSharedOptions([], { zodSchemaInArguments: true }),
+    );
+
+    expect(implementation).toContain(
+      'validateResponse: (data) => orvalParseStandardSchema(Pet, data)',
+    );
+    expect(implementation).not.toContain('Pet.parse(');
+  });
+
   it('hands the error responses to a three-argument mutator', () => {
     const implementation = generateSharedRequestFunction(
       verbOptions(

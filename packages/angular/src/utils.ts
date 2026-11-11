@@ -4,7 +4,7 @@ import {
   getAngularObjectParamStrategies,
   getDefaultContentType,
   isBoolean,
-  isObject,
+  getSchemaLibrary,
   isOperationInTagBucket,
   type NormalizedOutputOptions,
   pascal,
@@ -92,10 +92,11 @@ export const buildAcceptTextCondition = (contentTypes: string[]): string => {
 };
 
 /**
- * Indicates whether the configured schema output target is Zod-based.
+ * Indicates whether the configured schema output target writes validation
+ * schemas, Zod or Valibot.
  */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
-  isObject(output.schemas) && output.schemas.type === 'zod';
+  getSchemaLibrary(output) !== undefined;
 
 /**
  * Maps a schema type name to its Zod output-type reference (`${typeName}Output`).

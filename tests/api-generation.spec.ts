@@ -30,6 +30,7 @@ await describeApiGenerationSnapshots({
     generated('svelte-query'),
     generated('swr'),
     generated('valibot'),
+    generated('valibot-schemas'),
     generated('vue-query'),
     generated('zod'),
   ],

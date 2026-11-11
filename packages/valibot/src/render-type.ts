@@ -8,6 +8,9 @@ export interface TypeRenderOptions {
   // input type; the output type has the name of the constant. A reference to
   // one names the declared type instead of inferring it from the constant.
   declared: ReadonlyMap<string, string>;
+  // The output type of a declared constant when it is not named like the
+  // constant.
+  outputNames?: ReadonlyMap<string, string>;
   // The referenced constants that are read directly, not through `v.lazy`,
   // and are a pipe holding `v.readonly()`.
   readonlyRefs?: ReadonlySet<string>;
@@ -76,6 +79,7 @@ export const renderValibotType = (
     direction,
     exactOptional = false,
     declared,
+    outputNames,
     readonlyRefs = new Set(),
   }: TypeRenderOptions,
 ): string => {
@@ -185,7 +189,9 @@ export const renderValibotType = (
         if (inputType === undefined) {
           return atom(`${infer}<typeof ${schema.name}>`);
         }
-        return atom(isOutput ? schema.name : inputType);
+        return atom(
+          isOutput ? (outputNames?.get(schema.name) ?? schema.name) : inputType,
+        );
       }
     }
   };

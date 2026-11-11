@@ -172,7 +172,7 @@ export default defineConfig({
     output: {
       schemas: {
         path: './api/model',
-        type: 'typescript', // 'typescript' | 'zod'
+        type: 'typescript', // 'typescript' | 'zod' | 'valibot'
         routes: {
           default: 'models',
           enum: 'types',
@@ -186,7 +186,7 @@ export default defineConfig({
 | Property      | Type      | Description                                     |
 | ------------- | --------- | ----------------------------------------------- |
 | `path`        | `string`  | Filesystem path for schema output. A directory by default; in `mode: 'single'` it may point directly at the schema module file |
-| `type`        | `string`  | `'typescript'` (default) or `'zod'` — optional |
+| `type`        | `string`  | `'typescript'` (default), `'zod'` or `'valibot'` — optional |
 | `importPath`  | `string`  | Optional package import specifier (see below)   |
 | `splitByTags` | `boolean` | Organize schemas into per-tag subdirectories (default `false`, see below) |
 | `routes`      | `object`  | Route enums separately from other schemas |
@@ -456,7 +456,7 @@ src/gen/
 ## schemaFileExtension
 
 **Type:** `String`
-**Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), otherwise the same as [`fileExtension`](#fileextension).
+**Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), `'.valibot.ts'` with `schemas: { type: 'valibot' }`, otherwise the same as [`fileExtension`](#fileextension).
 
 Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). It applies to TypeScript and Zod schema files alike. Without [`schemas`](#schemas), the schemas file written next to the target keeps its `.schemas` marker, so `target: './api.ts'` with `schemaFileExtension: '.types.ts'` produces `api.schemas.types.ts`. Useful when you want client files at one extension and schema files at another:
 
@@ -1022,7 +1022,7 @@ One config run can split its output into four groups, each in its own directory 
 | Group | Directory | Barrel | Runtime imports |
 |-------|-----------|--------|-----------------|
 | Client | [`target`](#target) | `index.ts` ([`indexFiles`](#indexfiles)) | Your HTTP client, e.g. `@angular/*` |
-| Schemas | [`schemas.path`](#schemas) | `index.ts` | None, or `zod` with `type: 'zod'` |
+| Schemas | [`schemas.path`](#schemas) | `index.ts` | None, `zod` with `type: 'zod'`, or `valibot` with `type: 'valibot'` |
 | MSW | MSW generator `path` | `index.msw.ts` (`indexMockFiles`) | `msw`, plus the Faker group |
 | Faker | Faker generator `path` | `index.faker.ts` (`indexMockFiles`) | `@faker-js/faker` |
 
@@ -2204,7 +2204,7 @@ Force a specific version for generated hooks.
 **Type:** `boolean | { strategy?: 'throw' | 'both'; standardSchema?: boolean }`
 **Default:** `false`
 
-Enable runtime validation for `angular-query` responses, through Zod by default. Requires `schemas: { type: 'zod' }`. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for `void`/`unknown` responses, non-JSON responses and custom mutators. Inline scalar JSON responses are validated through a generated schema.
+Enable runtime validation for `angular-query` responses, through Zod by default. Requires `schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`. Valibot schemas always validate through [`standardSchema`](#standardschema): failures throw a `StandardSchemaError` with an `issues` array instead of a `ZodError`, and the Zod calls, errors and `zod.output` types below do not apply to them. When enabled, responses are validated in the RxJS pipeline according to the configured strategy (`Schema.parse()` for the default `throw`). Skipped for `void`/`unknown` responses, non-JSON responses and custom mutators. Inline scalar JSON responses are validated through a generated schema.
 
 This option only drives the Angular `HttpClient` pipeline that `angular-query` generates. `react-query`, `vue-query`, `svelte-query` and `solid-query` issue their requests through the fetch client, so they enable validation through `override.fetch.runtimeValidation` with `httpClient: 'fetch'` instead — as does `swr`.
 
@@ -2700,7 +2700,7 @@ Emit optional object properties with `v.exactOptional(schema)` instead of `v.opt
 
 Emit one exported Valibot constant per `#/components/schemas/*` entry instead of inlining every `$ref`. See [Reusable Schemas](/docs/guides/valibot#reusable-schemas) for the output and the limitations.
 
-It can't be combined with [`schemas`](#schemas) yet.
+With `client: 'valibot'`, this option and [`schemas`](#schemas) can't be set together. `schemas: { type: 'valibot' }` always writes reusable constants and does not need this option.
 
 ---
 
@@ -2778,7 +2778,11 @@ scope clearer.
 **Default:** `false`
 
 Enable runtime validation for Angular output, through Zod by default. Requires
-`schemas: { type: 'zod' }`. This option is opt-in for backward compatibility.
+`schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`. This option is opt-in for backward compatibility.
+Valibot schemas always validate through [`standardSchema`](#standardschema):
+failures throw a `StandardSchemaError` with an `issues` array instead of a
+`ZodError`, and the Zod calls, errors and `zod.output` types below do not apply
+to them.
 
 - For generated `HttpClient` services, eligible JSON body responses are
   validated against the schema in the RxJS pipeline.
@@ -3469,7 +3473,7 @@ touches only the schema-declared `format: date`/`date-time` fields.
 **Type:** `boolean | { strategy?: 'throw' | 'both'; standardSchema?: boolean }`
 **Default:** `false`
 
-Enable runtime validation for fetch client responses, through Zod by default. Requires `schemas: { type: 'zod' }`. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
+Enable runtime validation for fetch client responses, through Zod by default. Requires `schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`. Valibot schemas always validate through [`standardSchema`](#standardschema): failures throw a `StandardSchemaError` with an `issues` array instead of a `ZodError`, and the Zod calls, errors and `zod.output` types below do not apply to them. When enabled, JSON responses are validated according to the configured strategy (`Schema.parse()` for the default `throw`) before being returned.
 
 This covers every client whose request function is the fetch one: `client: 'fetch'`, and `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`. Skipped for `void`/`unknown` responses, non-JSON responses and ndjson streams. Inline scalar JSON responses are validated through a generated schema.
 
@@ -3478,6 +3482,8 @@ The boolean form is preserved for backward compatibility: `true` ≡ `{ strategy
 A validated response is typed with the schema's `zod.output` alias (e.g. `PetsOutput`) instead of the input-typed schema name, since that is what the parse returns at runtime — relevant when the schema transforms values through `coerce`, `useDates`, defaults or `.transform()`. Operations using a custom mutator keep the schema (input) type: the mutator issues the request itself, so the generated parse never runs there.
 
 #### standardSchema
+
+With `schemas: { type: 'valibot' }` this option is always on, because Valibot schemas have no `parse` method. Setting it to `false` there stops generation with an error.
 
 **Type:** `boolean`
 **Default:** `false`
@@ -3500,9 +3506,9 @@ override: {
 
 Limits:
 
-- Generated schemas need Zod 3.24 or newer.
-- Orval still generates Zod schemas, so other validators need your own schema values.
-- Inline array responses still use `zod.array`, so Zod stays a runtime dependency there.
+- Generated Zod schemas need Zod 3.24 or newer.
+- Orval generates Zod and Valibot schemas. Other validators need your own schema values.
+- Inline array responses use `zod.array`, or `valibot.array` with `schemas: { type: 'valibot' }`, so that library stays a runtime dependency there.
 - Angular `requestBodies` encodes a body with [`formatType`](#formattype) codecs back through `zod.encode`.
 
 ### arrayFormat
@@ -3723,6 +3729,8 @@ configured.
 | any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeZodSchemaInArguments`](#includezodschemainarguments) passes the schema to the mutator so it can validate the response itself |
 
 Runtime validation is **disabled by default** (`false`). When enabled, all three supporting clients accept the object form `{ strategy: 'throw' | 'both' }`, and `true` is shorthand for `{ strategy: 'throw' }`. The `throw` strategy parses and throws; `both` additionally `console.error`s the raw `ZodError` before re-throwing, for production observability without giving up fail-fast behaviour.
+
+With `schemas: { type: 'valibot' }` the three clients validate through [`standardSchema`](#standardschema) instead of `Schema.parse()`, so `both` logs a `StandardSchemaError` instead of a `ZodError`.
 
 ---
 
@@ -4185,6 +4193,8 @@ export interface Pet {
 
 ### includeZodSchemaInArguments
 
+With `schemas: { type: 'valibot' }` the mutator receives the Valibot schema, which it validates through `schema['~standard'].validate()`.
+
 **Type:** `Boolean`
 **Default:** `false`
 
@@ -4197,7 +4207,7 @@ Orval generates for `runtimeValidation` never runs (see
 hands the schema to the mutator instead.
 
 Supported by the `fetch` client and by the query clients using
-`httpClient: 'fetch'`. Requires `schemas: { type: 'zod' }` and
+`httpClient: 'fetch'`. Requires `schemas: { type: 'zod' }` or `schemas: { type: 'valibot' }`, and
 `override.fetch.runtimeValidation: true`. The schema is omitted for operations
 without a validatable response — primitive or `void` responses, and
 `application/x-ndjson` streams.

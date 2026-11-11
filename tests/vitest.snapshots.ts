@@ -26,6 +26,7 @@ export default defineConfig({
             'reusable-zod-defaults.spec.ts',
             'standard-schema-validation.spec.ts',
             'valibot-reusable-runtime.spec.ts',
+            'valibot-schemas-runtime.spec.ts',
           ],
         },
       },
