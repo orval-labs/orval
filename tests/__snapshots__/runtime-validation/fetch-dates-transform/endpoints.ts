@@ -28,7 +28,9 @@ import type {
   ShelterRecordsOutput,
 } from './model';
 
-const getHeaders = (...sources: RequestInit['headers'][]) => {
+const getHeaders = (
+  ...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]
+) => {
   const seen = new Set<string>();
   const layers: [string, string | readonly string[]][][] = [];
   for (const source of sources.reverse()) {

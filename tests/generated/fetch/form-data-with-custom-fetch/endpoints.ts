@@ -142,9 +142,19 @@ export const createPets = async (
           return formData;
         })();
 
-  return customFetch<createPetsResponse>(getCreatePetsUrl(version), {
+  const requestInit: { body?: unknown } & NonNullable<
+    Parameters<typeof customFetch>[1]
+  > = {
     ...options,
     method: 'POST',
-    body: formData,
-  });
+  };
+  if (formData === undefined) {
+    delete requestInit.body;
+  } else {
+    requestInit.body = formData;
+  }
+  return customFetch<createPetsResponse>(
+    getCreatePetsUrl(version),
+    requestInit,
+  );
 };

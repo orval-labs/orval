@@ -1461,7 +1461,7 @@ export type BodyType<BodyData> = BodyData;
 
 **Default:** `false`
 
-When `true`, the generated fetch functions omit the `async` keyword and the `: Promise<T>` return type annotation. The return type is inferred from the custom mutator, allowing it to return sync values, Effect-style promises, or any other wrapper type.
+When `true`, the generated Fetch functions infer their return type from the custom mutator. By default they omit the `async` keyword, allowing synchronous values or other wrapper types. Use [`override.fetch.asyncInferredMutator`](#asyncinferredmutator) when the mutator returns a Promise and the operation should reject if request preparation throws.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -3342,6 +3342,18 @@ export default defineConfig({
   },
 });
 ```
+
+### asyncInferredMutator
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Set to `true` for an `inferred: true` custom mutator that returns a Promise.
+Generated Fetch operations retain the inferred result type and reject if
+request preparation throws. Preparation and dispatch still start immediately.
+This option also applies to Query and SWR clients using Fetch and can be set
+per operation. A generated hook runs synchronously and returns an async request
+function.
 
 ### includeHttpResponseReturnType
 

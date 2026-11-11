@@ -24,7 +24,9 @@ import { HTTP_STATUS_CODE_SHARED_TYPES } from '@orval/core';
 // spelling and the same object-entry semantics as before.
 // The resulting record has the values accepted by the current RequestInit
 // declaration. DOM accepts strings, while some other runtimes accept arrays.
-export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: RequestInit['headers'][]) => {
+// Custom mutators can accept undefined record values even with DOM types;
+// those entries are filtered before the result becomes RequestInit headers.
+export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]) => {
     const seen = new Set<string>();
     const layers: [string, string | readonly string[]][][] = [];
     for (const source of sources.reverse()) {

@@ -19,7 +19,9 @@ import type {
   PostApiAppOssIdentityUserSignInBody,
 } from '../model';
 
-const getHeaders = (...sources: RequestInit['headers'][]) => {
+const getHeaders = (
+  ...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]
+) => {
   const seen = new Set<string>();
   const layers: [string, string | readonly string[]][][] = [];
   for (const source of sources.reverse()) {
@@ -98,13 +100,18 @@ export const postApiAppOssIdentityUserImportUsersFromFile = async (
           return formData;
         })();
 
+  const requestInit: globalThis.RequestInit = {
+    ...options,
+    method: 'POST',
+  };
+  if (formData === undefined) {
+    delete requestInit.body;
+  } else {
+    requestInit.body = formData;
+  }
   const res = await fetch(
     getPostApiAppOssIdentityUserImportUsersFromFileUrl(params),
-    {
-      ...options,
-      method: 'POST',
-      body: formData,
-    },
+    requestInit,
   );
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();

@@ -1,0 +1,124 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas typed like the models
+  version: 0.0.0
+paths:
+  /items:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: An item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /comments:
+    get:
+      operationId: getComment
+      responses:
+        '200':
+          description: A comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+components:
+  schemas:
+    # The schema from #4486: a readOnly array and a self reference.
+    Item:
+      type: object
+      required: [name, tags, children]
+      properties:
+        name:
+          type: string
+        tags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+    Comment:
+      type: object
+      required: [body, createdAt, replies]
+      properties:
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [visible, hidden]
+        score:
+          type: integer
+          default: 0
+        parent:
+          anyOf:
+            - $ref: '#/components/schemas/Comment'
+            - type: 'null'
+        replies:
+          type: array
+          readOnly: true
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Comment'
+        byAuthor:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Comment'
+    Folder:
+      type: object
+      required: [name, entries]
+      properties:
+        name:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entry'
+    Entry:
+      anyOf:
+        - $ref: '#/components/schemas/Folder'
+        - $ref: '#/components/schemas/File'
+    File:
+      type: object
+      required: [name, size]
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+    Base:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+    Category:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - type: object
+          required: [children]
+          properties:
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/Category'
+    Tags:
+      type: array
+      readOnly: true
+      items:
+        type: string
+    Meta:
+      type: object
+      additionalProperties: true
+      required: [tags]
+      properties:
+        tags:
+          $ref: '#/components/schemas/Tags'
+        self:
+          $ref: '#/components/schemas/Meta'

@@ -126,12 +126,12 @@ const isRawRequestBodyContentType = (contentType: string) =>
 
 const getRequestOptionsType = (mutator?: GeneratorMutator) => {
   if (!mutator || !mutator.hasSecondArg) {
-    return 'options?: RequestInit';
+    return 'RequestInit';
   }
 
   return mutator.isHook
-    ? `options?: Parameters<ReturnType<typeof ${mutator.name}>>[1]`
-    : `options?: Parameters<typeof ${mutator.name}>[1]`;
+    ? `Parameters<ReturnType<typeof ${mutator.name}>>[1]`
+    : `Parameters<typeof ${mutator.name}>[1]`;
 };
 
 /**
@@ -664,7 +664,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? ', fetchFn?: typeof globalThis.fetch'
       : '';
   const optionsParam = isRequestOptions
-    ? getRequestOptionsType(mutator)
+    ? `options?: ${getRequestOptionsType(mutator)}`
     : isSignalOnlyOptions
       ? "options?: Pick<RequestInit, 'signal'>"
       : '';
@@ -702,9 +702,15 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     ...(headers ? ['headers'] : []),
   ];
 
+  const isFormBody =
+    (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded);
+  const isOptionalFormBody = isFormBody && body.isOptional;
   let globalFetchOptions;
   if (isObject(override.requestOptions)) {
     const globalFetchOptionsObject = { ...override.requestOptions };
+    if (isOptionalFormBody) {
+      delete globalFetchOptionsObject.body;
+    }
     if (headerSources.length > 0 && override.requestOptions.headers) {
       delete globalFetchOptionsObject.headers;
     }
@@ -736,14 +742,14 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isFormData,
     isFormUrlEncoded,
   );
-  const fetchBodyOption = requestBodyParams
-    ? (isFormData && body.formData) ||
-      (isFormUrlEncoded && body.formUrlEncoded) ||
-      body.isBlob ||
-      isRawRequestBodyContentType(body.contentType)
-      ? `body: ${requestBodyParams}`
-      : `body: JSON.stringify(${requestBodyParams})`
-    : '';
+  const fetchBodyOption =
+    requestBodyParams && !isOptionalFormBody
+      ? isFormBody ||
+        body.isBlob ||
+        isRawRequestBodyContentType(body.contentType)
+        ? `body: ${requestBodyParams}`
+        : `body: JSON.stringify(${requestBodyParams})`
+      : '';
   const schemaValueRef =
     responseArraySchema?.schemaRef ?? getSchemaValueRef(responseType);
   const responseValidationExpression = emitResponseValidation({
@@ -772,17 +778,48 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
         context,
       )
     : schemaValueRef;
-  const getFetchFnOptions = ({ withSchema = false } = {}) => {
+  const getFetchRequestInit = ({ withSchema = false } = {}) => {
     const fetchSchemaOption =
       withSchema && includeZodSchema ? `schema: ${mutatorSchemaRef}` : '';
 
-    return `${getUrlFnName}(${getUrlFnProperties}),
-  {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
+    return `{${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions || isSignalOnlyOptions ? '...options,' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}${fetchSchemaOption ? `,\n    ${fetchSchemaOption}` : ''}
+  }`;
+  };
+  const requestInitName = getUniqueName(
+    'requestInit',
+    new Set(
+      `${args} ${getUrlFnName} ${mutator?.name} ${mutator?.path} ${mutatorSchemaRef} ${formData?.name} ${formUrlEncoded?.name} ${fetchReviver?.name} ${dateDeserializer?.name}`.match(
+        /\brequestInit\d*\b/g,
+      ),
+    ),
+  );
+  const mutatorOptionsType = `NonNullable<${getRequestOptionsType(mutator)}>`;
+  // Parameters erases generic schema types; infer the concrete schema at the call site.
+  // Some mutators do not declare body in their options type.
+  const requestInitType = mutator?.hasSecondArg
+    ? `{ body?: unknown } & ${includeZodSchema ? `Omit<${mutatorOptionsType}, 'schema'>` : mutatorOptionsType}`
+    : 'globalThis.RequestInit';
+  const requestInitImplementation = isOptionalFormBody
+    ? `const ${requestInitName}: ${requestInitType} = ${getFetchRequestInit()};
+  if (${requestBodyParams} === undefined) {
+    delete ${requestInitName}.body;
+  } else {
+    ${requestInitName}.body = ${requestBodyParams};
   }
+  `
+    : '';
+  const getFetchFnOptions = ({ withSchema = false } = {}) => {
+    const requestInit = isOptionalFormBody
+      ? withSchema && includeZodSchema
+        ? `{ ...${requestInitName}, schema: ${mutatorSchemaRef} }`
+        : requestInitName
+      : getFetchRequestInit({ withSchema });
+    return `${getUrlFnName}(${getUrlFnProperties}),
+  ${requestInit}
 `;
   };
   const fetchFnOptions = getFetchFnOptions();
@@ -930,6 +967,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   };
 
   let customFetchResponseImplementation = `return ${mutator?.name}<${fetchResponseType}>(${mutatorFetchFnOptions})${mutatorResponseTransform(false)};`;
+  const asyncInferredMutator =
+    mutator?.inferred && override.fetch.asyncInferredMutator;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -949,9 +988,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : `{${fetchExportName}}`;
     customFetchResponseImplementation = `
       const ${formattedDeconstructor} = ${mutator.name}();
-      return (${args}) => {
+      return ${asyncInferredMutator ? 'async ' : ''}(${args}) => {
         ${bodyForm}
-        return ${fetchExportName}(${mutatorFetchFnOptions})${mutatorResponseTransform(true)};
+        ${requestInitImplementation}return ${fetchExportName}(${mutatorFetchFnOptions})${mutatorResponseTransform(true)};
       }
   `;
   }
@@ -961,12 +1000,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     : fetchResponseImplementation;
 
   const exportKeyword = isFactoryMode ? 'const' : 'export const';
-  let fetchImplementation = `${exportKeyword} ${operationName} = ${mutator?.inferred ? '' : 'async '}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
+  let fetchImplementation = `${exportKeyword} ${operationName} = ${!mutator?.inferred || asyncInferredMutator ? 'async ' : ''}(${args})${mutator?.inferred ? '' : `: ${returnType}`} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
-  ${inlineHeadersHelper}${fetchImplementationBody}}
+  ${inlineHeadersHelper}${requestInitImplementation}${fetchImplementationBody}}
   `;
   if (mutator?.isHook) {
-    fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = (): (${args}) => ${mutator.inferred ? '{' : `${returnType} => {`}
+    fetchImplementation = `${exportKeyword} use${pascal(operationName)}Hook = ${mutator.inferred ? '() => {' : `(): (${args}) => ${returnType} => {`}
     ${inlineHeadersHelper}${fetchImplementationBody}}
   `;
   }

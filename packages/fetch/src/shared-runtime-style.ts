@@ -575,7 +575,7 @@ export const generateSharedRequestFunction = (
   // An inferred mutator is specialized per operation through the adapter's
   // fetcher argument instead of `execute`'s type argument.
   const inferredMutator = hasClientMutator && !!mutator?.inferred;
-  const fetchImplementation = `export const ${operationName} = (${toObjectString(props, 'implementation')} options?: CallOptions) =>
+  const fetchImplementation = `export const ${operationName} = ${inferredMutator && override.fetch.asyncInferredMutator ? 'async ' : ''}(${toObjectString(props, 'implementation')} options?: CallOptions) =>
   execute${inferredMutator ? '' : `<${resultType}>`}({
     ${executeArgs.join(',\n    ')},
   }${inferredMutator ? `, ${getSharedMutatorAlias(context.output)}<${resultType}>` : ''})${mutatorDateTransform};

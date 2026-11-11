@@ -237,6 +237,29 @@ if (
   hasFailure = true;
 }
 
+// Valibot's `exactOptional` is for projects with this flag. The types declared
+// for recursive constants must leave `undefined` out of optional keys (#4486).
+console.log(
+  `\nTypechecking valibot schemas with exactOptionalPropertyTypes...\n`,
+);
+
+if (
+  !typecheck(
+    'exact-optional-valibot',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: [
+        'generated/valibot/model-types-exact-optional',
+        'regressions/valibot-exact-optional-types.ts',
+      ],
+    },
+    'valibot (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
+
 // ─── noUncheckedIndexedAccess gate (#4228) ───────────────────────────────
 // Nuxt enables this flag by default. The date (de)serializers index arrays and
 // maps inside bounded loops, so every such read must be asserted non-null.

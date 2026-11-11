@@ -8,6 +8,7 @@ import { createTestContextSpec } from '../../core/src/test-utils';
 import { parseBodyAndResponse } from './operation';
 import { renderValibot } from './render';
 import { generateValibotComponents } from './reusable-schemas';
+import { scriptOf } from './script-helpers';
 
 const ref = (name: string) => ({
   $ref: `#/components/schemas/${name}`,
@@ -43,7 +44,7 @@ const show = (value: unknown): string =>
   );
 
 const evaluate = (code: string): v.GenericSchema =>
-  runInNewContext(`${code}\n;__body`, { v, Date }) as v.GenericSchema;
+  runInNewContext(scriptOf(`${code}\n;__body`), { v, Date }) as v.GenericSchema;
 
 const build = (scenario: Scenario, enabled: boolean): v.GenericSchema => {
   const {
@@ -89,11 +90,7 @@ const build = (scenario: Scenario, enabled: boolean): v.GenericSchema => {
   for (const earlier of earlierBodies) parse(earlier);
   const node = parse(body);
   if (!node) throw new Error('no body');
-  const components = enabled
-    ? generateValibotComponents(context)
-        .replaceAll('export const ', 'const ')
-        .replaceAll('(): v.GenericSchema =>', '() =>')
-    : '';
+  const components = enabled ? generateValibotComponents(context) : '';
   return evaluate(
     `${components}\nconst __body = ${renderValibot(node, { exactOptional })}`,
   );
@@ -852,5 +849,26 @@ describe('flag parity', () => {
       Wrap: { oneOf: [ref('Node'), { type: 'null' }] },
     };
     expectParity({ schemas, body: ref('Node') }, [{}, { next: null }]);
+  });
+
+  it('evaluates the typed getter of a self-referencing component', () => {
+    const schemas: Schemas = {
+      Category: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', maxLength: 3 },
+          children: { type: 'array', items: ref('Category') },
+        },
+      },
+    };
+    // Nested children stay unchecked here: with the flag off, the inlined cycle
+    // validates as unknown.
+    expectParity({ schemas, body: ref('Category') }, [
+      { name: 'a', children: [{ name: 'b', children: [] }] },
+      { name: 'toolong', children: [] },
+      { name: 'a', children: 'x' },
+      {},
+    ]);
   });
 });

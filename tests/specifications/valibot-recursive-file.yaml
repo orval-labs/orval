@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: A recursive Valibot schema named like a global type
+  version: 0.0.0
+paths:
+  /files:
+    get:
+      operationId: getFile
+      responses:
+        '200':
+          description: A file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+components:
+  schemas:
+    # The declared `File` type must not stand in for the global `File` of
+    # `content`.
+    File:
+      type: object
+      required: [name, children]
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+          format: binary
+        createdOn:
+          type: string
+          format: date
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'

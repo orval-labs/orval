@@ -105,4 +105,4 @@ You can explore additional Orval samples here:
 - [svelte query](https://github.com/orval-labs/orval/tree/master/samples/svelte-query)
 - [vue query](https://github.com/orval-labs/orval/tree/master/samples/vue-query)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
-- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/fetch-app/next-app-with-fetch)

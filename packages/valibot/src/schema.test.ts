@@ -421,3 +421,48 @@ describe('formatType', () => {
     });
   });
 });
+
+describe('readOnly arrays', () => {
+  const tags: OpenApiSchemaObject = {
+    type: 'array',
+    readOnly: true,
+    maxItems: 2,
+    items: { type: 'string' },
+  };
+  const render = (schema: OpenApiSchemaObject, suppress = false) =>
+    renderValibot(
+      generateValibotValidationSchemaDefinition(
+        schema,
+        createTestContextSpec({
+          output: { override: { suppressReadonlyModifier: suppress } },
+        }),
+        false,
+        { required: true },
+      ),
+    );
+
+  it('types the output readonly, as the model does', () => {
+    expect(render(tags)).toBe(
+      'v.pipe(v.array(v.string()), v.readonly(), v.maxLength(2))',
+    );
+    const { ok } = gen(tags);
+    expect(ok(['a', 'b'])).toBe(true);
+    expect(ok(['a', 'b', 'c'])).toBe(false);
+  });
+
+  it('keeps the array mutable when the model is', () => {
+    expect(render(tags, true)).toBe(
+      'v.pipe(v.array(v.string()), v.maxLength(2))',
+    );
+    expect(
+      render({
+        type: 'array',
+        readOnly: true,
+        prefixItems: [{ type: 'string' }],
+      }),
+    ).toBe('v.array(v.unknown())');
+    expect(render({ type: 'array', readOnly: true })).not.toContain(
+      'v.readonly()',
+    );
+  });
+});

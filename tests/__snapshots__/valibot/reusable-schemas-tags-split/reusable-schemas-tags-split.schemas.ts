@@ -6,35 +6,95 @@
  */
 import * as v from 'valibot';
 
+export type Tree = {
+  name: string;
+  parent?: Tree | undefined;
+  children?: Tree[] | undefined;
+};
+
+export type TreeInput = {
+  name: string;
+  parent?: TreeInput | undefined;
+  children?: TreeInput[] | undefined;
+};
+
 export const Tree = v.object({
   name: v.string(),
-  parent: v.optional(v.lazy((): v.GenericSchema => Tree)),
-  children: v.optional(v.array(v.lazy((): v.GenericSchema => Tree))),
+  parent: v.optional(v.lazy((): v.GenericSchema<TreeInput, Tree> => Tree)),
+  children: v.optional(
+    v.array(v.lazy((): v.GenericSchema<TreeInput, Tree> => Tree)),
+  ),
 });
+
+export type Book = {
+  title: string;
+  author: Author;
+  reviewer?: Author | undefined;
+};
+
+export type BookInput = {
+  title: string;
+  author: AuthorInput;
+  reviewer?: AuthorInput | undefined;
+};
 
 export const Book = v.object({
   title: v.string(),
-  author: v.lazy((): v.GenericSchema => Author),
+  author: v.lazy((): v.GenericSchema<AuthorInput, Author> => Author),
   reviewer: v.optional(
     v.pipe(
-      v.lazy((): v.GenericSchema => Author),
+      v.lazy((): v.GenericSchema<AuthorInput, Author> => Author),
       v.description('The person who reviewed the book'),
     ),
   ),
 });
+
+export type Author = {
+  name: string;
+  books?: Book[] | undefined;
+};
+
+export type AuthorInput = {
+  name: string;
+  books?: BookInput[] | undefined;
+};
 
 export const Author = v.object({
   name: v.string(),
   books: v.optional(v.array(Book)),
 });
 
+export type RingC = {
+  a?: RingA | undefined;
+};
+
+export type RingCInput = {
+  a?: RingAInput | undefined;
+};
+
 export const RingC = v.object({
-  a: v.optional(v.lazy((): v.GenericSchema => RingA)),
+  a: v.optional(v.lazy((): v.GenericSchema<RingAInput, RingA> => RingA)),
 });
+
+export type RingB = {
+  c: RingC;
+};
+
+export type RingBInput = {
+  c: RingCInput;
+};
 
 export const RingB = v.object({
   c: RingC,
 });
+
+export type RingA = {
+  b: RingB;
+};
+
+export type RingAInput = {
+  b: RingBInput;
+};
 
 export const RingA = v.object({
   b: RingB,
