@@ -192,8 +192,14 @@ async function generateSpecFiles(
         );
 
       await removeOrRecord(
-        ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
+        [
+          '**/*',
+          ...(check?.strict ? [] : ['!**/*.d.ts']),
+          ...extraPatterns,
+          ...nestedMockPatterns,
+        ],
         directory,
+        { dot: check?.strict },
       );
     }
 

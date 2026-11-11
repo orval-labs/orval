@@ -73,15 +73,16 @@ export function getFileInfo(
  */
 export interface ListFilesOptions {
   followSymbolicLinks?: boolean;
+  dot?: boolean;
 }
 
 /** The absolute paths of the files under `dir` that `patterns` select. */
 export function listFilesMatching(
   patterns: string[],
   dir: string,
-  { followSymbolicLinks = true }: ListFilesOptions = {},
+  { followSymbolicLinks = true, dot = false }: ListFilesOptions = {},
 ): Promise<string[]> {
-  return glob(patterns, { cwd: dir, absolute: true, followSymbolicLinks });
+  return glob(patterns, { cwd: dir, absolute: true, followSymbolicLinks, dot });
 }
 
 export async function removeFilesAndEmptyFolders(

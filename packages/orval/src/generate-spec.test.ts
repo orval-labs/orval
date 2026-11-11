@@ -6354,6 +6354,69 @@ describe('generateSpec - outdated check', () => {
     }
   });
 
+  it('strictly checks owned directories while preserving exclusions and mock boundaries', async () => {
+    const workspace = await createTempWorkspace();
+    const output: Partial<OutputOptions> = {
+      clean: ['!**/keep.txt'],
+      mock: { path: './src/client/mocks', generators: [{ type: 'msw' }] },
+    };
+    try {
+      await generateWithOutput(workspace, output);
+      const declaration = path.join(workspace, 'src/client/old.d.ts');
+      const hidden = path.join(workspace, 'src/client/.stale');
+      const kept = path.join(workspace, 'src/client/keep.txt');
+      const mock = path.join(workspace, 'src/client/mocks/manual.d.ts');
+      await Promise.all(
+        [declaration, hidden, kept, mock].map((file) =>
+          outputFile(file, 'untouched'),
+        ),
+      );
+      const before = await readFilesRecursively(workspace);
+      expect(await checkOutdated(workspace, output)).toEqual([]);
+      const check = createGeneratedFileCheck(true);
+      await withGeneratedFileCheck(check, () =>
+        generateWithOutput(workspace, output),
+      );
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([
+        { path: hidden, status: 'obsolete' },
+        { path: declaration, status: 'obsolete' },
+      ]);
+      expect(await readFilesRecursively(workspace)).toEqual(before);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('compares expected files from all projects before reporting obsolete files', async () => {
+    const workspace = await createTempWorkspace();
+    try {
+      await generateWithOutput(workspace, {
+        target: './src/client/first.ts',
+        mode: 'single',
+      });
+      await generateWithOutput(workspace, {
+        target: './src/client/second.ts',
+        mode: 'single',
+        clean: false,
+      });
+      const check = createGeneratedFileCheck(true);
+      await withGeneratedFileCheck(check, async () => {
+        await generateWithOutput(workspace, {
+          target: './src/client/first.ts',
+          mode: 'single',
+        });
+        await generateWithOutput(workspace, {
+          target: './src/client/second.ts',
+          mode: 'single',
+          clean: false,
+        });
+      });
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([]);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   it('refuses a project whose hook would change the files', async () => {
     const workspace = await createTempWorkspace();
 

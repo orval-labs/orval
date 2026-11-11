@@ -2271,6 +2271,7 @@ export interface GlobalOptions {
   failOnWarnings?: boolean;
   throwOnError?: boolean;
   outdated?: boolean;
+  outdatedStrict?: boolean;
 }
 
 export interface Tsconfig {

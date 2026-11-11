@@ -118,9 +118,18 @@ cli
       'Compare generated output with existing files without writing; list files that are missing, outdated or obsolete and exit with code 1 when any are found',
     ).conflicts(['watch']),
   )
+  .addOption(
+    new Option(
+      '--outdated-strict',
+      'Check owned clean directories for all unexpected files, including declarations',
+    ).conflicts(['watch']),
+  )
   .action(async (options) => {
     await withReporter(consoleReporter, async () => {
-      const check = options.outdated ? createGeneratedFileCheck() : undefined;
+      const check =
+        options.outdated || options.outdatedStrict
+          ? createGeneratedFileCheck(options.outdatedStrict)
+          : undefined;
       const run = async () => {
         resetWarnings();
 
@@ -273,7 +282,7 @@ cli
             );
           }
           logger.error(
-            `Process exited with ${outdated.length} outdated generated file(s) due to --outdated flag`,
+            `Process exited with ${outdated.length} outdated generated file(s) due to ${options.outdatedStrict ? '--outdated-strict' : '--outdated'} flag`,
           );
           process.exit(1);
         }

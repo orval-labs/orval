@@ -144,4 +144,6 @@ Nothing is written or removed, including when `clean` is configured. Running `or
 A project with `hooks.afterAllFilesWrite`, the `biome` or `oxfmt` formatter, or `docs` cannot be checked, because those change files after generation. The check fails with an error for such a project. Disable them when running the check.
 </Callout>
 
-Mutually exclusive with `--watch`.
+`--outdated-strict` (or `outdatedStrict: true` in the programmatic API) performs the same check and also reports unexpected files, including `.d.ts` and hidden files, in Orval-owned output directories with `clean` enabled. Use it only for wholly generated directories. Explicit clean exclusions and the protection for separate mock directories still apply. Normal generation and `--outdated` retain their existing cleanup behavior.
+
+Both options are mutually exclusive with `--watch`.

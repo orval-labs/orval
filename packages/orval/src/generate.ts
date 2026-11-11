@@ -40,7 +40,13 @@ async function generateWithReporter(
   workspace: string,
   options?: GlobalOptions,
 ) {
-  const check = options?.outdated ? createGeneratedFileCheck() : undefined;
+  if ((options?.outdated || options?.outdatedStrict) && options.watch) {
+    throw new Error('Cannot check for outdated files while watching');
+  }
+  const check =
+    options?.outdated || options?.outdatedStrict
+      ? createGeneratedFileCheck(options.outdatedStrict)
+      : undefined;
   const run = () => generateProjects(optionsExport, workspace, options);
   const hasErrors = await (check ? withGeneratedFileCheck(check, run) : run());
 

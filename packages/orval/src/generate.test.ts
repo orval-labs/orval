@@ -191,6 +191,26 @@ describe('generate - outdated', () => {
     ).rejects.toThrow(/outdated generated file/);
   });
 
+  it('enables the check with outdatedStrict alone', async () => {
+    vi.mocked(generateSpec).mockImplementationOnce(() =>
+      writeGeneratedFile('/workspace/out.ts', 'export {};\n'),
+    );
+    await expect(
+      generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        outdatedStrict: true,
+      }),
+    ).rejects.toThrow(/outdated generated file/);
+  });
+
+  it('rejects strict checking with watch before starting generation', async () => {
+    await expect(
+      generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {
+        outdatedStrict: true,
+        watch: true,
+      }),
+    ).rejects.toThrow(/while watching/);
+  });
+
   it('does not throw when nothing is reported', async () => {
     await expect(
       generateQuiet({ input: 'spec.yaml', output: 'out.ts' }, '/workspace', {

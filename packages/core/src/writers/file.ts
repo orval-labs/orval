@@ -25,6 +25,8 @@ export function withGeneratedFileTransform<T>(
 export interface GeneratedFileCheck {
   /** Final content per absolute path. A later write to a path replaces it. */
   files: Map<string, string>;
+  /** Include protected declaration files in owned clean directories. */
+  strict?: boolean;
   /** Files that `clean` would have removed. */
   obsoleteCandidates: Set<string>;
 }
@@ -36,8 +38,8 @@ export interface OutdatedGeneratedFile {
 
 const generatedFileCheck = new AsyncLocalStorage<GeneratedFileCheck>();
 
-export function createGeneratedFileCheck(): GeneratedFileCheck {
-  return { files: new Map(), obsoleteCandidates: new Set() };
+export function createGeneratedFileCheck(strict = false): GeneratedFileCheck {
+  return { files: new Map(), obsoleteCandidates: new Set(), strict };
 }
 
 export function withGeneratedFileCheck<T>(
