@@ -3348,7 +3348,8 @@ Set to `true` for an `inferred: true` custom mutator that returns a Promise.
 Generated Fetch operations retain the inferred result type and reject if
 request preparation throws. Preparation and dispatch still start immediately.
 This option also applies to Query and SWR clients using Fetch and can be set
-per operation. A hook mutator still returns its request function synchronously.
+per operation. A generated hook runs synchronously and returns an async request
+function.
 
 ### includeHttpResponseReturnType
 
