@@ -1,0 +1,28 @@
+{
+  "name": "fetch-app-shared-runtime",
+  "version": "8.47.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "generate-api": "vp exec orval",
+    "test:snapshots": "vp test run --config vitest.snapshots.ts",
+    "test:snapshots:update": "vp run test:snapshots --update",
+    "test": "tsc --noEmit && vp test --run"
+  },
+  "dependencies": {
+    "@faker-js/faker": "catalog:tooling"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "msw": "catalog:tooling",
+    "orval": "workspace:*",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  }
+}

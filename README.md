@@ -55,7 +55,7 @@ You can find some samples below:
 - [angular query](https://github.com/orval-labs/orval/tree/master/samples/angular-query)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
 - [swr with effect](https://github.com/orval-labs/orval/tree/master/samples/swr-with-effect)
-- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/fetch-app/next-app-with-fetch)
 - [mcp server](https://github.com/orval-labs/orval/tree/master/samples/mcp)
 
 ### Playground

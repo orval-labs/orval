@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { describeApiGenerationSnapshots } from '../../test-utils/snapshot-testing';
+import { describeApiGenerationSnapshots } from '../../../test-utils/snapshot-testing';
 
 await describeApiGenerationSnapshots({
   dirs: [
@@ -7,5 +7,5 @@ await describeApiGenerationSnapshots({
     path.resolve(import.meta.dirname, 'app', 'gen', 'models'),
   ],
   snapshotsDir: path.resolve(import.meta.dirname, '__snapshots__'),
-  rootDir: path.resolve(import.meta.dirname, '..', '..'),
+  rootDir: path.resolve(import.meta.dirname, '..', '..', '..'),
 });
