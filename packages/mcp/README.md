@@ -51,4 +51,4 @@ You can find below some samples
 - [react app with swr](https://github.com/orval-labs/orval/tree/master/samples/react-app-with-swr)
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
-- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/fetch-app/next-app-with-fetch)
