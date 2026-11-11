@@ -1,8 +1,91 @@
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
-import type { GeneratorMutator } from '../types';
+import type { GeneratorImport, GeneratorMutator } from '../types';
+import { escapeRegExp } from '../utils/string';
 import type { TargetMutators } from './implementation-parts';
-import { generateTargetMutatorImports } from './implementation-parts';
+import {
+  filterImportsUsedInImplementation,
+  generateTargetMutatorImports,
+} from './implementation-parts';
+
+describe('filterImportsUsedInImplementation', () => {
+  it('preserves the original word-boundary predicate for names and aliases', () => {
+    const imports: GeneratorImport[] = [
+      { name: 'Pet' },
+      { name: 'Pets' },
+      { name: 'missing', alias: 'Alias' },
+      { name: 'Name', alias: 'absent' },
+      { name: 'member' },
+      { name: 'comment' },
+      { name: 'string' },
+      { name: 'foo$bar' },
+      { name: '$start' },
+      { name: 'éclair' },
+      { name: 'a.b' },
+      { name: 'a+b' },
+      { name: 'line\n' },
+      { name: '' },
+    ];
+    const implementations = [
+      'Pets Alias Name obj.member // comment\n"string" foo$bar x$start éclair a.b a+b line\nx',
+      'PetSuffix _Pet Pet_ Pet2 2Pet $Pet éPet Peté',
+      '$start éclair .a.b. aab aaab',
+      '',
+    ];
+
+    for (const implementation of implementations) {
+      const expected = imports.filter((imp) => {
+        const searchWords = [imp.alias, imp.name]
+          .filter((part): part is string => Boolean(part?.length))
+          .map(escapeRegExp)
+          .join('|');
+        return (
+          Boolean(searchWords) &&
+          new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(implementation)
+        );
+      });
+      expect(
+        filterImportsUsedInImplementation(imports, implementation),
+      ).toEqual(expected);
+    }
+  });
+
+  it('retains input order, duplicates and object references', () => {
+    const first = { name: 'First' };
+    const second = { name: 'Second', alias: 'Other' };
+    const result = filterImportsUsedInImplementation(
+      [second, { name: 'Unused' }, first, second],
+      'First Other',
+    );
+    expect(result).toEqual([second, first, second]);
+    expect(result[0]).toBe(second);
+    expect(result[1]).toBe(first);
+    expect(result[2]).toBe(second);
+  });
+
+  it('indexes the implementation once for many ASCII candidates and skips empty candidates', () => {
+    const match = vi.spyOn(String.prototype, 'match');
+    const test = vi.spyOn(RegExp.prototype, 'test');
+    try {
+      const imports = Array.from({ length: 1000 }, (_, i) => ({
+        name: `Candidate${i}`,
+      }));
+      expect(
+        filterImportsUsedInImplementation(imports, 'Candidate999;'),
+      ).toEqual([imports[999]]);
+      expect(match).toHaveBeenCalledTimes(1);
+      expect(
+        test.mock.calls.filter(([value]) => value === 'Candidate999;'),
+      ).toHaveLength(0);
+      filterImportsUsedInImplementation([], 'anything');
+      filterImportsUsedInImplementation([{ name: '', alias: '' }], 'anything');
+      expect(match).toHaveBeenCalledTimes(1);
+    } finally {
+      match.mockRestore();
+      test.mockRestore();
+    }
+  });
+});
 
 const makeMutator = (name: string): GeneratorMutator => ({
   name,

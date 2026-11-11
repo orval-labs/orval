@@ -21,18 +21,24 @@ export function filterImportsUsedInImplementation(
   imports: GeneratorImport[],
   implementation: string,
 ): GeneratorImport[] {
-  return imports.filter((imp) => {
-    const searchWords = [imp.alias, imp.name]
-      .filter((part): part is string => Boolean(part?.length))
-      .map((part) => escapeRegExp(part))
-      .join('|');
-    if (!searchWords) {
-      return false;
-    }
+  if (!imports.some((imp) => imp.alias || imp.name)) return [];
 
-    return new RegExp(String.raw`\b(${searchWords})\b`, 'g').test(
+  // JavaScript's word boundaries use ASCII word characters without the `u`
+  // and `i` flags. Index those words once for the common identifier case.
+  const words = new Set(implementation.match(/\w+/g) ?? []);
+  const isUsed = (part: string | undefined): boolean => {
+    if (!part) return false;
+    if (!/\W/.test(part)) return words.has(part);
+
+    // Non-word characters can themselves sit at a word boundary, so retain
+    // the original matching semantics for those names.
+    return new RegExp(String.raw`\b${escapeRegExp(part)}\b`, 'g').test(
       implementation,
     );
+  };
+
+  return imports.filter((imp) => {
+    return isUsed(imp.alias) || isUsed(imp.name);
   });
 }
 
