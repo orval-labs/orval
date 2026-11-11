@@ -365,7 +365,11 @@ export const generateValibotSchemasModule = (
     expression,
     ...(types === undefined ? {} : { types }),
   }));
-  const components = new Set(entries.map(({ name }) => name));
+  // A component is reserved under the name clients import and under the name
+  // its constant is declared as, which differ for names such as `Date`.
+  const components = new Set(
+    entries.flatMap(({ name, constName = name }) => [name, constName]),
+  );
   const taken = new Set(components);
   const add = (
     name: string,

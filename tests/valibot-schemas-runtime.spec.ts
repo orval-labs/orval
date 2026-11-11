@@ -432,6 +432,53 @@ describe('schemas.type valibot', () => {
     ).rejects.toThrow(/"ListPetsParams", which is also a component/);
   });
 
+  it('rejects an operation schema named like a renamed component constant', async () => {
+    const dir = tempDir();
+    const target = path.join(dir, 'spec.json');
+    writeFileSync(
+      target,
+      JSON.stringify({
+        openapi: '3.1.0',
+        info: { title: 'Clash', version: '1.0.0' },
+        paths: {
+          '/dates': {
+            post: {
+              operationId: 'date',
+              requestBody: {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { day: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+              responses: { '204': { description: 'Nothing' } },
+            },
+          },
+        },
+        components: { schemas: { Date: { type: 'string' } } },
+      }),
+    );
+
+    await expect(
+      generate(
+        {
+          input: { target },
+          output: {
+            client: 'fetch',
+            target: path.join(dir, 'endpoints.ts'),
+            schemas: { path: path.join(dir, 'model'), type: 'valibot' },
+            override: { components: { requestBodies: { suffix: 'Schema' } } },
+          },
+        },
+        undefined,
+        { throwOnError: true },
+      ),
+    ).rejects.toThrow(/"DateSchema", which is also a component/);
+  });
+
   describe('edge cases', () => {
     it('names path parameters as the client does', async () => {
       respondWith({ id: 1 });
