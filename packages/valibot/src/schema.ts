@@ -252,6 +252,23 @@ const generateBase = (
   return generateByType(schema, type, child, strict, urlEncoded);
 };
 
+// The model types an array readonly only when it has `items`.
+const hasReadonlyModel = (
+  schema: OpenApiNonBooleanSchemaObject,
+  override: ContextSpec['output']['override'],
+): boolean =>
+  schema.readOnly === true &&
+  schema.items !== undefined &&
+  schema.items !== false &&
+  !('prefixItems' in schema) &&
+  !override.suppressReadonlyModifier;
+
+// What a `decode` function returns, which TypeScript can only name for a
+// function referenced by name. The configured type may need an import that
+// the module doesn't have.
+const decodedType = (decode: string): string =>
+  /^[\w$.]+$/.test(decode) ? `ReturnType<typeof ${decode}>` : 'unknown';
+
 const generateActions = (
   schema: OpenApiNonBooleanSchemaObject,
   base: BaseSchema,
@@ -271,6 +288,12 @@ const generateActions = (
   return [
     ...base.actions,
     ...(kind === 'number' ? numberActions(schema) : []),
+    // A transformation such as `v.readonly()` stops the pipe once the value
+    // has an issue. Placed before the size checks, it keeps the value typed
+    // when only a size check fails, so an enclosing union reports that issue.
+    ...(kind === 'array' && hasReadonlyModel(schema, override)
+      ? [{ kind: 'readonly' } as const]
+      : []),
     ...(kind === 'string' || kind === 'array' ? sizeActions(kind, schema) : []),
     ...(kind === 'string' && isString(schema.pattern)
       ? patternActions(schema.pattern)
@@ -284,6 +307,7 @@ const generateActions = (
           {
             kind: 'decode',
             call: callFormatTypeFunction(formatType.decode, 'value'),
+            output: decodedType(formatType.decode),
             // A transformed member would not merge with its siblings.
             intersectionError: getFormatTypeError(
               schema.format,

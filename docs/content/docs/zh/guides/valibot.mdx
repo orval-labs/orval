@@ -67,15 +67,29 @@ export default defineConfig({
 ```
 
 ```ts
+export type Pet = {
+  name: string;
+  friends?: Pet[] | undefined;
+};
+
+export type PetInput = {
+  name: string;
+  friends?: PetInput[] | undefined;
+};
+
 export const Pet = v.object({
   name: v.string(),
-  friends: v.optional(v.array(v.lazy((): v.GenericSchema => Pet))),
+  friends: v.optional(
+    v.array(v.lazy((): v.GenericSchema<PetInput, Pet> => Pet)),
+  ),
 });
 
 export const ListPetsResponse = v.array(Pet);
 ```
 
-常量写在 operation 旁边：`single` 模式写入 target，其他模式写入 `*.schemas.ts` 文件。闭合循环的引用通过 `v.lazy` 读取，该字段的类型为 `unknown`。
+常量写在 operation 旁边：`single` 模式写入 target，其他模式写入 `*.schemas.ts` 文件。闭合循环的引用通过 `v.lazy` 读取。
+
+循环上的每个常量还会导出两个类型：输出类型 `Pet` 和输入类型 `PetInput`。`v.lazy` 的 getter 使用这两个类型，因此递归字段的类型为 `Pet[]`，而不是 `unknown`。如果已有 schema 名为 `PetInput`，输入类型会改名为 `PetInput2`。由内联 `formatType` `decode`（例如 `(value) => dayjs(value)`）转换的字段在这些类型中为 `unknown`。改为填写函数名（例如 `'dayjs'`），即可使用该函数的返回类型。
 
 ### 限制
 
@@ -129,13 +143,14 @@ if (result.success) {
 - 对象会去掉未知的键。`strict` 选项生成 `v.strictObject`，`additionalProperties` 生成 `v.looseObject` 或 `v.record`。
 - `date` 和 `date-time` 字符串按 ISO 日期校验。设置 `override.useDates` 后会转换为 `Date`。
 - 二进制字段（`format: binary`）生成 `v.file()`，包括 `multipart/form-data` 请求体中的文件字段。
-- 请求体中会去掉 `readOnly` 属性，响应中会去掉 `writeOnly` 属性。
+- 请求体中会去掉 `readOnly` 属性，响应中会去掉 `writeOnly` 属性。带 `items` 的 `readOnly` 数组会加上 `v.readonly()`，因此其输出与模型一样是只读数组。`suppressReadonlyModifier` 会同时关闭两者的只读修饰。
 - 与 schema 不符的 `default` 会被去掉，并给出警告。
 
 ## 限制
 
 - 循环 `$ref` 在被内联的位置按 `unknown` 校验，并给出警告。设置 `generateReusableSchemas` 后，组件常量通过 `v.lazy` 递归校验。
 - `prefixItems` 元组按 `unknown[]` 校验，并给出警告。
+- 当 `readOnly` 数组中的某个元素校验失败时，valibot 会跳过该数组自身的检查，例如 `maxItems`。包含该数组（或包含它的对象）的 `v.union` 随后只报告一个通用错误，而不是该元素的具体错误。日期转换或 `formatType` 解码器对校验失败的字符串也有同样的影响。
 - 除非设置 [`generateReusableSchemas`](#可复用-schema)，否则每个 `$ref` 都会被内联，共享的 schema 可能让输出变得很大。内联单个 schema 超过 250,000 个 schema 节点时会报错并停止。
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
 - 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。与对象成员并列的开放成员（`additionalProperties: true`）会被省略，多余的键同样会被去掉。

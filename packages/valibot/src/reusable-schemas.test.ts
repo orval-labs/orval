@@ -15,6 +15,7 @@ import { allocateConstName } from './const-names';
 import { parseBodyAndResponse, parseParameters } from './operation';
 import { renderValibot } from './render';
 import { generateValibotComponents } from './reusable-schemas';
+import { scriptOf } from './script-helpers';
 
 const ref = (name: string) => ({
   $ref: `#/components/schemas/${name}`,
@@ -51,7 +52,6 @@ const contextOf = (
   });
 
 // Evaluates the whole module, so a constant read before its declaration throws.
-// The getter's return type is dropped as the script is plain JavaScript.
 const load = (
   schemas: Record<string, OpenApiSchemaObject>,
   options?: ContextOptions,
@@ -59,7 +59,7 @@ const load = (
   const code = generateValibotComponents(contextOf(schemas, options));
   const names = Object.keys(schemas);
   const module = runInNewContext(
-    `${code.replaceAll('export const ', 'const ').replaceAll('(): v.GenericSchema =>', '() =>')}\n;({ ${names.join(', ')} })`,
+    `${scriptOf(code)}\n;({ ${names.join(', ')} })`,
     { v, toDay: (value: string) => ({ day: value }) },
   ) as Record<string, v.GenericSchema>;
   const ok = (name: string, input: unknown) =>
@@ -105,7 +105,9 @@ describe('component constants', () => {
         },
       },
     });
-    expect(code).toContain('v.lazy((): v.GenericSchema => Tree)');
+    expect(code).toContain(
+      'v.lazy((): v.GenericSchema<TreeInput, Tree> => Tree)',
+    );
     expect(ok('Tree', { name: 'a', children: [{ name: 'b' }] })).toBe(true);
     expect(ok('Tree', { name: 'a', children: [{}] })).toBe(false);
   });
@@ -129,6 +131,44 @@ describe('component constants', () => {
     expect(code.match(/v\.lazy/g)).toHaveLength(1);
     expect(ok('A', { b: { c: { a: { b: { c: {} } } } } })).toBe(true);
     expect(ok('A', { b: {} })).toBe(false);
+  });
+
+  it('declares the input and output types of every constant on a cycle', () => {
+    const { code } = load({
+      A: { type: 'object', properties: { b: ref('B'), c: ref('C') } },
+      B: { type: 'object', properties: { a: ref('A') } },
+      C: { type: 'object', properties: { at: { type: 'string' } } },
+    });
+    expect(code).toContain(
+      'export type A = {\n  b?: B | undefined;\n  c?: v.InferOutput<typeof C> | undefined;\n};',
+    );
+    expect(code).toContain(
+      'export type BInput = {\n  a?: AInput | undefined;\n};',
+    );
+    expect(code).not.toContain('export type C');
+  });
+
+  it('marks a key readonly when it reads a readonly constant directly', () => {
+    const { code } = load({
+      Tags: { type: 'array', readOnly: true, items: { type: 'string' } },
+      Node: {
+        type: 'object',
+        required: ['tags'],
+        properties: { tags: ref('Tags'), next: ref('Node') },
+      },
+    });
+    expect(code).toContain('  readonly tags: v.InferOutput<typeof Tags>;');
+  });
+
+  it('numbers an input type that would share a name', () => {
+    const { code, ok } = load({
+      Node: { type: 'object', properties: { next: ref('Node') } },
+      NodeInput: { type: 'object', properties: { next: ref('NodeInput') } },
+    });
+    expect(code).toContain('export type NodeInput2 = {');
+    expect(code).toContain('v.GenericSchema<NodeInput2, Node>');
+    expect(code).toContain('export type NodeInputInput = {');
+    expect(ok('Node', { next: { next: {} } })).toBe(true);
   });
 
   it('reads a component through its alias', () => {
@@ -271,7 +311,9 @@ describe('component constants', () => {
         { strict: true },
       ),
     );
-    expect(code).toContain('v.union([v.lazy((): v.GenericSchema => Tree)');
+    expect(code).toContain(
+      'v.union([v.lazy((): v.GenericSchema<TreeInput, Tree> => Tree)',
+    );
     expect(code).not.toContain('v.unknown()');
   });
 
@@ -626,9 +668,11 @@ describe('lazy references', () => {
         nullable: false,
         optional: false,
       },
-      { lazyRefs: new Set(['Tree']) },
+      { lazyRefs: new Map([['Tree', 'TreeInput']]) },
     );
-    expect(rendered).toBe('v.lazy((): v.GenericSchema => Tree)');
+    expect(rendered).toBe(
+      'v.lazy((): v.GenericSchema<TreeInput, Tree> => Tree)',
+    );
   });
 
   it('renders a reference by name otherwise', () => {
@@ -639,9 +683,9 @@ describe('lazy references', () => {
       optional: false,
     };
     expect(renderValibot(node)).toBe('v.nullable(Tree)');
-    expect(renderValibot(node, { lazyRefs: new Set(['Other']) })).toBe(
-      'v.nullable(Tree)',
-    );
+    expect(
+      renderValibot(node, { lazyRefs: new Map([['Other', 'OtherInput']]) }),
+    ).toBe('v.nullable(Tree)');
   });
 });
 

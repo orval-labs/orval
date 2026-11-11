@@ -10,7 +10,7 @@ import type {
 // `v.toDate()` needs valibot 1.2; a transform keeps every 1.x release working.
 const TO_DATE = 'v.transform((value) => new Date(value))';
 
-const renderKey = (key: string) =>
+export const renderKey = (key: string) =>
   key === '__proto__'
     ? "['__proto__']"
     : /^[A-Za-z_$][\w$]*$/.test(key)
@@ -20,8 +20,10 @@ const renderKey = (key: string) =>
 export interface RenderOptions {
   exactOptional?: boolean;
   // Referenced names read through `v.lazy`, as their constants are declared
-  // later in the module or are the one being declared.
-  lazyRefs?: ReadonlySet<string>;
+  // later in the module or are the one being declared. Each maps to the name
+  // of the input type the module declares for it; the output type has the
+  // name of the constant.
+  lazyRefs?: ReadonlyMap<string, string>;
 }
 
 interface RenderPosition {
@@ -119,9 +121,11 @@ export const renderValibot = (
       case 'ref': {
         // The getter's return type breaks the cycle in the inferred type of
         // a constant that reads itself, directly or through other constants.
-        return lazyRefs?.has(schema.name)
-          ? `v.lazy((): v.GenericSchema => ${schema.name})`
-          : schema.name;
+        const { name } = schema;
+        const inputType = lazyRefs?.get(name);
+        return inputType === undefined
+          ? name
+          : `v.lazy((): v.GenericSchema<${inputType}, ${name}> => ${name})`;
       }
       case 'variant': {
         return `v.variant(${toJsLiteral(schema.key)}, [${schema.options.map((option) => render(option, { inIntersection })).join(', ')}])`;
