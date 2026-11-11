@@ -1594,6 +1594,65 @@ describe('generateRequestFunction — useDatesTransform', () => {
     );
   });
 
+  it('optionally rejects preparation errors while dispatching immediately', async () => {
+    const options = datedVerbOptions({
+      fetch: { asyncInferredMutator: true },
+      useDatesTransform: false,
+    });
+    options.mutator = { ...MUTATOR, inferred: true };
+    const implementation = generate(options);
+    const { outputText } = ts.transpileModule(implementation, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+      },
+    });
+    const exports: Record<string, unknown> = {};
+    const customFetch = vi.fn((_url: string, _options: RequestInit) =>
+      Promise.resolve('result'),
+    );
+    runInNewContext(outputText, { exports, customFetch });
+    const request = exports.updateAppointment as (
+      body: unknown,
+    ) => Promise<string>;
+    const error = new Error('serialization');
+    const rejected = request({
+      toJSON() {
+        throw error;
+      },
+    });
+    await expect(rejected).rejects.toBe(error);
+    expect(customFetch).not.toHaveBeenCalled();
+    const result = request({ id: 1 });
+    expect(customFetch).toHaveBeenCalledOnce();
+    expect(customFetch.mock.calls[0]?.[1]).toMatchObject({ body: '{"id":1}' });
+    await expect(result).resolves.toBe('result');
+  });
+
+  it('keeps inferred mutators synchronous by default and only makes hook callbacks async', () => {
+    const options = datedVerbOptions({ useDatesTransform: false });
+    options.mutator = { ...MUTATOR, inferred: true };
+    expect(generate(options)).toContain('updateAppointment = (');
+    options.override.fetch.asyncInferredMutator = false;
+    expect(generate(options)).toContain('updateAppointment = (');
+    options.override.fetch.asyncInferredMutator = true;
+    const factoryContext = makeContext();
+    factoryContext.output.client = OutputClient.FETCH;
+    factoryContext.output.override.fetch.httpClientInjection = 'factory';
+    expect(generate(options, factoryContext)).toContain(
+      'const updateAppointment = async (',
+    );
+    options.mutator.isHook = true;
+    const implementation = generate(options);
+    expect(implementation).toContain('useUpdateAppointmentHook = () => {');
+    expect(implementation).toContain('return async (');
+    const { diagnostics } = ts.transpileModule(implementation, {
+      reportDiagnostics: true,
+      compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    });
+    expect(diagnostics).toEqual([]);
+  });
+
   describe('with a formatType value in the response', () => {
     const MAPPED = {
       type: 'object',

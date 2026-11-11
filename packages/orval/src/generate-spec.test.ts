@@ -441,6 +441,73 @@ describe('generateSpec - inline Fetch headers helper', () => {
   );
 });
 
+describe('generateSpec - async inferred Fetch mutators', () => {
+  it.each([
+    { client: 'fetch', runtimeImplementationStyle: 'inline' },
+    { client: 'fetch', runtimeImplementationStyle: 'shared' },
+    { client: 'react-query', runtimeImplementationStyle: 'inline' },
+    { client: 'swr', runtimeImplementationStyle: 'inline' },
+  ] as const)(
+    'applies the option to $client $runtimeImplementationStyle output',
+    async ({ client, runtimeImplementationStyle }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        await outputFile(
+          path.join(workspace, 'mutator.ts'),
+          'export const customFetch = <T>(_url: string, _options: RequestInit): Promise<T> => Promise.resolve({} as T);',
+        );
+        const options = await normalizeOptions(
+          {
+            input: {
+              target: {
+                ...PETSTORE_SPEC,
+                paths: {
+                  ...PETSTORE_SPEC.paths,
+                  '/status': {
+                    get: {
+                      operationId: 'getStatus',
+                      responses: { '204': { description: 'OK' } },
+                    },
+                  },
+                },
+              },
+            },
+            output: {
+              target: './endpoints.ts',
+              client,
+              httpClient: 'fetch',
+              override: {
+                mutator: {
+                  path: './mutator.ts',
+                  name: 'customFetch',
+                  inferred: true,
+                },
+                fetch: {
+                  asyncInferredMutator: true,
+                  runtimeImplementationStyle,
+                },
+                operations: {
+                  getStatus: { fetch: { asyncInferredMutator: false } },
+                },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        const implementation = await fs.promises.readFile(
+          path.join(workspace, 'endpoints.ts'),
+          'utf8',
+        );
+        expect(implementation).toContain('listPets = async (');
+        expect(implementation).toContain('getStatus = (');
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
 describe('generateSpec - unchanged formatted output', () => {
   it('keeps mtimes when prettier produces the same final files', async () => {
     const workspace = await createTempWorkspace();
