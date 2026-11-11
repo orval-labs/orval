@@ -17,7 +17,7 @@ import {
   Verbs,
 } from '@orval/core';
 import ts from 'typescript';
-import { describe, expect, it } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
   createTestContextSpec,
@@ -601,9 +601,7 @@ describe('generateSharedRequestFunction', () => {
     expect(implementation).toContain(
       'export type listPetsResponse = ResponseOf<{ 200: Stream<StreamEntry> }>;',
     );
-    expect(implementation).toContain(
-      "headers: { Accept: 'application/x-ndjson' }",
-    );
+    expect(implementation).toContain("accept: 'application/x-ndjson'");
     expect(implementation).toContain("responseType: 'stream'");
   });
 
@@ -765,9 +763,7 @@ describe('generateSharedRequestFunction', () => {
       makeSharedOptions(),
     );
 
-    expect(implementation).toContain(
-      "headers: { Accept: 'Application/X-NDJSON' }",
-    );
+    expect(implementation).toContain("accept: 'Application/X-NDJSON'");
     expect(implementation).toContain("responseType: 'stream'");
   });
 
@@ -1167,6 +1163,34 @@ describe('shared runtime options', () => {
         ...args,
         options: { fetch: respond(body, status, contentType) },
       });
+
+    it('merges automatic, operation and call headers without case-sensitive duplicates', async () => {
+      const fetch = vi.fn((_url: string, _init: RequestInit) =>
+        Promise.resolve(new Response(null, { status: 204 })),
+      );
+      await execute({
+        url: '/pets',
+        method: 'POST',
+        body: { name: 'Pet' },
+        contentType: 'application/json',
+        accept: 'application/x-ndjson',
+        headers: { accept: 'application/json', 'X-Trace': 'operation' },
+        options: {
+          fetch,
+          headers: new Headers({
+            'content-type': 'text/plain',
+            'x-trace': 'call',
+          }),
+        },
+      });
+      const sent = new Request(
+        'https://example.test/pets',
+        fetch.mock.calls[0]?.[1],
+      );
+      expect(sent.headers.get('content-type')).toBe('text/plain');
+      expect(sent.headers.get('accept')).toBe('application/json');
+      expect(sent.headers.get('x-trace')).toBe('call');
+    });
 
     it('revives a JSON body and deserializes its dates', async () => {
       const result = await call(

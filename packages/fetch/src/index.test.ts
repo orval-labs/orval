@@ -941,6 +941,7 @@ describe('inline optional form bodies (#4507)', () => {
     ['application/x-www-form-urlencoded', 'fetch', true],
     ['application/x-www-form-urlencoded', 'fetch', false],
     ['application/x-www-form-urlencoded', 'mutator', true],
+    ['application/x-www-form-urlencoded', 'custom-headers', true],
     ['application/x-www-form-urlencoded', 'hook', true],
   ] as const)(
     'typechecks and sends %s bodies (transport: %s, options: %s)',
@@ -1316,7 +1317,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       override: { ...makeVerbOptions().override, requestOptions: true },
       body: {
         definition: 'CreatePetBody',
-        implementation: 'createPetBody: CreatePetBody',
+        implementation: 'createPetBody',
         contentType: 'application/json',
         isOptional: false,
       },
@@ -1330,7 +1331,9 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     );
 
     expect(implementation).toContain('const getHeaders =');
-    expect(implementation).toContain('...getHeaders(options?.headers)');
+    expect(implementation).toContain(
+      "getHeaders({ 'Content-Type': 'application/json' }, options?.headers)",
+    );
   });
 
   it('keeps static body headers without referencing disabled request options', () => {
@@ -1345,68 +1348,98 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     expect(implementation).not.toContain('const getHeaders');
   });
 
-  it('narrows on iterability rather than array-ness', () => {
+  const createRequest = () => {
+    const context = makeContext();
+    const verbOptions = verbOptionsWithHeaders();
+    verbOptions.override.requestOptions = {
+      headers: { 'x-trace': 'configured', 'X-Static': 'keep' },
+    };
+    verbOptions.headers = STUB_QUERY_PARAMS;
+    verbOptions.props = getProps({ ...verbOptions, context });
     const implementation = generateImplementation(
-      verbOptionsWithHeaders(),
-      makeOptions(makeContext()),
+      verbOptions,
+      makeOptions(context),
+    );
+    const { outputText } = ts.transpileModule(implementation, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+      },
+    });
+    const fetch = vi.fn((_url: string, _init: RequestInit) =>
+      Promise.resolve(new Response('[]')),
+    );
+    const request = runInNewContext(`${outputText}; listPets`, {
+      exports: {},
+      fetch,
+      Headers,
+    }) as (
+      body: string,
+      headers: Record<string, string>,
+      options?: { headers: unknown },
+    ) => Promise<unknown>;
+    return { request, fetch };
+  };
+
+  it.each([
+    [
+      'Headers',
+      new Headers({ 'content-type': 'text/plain', 'x-trace': 'call' }),
+    ],
+    [
+      'tuples',
+      [
+        ['content-type', 'text/plain'],
+        ['x-trace', 'call'],
+      ],
+    ],
+    ['record', { 'content-type': 'text/plain', 'x-trace': 'call' }],
+    [
+      'iterables',
+      new Set([
+        new Set(['content-type', 'text/plain']),
+        new Set(['x-trace', 'call']),
+      ]),
+    ],
+  ])(
+    'lets %s override lower-priority header names in any casing',
+    async (_shape, headers) => {
+      const { request, fetch } = createRequest();
+
+      await request('body', { 'X-Trace': 'operation' }, { headers });
+
+      const init = fetch.mock.calls[0]?.[1];
+      const sent = new Request('https://example.test/pets', init);
+      expect(sent.headers.get('content-type')).toBe('text/plain');
+      expect(sent.headers.get('x-trace')).toBe('call');
+      expect(sent.headers.get('x-static')).toBe('keep');
+    },
+  );
+
+  it('skips undefined, keeps array values and preserves variants within one source', async () => {
+    const { request, fetch } = createRequest();
+    await request(
+      'body',
+      { 'X-Trace': 'operation' },
+      {
+        headers: {
+          'content-type': undefined,
+          'x-trace': undefined,
+          'X-Values': ['one', 'two'],
+          'X-Repeat': 'one',
+          'x-repeat': 'two',
+        },
+      },
     );
 
-    // `RequestInit['headers']` is declared per runtime. Outside the DOM its
-    // non-record member need not be an array — `@cloudflare/workers-types`
-    // uses `Iterable<Iterable<string>>` — so `Array.isArray` cannot narrow it
-    // and the fall-through `return h` failed the declared return type.
-    expect(implementation).toContain('if (Symbol.iterator in h)');
-    expect(implementation).not.toContain('if (Array.isArray(h))');
-  });
-
-  it('materializes each entry before Object.fromEntries', () => {
-    const implementation = generateImplementation(
-      verbOptionsWithHeaders(),
-      makeOptions(makeContext()),
-    );
-
-    // `Object.fromEntries` reads `[0]`/`[1]` off each entry rather than
-    // iterating it, so a non-indexable entry — `new Set([new Set(['X-Trace',
-    // '1'])])` satisfies the declared `Iterable<Iterable<string>>` — produced
-    // a single `undefined` key and lost the real header.
-    expect(implementation).toContain(
-      'Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])',
-    );
-    expect(implementation).not.toContain(
-      'Object.fromEntries(h as Iterable<readonly [string, string]>)',
-    );
-  });
-
-  it('still short-circuits empty input and unwraps a Headers instance', () => {
-    const implementation = generateImplementation(
-      verbOptionsWithHeaders(),
-      makeOptions(makeContext()),
-    );
-
-    expect(implementation).toContain('if (!h) return {};');
-    expect(implementation).toContain(
-      'if (h instanceof Headers) return Object.fromEntries(h.entries());',
-    );
-  });
-
-  it('builds the record branch entry by entry, skipping undefined values', () => {
-    const implementation = generateImplementation(
-      verbOptionsWithHeaders(),
-      makeOptions(makeContext()),
-    );
-
-    // A record whose values include `undefined` — Hono's header record, for
-    // one — is not assignable to the declared return type, so the result is
-    // built rather than passed through (#4029). Names are copied verbatim, so
-    // the override semantics of `{ ...literal, ...getHeaders(...) }` still
-    // hold, and an `undefined` value is skipped instead of reaching the wire
-    // as the literal text "undefined".
-    expect(implementation).toContain(
-      'const headers: Record<string, string | readonly string[]> = {};',
-    );
-    expect(implementation).toContain('if (value !== undefined)');
-    expect(implementation).toContain('return headers;');
-    expect(implementation).not.toContain('    return h;\n');
+    expect(fetch.mock.calls[0]?.[1].headers).toEqual({
+      'Content-Type': 'application/json',
+      'X-Static': 'keep',
+      'X-Trace': 'operation',
+      'X-Values': ['one', 'two'],
+      'X-Repeat': 'one',
+      'x-repeat': 'two',
+    });
   });
 
   it('does not emit the helper when no headers are added', () => {

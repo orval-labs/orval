@@ -417,16 +417,9 @@ export const generateSharedRequestFunction = (
     : '';
 
   const hasStream = response.contentTypes.some(isContentTypeNdJson);
-  const acceptHeader =
+  const accept =
     hasStream && response.contentTypes.length === 1
-      ? `Accept: '${response.contentTypes[0]}'`
-      : undefined;
-  const headersArgument = headers
-    ? acceptHeader
-      ? `headers: { ${acceptHeader}, ...headers }`
-      : 'headers'
-    : acceptHeader
-      ? `headers: { ${acceptHeader} }`
+      ? response.contentTypes[0]
       : undefined;
   const responseType = getResponseType(verbOptions);
 
@@ -531,7 +524,8 @@ export const generateSharedRequestFunction = (
     ...(body.implementation && body.contentType
       ? [`contentType: '${jsStringLiteralEscape(runtimeContentType)}'`]
       : []),
-    ...(headersArgument ? [headersArgument] : []),
+    ...(accept ? [`accept: '${jsStringLiteralEscape(accept)}'`] : []),
+    ...(headers ? ['headers'] : []),
     ...(responseType ? [`responseType: '${responseType}'`] : []),
     ...(encodeBodyName ? [`encodeBody: ${encodeBodyName}`] : []),
     // A client-config mutator issues the request itself, so it only gets the

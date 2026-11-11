@@ -8,25 +8,33 @@
 import type { CreateUploadBody, Item, SubmitFormBody } from './model';
 
 const getHeaders = (
-  h?: NonNullable<RequestInit['headers']>,
-): Record<string, string | readonly string[]> => {
-  if (!h) return {};
-  if (h instanceof Headers) return Object.fromEntries(h.entries());
-  if (Symbol.iterator in h) {
-    return Object.fromEntries(
-      Array.from(
-        h as Iterable<Iterable<string>>,
-        (entry) => Array.from(entry) as [string, string],
-      ),
-    );
+  ...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]
+) => {
+  const seen = new Set<string>();
+  const layers: [string, string | readonly string[]][][] = [];
+  for (const source of sources.reverse()) {
+    if (!source) continue;
+    const entries =
+      source instanceof Headers
+        ? source.entries()
+        : Symbol.iterator in source
+          ? Array.from(
+              source as Iterable<Iterable<string>>,
+              (entry) => Array.from(entry) as [string, string],
+            )
+          : Object.entries<string | readonly string[] | undefined>(source);
+    const layer: [string, string | readonly string[]][] = [];
+    for (const [name, value] of entries) {
+      if (value !== undefined && !seen.has(name.toLowerCase()))
+        layer.push([name, value]);
+    }
+    for (const [name] of layer) seen.add(name.toLowerCase());
+    layers.push(layer);
   }
-  const headers: Record<string, string | readonly string[]> = {};
-  for (const [name, value] of Object.entries<
-    string | readonly string[] | undefined
-  >(h)) {
-    if (value !== undefined) headers[name] = value;
-  }
-  return headers;
+  return Object.fromEntries(layers.reverse().flat()) as Extract<
+    RequestInit['headers'],
+    Record<string, unknown>
+  >;
 };
 
 export type getItemResponse200ApplicationJson = {
@@ -240,10 +248,10 @@ export const submitForm = async (
   const res = await fetch(getSubmitFormUrl(), {
     ...options,
     method: 'POST',
-    headers: {
-      'Content-Type': 'Application/X-WWW-Form-Urlencoded',
-      ...getHeaders(options?.headers),
-    },
+    headers: getHeaders(
+      { 'Content-Type': 'Application/X-WWW-Form-Urlencoded' },
+      options?.headers,
+    ),
     body: formUrlEncoded,
   });
 
