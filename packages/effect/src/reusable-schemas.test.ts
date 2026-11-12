@@ -605,7 +605,7 @@ describe('operation constants', () => {
 
 describe('inline module text', () => {
   const builderOf = (schemas: Schemas) => ({
-    spec: { components: { schemas } },
+    spec: contextOf(schemas).spec,
     target: '',
     operations: {
       all: {
