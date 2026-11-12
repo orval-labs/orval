@@ -188,6 +188,22 @@ if (
   hasFailure = true;
 }
 
+// The reusable Effect constants declare optional keys as `?: T` under
+// `exactOptional`, which only holds against the schemas under this flag.
+if (
+  !typecheck(
+    'exact-optional-effect',
+    {
+      extends: './tsconfig.json',
+      compilerOptions: { exactOptionalPropertyTypes: true },
+      include: ['generated/effect/reusable-schemas-exact-optional'],
+    },
+    'effect (exactOptionalPropertyTypes)',
+  )
+) {
+  hasFailure = true;
+}
+
 // vue-query builds the same page-param merge around `toValue(params)` (#4223).
 const vueQueryExactOptionalFolders = ['issue-4223'];
 
