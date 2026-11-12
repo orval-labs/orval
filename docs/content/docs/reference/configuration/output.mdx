@@ -5159,7 +5159,7 @@ return customInstance<Pet>(
 );
 ```
 
-This merge only works when the mutator's options parameter is an object. For the `axios` client, use `AxiosRequestConfig` or a type that extends it. If you need extra flags, add them as fields on that object. Don't use a separate primitive parameter:
+Without an object `requestOptions`, Orval passes `options` to the mutator unchanged, so the options parameter can be any type, including a primitive. With an object `requestOptions`, Orval spreads `options` into an object, so the options parameter must be an object type that accepts the keys you set. It doesn't have to be `AxiosRequestConfig`. Extending `AxiosRequestConfig` is convenient when the mutator forwards these options to axios. If you need extra flags, add them as fields on that object:
 
 ```ts title="custom-instance.ts"
 type RequestOptions = AxiosRequestConfig & { withTimeout?: boolean };

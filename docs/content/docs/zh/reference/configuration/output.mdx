@@ -4047,7 +4047,7 @@ return customInstance<Pet>(
 );
 ```
 
-因此 mutator 的 options 参数必须是对象类型。对于 `axios` client，应使用 `AxiosRequestConfig` 或其扩展类型。如需额外标志，请将其作为该对象的字段，而不是单独的原始类型参数：
+未配置对象形式的 `requestOptions` 时，Orval 会原样将 `options` 传给 mutator，因此 options 参数可以是任意类型（包括原始类型）。配置了对象形式的 `requestOptions` 时，`options` 会被展开到对象中，因此 options 参数必须是能接受所设置键的对象类型。它不必是 `AxiosRequestConfig`；如果 mutator 会把这些选项转发给 axios，扩展 `AxiosRequestConfig` 会比较方便。如需额外标志，请将其作为该对象的字段：
 
 ```ts title="custom-instance.ts"
 type RequestOptions = AxiosRequestConfig & { withTimeout?: boolean };
