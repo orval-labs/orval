@@ -3754,6 +3754,116 @@ describe('normalizeOptions', () => {
     });
   });
 
+  describe('effect generateReusableSchemas', () => {
+    const normalizeEffect = async (
+      output: Record<string, unknown>,
+      generateReusableSchemas?: boolean,
+    ) => {
+      const workspace = await createTempWorkspace();
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              client: 'effect',
+              override: { effect: { generateReusableSchemas } },
+              ...output,
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it('is off by default', async () => {
+      const normalized = await normalizeEffect({ target: './generated.ts' });
+      expect(normalized.output.override.effect.generateReusableSchemas).toBe(
+        false,
+      );
+    });
+
+    it('can be turned on', async () => {
+      const normalized = await normalizeEffect(
+        { target: './generated.ts' },
+        true,
+      );
+      expect(normalized.output.override.effect.generateReusableSchemas).toBe(
+        true,
+      );
+    });
+
+    it('is dropped from operation and tag overrides', async () => {
+      const normalized = await normalizeEffect({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: {
+              effect: { generateReusableSchemas: true, exactOptional: true },
+            },
+          },
+          tags: { pets: { effect: { generateReusableSchemas: true } } },
+        },
+      });
+      const { operations, tags } = normalized.output.override;
+      expect(operations.listPets?.effect?.exactOptional).toBe(true);
+      expect(operations.listPets?.effect?.generateReusableSchemas).toBe(false);
+      expect(tags.pets?.effect?.generateReusableSchemas).toBe(false);
+    });
+
+    it('warns for a defined operation override but not for undefined', async () => {
+      logWarningSpy.mockClear();
+      await normalizeEffect({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: { effect: { generateReusableSchemas: undefined } },
+          },
+        },
+      });
+      expect(logWarningSpy).not.toHaveBeenCalled();
+
+      await normalizeEffect({
+        target: './generated.ts',
+        override: {
+          operations: {
+            listPets: { effect: { generateReusableSchemas: false } },
+          },
+        },
+      });
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('is rejected together with output.schemas', async () => {
+      await expect(
+        normalizeEffect({ target: './generated.ts', schemas: './model' }, true),
+      ).rejects.toThrow(/cannot be combined with `output.schemas`/);
+    });
+
+    it('is rejected for a custom client function', async () => {
+      const client: OutputClientFunc = (clients) => clients.effect;
+      await expect(
+        normalizeEffect({ target: './generated.ts', client }, true),
+      ).rejects.toThrow(/requires `client: 'effect'`/);
+    });
+
+    it('allows output.schemas when it is off', async () => {
+      await expect(
+        normalizeEffect(
+          { target: './generated.ts', schemas: './model' },
+          false,
+        ),
+      ).resolves.toBeDefined();
+    });
+  });
+
   it('resolves hono compositeRoute relative to the workspace', async () => {
     const workspace = await createTempWorkspace();
 
