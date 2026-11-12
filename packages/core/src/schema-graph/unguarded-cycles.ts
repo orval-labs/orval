@@ -1,10 +1,9 @@
+import type { ContextSpec } from '../types';
+import { isObject } from '../utils/assertion';
 import {
-  type ContextSpec,
   type DependencyGraph,
-  isObject,
   nodesOnCycles,
-} from '@orval/core';
-
+} from '../utils/strongly-connected';
 import { getComponentKey, getLocalRefTarget, getRef } from './refs';
 import { compositionMembers } from './schema-keys';
 

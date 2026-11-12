@@ -1,11 +1,10 @@
-import {
-  type ContextSpec,
-  isObject,
-  isSchemaNullable,
-  type OpenApiNonBooleanSchemaObject,
-  type OpenApiSchemaObject,
-} from '@orval/core';
-
+import type {
+  ContextSpec,
+  OpenApiNonBooleanSchemaObject,
+  OpenApiSchemaObject,
+} from '../types';
+import { isObject, isSchemaNullable } from '../utils/assertion';
+import type { SchemaDirection } from './ref-policy';
 import { getLocalRefTarget, getRef } from './refs';
 import { ALTERNATIVE_KEYS } from './schema-keys';
 import {
@@ -14,13 +13,10 @@ import {
   toCanonicalNullable,
 } from './schema-type';
 
-// `readOnly` properties are left out of requests, `writeOnly` ones of responses.
-type Direction = 'readOnly' | 'writeOnly';
-
 type IsHidden = (schema: OpenApiSchemaObject | undefined) => boolean;
 
 const byFlag =
-  (direction: Direction): IsHidden =>
+  (direction: SchemaDirection): IsHidden =>
   (schema) =>
     isNonBoolean(schema) && schema[direction] === true;
 
@@ -136,7 +132,7 @@ const strip = (
  */
 export const omitDirectional = (
   schema: OpenApiNonBooleanSchemaObject,
-  direction: Direction,
+  direction: SchemaDirection,
 ): OpenApiNonBooleanSchemaObject =>
   closeIfEmptied(schema, strip(schema, new Set(), byFlag(direction)));
 

@@ -1,4 +1,4 @@
-import { isString } from '@orval/core';
+import { isString } from '../utils/assertion';
 
 /** The strings of a list, or none when the value is not a list. */
 export const stringList = (value: unknown): string[] =>

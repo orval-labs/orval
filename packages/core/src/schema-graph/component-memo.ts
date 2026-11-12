@@ -1,9 +1,5 @@
-import {
-  type ContextSpec,
-  isObject,
-  type OpenApiReferenceObject,
-} from '@orval/core';
-
+import type { ContextSpec, OpenApiReferenceObject } from '../types';
+import { isObject } from '../utils/assertion';
 import { getRef } from './refs';
 import { hasOnlyAnnotations } from './schema-keys';
 
@@ -35,7 +31,7 @@ const stateOf = (context: ContextSpec): MemoState => {
  * Computes a set of keys once per spec and key. A result cut short by a cycle
  * is reused only until the outermost computation ends, whose result is kept.
  */
-export const memoizeByRef = (
+const memoizeByRef = (
   context: ContextSpec,
   key: string,
   compute: () => ReadonlySet<string>,
@@ -91,7 +87,7 @@ const plainRef = (
  * target. `compute` reads the keys of the bare ref from scratch. Undefined
  * when the schema is anything else, which the caller walks itself.
  */
-export const memoizedKeysOfRef = (
+const memoizedKeysOfRef = (
   context: ContextSpec,
   name: string,
   input: unknown,

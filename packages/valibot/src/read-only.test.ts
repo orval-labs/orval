@@ -1,7 +1,9 @@
-import type { OpenApiNonBooleanSchemaObject } from '@orval/core';
+import {
+  type OpenApiNonBooleanSchemaObject,
+  omitDirectional,
+} from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { omitDirectional } from './read-only';
 import { gen } from './test-helpers';
 
 const id: OpenApiNonBooleanSchemaObject = { type: 'integer', readOnly: true };

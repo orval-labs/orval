@@ -4,6 +4,13 @@ import {
   isString,
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
+  type CompositionKey,
+  getCompositionKeys,
+  getMultiTypes,
+  hasProperties,
+  isNonBoolean,
+  resolveType,
+  withoutOuterAnnotations,
 } from '@orval/core';
 
 import {
@@ -14,15 +21,6 @@ import {
   type ValibotEntry,
   type ValibotNode,
 } from './nodes';
-import { type CompositionKey } from './schema-keys';
-import {
-  getCompositionKeys,
-  getMultiTypes,
-  hasProperties,
-  isNonBoolean,
-  resolveType,
-  withoutOuterAnnotations,
-} from './schema-type';
 
 // Requires the keys in every object reachable through the composition.
 const requireFields = (

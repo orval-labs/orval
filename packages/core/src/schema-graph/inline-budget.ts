@@ -1,5 +1,4 @@
-import { isObject } from '@orval/core';
-
+import { isObject } from '../utils/assertion';
 import { isDataKey } from './schema-keys';
 
 /** Schema nodes one top-level schema may inline before the expansion stops. */
@@ -12,6 +11,8 @@ export interface InlineBudget {
 }
 
 interface InlineBudgetOptions {
+  // Package named in the error and its option, such as `valibot`.
+  library: string;
   limit: number;
   // Where the schema is used, such as an operation and its request body.
   label: string;
@@ -24,15 +25,16 @@ interface InlineLimitErrorOptions extends InlineBudgetOptions {
 }
 
 export const inlineLimitError = ({
+  library,
   limit,
   label,
   suggestReusable,
   ref,
 }: InlineLimitErrorOptions): Error =>
   new Error(
-    `[orval/valibot] Inlining ${ref ? `"${ref}"` : 'the schema'} for ${label} produced more than ${limit} schema nodes.${
+    `[orval/${library}] Inlining ${ref ? `"${ref}"` : 'the schema'} for ${label} produced more than ${limit} schema nodes.${
       suggestReusable
-        ? ' Set override.valibot.generateReusableSchemas to true to generate one schema per component instead.'
+        ? ` Set override.${library}.generateReusableSchemas to true to generate one schema per component instead.`
         : ' Some of its references cannot be shared as component constants, such as those under readOnly or writeOnly properties or in form bodies.'
     }`,
   );

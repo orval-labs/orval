@@ -14,6 +14,15 @@ import {
   type OpenApiNonBooleanSchemaObject,
   type OpenApiSchemaObject,
   toJsLiteral,
+  getRef,
+  getCompositionKeys,
+  getMultiTypes,
+  hasProperties,
+  isNonBoolean,
+  type ResolvedType,
+  resolveType,
+  toCanonicalNullable,
+  withoutOuterAnnotations,
 } from '@orval/core';
 
 import { generateComposition } from './composition';
@@ -34,17 +43,7 @@ import {
   type ValibotNode,
   type ValibotSchema,
 } from './nodes';
-import { getRef, isReusableSchemasEnabled, resolveComponentName } from './refs';
-import {
-  getCompositionKeys,
-  getMultiTypes,
-  hasProperties,
-  isNonBoolean,
-  type ResolvedType,
-  resolveType,
-  toCanonicalNullable,
-  withoutOuterAnnotations,
-} from './schema-type';
+import { isReusableSchemasEnabled, resolveComponentName } from './refs';
 
 export interface SchemaRules {
   required?: boolean;
