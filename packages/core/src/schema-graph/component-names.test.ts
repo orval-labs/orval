@@ -42,6 +42,15 @@ describe('getComponentNames', () => {
       ),
     ).toBe('File');
   });
+
+  it('reads the names again for other reserved names of one library', () => {
+    const context = contextOf(['File', 'FileSchema']);
+    const plain = { library: 'effect', reserved: new Set<string>() };
+    expect(getComponentNames(context, plain).get('File')).toBe('File');
+    expect(() => getComponentNames(context, options)).toThrow(
+      '[orval/effect] generateReusableSchemas: refs',
+    );
+  });
 });
 
 describe('allocateConstName', () => {

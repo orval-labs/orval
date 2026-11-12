@@ -19,7 +19,8 @@ export const resolveComponentName = (
   return reserved.has(name) ? `${name}Schema` : name;
 };
 
-// Names depend on the spec, the library and the component naming options, so
+// Names depend on the spec, the library, its reserved names and the component
+// naming options, so
 // a spec reused with other options gets its own entry.
 const namesCache = new WeakMap<
   object,
@@ -28,10 +29,10 @@ const namesCache = new WeakMap<
 
 const namingSignature = (
   context: ContextSpec,
-  { library }: ComponentNameOptions,
+  { library, reserved }: ComponentNameOptions,
 ): string => {
   const { prefix, suffix } = context.output.override.components.schemas;
-  return JSON.stringify([library, prefix, suffix]);
+  return JSON.stringify([library, [...reserved].toSorted(), prefix, suffix]);
 };
 
 const resolveNames = (
