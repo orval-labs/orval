@@ -1,5 +1,7 @@
 import {
+  allocateDerivedNames,
   type ContextSpec,
+  getComponentNames as getSharedComponentNames,
   nodesOnCycles,
   type OpenApiSchemaObject,
   orderByDependencies,
@@ -10,61 +12,24 @@ import {
 import { dereference } from './dereference';
 import type { ValibotNode } from './nodes';
 import { createRefPolicy, getComponentModes } from './ref-policy';
-import { collectRefNames, isSchemasOutput, resolveComponentName } from './refs';
+import { collectRefNames, isSchemasOutput, RESERVED_NAMES } from './refs';
 import { renderValibot } from './render';
 import { hasReadonlyPipe, renderValibotType } from './render-type';
 import { generateValibotValidationSchemaDefinition } from './schema';
-
-// Names depend on the spec and on the component naming options, so a spec
-// reused with other options gets its own entry.
-const namesCache = new WeakMap<
-  object,
-  Map<string, ReadonlyMap<string, string>>
->();
-
-const namingSignature = (context: ContextSpec): string => {
-  const { prefix, suffix } = context.output.override.components.schemas;
-  return JSON.stringify([prefix, suffix]);
-};
 
 const getComponents = (
   context: ContextSpec,
 ): Record<string, OpenApiSchemaObject> =>
   context.spec.components?.schemas ?? {};
 
-const resolveNames = (context: ContextSpec): Map<string, string> => {
-  const names = new Map<string, string>();
-  const owners = new Map<string, string>();
-  for (const key of Object.keys(getComponents(context))) {
-    const ref = toComponentRef(key);
-    const name = resolveComponentName(ref, context);
-    const owner = owners.get(name);
-    if (owner !== undefined) {
-      throw new Error(
-        `[orval/valibot] generateReusableSchemas: refs ${owner} and ${ref} both resolve to the export name "${name}". Rename one in the OpenAPI source.`,
-      );
-    }
-    owners.set(name, ref);
-    names.set(key, name);
-  }
-  return names;
-};
-
 /** Constant names by component key. Throws when two components share one. */
 export const getComponentNames = (
   context: ContextSpec,
-): ReadonlyMap<string, string> => {
-  const bySignature =
-    namesCache.get(context.spec) ??
-    new Map<string, ReadonlyMap<string, string>>();
-  namesCache.set(context.spec, bySignature);
-  const signature = namingSignature(context);
-  const cached = bySignature.get(signature);
-  if (cached) return cached;
-  const names = resolveNames(context);
-  bySignature.set(signature, names);
-  return names;
-};
+): ReadonlyMap<string, string> =>
+  getSharedComponentNames(context, {
+    library: 'valibot',
+    reserved: RESERVED_NAMES,
+  });
 
 const generateComponent = (
   key: string,
@@ -85,25 +50,6 @@ const generateComponent = (
     strict,
     { required: true },
   );
-};
-
-// The input type of each constant on a cycle: `<Name>Input`, numbered when
-// a component or an earlier input type already has that name.
-const allocateInputTypeNames = (
-  onCycles: ReadonlySet<string>,
-  componentNames: ReadonlySet<string>,
-): Map<string, string> => {
-  const taken = new Set(componentNames);
-  const names = new Map<string, string>();
-  for (const name of onCycles) {
-    let inputName = `${name}Input`;
-    for (let count = 2; taken.has(inputName); count++) {
-      inputName = `${name}Input${count}`;
-    }
-    taken.add(inputName);
-    names.set(name, inputName);
-  }
-  return names;
 };
 
 export interface ComponentTypeNames {
@@ -157,7 +103,7 @@ export const generateValibotComponentConsts = (
   const typeNames: ReadonlyMap<string, ComponentTypeNames> = typeNamesOf
     ? new Map([...onCycles].map((name) => [name, typeNamesOf(name)] as const))
     : new Map(
-        [...allocateInputTypeNames(onCycles, new Set(nodes.keys()))].map(
+        [...allocateDerivedNames(onCycles, new Set(nodes.keys()), 'Input')].map(
           ([name, input]) => [name, { output: name, input }] as const,
         ),
       );

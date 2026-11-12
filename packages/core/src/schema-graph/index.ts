@@ -3,6 +3,13 @@ export {
   type PolicyDereferenceOptions,
   type SchemaWalkReporter,
 } from './dereference';
+export {
+  allocateConstName,
+  allocateDerivedNames,
+  type ComponentNameOptions,
+  getComponentNames,
+  resolveComponentName,
+} from './component-names';
 export { omitDirectional, relaxWriteOnly } from './read-only';
 export {
   carriesSiblings,
