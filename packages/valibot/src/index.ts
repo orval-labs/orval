@@ -1,4 +1,5 @@
 import {
+  allocateConstName,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
   type GeneratorDependency,
@@ -8,7 +9,6 @@ import {
   pascal,
 } from '@orval/core';
 
-import { allocateConstName } from './const-names';
 import { startRun } from './logger';
 import {
   getSingleResponse,

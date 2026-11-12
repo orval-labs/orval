@@ -7,11 +7,11 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
 } from '@orval/core';
+import { allocateConstName } from '@orval/core';
 import * as v from 'valibot';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
-import { allocateConstName } from './const-names';
 import { parseBodyAndResponse, parseParameters } from './operation';
 import { renderValibot } from './render';
 import { generateValibotComponents } from './reusable-schemas';
