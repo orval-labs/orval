@@ -21,7 +21,7 @@ interface JsDocSchema extends Record<string, unknown> {
   maxItems?: number;
   type?: string | string[];
   pattern?: string;
-  items?: JsDocSchema;
+  items?: JsDocSchema | boolean;
 }
 
 interface JsDocEntry {
@@ -74,11 +74,11 @@ const itemValidationKeys = [
 ] as const satisfies readonly (keyof JsDocSchema)[];
 
 function getItemValidationDocEntries(
-  schema?: JsDocSchema,
+  schema?: JsDocSchema | boolean,
   prefix = 'items',
   visited = new WeakSet<JsDocSchema>(),
 ): JsDocEntry[] {
-  if (!schema) {
+  if (!schema || isBooleanJsonSchema(schema)) {
     return [];
   }
   if (visited.has(schema)) {

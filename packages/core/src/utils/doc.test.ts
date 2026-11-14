@@ -45,6 +45,22 @@ describe('jsDoc', () => {
 `);
   });
 
+  it('ignores boolean item schemas', () => {
+    expect(jsDoc({ type: 'array', maxItems: 3, items: true })).toBe(`/**
+ * @maxItems 3
+ */
+`);
+    expect(
+      jsDoc({
+        type: 'array',
+        items: { type: 'array', minItems: 1, items: false },
+      }),
+    ).toBe(`/**
+ * @items.minItems 1
+ */
+`);
+  });
+
   it('prefixes each line of a multi-line description with *', () => {
     expect(
       jsDoc({

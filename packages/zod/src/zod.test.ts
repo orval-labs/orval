@@ -15674,6 +15674,44 @@ describe('schemas that admit no value (#4323)', () => {
   });
 });
 
+describe('arrays without an item schema (#4522)', () => {
+  const context = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (schema: OpenApiSchemaObject) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'createNote',
+        false,
+        false,
+        { required: true },
+      ),
+      context,
+      false,
+      false,
+      false,
+    ).zod;
+
+  it('accepts any item when items is omitted or true', () => {
+    expect(render({ type: 'array' })).toBe('zod.array(zod.unknown())');
+    expect(render({ type: 'array', items: true })).toBe(
+      'zod.array(zod.unknown())',
+    );
+    expect(render({ type: 'array', minItems: 1 })).toBe(
+      'zod.array(zod.unknown()).min(1)',
+    );
+  });
+
+  it('keeps items: false as an array of never', () => {
+    expect(render({ type: 'array', items: false })).toBe(
+      'zod.array(zod.never())',
+    );
+  });
+});
+
 describe('object schemas narrowed by an enum (#4351)', () => {
   const context = createTestContextSpec({
     output: { override: { useDates: false } },

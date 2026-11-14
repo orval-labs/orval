@@ -2043,7 +2043,8 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           'array',
           generateZodValidationSchemaDefinition(
-            schema.items,
+            // An omitted `items` allows any item, like `items: true`.
+            schema.items ?? true,
             context,
             camel(`${name}-item`),
             strict,
