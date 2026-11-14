@@ -1,9 +1,7 @@
 import {
   type ContextSpec,
-  escapeRegExp,
-  generateImports,
-  getReferencedFormatTypeImports,
   type NormalizedOutputOptions,
+  withInlineImports,
 } from '@orval/core';
 
 import { generateValibotComponents } from './reusable-schemas';
@@ -33,20 +31,11 @@ export const generateValibotSchemasInline = (
     output,
   });
   if (components === '') return '';
-  const isImported = (name: string) =>
-    new RegExp(
-      String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
-      'm',
-    ).test(precedingContent);
-  const decodeImports = generateImports({
-    imports: getReferencedFormatTypeImports(
-      components,
-      output.override,
-      (config) => [config.decodeImport],
-    ).filter(({ name }) => !isImported(name)),
+  return withInlineImports({
+    components,
+    output,
+    precedingContent,
+    pick: (config) => [config.decodeImport],
+    libraryImport: () => (includeImport ? VALIBOT_IMPORT : ''),
   });
-  const imports = [includeImport ? VALIBOT_IMPORT : '', decodeImports]
-    .filter(Boolean)
-    .join('\n');
-  return `${imports ? `${imports}\n\n` : ''}${components}\n\n`;
 };

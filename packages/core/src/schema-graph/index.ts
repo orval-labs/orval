@@ -10,7 +10,9 @@ export {
   getComponentNames,
   resolveComponentName,
 } from './component-names';
+export { createImportCheck, withInlineImports } from './inline-module';
 export { omitDirectional, relaxWriteOnly } from './read-only';
+export { createWarnOnceReporter } from './reporter';
 export {
   carriesSiblings,
   type ComponentFacts,
@@ -30,6 +32,7 @@ export {
   toComponentRef,
 } from './refs';
 export { type CompositionKey } from './schema-keys';
+export { createSharedRefPolicy } from './shared-ref-policy';
 export {
   getCompositionKeys,
   getMultiTypes,
