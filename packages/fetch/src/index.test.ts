@@ -2,7 +2,6 @@ import { runInNewContext } from 'node:vm';
 
 import type {
   ContextSpec,
-  GeneratorOperation,
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiParameterObject,
@@ -2122,30 +2121,6 @@ describe('httpClientInjection: factory', () => {
     expect(client.implementation).not.toContain('export ');
     expect(client.returnType?.()).toContain('export type listPetsResponse =');
   });
-
-  it('returns hook names and URL helpers, then emits the response types', () => {
-    const footer = generateFetchFooter({
-      operationNames: ['listPets', 'createPets'],
-      operations: [
-        {
-          operationName: 'listPets',
-          types: { result: () => 'export type listPetsResponse = unknown;' },
-        },
-        {
-          operationName: 'createPets',
-          mutator: { isHook: true },
-        },
-      ] as GeneratorOperation[],
-      hasAwaitedType: true,
-      hasMutator: true,
-      output: factoryContext().output,
-    });
-
-    expect(footer).toBe(
-      'return { listPets, getListPetsUrl, useCreatePetsHook, getCreatePetsUrl };\n};\n' +
-        '\nexport type listPetsResponse = unknown;\n',
-    );
-  });
 });
 
 describe('generateRequestFunction — pipeDelimited and spaceDelimited query arrays', () => {
@@ -2437,23 +2412,22 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
     return options;
   };
 
+  const sharedHeaderParams = (output: ContextSpec['output']) => ({
+    title: 'getPetstore',
+    isRequestOptions: true,
+    isMutator: false,
+    isGlobalMutator: false,
+    provideIn: false as const,
+    hasAwaitedType: true,
+    output,
+    verbOptions: {},
+    clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
+  });
+
   it('emits no header types and no factory closure', () => {
     const output = sharedOptions().context.output;
-    output.override.fetch.httpClientInjection = 'factory';
 
-    expect(
-      generateFetchHeader({
-        title: 'getPetstore',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: false,
-        hasAwaitedType: true,
-        output,
-        verbOptions: {},
-        clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
-      }),
-    ).toBe('');
+    expect(generateFetchHeader(sharedHeaderParams(output))).toBe('');
     expect(
       generateFetchFooter({
         operationNames: ['listPets'],
@@ -2463,6 +2437,34 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
         title: 'getPetstore',
       }),
     ).toBe('');
+  });
+
+  describe('with httpClientInjection: factory', () => {
+    it('wraps the operations in the factory and leaves the rest at module level', () => {
+      const options = sharedOptions();
+      const { output } = options.context;
+      output.override.fetch.httpClientInjection = 'factory';
+      const implementation = generateImplementation(makeVerbOptions(), options);
+      const header = generateFetchHeader(sharedHeaderParams(output));
+      if (typeof header === 'string') throw new Error('expected a header');
+
+      expect(header.implementation).toBe('');
+      expect(header.sharedTypes).toBeUndefined();
+      const source = header.transformClientImplementation?.(implementation);
+
+      expect(source).not.toContain('orval:factory-operation');
+      const factoryStart = source?.indexOf(
+        'export const getPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {\n',
+      );
+      expect(factoryStart).toBeGreaterThan(0);
+      expect(source?.indexOf('export const getListPetsUrl')).toBeLessThan(
+        factoryStart ?? 0,
+      );
+      expect(source?.indexOf('const listPets = (')).toBeGreaterThan(
+        factoryStart ?? 0,
+      );
+      expect(source).toContain('options: { fetch: fetchFn, ...options }');
+    });
   });
 
   it.each([OutputClient.FETCH, OutputClient.REACT_QUERY, OutputClient.SWR])(

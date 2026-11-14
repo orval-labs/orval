@@ -2,6 +2,7 @@ import { runInNewContext } from 'node:vm';
 
 import type {
   ContextSpec,
+  GeneratorOperation,
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiParameterObject,
@@ -24,7 +25,11 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
-import { generateRequestFunction } from './index';
+import {
+  generateFetchFooter,
+  generateFetchHeader,
+  generateRequestFunction,
+} from './index';
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
 import {
   generateFetchExtraFiles,
@@ -2106,5 +2111,187 @@ describe('normalizeSharedRuntimeVerbOptions', () => {
         out,
       ).mutator,
     ).toEqual(mutator());
+  });
+});
+
+describe('shared runtime with httpClientInjection: factory (#4520)', () => {
+  const factoryOptions = (mutator?: boolean) => {
+    const options = makeSharedOptions([], { mutator });
+    options.context.output.override.fetch.httpClientInjection = 'factory';
+    return options;
+  };
+  const verbOptions = (
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+  ) =>
+    makeVerbOptions({
+      response: {
+        definition: { success: 'Pet[]', errors: '' },
+        contentTypes: ['application/json'],
+        types: {
+          success: [successType({ key: '200', value: 'Pet[]' })],
+          errors: [],
+        },
+      },
+      ...overrides,
+    });
+
+  const assemble = (options: GeneratorOptions, implementation: string) => {
+    const header = generateFetchHeader({
+      title: 'getPetstore',
+      isRequestOptions: true,
+      isMutator: false,
+      isGlobalMutator: false,
+      provideIn: false,
+      hasAwaitedType: true,
+      output: options.context.output,
+      verbOptions: {},
+      clientImplementation: implementation,
+    });
+    if (typeof header === 'string') throw new Error('expected a transform');
+    const footer = generateFetchFooter({
+      operationNames: ['listPets'],
+      operations: [{ operationName: 'listPets' }] as GeneratorOperation[],
+      output: options.context.output,
+      hasMutator: false,
+      hasAwaitedType: true,
+      title: 'getPetstore',
+    });
+    return `${header.implementation}${header.transformClientImplementation?.(implementation) ?? implementation}${footer}`;
+  };
+
+  it('declares the operation locally and passes the factory fetch as options.fetch', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(),
+      factoryOptions(),
+    );
+
+    expect(implementation).toContain('export type listPetsResponse =');
+    expect(implementation).toContain('export const getListPetsUrl = (');
+    expect(implementation).toContain(
+      '/* orval:factory-operation-start */\nconst listPets = (',
+    );
+    expect(implementation).toContain('options: { fetch: fetchFn, ...options }');
+    expect(implementation).not.toContain('...(options !== undefined');
+  });
+
+  it('passes no fetch to a client-config mutator', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions({
+        mutator: {
+          name: 'customFetch',
+          path: '../custom-fetch',
+          default: false,
+          hasErrorType: false,
+          errorTypeName: 'ErrorType',
+          hasSecondArg: true,
+          hasThirdArg: false,
+          isHook: false,
+        },
+      }),
+      factoryOptions(true),
+    );
+
+    expect(implementation).toContain('const listPets = (');
+    expect(implementation).not.toContain('fetchFn');
+    expect(implementation).toContain('...(options !== undefined');
+  });
+
+  it('keeps the plain shared output without the factory option', () => {
+    const implementation = generateSharedRequestFunction(
+      verbOptions(),
+      makeSharedOptions(),
+    );
+
+    expect(implementation).toContain('export const listPets = (');
+    expect(implementation).not.toContain('orval:factory-operation');
+    expect(implementation).not.toContain('fetchFn');
+  });
+
+  it('type-checks the assembled factory against the runtime', () => {
+    const options = factoryOptions();
+    const client = generateSharedClient(verbOptions(), options);
+    const imports = client.imports
+      .map(
+        ({ name, values, importPath }) =>
+          `import ${values ? '' : 'type '}{ ${name} } from '${importPath}';`,
+      )
+      .join('\n');
+    const source = assemble(options, client.implementation);
+
+    expect(source).toMatch(
+      /export const getListPetsUrl[\s\S]*export const getPetstore = \(fetchFn: typeof globalThis\.fetch = fetch\) => \{\n[\s\S]*const listPets = \([\s\S]*return \{ listPets, getListPetsUrl \};\n\};\n$/,
+    );
+
+    const files: Record<string, string> = {
+      '/proj/src/runtime.ts': RUNTIME_TEMPLATE,
+      '/proj/src/api/endpoints.ts': `${imports}
+type Pet = { id: number; name: string };
+${source}`,
+      '/proj/src/consumer.ts': `
+import { getPetstore, getListPetsUrl, type listPetsResponse } from './api/endpoints';
+const customFetch: typeof globalThis.fetch = (input, init) => fetch(input, init);
+const client = getPetstore(customFetch);
+const response: Promise<listPetsResponse> = client.listPets();
+const overridden: Promise<listPetsResponse> = client.listPets({ fetch: customFetch, signal: null });
+const fallback = getPetstore();
+const url: string = client.getListPetsUrl();
+const sameUrl: typeof getListPetsUrl = fallback.getListPetsUrl;
+void response; void overridden; void url; void sameUrl;
+`,
+    };
+
+    expect(
+      typeCheckFiles(files, [
+        'lib.es2022.d.ts',
+        'lib.dom.d.ts',
+        'lib.dom.iterable.d.ts',
+      ]),
+    ).toEqual([]);
+  });
+
+  it('sends requests through the factory fetch unless the call overrides it', async () => {
+    const options = factoryOptions();
+    const client = generateSharedClient(verbOptions(), options);
+    const source = assemble(options, client.implementation);
+    const program = ts.transpileModule(
+      `${RUNTIME_TEMPLATE}\n${source}\nexport { getPetstore };`,
+      {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+        },
+      },
+    ).outputText;
+    const exports: Record<string, unknown> = {};
+    runInNewContext(program, {
+      exports,
+      Headers,
+      Response,
+      URLSearchParams,
+      fetch: () => {
+        throw new Error('global fetch must not be used');
+      },
+    });
+    const getPetstore = exports.getPetstore as (fetchFn: typeof fetch) => {
+      listPets: (options?: { fetch?: typeof fetch }) => Promise<{
+        data: unknown;
+      }>;
+    };
+    const factoryFetch = vi.fn(
+      async () => new Response('[{"id":1}]', { status: 200 }),
+    );
+    const callFetch = vi.fn(
+      async () => new Response('[{"id":2}]', { status: 200 }),
+    );
+    const petstore = getPetstore(factoryFetch);
+
+    await expect(petstore.listPets()).resolves.toMatchObject({
+      data: [{ id: 1 }],
+    });
+    await expect(
+      petstore.listPets({ fetch: callFetch }),
+    ).resolves.toMatchObject({ data: [{ id: 2 }] });
+    expect(factoryFetch).toHaveBeenCalledTimes(1);
+    expect(callFetch).toHaveBeenCalledTimes(1);
   });
 });

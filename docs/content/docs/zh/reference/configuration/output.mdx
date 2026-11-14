@@ -2929,6 +2929,25 @@ const api = getSwaggerPetstore(myFetch);
 const pets = await api.listPets({ limit: '10' });
 ```
 
+与 `runtimeImplementationStyle: 'shared'` 一起使用时，响应类型和 URL helpers 与普通 shared 风格一样保留在顶层，只有 operations 被移入工厂函数。工厂接收的 `fetch` 会作为 `options.fetch` 传给 shared runtime；调用时在 options 中传入的 `fetch` 优先。设置了全局 `override.mutator` 时，由 mutator 发起请求，因此不会使用工厂的 `fetch`。
+
+```ts
+export const getListPetsUrl = (params: ListPetsParams) => {
+  // ...
+};
+
+export const getSwaggerPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {
+  const listPets = (params: ListPetsParams, options?: CallOptions) =>
+    execute<listPetsResponse>({
+      url: getListPetsUrl(params),
+      method: 'GET',
+      options: { fetch: fetchFn, ...options },
+    });
+
+  return { listPets, getListPetsUrl };
+};
+```
+
 ---
 
 ## Runtime Validation Support Matrix（运行时校验支持矩阵）
