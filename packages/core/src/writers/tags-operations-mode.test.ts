@@ -514,6 +514,23 @@ describe('writeTagsOperationsMode', () => {
       writeTagsOperationsMode({ ...props, needSchema: false }),
     ).rejects.toThrow(/not supported with the 'axios' client/);
   });
+  it('rejects the fetch factory, which cannot span per-operation files', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const output = createSplitModeOutput(target, {
+      mode: OutputMode.TAGS_OPERATIONS,
+      client: OutputClient.FETCH,
+    });
+    output.override.fetch.httpClientInjection = 'factory';
+
+    await expect(
+      writeTagsOperationsMode({
+        ...createSplitModeProps(target),
+        output,
+        needSchema: false,
+      }),
+    ).rejects.toThrow(/httpClientInjection: factory/);
+  });
+
   it('rebases a relative importPath from the target directory onto the operation file', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const baseProps = createSplitModeProps(target);

@@ -26,7 +26,10 @@ import {
   writeTagsOperationsMockFiles,
   writeTagsOperationsMockIndexes,
 } from './tags-operations-mocks';
-import { assertClientSupportsTagsOperations } from './tags-operations-mode';
+import {
+  assertClientSupportsTagsOperations,
+  assertNoFetchFactoryInjection,
+} from './tags-operations-mode';
 import {
   buildTagHelpersImport,
   generateTargetForTagsOperations,
@@ -53,6 +56,7 @@ export async function writeTagsOperationsSplitMode({
   schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   assertClientSupportsTagsOperations(output.client, 'tags-operations-split');
+  assertNoFetchFactoryInjection(output, 'tags-operations-split');
 
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: conventionName(

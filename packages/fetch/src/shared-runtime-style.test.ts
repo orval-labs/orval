@@ -25,6 +25,7 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
+import { FACTORY_EXECUTE_OPTIONS } from './http-client-injection-factory';
 import {
   generateFetchFooter,
   generateFetchHeader,
@@ -2170,7 +2171,7 @@ describe('shared runtime with httpClientInjection: factory (#4520)', () => {
     expect(implementation).toContain(
       '/* orval:factory-operation-start */\nconst listPets = (',
     );
-    expect(implementation).toContain('options: { fetch: fetchFn, ...options }');
+    expect(implementation).toContain(FACTORY_EXECUTE_OPTIONS);
     expect(implementation).not.toContain('...(options !== undefined');
   });
 
@@ -2192,7 +2193,7 @@ describe('shared runtime with httpClientInjection: factory (#4520)', () => {
     );
 
     expect(implementation).toContain('const listPets = (');
-    expect(implementation).not.toContain('fetchFn');
+    expect(implementation).not.toContain(FACTORY_EXECUTE_OPTIONS);
     expect(implementation).toContain('...(options !== undefined');
   });
 

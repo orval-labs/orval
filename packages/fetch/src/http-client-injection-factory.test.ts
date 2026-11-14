@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
 import {
+  FACTORY_EXECUTE_OPTIONS,
   getFactoryClosing,
   getFactoryOpening,
   hoistFactoryOperations,
@@ -50,6 +51,32 @@ describe('hoistFactoryOperations', () => {
         getFactoryOpening('getPetstore') +
         'const a = () => execute();\n\nconst b = () => execute();\n',
     );
+  });
+});
+
+describe('factory fetch binding', () => {
+  const operation = (params: string) =>
+    markFactoryOperation(
+      `const a = (${params}options?: CallOptions) => execute({ ${FACTORY_EXECUTE_OPTIONS} });\n`,
+    );
+
+  it('passes the factory argument directly when no operation shadows it', () => {
+    const source = hoistFactoryOperations(operation(''), 'getApi');
+
+    expect(source).toContain('options: { fetch: fetchFn, ...options }');
+    expect(source).not.toContain('= fetchFn;');
+  });
+
+  it('captures the factory argument under a free name when a parameter is named fetchFn', () => {
+    const source = hoistFactoryOperations(
+      operation('fetchFn: string, factoryFetchFn: string, '),
+      'getApi',
+    );
+
+    expect(source).toContain(
+      `${getFactoryOpening('getApi')}const factoryFetchFn2 = fetchFn;\n`,
+    );
+    expect(source).toContain('options: { fetch: factoryFetchFn2, ...options }');
   });
 });
 

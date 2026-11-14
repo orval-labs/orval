@@ -3,6 +3,7 @@ import path from 'node:path';
 import { generateModelsInline } from '../generators';
 import {
   OutputClient,
+  type NormalizedOutputOptions,
   type OutputClientFunc,
   type WriteModeProps,
 } from '../types';
@@ -60,6 +61,27 @@ export function assertClientSupportsTagsOperations(
 }
 
 /**
+ * The fetch factory (`httpClientInjection: 'factory'`) opens and closes one
+ * closure around a module's operations, which per-operation files cannot hold.
+ */
+export function assertNoFetchFactoryInjection(
+  output: NormalizedOutputOptions,
+  mode: string,
+): void {
+  if (
+    output.client === OutputClient.FETCH &&
+    output.override.fetch.httpClientInjection === 'factory'
+  ) {
+    throw new Error(
+      `Output mode '${mode}' is not supported with ` +
+        `'override.fetch.httpClientInjection: factory', which wraps a ` +
+        `module's operations in one factory. Use 'single', 'split', 'tags' ` +
+        `or 'tags-split' instead.`,
+    );
+  }
+}
+
+/**
  * `tags-operations` mode: one file per operation, nested under a per-tag
  * directory (`<dir>/<tag>/<operation><ext>`), each containing both the
  * operation's types and its runtime implementation. A per-tag barrel
@@ -77,6 +99,7 @@ export async function writeTagsOperationsMode({
   schemaOutputPlan,
 }: WriteModeProps): Promise<string[]> {
   assertClientSupportsTagsOperations(output.client, 'tags-operations');
+  assertNoFetchFactoryInjection(output, 'tags-operations');
 
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: conventionName(

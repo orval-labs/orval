@@ -2880,7 +2880,7 @@ export const load = async ({ fetch }) => {
 **类型：** `'factory'`
 **默认值：** `undefined`
 
-仅适用于 `client: 'fetch'`。将生成的 operations 和 URL helpers 包裹在一个工厂函数中，该工厂只需接收一次 `fetch` 实现，而无需在每次调用时传入。工厂函数名为 OpenAPI 标题（split 模式下为 tag）加上 `get` 前缀；可通过 [`override.title`](#title) 重命名。响应类型仍在顶层导出。请在 `output.override.fetch` 上设置；tag 和 operation 级别的 override 会被忽略。
+仅适用于 `client: 'fetch'`。将生成的 operations 和 URL helpers 包裹在一个工厂函数中，该工厂只需接收一次 `fetch` 实现，而无需在每次调用时传入。工厂函数名为 OpenAPI 标题（split 模式下为 tag）加上 `get` 前缀；可通过 [`override.title`](#title) 重命名。响应类型仍在顶层导出。请在 `output.override.fetch` 上设置；tag 和 operation 级别的 override 会被忽略。不支持 `tags-operations` 和 `tags-operations-split` 模式。
 
 ```ts title="orval.config.ts"
 export default defineConfig({

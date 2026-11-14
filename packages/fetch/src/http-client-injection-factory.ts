@@ -1,6 +1,7 @@
 import {
   camel,
   type GeneratorOperation,
+  getUniqueName,
   type NormalizedOutputOptions,
   OutputClient,
   pascal,
@@ -22,12 +23,15 @@ export const isFetchFactoryMode = (
 export const getFactoryOpening = (title: string) =>
   `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`;
 
+// Stands for the factory's `fetch` in the operations until the operations are
+// placed in the closure and their parameter names are known.
+const FACTORY_FETCH_REFERENCE = '/* orval:factory-fetch */';
+
 /**
  * The shared-style `execute` options inside the factory: the factory's `fetch`
  * is the default, and a per-call `options.fetch` still wins.
  */
-export const FACTORY_EXECUTE_OPTIONS =
-  'options: { fetch: fetchFn, ...options }';
+export const FACTORY_EXECUTE_OPTIONS = `options: { fetch: ${FACTORY_FETCH_REFERENCE}, ...options }`;
 
 // Delimit a shared-style operation that the client header moves into the
 // factory closure; the rest of the operation stays at module level.
@@ -51,7 +55,19 @@ export const hoistFactoryOperations = (source: string, title: string) => {
     operations.push(operation.replace(/^\n/, ''));
     declarations.push(after.replace(/^\n/, ''));
   }
-  return `${declarations.join('')}\n${getFactoryOpening(title)}${operations.join('\n')}`;
+  const operationSource = operations.join('\n');
+  // A parameter named `fetchFn` would shadow the factory argument inside its
+  // operation, so the argument is then read through a name no operation uses.
+  const fetchName = /\bfetchFn\b/.test(source)
+    ? getUniqueName(
+        'factoryFetchFn',
+        new Set(source.match(/\bfactoryFetchFn\d*\b/g)),
+      )
+    : 'fetchFn';
+  const capture =
+    fetchName === 'fetchFn' ? '' : `const ${fetchName} = fetchFn;\n\n`;
+
+  return `${declarations.join('')}\n${getFactoryOpening(title)}${capture}${operationSource.replaceAll(FACTORY_FETCH_REFERENCE, fetchName)}`;
 };
 
 /**

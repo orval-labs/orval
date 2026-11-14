@@ -3606,7 +3606,7 @@ export const load = async ({ fetch }) => {
 **Type:** `'factory'`
 **Default:** `undefined`
 
-Only for `client: 'fetch'`. Wraps the generated operations and URL helpers in a factory that receives a `fetch` implementation once, instead of passing it on every call. The factory's name is the OpenAPI title (or the tag in split modes) prefixed with `get`; [`override.title`](#title) renames it. Response types stay exported at the top level. Set it on `output.override.fetch`; tag and operation overrides are ignored.
+Only for `client: 'fetch'`. Wraps the generated operations and URL helpers in a factory that receives a `fetch` implementation once, instead of passing it on every call. The factory's name is the OpenAPI title (or the tag in split modes) prefixed with `get`; [`override.title`](#title) renames it. Response types stay exported at the top level. Set it on `output.override.fetch`; tag and operation overrides are ignored. It is not supported with the `tags-operations` and `tags-operations-split` modes.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
