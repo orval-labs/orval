@@ -144,8 +144,22 @@ export const renderEffectType = (
         const members = membersOf(arg);
         if (members.length === 0) return 'unknown';
         if (!isEffectV4) {
+          // `S.extend` takes members without their defaults, so a member's
+          // encoded type does not admit `undefined` for one.
           return members
-            .map((member) => parenthesize(render(member, false).text))
+            .map((member) =>
+              parenthesize(
+                render(
+                  {
+                    ...member,
+                    functions: member.functions.filter(
+                      ([fn]) => fn !== 'default',
+                    ),
+                  },
+                  false,
+                ).text,
+              ),
+            )
             .join(' & ');
         }
         if (members.length === 1) return render(members[0], false).text;

@@ -275,6 +275,37 @@ describe('declared types of a cyclic allOf', () => {
     expect(declaredTypeErrors(components(schemas))).toEqual([]);
   });
 
+  it('types an Effect 3 allOf whose members carry defaults', () => {
+    const schemas: Schemas = {
+      Node: {
+        type: 'object',
+        required: ['data'],
+        properties: {
+          next: ref('Node'),
+          data: {
+            allOf: [
+              {
+                type: 'object',
+                properties: { a: { type: 'string' } },
+                default: {},
+              },
+              {
+                type: 'object',
+                properties: { b: { type: 'string' } },
+                default: {},
+              },
+            ],
+          },
+        },
+      },
+    };
+    const text = components(schemas, {}, 3);
+    expect(text).toContain(
+      'readonly "data": ({ readonly "a"?: string | undefined }) & ({ readonly "b"?: string | undefined }) };',
+    );
+    expect(text).not.toContain('} | undefined)');
+  });
+
   it('reports a declared type that is wider than the schema', () => {
     const text = components({
       Node: { type: 'object', properties: { next: ref('Node') } },
@@ -649,5 +680,78 @@ describe('inline module text', () => {
 
   it('is empty without components', () => {
     expect(generateEffectSchemasInline(builderOf({}), output)).toBe('');
+  });
+});
+
+describe('constants of colliding names', () => {
+  const slug = {
+    slug: { type: 'string', effect: { schema: '(S.String)' } },
+  } as const;
+
+  it('declares the format constants of parameters with one normalized name once', async () => {
+    const text = await generateModule(
+      {
+        schemas: {},
+        schema: { type: 'string' },
+        formatType: slug,
+        parameters: [
+          {
+            name: 'foo-bar',
+            in: 'query',
+            schema: { type: 'string', format: 'slug' },
+          },
+          {
+            name: 'foo_bar',
+            in: 'query',
+            schema: { type: 'string', format: 'slug' },
+          },
+        ],
+      },
+      true,
+    );
+    const names = declaredNames(text);
+    expect(names.filter((name) => /FooBarFormat/.test(name))).toHaveLength(2);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('does not declare a name that an imported format schema binds', async () => {
+    const { implementation, imports } = await generateOperation(
+      {
+        schemas: {
+          CreatePetsResponse: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+          },
+        },
+        schema: ref('CreatePetsResponse'),
+        target: 'response',
+        formatType: {
+          slug: {
+            type: 'string',
+            effect: {
+              schema: 'CreatePetsResponseSchema',
+              schemaImport: {
+                name: 'CreatePetsResponseSchema',
+                importPath: '../slug',
+              },
+            },
+          },
+        },
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            schema: { type: 'string', format: 'slug' },
+          },
+        ],
+      },
+      true,
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'CreatePetsResponseSchema' }),
+    );
+    expect(declaredNames(implementation)).not.toContain(
+      'CreatePetsResponseSchema',
+    );
   });
 });

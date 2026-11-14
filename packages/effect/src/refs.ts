@@ -28,7 +28,7 @@ const LEADING_IDENTIFIER = /^\s*([A-Za-z_$][\w$]*)/;
 // expression.
 const reservedByOverride = new WeakMap<object, ReadonlySet<string>>();
 
-const getReservedNames = (context: ContextSpec): ReadonlySet<string> => {
+export const getReservedNames = (context: ContextSpec): ReadonlySet<string> => {
   const { override } = context.output;
   const known = reservedByOverride.get(override);
   if (known) return known;

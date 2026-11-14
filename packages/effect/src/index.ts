@@ -60,6 +60,7 @@ import {
   collectRefNames,
   generateRefDefinition,
   getComponentNames,
+  getReservedNames,
   isIdentifierPath,
   isReusableSchemasEnabled,
 } from './refs';
@@ -1814,6 +1815,12 @@ export const parseParameters = ({
     Record<string, EffectValidationSchemaDefinition>
   > = { headers: {}, queryParams: {}, params: {} };
 
+  // Parameter names can normalize to one constant name, so with reusable
+  // schemas every parameter allocates its constants from one registry.
+  const constNameRegistry = isReusableSchemasEnabled(context)
+    ? seedConstNameRegistry(context)
+    : undefined;
+
   const defs = data.reduce((acc, val) => {
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
@@ -1856,7 +1863,7 @@ export const parseParameters = ({
       context,
       camel(`${operationName}-${parameter.in}-${parameter.name}`),
       mapStrict[parameter.in],
-      { required: parameter.required },
+      { required: parameter.required, constNameRegistry },
     );
 
     if (parameter.in === 'header' && mapGenerate.header) {
@@ -2054,10 +2061,14 @@ const generateEffectRoute = (
   }
 
   // A constant must not take the name of a component.
-  const taken = isReusableSchemasEnabled(context)
+  const componentNames = isReusableSchemasEnabled(context)
     ? new Set(getComponentNames(context).values())
     : undefined;
-  if (taken) {
+  // Nor a name the module binds by import.
+  const taken = componentNames
+    ? new Set([...componentNames, ...getReservedNames(context)])
+    : undefined;
+  if (componentNames) {
     assertNoNameClash(
       [
         inputParams,
@@ -2069,7 +2080,7 @@ const generateEffectRoute = (
         .map(({ consts }) => consts)
         .join('\n'),
       `operation ${typeName}`,
-      taken,
+      componentNames,
     );
   }
   const constName = (baseName: string) =>
