@@ -9,10 +9,21 @@ import {
   type Schemas,
 } from './test-helpers';
 
-const show = (value: unknown): string =>
-  JSON.stringify(value, (_key, item: unknown) =>
-    item instanceof Date ? `Date(${item.toISOString()})` : item,
-  );
+// `JSON.stringify` calls `toJSON` before a replacer and drops `undefined`, so
+// dates and undefined values are marked before serializing.
+const mark = (value: unknown): unknown => {
+  if (value instanceof Date) return { $date: value.toISOString() };
+  if (value === undefined) return { $undefined: true };
+  if (Array.isArray(value)) return value.map(mark);
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, mark(item)]),
+    );
+  }
+  return value;
+};
+
+const show = (value: unknown): string => JSON.stringify(mark(value));
 
 interface Result {
   ok: boolean;
@@ -64,6 +75,14 @@ const expectParity = async (scenario: Scenario, samples: unknown[]) => {
     }
   }
 };
+
+describe('parity output', () => {
+  it('tells a date from its string and an undefined value from a missing key', () => {
+    const iso = '2020-01-01T00:00:00.000Z';
+    expect(show({ at: new Date(iso) })).not.toBe(show({ at: iso }));
+    expect(show({ a: undefined })).not.toBe(show({}));
+  });
+});
 
 describe('flag parity', () => {
   it('keeps required keys and nested optional keys', async () => {
