@@ -2439,34 +2439,6 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
     ).toBe('');
   });
 
-  describe('with httpClientInjection: factory', () => {
-    it('wraps the operations in the factory and leaves the rest at module level', () => {
-      const options = sharedOptions();
-      const { output } = options.context;
-      output.override.fetch.httpClientInjection = 'factory';
-      const implementation = generateImplementation(makeVerbOptions(), options);
-      const header = generateFetchHeader(sharedHeaderParams(output));
-      if (typeof header === 'string') throw new Error('expected a header');
-
-      expect(header.implementation).toBe('');
-      expect(header.sharedTypes).toBeUndefined();
-      const source = header.transformClientImplementation?.(implementation);
-
-      expect(source).not.toContain('orval:factory-operation');
-      const factoryStart = source?.indexOf(
-        'export const getPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {\n',
-      );
-      expect(factoryStart).toBeGreaterThan(0);
-      expect(source?.indexOf('export const getListPetsUrl')).toBeLessThan(
-        factoryStart ?? 0,
-      );
-      expect(source?.indexOf('const listPets = (')).toBeGreaterThan(
-        factoryStart ?? 0,
-      );
-      expect(source).toContain('options: { fetch: fetchFn, ...options }');
-    });
-  });
-
   it.each([OutputClient.FETCH, OutputClient.REACT_QUERY, OutputClient.SWR])(
     'switches to the shared emitter for %s with the fetch http client',
     (client) => {

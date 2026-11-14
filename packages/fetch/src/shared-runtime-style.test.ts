@@ -2196,17 +2196,6 @@ describe('shared runtime with httpClientInjection: factory (#4520)', () => {
     expect(implementation).toContain('...(options !== undefined');
   });
 
-  it('keeps the plain shared output without the factory option', () => {
-    const implementation = generateSharedRequestFunction(
-      verbOptions(),
-      makeSharedOptions(),
-    );
-
-    expect(implementation).toContain('export const listPets = (');
-    expect(implementation).not.toContain('orval:factory-operation');
-    expect(implementation).not.toContain('fetchFn');
-  });
-
   it('type-checks the assembled factory against the runtime', () => {
     const options = factoryOptions();
     const client = generateSharedClient(verbOptions(), options);

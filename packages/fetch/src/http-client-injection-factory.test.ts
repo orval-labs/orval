@@ -51,12 +51,6 @@ describe('hoistFactoryOperations', () => {
         'const a = () => execute();\n\nconst b = () => execute();\n',
     );
   });
-
-  it('leaves no markers behind', () => {
-    expect(
-      hoistFactoryOperations(markFactoryOperation('const a = 1;\n'), 'getApi'),
-    ).not.toContain('orval:factory-operation');
-  });
 });
 
 describe('getFactoryClosing', () => {

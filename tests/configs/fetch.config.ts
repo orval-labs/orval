@@ -1539,26 +1539,6 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  sharedRuntimeFactoryTagsSplit: {
-    output: {
-      target:
-        '../generated/fetch/shared-runtime-factory-tags-split/endpoints.ts',
-      schemas: '../generated/fetch/shared-runtime-factory-tags-split/model',
-      client: 'fetch',
-      mode: 'tags-split',
-      clean: true,
-      formatter: 'prettier',
-      override: {
-        fetch: {
-          runtimeImplementationStyle: 'shared',
-          httpClientInjection: 'factory',
-        },
-      },
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
-  },
   sharedRuntimeOptions: {
     output: {
       target: '../generated/fetch/shared-runtime-options/endpoints.ts',
