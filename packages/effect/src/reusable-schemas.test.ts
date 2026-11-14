@@ -306,6 +306,30 @@ describe('declared types of a cyclic allOf', () => {
     expect(text).not.toContain('} | undefined)');
   });
 
+  it('keeps the default of a single Effect 3 allOf member', () => {
+    const schemas: Schemas = {
+      Node: {
+        type: 'object',
+        required: ['data'],
+        properties: {
+          next: ref('Node'),
+          data: {
+            allOf: [
+              {
+                type: 'object',
+                properties: { a: { type: 'string' } },
+                default: {},
+              },
+            ],
+          },
+        },
+      },
+    };
+    expect(components(schemas, {}, 3)).toMatch(
+      /NodeEncoded = \{[^\n]*readonly "data": \{ readonly "a"\?: string \| undefined \} \| undefined/,
+    );
+  });
+
   it('reports a declared type that is wider than the schema', () => {
     const text = components({
       Node: { type: 'object', properties: { next: ref('Node') } },

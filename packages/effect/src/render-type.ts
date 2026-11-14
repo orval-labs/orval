@@ -143,6 +143,7 @@ export const renderEffectType = (
       case 'allOf': {
         const members = membersOf(arg);
         if (members.length === 0) return 'unknown';
+        if (members.length === 1) return render(members[0], false).text;
         if (!isEffectV4) {
           // `S.extend` takes members without their defaults, so a member's
           // encoded type does not admit `undefined` for one.
@@ -162,7 +163,6 @@ export const renderEffectType = (
             )
             .join(' & ');
         }
-        if (members.length === 1) return render(members[0], false).text;
         // Effect 4 merges the members' fields, so a later key replaces an
         // earlier one. The merge admits `null` when every member does.
         const merged = mergeVariants(members)
