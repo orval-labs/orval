@@ -44,6 +44,73 @@ export const CreatePetsBody = S.Struct({
 
 Orval reads the `effect` version installed in your project and emits Effect 3 or Effect 4 Schema syntax to match. When no `effect` package is found, it emits Effect 4. Set [`override.effect.version`](/docs/reference/configuration/output#overrideeffect) to pin the target.
 
+## Options
+
+Options live under [`override.effect`](/docs/reference/configuration/output#overrideeffect):
+
+- `strict` - per location (`param`, `query`, `header`, `body`, `response`), fail on extra fields in object schemas. All `false` by default.
+- `generate` - per location, choose which schemas are generated. All `true` by default.
+- `useBrandedTypes` - append `S.brand()` to the generated schemas. `false` by default.
+- `exactOptional` - emit optional properties for projects with `exactOptionalPropertyTypes`. `false` by default. Can also be set per operation or tag.
+- `version` - pin the Effect major version (`3`, `4` or `'auto'`) instead of reading it from the installed package. Output-wide.
+- `generateEachHttpStatus` - emit a schema per response status code. `false` by default.
+- `generateReusableSchemas` - emit each component schema an operation reaches once and reference it, instead of inlining every `$ref`. `false` by default. See [Reusable Schemas](#reusable-schemas).
+
+## Reusable Schemas
+
+By default every `$ref` is inlined, which makes the output large for a spec with many shared components. With `generateReusableSchemas`, each component schema an operation reaches becomes one exported constant:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'effect',
+      target: './src/api/schemas.ts',
+      override: { effect: { generateReusableSchemas: true } },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+```ts
+export type Pet = {
+  readonly name: string;
+  readonly friends?: ReadonlyArray<Pet> | undefined;
+};
+
+export type PetEncoded = {
+  readonly name: string;
+  readonly friends?: ReadonlyArray<PetEncoded> | undefined;
+};
+
+export const Pet = S.Struct({
+  name: S.String,
+  friends: S.optional(
+    S.Array(S.suspend((): S.Codec<Pet, PetEncoded> => Pet)),
+  ),
+});
+
+export const ListPetsResponseItem = Pet;
+export const ListPetsResponse = S.Array(ListPetsResponseItem);
+```
+
+The constants go next to the operations: into the target in `single` mode, into a `*.schemas.ts` file in the other modes. A reference to a constant on a cycle reads through `S.suspend`, typed with `S.Schema` on Effect 3 and `S.Codec` on Effect 4.
+
+Each constant on a cycle also gets two exported types: `Pet` for what it decodes to and `PetEncoded` for what it accepts. The `S.suspend` getter uses them, so the recursive field keeps its type. When another schema already has the name `PetEncoded`, the encoded type becomes `PetEncoded2`. A field converted by a `formatType` is typed from its `effect.schema`. An expression that is not a plain identifier is declared as a constant (such as `petSlugFormat`) for that.
+
+### Limitations
+
+- With `client: 'effect'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error.
+- A `$ref` is still inlined where a constant would not behave the same, such as form bodies, parameters, `allOf` members, an array body or response (generated from its items, which stay references), schemas with a `default`, and members of a `oneOf` or `anyOf` with sibling keywords such as `properties`, `type` or `required`. Effect merges `allOf` members by their fields, so an `allOf` of references stays inlined.
+- A `$ref` to a schema that is `readOnly` or `writeOnly` is always inlined, and so is one that holds such a property when it is read in a request body.
+- A location with another `exactOptional` than the output inlines its schemas.
+- Only the components the generated operations use, and those they read in turn, are generated. A component only an error response reads is not, unless `generateEachHttpStatus` is on, and neither is one only an unsupported media type reads. One of them that can't be generated, such as an `allOf` of a schema with itself, stops generation with an error that names it.
+- A component named `Date`, `RegExp`, `File`, `S`, `Effect` or `ReadonlyArray`, or like a name a `formatType` `effect.schema` or `schemaImport` reads, gets a `Schema` suffix. Two components with the same name stop generation with an error, and so does a constant hoisted from a component or an operation (such as `PetMin`) that has the name of another component.
+- A constant of an operation (such as `ListPetsResponse` or `CreatePetsBody`) that has the name of a component gets a `Schema` suffix, even when no constant is written for that component. Code that imports the name it has without the option stops compiling.
+- A cycle closed by a `$ref` that can't stay a reference, such as one with `readOnly` or `writeOnly` next to it, is validated as unknown where it closes, with a warning, as it is without the option. A constant is expanded from itself, so a schema reached through an alias is validated one level less than it is without the option.
+- On Effect 4, TypeScript can report `Type instantiation is excessively deep` for a constant on a cycle that reads a chain of about 16 or more nested components outside any cycle. Leave the option off for such a spec.
+
 ## Usage
 
 ### Decoding Data

@@ -460,4 +460,80 @@ describe('writeSpecs', () => {
       }
     },
   );
+
+  it.each([
+    ['writes a schemas file when an operation imports', true, true],
+    ['writes no schemas file when no operation imports', false, false],
+  ] as const)(
+    '%s a component with reusable effect schemas',
+    async (_name, imported, written) => {
+      const root = await fs.promises.mkdtemp(
+        path.join(os.tmpdir(), 'orval-effect-empty-'),
+      );
+      const builder = {
+        operations: {
+          getPet: {
+            imports: imported
+              ? [{ name: 'Pet', schemaName: 'Pet', values: true }]
+              : [],
+            implementation: '',
+            mockOutputs: [],
+            tags: [],
+            operationName: 'getPet',
+          },
+        },
+        verbOptions: {},
+        schemas: [],
+        title: vi.fn(() =>
+          Promise.resolve({ implementation: '', implementationMock: '' }),
+        ),
+        header: vi.fn(() =>
+          Promise.resolve({ implementation: '', implementationMock: '' }),
+        ),
+        footer: vi.fn(() =>
+          Promise.resolve({ implementation: '', implementationMock: '' }),
+        ),
+        imports: vi.fn(),
+        importsMock: vi.fn(),
+        extraFiles: [],
+        info: { title: 'Effect', version: '1.0.0' },
+        target: '',
+        spec: {
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: { schemas: { Pet: { type: 'object' } } },
+        } satisfies OpenApiDocument,
+      } satisfies WriteSpecBuilder;
+      const options = {
+        output: createTestContextSpec({
+          output: {
+            target: path.join(root, 'endpoints.ts'),
+            mode: OutputMode.SPLIT,
+            client: 'effect',
+            docs: false,
+            formatter: undefined,
+            override: { effect: { generateReusableSchemas: true } },
+          },
+          override: { header: false },
+        }).output,
+        input: {
+          target: '',
+          override: {},
+          unsafeDisableValidation: false,
+        },
+        hooks: {},
+      } satisfies NormalizedOptions;
+
+      try {
+        await writeSpecs(builder, root, options);
+
+        expect(
+          (await fs.promises.readdir(root)).includes('endpoints.schemas.ts'),
+        ).toBe(written);
+      } finally {
+        await fs.promises.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
 });

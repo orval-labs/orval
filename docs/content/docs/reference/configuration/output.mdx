@@ -2612,6 +2612,7 @@ export default defineConfig({
           },
           generateEachHttpStatus: true,
           useBrandedTypes: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -2660,6 +2661,16 @@ Pin the Effect major version that generated output targets, instead of inferring
 | `'auto'` | Infer from the resolved `effect` version; fall back to Effect 4 when none is found. |
 
 `version` is output-wide: an operation or tag override cannot change it.
+
+### generateReusableSchemas
+
+**Type:** `boolean`
+
+**Default:** `false`
+
+Emit one exported Effect constant per component schema an operation reaches instead of inlining every `$ref`. See [Reusable Schemas](/docs/guides/effect#reusable-schemas) for the output and the limitations. Output-wide: an operation or tag override cannot set it.
+
+With `client: 'effect'`, this option and [`schemas`](#schemas) can't be set together.
 
 ---
 

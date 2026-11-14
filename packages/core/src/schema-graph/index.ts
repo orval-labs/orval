@@ -22,6 +22,7 @@ export {
   type RefPolicy,
   type RefSite,
   requiresUndeclaredKey,
+  resolveSelf,
   type SchemaDirection,
 } from './ref-policy';
 export {

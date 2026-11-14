@@ -2178,6 +2178,7 @@ export default defineConfig({
           },
           generateEachHttpStatus: true,
           useBrandedTypes: true,
+          generateReusableSchemas: true,
         },
       },
     },
@@ -2210,6 +2211,15 @@ export default defineConfig({
 **默认值：** `false`
 
 对可选的 Struct 属性使用 `S.optionalWith(schema, { exact: true })`，而不是 `S.optional(schema)`，这样在开启 [`exactOptionalPropertyTypes`](https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes) 的情况下，消费者推断出的将是 `{ x?: T }`，而不是 `{ x?: T | undefined }`。
+
+### generateReusableSchemas
+
+**类型：** `boolean`
+**默认值：** `false`
+
+为操作用到的每个组件 schema 生成一个导出的 Effect 常量，而不是内联每个 `$ref`。输出和限制见[可复用 Schema](/zh/docs/guides/effect#可复用-schema)。作用于整个输出，不能按 operation 或 tag 设置。
+
+使用 `client: 'effect'` 时，此选项不能与 [`schemas`](#schemas) 同时设置。
 
 ---
 

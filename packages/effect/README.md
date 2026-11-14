@@ -65,3 +65,4 @@ Options are read from `override.effect.*`:
 - `generate` — fine-grained control over which schemas (params/body/response) are emitted
 - `useBrandedTypes` — map named schemas to branded types
 - `generateEachHttpStatus` — emit a schema per response status code
+- `generateReusableSchemas` - emit one constant per component schema instead of inlining every `$ref`

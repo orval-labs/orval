@@ -44,10 +44,29 @@ import {
   toJsLiteral,
   isOctetStreamContentType,
 } from '@orval/core';
-import { dereference as coreDereference, unique } from '@orval/core';
+import {
+  allocateConstName,
+  dereference as coreDereference,
+  dereferenceWithPolicy,
+  type RefPolicy,
+  unique,
+} from '@orval/core';
 
 import { resolveIsEffectV4 } from './compatible-v4';
-import { logger } from './logger';
+import { logger, reporter, startRun } from './logger';
+import { createRefPolicy, createRootRefPolicy } from './ref-policy';
+import {
+  admitsNull,
+  collectRefNames,
+  generateRefDefinition,
+  getComponentNames,
+  getReservedNames,
+  isIdentifierPath,
+  isReusableSchemasEnabled,
+} from './refs';
+import { assertNoNameClash, seedConstNameRegistry } from './reusable-schemas';
+
+export { generateEffectSchemasInline } from './schemas-inline';
 
 const effectImport = (name: string, alias?: string) => ({
   default: false,
@@ -309,8 +328,17 @@ export const generateEffectValidationSchemaDefinition = (
 
   const schema: OpenApiNonBooleanSchemaObject = schemaInput;
 
+  const keptRef = generateRefDefinition(
+    schema,
+    context,
+    rules?.required ?? false,
+  );
+  if (keptRef) return keptRef;
+
   const consts: string[] = [];
-  const constNameRegistry = rules?.constNameRegistry ?? {};
+  const constNameRegistry =
+    rules?.constNameRegistry ??
+    (isReusableSchemasEnabled(context) ? seedConstNameRegistry(context) : {});
   const urlEncoded = rules?.urlEncoded ?? false;
   const constsCounter = isNumber(constNameRegistry[name])
     ? constNameRegistry[name] + 1
@@ -546,7 +574,11 @@ export const generateEffectValidationSchemaDefinition = (
               'tuple',
               prefixItems.map((item, idx) =>
                 generateEffectValidationSchemaDefinition(
-                  dereference(item, context),
+                  // The prefix items went through the ref policy with the
+                  // tuple, so dereferencing again would inline kept refs.
+                  isReusableSchemasEnabled(context)
+                    ? item
+                    : dereference(item, context),
                   context,
                   camel(`${name}-${idx}-item`),
                   strict,
@@ -593,8 +625,19 @@ export const generateEffectValidationSchemaDefinition = (
               'Effect schemas need `effect.schema`',
             );
           }
-          // The user schema replaces the string schema and its checks.
-          functions.push(['formatSchema', formatType.effect.schema]);
+          // The user schema replaces the string schema and its checks. A
+          // constant names it, so a declared type can read it by `typeof`.
+          const formatSchema = formatType.effect.schema;
+          if (
+            isReusableSchemasEnabled(context) &&
+            !isIdentifierPath(formatSchema)
+          ) {
+            const formatName = `${name}Format${constsCounterValue}`;
+            consts.push(`export const ${formatName} = ${formatSchema};`);
+            functions.push(['formatSchema', formatName]);
+          } else {
+            functions.push(['formatSchema', formatSchema]);
+          }
           break;
         }
 
@@ -738,6 +781,10 @@ export const generateEffectValidationSchemaDefinition = (
     functions.some(([fn]) => fn === 'literal' || fn === 'formatSchema');
 
   if (!hasFixedValue && isString(type) && minAndMaxTypes.has(type)) {
+    // Effect 3 rejects 0 as the argument of `S.minItems` and `S.maxItems`. A
+    // minimum of 0 checks nothing and a maximum of 0 is an empty array. Only
+    // reusable schemas apply this.
+    const isCountBound = type === 'array' && isReusableSchemasEnabled(context);
     const shouldUseExclusiveMin = exclusiveMin !== undefined;
     const shouldUseExclusiveMax = exclusiveMax !== undefined;
 
@@ -751,7 +798,7 @@ export const generateEffectValidationSchemaDefinition = (
         `export const ${name}ExclusiveMin${constsCounterValue} = ${safeExclusiveMin};`,
       );
       functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
-    } else if (min !== undefined) {
+    } else if (min !== undefined && !(isCountBound && min === 0)) {
       const safeMin = assertSafeNumericConstraint(min, 'minimum');
       if (safeMin === 1) {
         functions.push(['min', `${safeMin}`]);
@@ -775,8 +822,14 @@ export const generateEffectValidationSchemaDefinition = (
       functions.push(['lt', `${name}ExclusiveMax${constsCounterValue}`]);
     } else if (max !== undefined) {
       const safeMax = assertSafeNumericConstraint(max, 'maximum');
-      consts.push(`export const ${name}Max${constsCounterValue} = ${safeMax};`);
-      functions.push(['max', `${name}Max${constsCounterValue}`]);
+      if (isCountBound && safeMax === 0) {
+        functions.push(['empty', undefined]);
+      } else {
+        consts.push(
+          `export const ${name}Max${constsCounterValue} = ${safeMax};`,
+        );
+        functions.push(['max', `${name}Max${constsCounterValue}`]);
+      }
     }
 
     if (multipleOf !== undefined) {
@@ -896,11 +949,13 @@ const CONSTRUCTORS = new Set([
   'fileOrString',
   'date',
   'formatSchema',
+  'ref',
 ]);
 
 const FILTERS = new Set([
   'min',
   'max',
+  'empty',
   'gt',
   'lt',
   'multipleOf',
@@ -936,6 +991,9 @@ const renderFilter = (
       if (baseType === 'string') return filter('maxLength', 'isMaxLength');
       if (baseType === 'array') return filter('maxItems', 'isMaxLength');
       return filter('lessThanOrEqualTo', 'isLessThanOrEqualTo');
+    }
+    case 'empty': {
+      return isEffectV4 ? 'S.isMaxLength(0)' : 'S.itemsCount(0)';
     }
     case 'gt': {
       return filter('greaterThan', 'isGreaterThan');
@@ -1005,6 +1063,8 @@ export interface ParseEffectOptions {
 
 /**
  * Parse the intermediate definition into Effect Schema source code.
+ * `lazyRefs` maps each component on a cycle to the name of its encoded type;
+ * references to them are read through `S.suspend`.
  */
 export const parseEffectValidationSchemaDefinition = (
   input: EffectValidationSchemaDefinition,
@@ -1013,6 +1073,7 @@ export const parseEffectValidationSchemaDefinition = (
   brandName?: string,
   exactOptional = false,
   isEffectV4 = false,
+  lazyRefs: ReadonlyMap<string, string> = new Map(),
 ): { effect: string; consts: string } => {
   if (input.functions.length === 0) {
     return { effect: '', consts: '' };
@@ -1269,20 +1330,6 @@ export const parseEffectValidationSchemaDefinition = (
         ),
       );
 
-  // A union admits `null` when one of its members does, an intersection when
-  // all of them do.
-  const admitsNull = (definition: EffectValidationSchemaDefinition): boolean =>
-    definition.functions.some(
-      ([fn, arg]) =>
-        fn === 'null' ||
-        fn === 'nullable' ||
-        fn === 'nullish' ||
-        ((fn === 'oneOf' || fn === 'anyOf') &&
-          (arg as EffectValidationSchemaDefinition[]).some(admitsNull)) ||
-        (fn === 'allOf' &&
-          (arg as EffectValidationSchemaDefinition[]).every(admitsNull)),
-    );
-
   const renderConstructor = (fn: string, arg: unknown): string => {
     switch (fn) {
       case 'never': {
@@ -1312,6 +1359,12 @@ export const parseEffectValidationSchemaDefinition = (
       }
       case 'formatSchema': {
         return arg as string;
+      }
+      case 'ref': {
+        if (!isString(arg)) return 'S.Unknown';
+        const encodedName = lazyRefs.get(arg);
+        if (encodedName === undefined) return arg;
+        return `S.suspend((): S.${isEffectV4 ? 'Codec' : 'Schema'}<${arg}, ${encodedName}> => ${arg})`;
       }
       case 'literal': {
         // Effect 4 has no `null` literal: `S.Null` takes its place.
@@ -1444,7 +1497,11 @@ export const parseEffectValidationSchemaDefinition = (
     }
   };
 
-  appendConstsChunk(input.consts.join('\n'));
+  // The render writes the root constants. The copy before it is kept only
+  // without reusable schemas.
+  if (!isReusableSchemasEnabled(context)) {
+    appendConstsChunk(input.consts.join('\n'));
+  }
 
   let effect = renderSchema(input, false);
 
@@ -1459,7 +1516,6 @@ export const parseEffectValidationSchemaDefinition = (
   // Silence the unused-strict warning — strict is consumed inside the tree
   // generator and threaded through here for future use.
   void strict;
-  void context;
 
   return { effect, consts };
 };
@@ -1474,15 +1530,22 @@ const dereferenceOptions: DereferenceOptions = {
 };
 
 /**
- * Inlines every `$ref`. A circular `$ref` becomes an empty schema.
+ * Inlines every `$ref` the policy does not keep. A circular `$ref` becomes an
+ * empty schema.
  *
  * The result may share nested objects between calls, so treat it as read-only.
  */
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
+  policy?: RefPolicy,
 ): OpenApiNonBooleanSchemaObject =>
-  coreDereference(schema, context, dereferenceOptions);
+  policy
+    ? dereferenceWithPolicy(schema, context, policy, {
+        suggestReusable: false,
+        reporter,
+      })
+    : coreDereference(schema, context, dereferenceOptions);
 
 export const generateFormDataEffectSchema = (
   schema: OpenApiSchemaObject,
@@ -1573,6 +1636,7 @@ const parseBodyAndResponse = ({
   strict,
   generate,
   parseType,
+  policy,
 }: {
   data:
     | OpenApiResponseObject
@@ -1584,6 +1648,8 @@ const parseBodyAndResponse = ({
   strict: boolean;
   generate: boolean;
   parseType: 'body' | 'response';
+  // The refs kept as references; form bodies inline every one.
+  policy?: RefPolicy;
 }): {
   input: EffectValidationSchemaDefinition;
   isArray: boolean;
@@ -1628,7 +1694,13 @@ const parseBodyAndResponse = ({
   }
 
   const encoding = mediaType.encoding;
-  const resolvedJsonSchema = dereference(schema, context);
+  const resolvedJsonSchema = dereference(
+    schema,
+    context,
+    contentType === 'application/json'
+      ? createRootRefPolicy(policy, schema, context)
+      : undefined,
+  );
 
   if (resolvedJsonSchema.items) {
     // Emitted as bare expressions (`S.minItems(${min})`), so they get the same
@@ -1743,6 +1815,12 @@ export const parseParameters = ({
     Record<string, EffectValidationSchemaDefinition>
   > = { headers: {}, queryParams: {}, params: {} };
 
+  // Parameter names can normalize to one constant name, so with reusable
+  // schemas every parameter allocates its constants from one registry.
+  const constNameRegistry = isReusableSchemasEnabled(context)
+    ? seedConstNameRegistry(context)
+    : undefined;
+
   const defs = data.reduce((acc, val) => {
     const { schema: parameter }: { schema: OpenApiParameterObject } =
       resolveRef(val, context);
@@ -1785,7 +1863,7 @@ export const parseParameters = ({
       context,
       camel(`${operationName}-${parameter.in}-${parameter.name}`),
       mapStrict[parameter.in],
-      { required: parameter.required },
+      { required: parameter.required, constNameRegistry },
     );
 
     if (parameter.in === 'header' && mapGenerate.header) {
@@ -1833,6 +1911,7 @@ const generateEffectRoute = (
   { typeName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context }: GeneratorOptions,
 ) => {
+  startRun(context.spec);
   const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
@@ -1854,6 +1933,16 @@ const generateEffectRoute = (
     generate: effectOptions.generate,
   });
 
+  // A request body drops readOnly keys, so it reads every ref that holds one.
+  const policy = createRefPolicy({
+    context,
+    exactOptional: effectOptions.exactOptional,
+  });
+  const bodyPolicy = createRefPolicy({
+    context,
+    exactOptional: effectOptions.exactOptional,
+    direction: 'readOnly',
+  });
   const requestBody = operation?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
@@ -1862,6 +1951,7 @@ const generateEffectRoute = (
     strict: effectOptions.strict.body,
     generate: effectOptions.generate.body,
     parseType: 'body',
+    policy: bodyPolicy,
   });
 
   const responses = (
@@ -1877,6 +1967,7 @@ const generateEffectRoute = (
       strict: effectOptions.strict.response,
       generate: effectOptions.generate.response,
       parseType: 'response',
+      policy,
     }),
   );
 
@@ -1962,45 +2053,90 @@ const generateEffectRoute = (
     !inputBody.effect &&
     !inputResponses.some((r) => r.effect)
   ) {
-    return { implementation: '', mutators: [] };
+    return {
+      implementation: '',
+      usedComponents: new Set<string>(),
+      mutators: [],
+    };
   }
 
+  // A constant must not take the name of a component.
+  const componentNames = isReusableSchemasEnabled(context)
+    ? new Set(getComponentNames(context).values())
+    : undefined;
+  // Nor a name the module binds by import.
+  const taken = componentNames
+    ? new Set([...componentNames, ...getReservedNames(context)])
+    : undefined;
+  if (componentNames) {
+    assertNoNameClash(
+      [
+        inputParams,
+        inputQueryParams,
+        inputHeaders,
+        inputBody,
+        ...inputResponses,
+      ]
+        .map(({ consts }) => consts)
+        .join('\n'),
+      `operation ${typeName}`,
+      componentNames,
+    );
+  }
+  const constName = (baseName: string) =>
+    taken ? allocateConstName(baseName, taken) : baseName;
+  const paramsName = constName(`${pascalTypeName}Params`);
+  const queryParamsName = constName(`${pascalTypeName}QueryParams`);
+  const headerName = constName(`${pascalTypeName}Header`);
+  const bodyName = constName(`${pascalTypeName}Body`);
+  const bodyItemName = constName(`${pascalTypeName}BodyItem`);
+  const responseNames = responses.map(([code]) => {
+    const baseName = pascal(`${typeName}-${code}-response`);
+    return {
+      name: constName(baseName),
+      itemName: constName(`${baseName}Item`),
+    };
+  });
+  // Parameters inline every ref, so only the body and responses keep any.
+  const usedComponents = new Set(
+    [parsedBody.input, ...parsedResponses.map(({ input }) => input)].flatMap(
+      (definition) => [...collectRefNames(definition)],
+    ),
+  );
+
   return {
+    usedComponents,
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.effect
-        ? [`export const ${pascalTypeName}Params = ${inputParams.effect}`]
+        ? [`export const ${paramsName} = ${inputParams.effect}`]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.effect
-        ? [
-            `export const ${pascalTypeName}QueryParams = ${inputQueryParams.effect}`,
-          ]
+        ? [`export const ${queryParamsName} = ${inputQueryParams.effect}`]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.effect
-        ? [`export const ${pascalTypeName}Header = ${inputHeaders.effect}`]
+        ? [`export const ${headerName} = ${inputHeaders.effect}`]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.effect
         ? [
             parsedBody.isArray
-              ? `export const ${pascalTypeName}BodyItem = ${inputBody.effect}
-export const ${pascalTypeName}Body = S.Array(${pascalTypeName}BodyItem)${arrayRules(parsedBody.rules)}`
-              : `export const ${pascalTypeName}Body = ${inputBody.effect}`,
+              ? `export const ${bodyItemName} = ${inputBody.effect}
+export const ${bodyName} = S.Array(${bodyItemName})${arrayRules(parsedBody.rules)}`
+              : `export const ${bodyName} = ${inputBody.effect}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
-        const operationResponse = pascal(
-          `${typeName}-${responses[index][0]}-response`,
-        );
+        const { name: operationResponse, itemName } = responseNames[index];
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
           ...(inputResponse.effect
             ? [
                 parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${inputResponse.effect}
-export const ${operationResponse} = S.Array(${operationResponse}Item)${arrayRules(parsedResponses[index].rules)}`
+                  ? `export const ${itemName} = ${inputResponse.effect}
+export const ${operationResponse} = S.Array(${itemName})${arrayRules(parsedResponses[index].rules)}`
                   : `export const ${operationResponse} = ${inputResponse.effect}`,
               ]
             : []),
@@ -2012,18 +2148,26 @@ export const ${operationResponse} = S.Array(${operationResponse}Item)${arrayRule
 };
 
 export const generateEffect: ClientBuilder = (verbOptions, options) => {
-  const { implementation, mutators } = generateEffectRoute(
+  const { implementation, usedComponents, mutators } = generateEffectRoute(
     verbOptions,
     options,
   );
 
   return {
     implementation: implementation ? `${implementation}\n\n` : '',
-    imports: getReferencedFormatTypeImports(
-      implementation,
-      options.context.output.override,
-      (config) => [config.effect?.schemaImport],
-    ),
+    imports: [
+      // Component schemas are runtime values, so they are imported as values.
+      ...[...usedComponents].toSorted().map((componentName) => ({
+        name: componentName,
+        schemaName: componentName,
+        values: true,
+      })),
+      ...getReferencedFormatTypeImports(
+        implementation,
+        options.context.output.override,
+        (config) => [config.effect?.schemaImport],
+      ),
+    ],
     mutators,
   };
 };

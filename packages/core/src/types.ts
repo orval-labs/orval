@@ -1311,7 +1311,18 @@ export interface EffectOptions {
    * `effect` version. Defaults to `'auto'`. See {@link EffectVersionOption}.
    */
   version?: EffectVersionOption;
+  /**
+   * Emit one constant per component schema an operation reaches instead of
+   * inlining every `$ref`. Output-wide. Default `false`.
+   */
+  generateReusableSchemas?: boolean;
 }
+
+/** `override.effect` keys that may also be set per operation or tag. */
+export type OperationEffectOptions = Omit<
+  EffectOptions,
+  'generateReusableSchemas'
+>;
 
 export interface ValibotOptions {
   strict?: ZodOptions['strict'];
@@ -1612,6 +1623,7 @@ export interface NormalizedEffectOptions {
   useBrandedTypes: boolean;
   exactOptional: boolean;
   version: EffectVersionOption;
+  generateReusableSchemas: boolean;
 }
 
 /**
@@ -2095,7 +2107,7 @@ export interface OperationOptions {
   angular?: AngularOptions;
   swr?: SwrOptions;
   zod?: OperationZodOptions;
-  effect?: EffectOptions;
+  effect?: OperationEffectOptions;
   valibot?: OperationValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,

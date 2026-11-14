@@ -1632,3 +1632,69 @@ describe('formatType', () => {
     ]);
   });
 });
+
+describe('ref constructor', () => {
+  const render = (
+    isEffectV4: boolean,
+    lazyRefs?: ReadonlyMap<string, string>,
+  ) =>
+    parseEffectValidationSchemaDefinition(
+      {
+        functions: [
+          [
+            'array',
+            {
+              functions: [
+                ['ref', 'Pet'],
+                ['optional', undefined],
+                ['describe', "'a pet'"],
+              ],
+              consts: [],
+            },
+          ],
+        ],
+        consts: [],
+      },
+      makeContext(),
+      false,
+      undefined,
+      false,
+      isEffectV4,
+      lazyRefs,
+    ).effect;
+
+  it('names the constant and applies the wrappers', () => {
+    expect(render(true)).toBe(
+      "S.Array(S.UndefinedOr(Pet).annotate({ description: 'a pet' }))",
+    );
+    expect(render(false)).toBe(
+      "S.Array(S.UndefinedOr(Pet).annotations({ description: 'a pet' }))",
+    );
+  });
+
+  it('reads a reference to a constant on a cycle through S.suspend', () => {
+    const lazyRefs = new Map([['Pet', 'PetEncoded']]);
+    expect(render(true, lazyRefs)).toContain(
+      'S.suspend((): S.Codec<Pet, PetEncoded> => Pet)',
+    );
+    expect(render(false, lazyRefs)).toContain(
+      'S.suspend((): S.Schema<Pet, PetEncoded> => Pet)',
+    );
+  });
+
+  it('renders a reference without a constant name as unknown', () => {
+    expect(
+      parseEffectValidationSchemaDefinition(
+        { functions: [['ref', 5]], consts: [] },
+        makeContext(),
+        false,
+      ).effect,
+    ).toBe('S.Unknown');
+  });
+
+  it('leaves a $ref alone while reusable schemas are off', () => {
+    expect(
+      gen({ $ref: '#/components/schemas/Pet' } as OpenApiSchemaObject).effect,
+    ).toBe('S.Unknown');
+  });
+});

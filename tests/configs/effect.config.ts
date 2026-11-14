@@ -1,4 +1,21 @@
+import type { EffectOptions, OutputMode } from '@orval/core';
 import { defineConfig } from 'orval';
+
+const reusableProject = (
+  name: string,
+  effect: EffectOptions,
+  mode?: OutputMode,
+) => ({
+  output: {
+    target: `../generated/effect/${name}/${name}.ts`,
+    client: 'effect' as const,
+    clean: true,
+    formatter: 'prettier' as const,
+    ...(mode ? { mode } : {}),
+    override: { effect: { generateReusableSchemas: true, ...effect } },
+  },
+  input: { target: '../specifications/valibot-reusable.yaml' },
+});
 
 // `tests` installs Effect 4, and `build` typechecks this output against it.
 export default defineConfig({
@@ -117,6 +134,45 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/form-data.yaml',
+    },
+  },
+  // Component schemas become shared constants; cycles read through `S.suspend`.
+  'reusable-schemas': reusableProject('reusable-schemas', {}),
+  'reusable-schemas-tags-split': reusableProject(
+    'reusable-schemas-tags-split',
+    {},
+    'tags-split',
+  ),
+  'reusable-schemas-exact-optional': reusableProject(
+    'reusable-schemas-exact-optional',
+    { exactOptional: true },
+  ),
+  'format-type-reusable-schemas': {
+    output: {
+      target:
+        '../generated/effect/format-type-reusable-schemas/format-type-reusable-schemas.ts',
+      client: 'effect',
+      override: {
+        effect: { generateReusableSchemas: true },
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            effect: {
+              schema: 'DayjsFromString',
+              schemaImport: {
+                name: 'DayjsFromString',
+                importPath: '../../../mutators/effect-dayjs',
+              },
+            },
+            encode: '(value) => value.toISOString()',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
     },
   },
 });

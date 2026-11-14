@@ -445,25 +445,27 @@ const SCHEMA_WRITING_CLIENTS: ReadonlySet<string> = new Set([
   OutputClient.MCP,
 ]);
 
+// The clients that write their reusable component schemas next to the operations.
+const REUSABLE_SCHEMA_CLIENTS = [
+  { client: OutputClient.VALIBOT, library: 'valibot', label: 'Valibot' },
+  { client: OutputClient.EFFECT, library: 'effect', label: 'Effect' },
+] as const;
+
 /** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
-  if (
-    isFunction(output.client) &&
-    output.override.valibot.generateReusableSchemas
-  ) {
-    throw new Error(
-      "`override.valibot.generateReusableSchemas` requires `client: 'valibot'`: the component constants are not written for a custom client.",
-    );
-  }
-  if (
-    output.client === OutputClient.VALIBOT &&
-    output.override.valibot.generateReusableSchemas &&
-    schemas
-  ) {
-    throw new Error(
-      '`override.valibot.generateReusableSchemas` cannot be combined with `output.schemas`: the reusable Valibot schemas are written next to the operations.',
-    );
+  for (const { client, library, label } of REUSABLE_SCHEMA_CLIENTS) {
+    if (!output.override[library].generateReusableSchemas) continue;
+    if (isFunction(output.client)) {
+      throw new Error(
+        `\`override.${library}.generateReusableSchemas\` requires \`client: '${library}'\`: the component constants are not written for a custom client.`,
+      );
+    }
+    if (output.client === client && schemas) {
+      throw new Error(
+        `\`override.${library}.generateReusableSchemas\` cannot be combined with \`output.schemas\`: the reusable ${label} schemas are written next to the operations.`,
+      );
+    }
   }
   if (!schemas || isString(schemas)) return;
   if (
@@ -735,6 +737,7 @@ function normalizeEffectOptions(
     useBrandedTypes: effect?.useBrandedTypes ?? false,
     exactOptional: effect?.exactOptional ?? false,
     version: effect?.version ?? 'auto',
+    generateReusableSchemas: effect?.generateReusableSchemas ?? false,
   };
 }
 
@@ -1753,19 +1756,19 @@ const tagBucketModes = new Set<OutputMode>([
 ]);
 
 function withoutReusableSchemasFlag<T extends object>(
-  valibot: T,
+  options: T,
 ): Omit<T, 'generateReusableSchemas'> {
   const { generateReusableSchemas: _ignored, ...rest } = {
     generateReusableSchemas: undefined,
-    ...valibot,
+    ...options,
   };
   return rest;
 }
 
-function isReusableSchemasFlagSet(valibot: object): boolean {
+function isReusableSchemasFlagSet(options: object): boolean {
   return (
-    'generateReusableSchemas' in valibot &&
-    valibot.generateReusableSchemas !== undefined
+    'generateReusableSchemas' in options &&
+    options.generateReusableSchemas !== undefined
   );
 }
 
@@ -1827,6 +1830,12 @@ function normalizeOperationsAndTags(
           operationZodOverrideKeys.some(
             (supportedKey) => zod[supportedKey] !== undefined,
           );
+
+        if (effect && isReusableSchemasFlagSet(effect)) {
+          logger.warn(
+            `override.${source}.${key}.effect.generateReusableSchemas is not supported - it is output-wide and configured via \`override.effect.generateReusableSchemas\`. Ignoring.`,
+          );
+        }
 
         if (valibot && isReusableSchemasFlagSet(valibot)) {
           logger.warn(
@@ -1969,7 +1978,13 @@ function normalizeOperationsAndTags(
                   },
                 }
               : {}),
-            ...(effect ? { effect: normalizeEffectOptions(effect) } : {}),
+            ...(effect
+              ? {
+                  effect: normalizeEffectOptions(
+                    withoutReusableSchemasFlag(effect),
+                  ),
+                }
+              : {}),
             // Kept partial so the deep merge only overrides what is set. The
             // output-wide reusable schemas flag never travels with it.
             ...(valibot
