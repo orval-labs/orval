@@ -128,6 +128,7 @@ export const createAngularOutput = (
         useBrandedTypes: false,
         exactOptional: false,
         version: 'auto',
+        generateReusableSchemas: false,
       },
       valibot: {
         strict: {

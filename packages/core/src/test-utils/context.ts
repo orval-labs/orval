@@ -147,6 +147,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
       useBrandedTypes: false,
       exactOptional: false,
       version: 'auto',
+      generateReusableSchemas: false,
     },
     valibot: {
       strict: {

@@ -40,6 +40,73 @@ export const CreatePetsBody = S.Struct({
 });
 ```
 
+## 选项
+
+选项位于 [`override.effect`](/zh/docs/reference/configuration/output#overrideeffect)：
+
+- `strict` - 按位置（`param`、`query`、`header`、`body`、`response`）设置，对象 schema 遇到多余字段时报错。默认全部为 `false`。
+- `generate` - 按位置选择生成哪些 schema。默认全部为 `true`。
+- `useBrandedTypes` - 为生成的 schema 追加 `S.brand()`。默认 `false`。
+- `exactOptional` - 为启用 `exactOptionalPropertyTypes` 的项目生成可选属性。默认 `false`。也可以按 operation 或 tag 设置。
+- `version` - 固定 Effect 主版本（`3`、`4` 或 `'auto'`），而不是从已安装的包中读取。仅限输出级。
+- `generateEachHttpStatus` - 为每个响应状态码生成一个 schema。默认 `false`。
+- `generateReusableSchemas` - 操作用到的每个组件 schema 只生成一次并通过引用复用，而不是内联每个 `$ref`。默认 `false`。参见[可复用 Schema](#可复用-schema)。
+
+## 可复用 Schema
+
+默认情况下每个 `$ref` 都会被内联，共享组件很多的规范会让输出变得很大。设置 `generateReusableSchemas` 后，操作用到的每个组件 schema 都会生成一个导出的常量：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'effect',
+      target: './src/api/schemas.ts',
+      override: { effect: { generateReusableSchemas: true } },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+```ts
+export type Pet = {
+  readonly name: string;
+  readonly friends?: ReadonlyArray<Pet> | undefined;
+};
+
+export type PetEncoded = {
+  readonly name: string;
+  readonly friends?: ReadonlyArray<PetEncoded> | undefined;
+};
+
+export const Pet = S.Struct({
+  name: S.String,
+  friends: S.optional(
+    S.Array(S.suspend((): S.Codec<Pet, PetEncoded> => Pet)),
+  ),
+});
+
+export const ListPetsResponseItem = Pet;
+export const ListPetsResponse = S.Array(ListPetsResponseItem);
+```
+
+这些常量与 operation 放在一起：`single` 模式下写入 target，其他模式下写入 `*.schemas.ts` 文件。指向循环中常量的引用通过 `S.suspend` 读取，Effect 3 使用 `S.Schema` 标注类型，Effect 4 使用 `S.Codec`。
+
+位于循环中的每个常量还会导出两个类型：`Pet` 表示解码后的类型，`PetEncoded` 表示接受的输入类型。`S.suspend` 的 getter 使用它们，因此递归字段保持其类型。当另一个 schema 已经使用 `PetEncoded` 这个名称时，编码类型会变为 `PetEncoded2`。由 `formatType` 转换的字段按其 `effect.schema` 推导类型；不是普通标识符的表达式会被声明为常量（例如 `petSlugFormat`）以供推导。
+
+### 限制
+
+- 使用 `client: 'effect'` 时，`generateReusableSchemas` 不能与 `output.schemas` 同时设置：生成时会报错。
+- 在常量行为不一致的位置，`$ref` 仍会被内联，例如表单 body、参数、`allOf` 成员、数组 body 或响应（按其 items 生成，items 保持引用）、带 `default` 的 schema，以及带有 `properties`、`type` 或 `required` 等同级关键字的 `oneOf` 或 `anyOf` 的成员。Effect 按字段合并 `allOf` 成员，因此由引用组成的 `allOf` 会保持内联。
+- 对本身为 `readOnly` 或 `writeOnly` 的 schema 的 `$ref` 始终会被内联；对带有此类属性的 schema 的 `$ref`，在请求 body 中也会被内联。
+- `exactOptional` 与输出级设置不同的位置会内联其 schema。
+- 只会生成生成后的操作用到的组件，以及这些组件所读取的组件；只被错误响应（未开启 `generateEachHttpStatus` 时）或不支持的媒体类型读取的组件不会生成。其中无法生成的组件（例如 schema 与自身的 `allOf`）会让生成报错，并指出该组件。
+- 名为 `Date`、`RegExp`、`File`、`S`、`Effect` 或 `ReadonlyArray`，或与 `formatType` 的 `effect.schema` 或 `schemaImport` 所读取的名称相同的组件会加上 `Schema` 后缀。两个组件同名会让生成报错；由组件或操作提升出的常量（例如 `PetMin`）与另一个组件同名时也会报错。
+- 操作的常量（例如 `ListPetsResponse` 或 `CreatePetsBody`）与某个组件同名时会加上 `Schema` 后缀，即使没有为该组件生成常量。导入未开启该选项时的名称的代码将无法编译。
+- 由无法保持为引用的 `$ref`（例如旁边带有 `readOnly` 或 `writeOnly` 的引用）闭合的循环，会在闭合处按 unknown 校验并给出警告，与未开启该选项时相同。常量只从自身展开，因此经由别名到达的 schema 比未开启该选项时少校验一层。
+- 在 Effect 4 上，当循环中的常量读取约 16 层或更多、且不在任何循环内的嵌套组件链时，TypeScript 可能报告 `Type instantiation is excessively deep`。此类规范请保持该选项关闭。
+
 ## 用法
 
 ### 解码数据

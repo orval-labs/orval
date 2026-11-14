@@ -584,6 +584,22 @@ function shouldGenerateValibotSchemasInline(
   );
 }
 
+function shouldGenerateEffectSchemasInline(
+  output: NormalizedOptions['output'],
+  operations: WriteSpecBuilder['operations'],
+): boolean {
+  // Operations reference the constants by name, so they are written next to
+  // the operations. Without an imported component no file is written.
+  return (
+    output.client === 'effect' &&
+    !output.schemas &&
+    output.override.effect.generateReusableSchemas &&
+    Object.values(operations).some(({ imports }) =>
+      imports.some(({ values, schemaName }) => values && schemaName),
+    )
+  );
+}
+
 function shouldGenerateZodSchemasInline(
   output: NormalizedOptions['output'],
   hasOperations: boolean,
@@ -607,12 +623,13 @@ function shouldGenerateZodSchemasInline(
 function shouldGenerateSchemas(
   output: NormalizedOptions['output'],
   hasOperations: boolean,
-  spec: WriteSpecBuilder['spec'],
+  builder: WriteSpecBuilder,
 ): boolean {
   return (
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
     shouldGenerateZodSchemasInline(output, hasOperations) ||
-    shouldGenerateValibotSchemasInline(output, spec)
+    shouldGenerateValibotSchemasInline(output, builder.spec) ||
+    shouldGenerateEffectSchemasInline(output, builder.operations)
   );
 }
 
@@ -1102,13 +1119,20 @@ async function writeSpecsInternal(
       ? await import('@orval/valibot')
       : undefined;
 
+    const effectModule = shouldGenerateEffectSchemasInline(
+      output,
+      builder.operations,
+    )
+      ? await import('@orval/effect')
+      : undefined;
+
     implementationPaths = await writeMode({
       builder,
       workspace,
       output,
       projectName,
       header,
-      needSchema: shouldGenerateSchemas(output, hasOperations, builder.spec),
+      needSchema: shouldGenerateSchemas(output, hasOperations, builder),
       schemaTagMap,
       schemaOutputPlan,
       generateSchemasInline: needZodSchemasInline
@@ -1134,7 +1158,14 @@ async function writeSpecsInternal(
                 includeValibotImport,
                 precedingContent,
               )
-          : undefined,
+          : effectModule
+            ? (precedingContent) =>
+                effectModule.generateEffectSchemasInline(
+                  builder,
+                  output,
+                  precedingContent,
+                )
+            : undefined,
     });
   }
 
