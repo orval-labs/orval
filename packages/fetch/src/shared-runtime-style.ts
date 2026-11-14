@@ -47,6 +47,11 @@ import {
 
 import pkg from '../package.json' with { type: 'json' };
 import {
+  FACTORY_EXECUTE_OPTIONS,
+  isFetchFactoryMode,
+  markFactoryOperation,
+} from './http-client-injection-factory';
+import {
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
   getResponseDateDeserializer,
@@ -522,6 +527,7 @@ export const generateSharedRequestFunction = (
       : undefined;
   const { includeHttpResponseReturnType, forceSuccessResponse } =
     override.fetch;
+  const isFactoryMode = isFetchFactoryMode(context.output);
 
   const bodyArgument = requestSerializer
     ? `${requestSerializer.name}(${body.implementation})`
@@ -564,7 +570,11 @@ export const generateSharedRequestFunction = (
             ? ['serializeResponseHeaders: true']
             : []),
         ]),
-    '...(options !== undefined ? { options } : {})',
+    // A client-config mutator issues the request itself, so it receives no
+    // `fetch` from the factory.
+    isFactoryMode && !hasClientMutator
+      ? FACTORY_EXECUTE_OPTIONS
+      : '...(options !== undefined ? { options } : {})',
   ];
 
   // A client-config mutator returns the raw response, so its dates are
@@ -584,7 +594,7 @@ export const generateSharedRequestFunction = (
   // An inferred mutator is specialized per operation through the adapter's
   // fetcher argument instead of `execute`'s type argument.
   const inferredMutator = hasClientMutator && !!mutator?.inferred;
-  const fetchImplementation = `export const ${operationName} = ${inferredMutator && override.fetch.asyncInferredMutator ? 'async ' : ''}(${toObjectString(props, 'implementation')} options?: CallOptions) =>
+  const fetchImplementation = `${isFactoryMode ? 'const' : 'export const'} ${operationName} = ${inferredMutator && override.fetch.asyncInferredMutator ? 'async ' : ''}(${toObjectString(props, 'implementation')} options?: CallOptions) =>
   execute${inferredMutator ? '' : `<${resultType}>`}({
     ${executeArgs.join(',\n    ')},
   }${inferredMutator ? `, ${getSharedMutatorAlias(context.output)}<${resultType}>` : ''})${mutatorDateTransform};
@@ -595,7 +605,11 @@ export const generateSharedRequestFunction = (
     .map(({ implementation }) => `\n${implementation}`)
     .join('');
 
-  return `${declarations}\n${getUrlFnImplementation}\n${encodeBodyImplementation}${doc}${fetchImplementation}\n${dateTransformImplementations}`;
+  const operationImplementation = isFactoryMode
+    ? markFactoryOperation(`${doc}${fetchImplementation}`)
+    : `${doc}${fetchImplementation}`;
+
+  return `${declarations}\n${getUrlFnImplementation}\n${encodeBodyImplementation}${operationImplementation}\n${dateTransformImplementations}`;
 };
 
 export const generateSharedClient = (

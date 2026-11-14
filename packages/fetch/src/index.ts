@@ -47,13 +47,11 @@ import {
   isObject,
   isDateTimeParam,
   needsHttpStatusCodeTypes,
-  type NormalizedOutputOptions,
   type NormalizedOverrideOutput,
   type OpenApiParameterObject,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   toObjectSchema,
-  OutputClient,
   pascal,
   resolveRef,
   sanitize,
@@ -63,6 +61,12 @@ import {
   toObjectString,
 } from '@orval/core';
 
+import {
+  getFactoryClosing,
+  getFactoryOpening,
+  hoistFactoryOperations,
+  isFetchFactoryMode,
+} from './http-client-injection-factory';
 import {
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
@@ -136,16 +140,6 @@ const getRequestOptionsType = (mutator?: GeneratorMutator) => {
     ? `Parameters<ReturnType<typeof ${mutator.name}>>[1]`
     : `Parameters<typeof ${mutator.name}>[1]`;
 };
-
-/**
- * Whether the fetch client is wrapped in an `httpClientInjection: 'factory'`
- * closure. Factory injection is output-scoped (the header and footer only see
- * `output.override`), and limited to the plain fetch client: query, swr, mcp
- * and pinia-colada reuse these generators but emit no factory wrapper.
- */
-const isFetchFactoryMode = (output: NormalizedOutputOptions | undefined) =>
-  output?.client === OutputClient.FETCH &&
-  output.override.fetch.httpClientInjection === 'factory';
 
 /**
  * Generates the URL helper function and the fetch request function for a single
@@ -1202,11 +1196,18 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
   output,
 }) => {
-  if (isSharedRuntimeStyle(output)) return '';
   const isFactoryMode = isFetchFactoryMode(output);
-  const implementation = isFactoryMode
-    ? `export const ${title} = (fetchFn: typeof globalThis.fetch = fetch) => {\n`
-    : '';
+  if (isSharedRuntimeStyle(output)) {
+    if (!isFactoryMode) return '';
+    // Types, URL helpers and body encoders stay at module level as with the
+    // plain shared style; only the marked operations move into the closure.
+    return {
+      implementation: '',
+      transformClientImplementation: (source) =>
+        hoistFactoryOperations(source, title),
+    };
+  }
+  const implementation = isFactoryMode ? getFactoryOpening(title) : '';
   // Factory mode moves the response types to the footer, out of the
   // implementation scanned here, so they are assumed to need the status codes.
   const needsStatusCodeTypes = isFactoryMode
@@ -1244,30 +1245,19 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
   };
 };
 
-/**
- * Closes the factory closure by returning its operations and URL helpers, then
- * emits the response types the client builder kept outside of it.
- */
+/** Closes the factory closure in `httpClientInjection: 'factory'` mode. */
 export const generateFetchFooter: ClientFooterBuilder = ({
   operationNames,
   operations,
   output,
 }) => {
-  if (!isFetchFactoryMode(output) || isSharedRuntimeStyle(output)) return '';
+  if (!isFetchFactoryMode(output)) return '';
 
-  // Hook mutators declare `use{Op}Hook` instead of the operation itself.
-  const returnedNames = operations
-    ? operations.flatMap(({ operationName, mutator }) => [
-        mutator?.isHook ? `use${pascal(operationName)}Hook` : operationName,
-        camel(`get-${operationName}-url`),
-      ])
-    : operationNames;
-  const responseTypes = (operations ?? [])
-    .map((operation) => operation.types?.result())
-    .filter(Boolean)
-    .join('\n');
-
-  return `return { ${returnedNames.join(', ')} };\n};\n${responseTypes ? `\n${responseTypes}\n` : ''}`;
+  return getFactoryClosing({
+    operationNames,
+    operations,
+    isSharedRuntime: isSharedRuntimeStyle(output),
+  });
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {

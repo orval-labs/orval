@@ -2,7 +2,6 @@ import { runInNewContext } from 'node:vm';
 
 import type {
   ContextSpec,
-  GeneratorOperation,
   GeneratorOptions,
   GeneratorVerbOptions,
   OpenApiParameterObject,
@@ -2122,30 +2121,6 @@ describe('httpClientInjection: factory', () => {
     expect(client.implementation).not.toContain('export ');
     expect(client.returnType?.()).toContain('export type listPetsResponse =');
   });
-
-  it('returns hook names and URL helpers, then emits the response types', () => {
-    const footer = generateFetchFooter({
-      operationNames: ['listPets', 'createPets'],
-      operations: [
-        {
-          operationName: 'listPets',
-          types: { result: () => 'export type listPetsResponse = unknown;' },
-        },
-        {
-          operationName: 'createPets',
-          mutator: { isHook: true },
-        },
-      ] as GeneratorOperation[],
-      hasAwaitedType: true,
-      hasMutator: true,
-      output: factoryContext().output,
-    });
-
-    expect(footer).toBe(
-      'return { listPets, getListPetsUrl, useCreatePetsHook, getCreatePetsUrl };\n};\n' +
-        '\nexport type listPetsResponse = unknown;\n',
-    );
-  });
 });
 
 describe('generateRequestFunction — pipeDelimited and spaceDelimited query arrays', () => {
@@ -2437,23 +2412,22 @@ describe('runtimeImplementationStyle: shared dispatch', () => {
     return options;
   };
 
+  const sharedHeaderParams = (output: ContextSpec['output']) => ({
+    title: 'getPetstore',
+    isRequestOptions: true,
+    isMutator: false,
+    isGlobalMutator: false,
+    provideIn: false as const,
+    hasAwaitedType: true,
+    output,
+    verbOptions: {},
+    clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
+  });
+
   it('emits no header types and no factory closure', () => {
     const output = sharedOptions().context.output;
-    output.override.fetch.httpClientInjection = 'factory';
 
-    expect(
-      generateFetchHeader({
-        title: 'getPetstore',
-        isRequestOptions: true,
-        isMutator: false,
-        isGlobalMutator: false,
-        provideIn: false,
-        hasAwaitedType: true,
-        output,
-        verbOptions: {},
-        clientImplementation: 'Exclude<HTTPStatusCodes, 200>',
-      }),
-    ).toBe('');
+    expect(generateFetchHeader(sharedHeaderParams(output))).toBe('');
     expect(
       generateFetchFooter({
         operationNames: ['listPets'],

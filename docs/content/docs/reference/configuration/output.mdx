@@ -3606,7 +3606,7 @@ export const load = async ({ fetch }) => {
 **Type:** `'factory'`
 **Default:** `undefined`
 
-Only for `client: 'fetch'`. Wraps the generated operations and URL helpers in a factory that receives a `fetch` implementation once, instead of passing it on every call. The factory's name is the OpenAPI title (or the tag in split modes) prefixed with `get`; [`override.title`](#title) renames it. Response types stay exported at the top level. Set it on `output.override.fetch`; tag and operation overrides are ignored.
+Only for `client: 'fetch'`. Wraps the generated operations and URL helpers in a factory that receives a `fetch` implementation once, instead of passing it on every call. The factory's name is the OpenAPI title (or the tag in split modes) prefixed with `get`; [`override.title`](#title) renames it. Response types stay exported at the top level. Set it on `output.override.fetch`; tag and operation overrides are ignored. It is not supported with the `tags-operations` and `tags-operations-split` modes.
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -3655,6 +3655,30 @@ const api = getSwaggerPetstore(myFetch);
 const pets = await api.listPets({ limit: '10' });
 ```
 
+With [`runtimeImplementationStyle: 'shared'`](#runtimeimplementationstyle), the
+response types and URL helpers stay at the top level as with the plain shared
+style, and only the operations move into the factory. The factory's `fetch` is
+passed to the shared runtime as `options.fetch`; a `fetch` passed in the call
+options takes precedence. With a global `override.mutator`, the mutator issues
+the request, so the factory's `fetch` is not used.
+
+```ts
+export const getListPetsUrl = (params: ListPetsParams) => {
+  // ...
+};
+
+export const getSwaggerPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {
+  const listPets = (params: ListPetsParams, options?: CallOptions) =>
+    execute<listPetsResponse>({
+      url: getListPetsUrl(params),
+      method: 'GET',
+      options: { fetch: fetchFn, ...options },
+    });
+
+  return { listPets, getListPetsUrl };
+};
+```
+
 ### runtimeImplementationStyle
 
 **Type:** `'inline' | 'shared'`
@@ -3665,10 +3689,11 @@ response decoding, query serialization and the status-code types) once into a
 shared runtime module, and turns every operation into a thin wrapper around
 it. Call signatures and the `{ data, status, headers }` response shape stay the
 same as with `'inline'`. The other `override.fetch` options behave as they do
-with `'inline'`, with two exceptions: `httpClientInjection: 'factory'` is
-supported by the inline style only, and instead of `useRuntimeFetcher` a
-per-call `fetch` is passed as `options.fetch`. The query hooks' `fetcher` option
-keeps working and is passed on as `options.fetch`.
+with `'inline'`, with one exception: instead of `useRuntimeFetcher` a per-call
+`fetch` is passed as `options.fetch`. The query hooks' `fetcher` option keeps
+working and is passed on as `options.fetch`. With
+[`httpClientInjection: 'factory'`](#httpclientinjection), the factory passes
+its `fetch` to the runtime as `options.fetch`.
 
 It applies to `client: 'fetch'`, and to `react-query`, `vue-query`,
 `svelte-query`, `solid-query`, `swr` and `pinia-colada` under

@@ -2880,7 +2880,7 @@ export const load = async ({ fetch }) => {
 **类型：** `'factory'`
 **默认值：** `undefined`
 
-仅适用于 `client: 'fetch'`。将生成的 operations 和 URL helpers 包裹在一个工厂函数中，该工厂只需接收一次 `fetch` 实现，而无需在每次调用时传入。工厂函数名为 OpenAPI 标题（split 模式下为 tag）加上 `get` 前缀；可通过 [`override.title`](#title) 重命名。响应类型仍在顶层导出。请在 `output.override.fetch` 上设置；tag 和 operation 级别的 override 会被忽略。
+仅适用于 `client: 'fetch'`。将生成的 operations 和 URL helpers 包裹在一个工厂函数中，该工厂只需接收一次 `fetch` 实现，而无需在每次调用时传入。工厂函数名为 OpenAPI 标题（split 模式下为 tag）加上 `get` 前缀；可通过 [`override.title`](#title) 重命名。响应类型仍在顶层导出。请在 `output.override.fetch` 上设置；tag 和 operation 级别的 override 会被忽略。不支持 `tags-operations` 和 `tags-operations-split` 模式。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2927,6 +2927,25 @@ export type listPetsResponse = listPetsResponseSuccess | listPetsResponseError;
 ```ts
 const api = getSwaggerPetstore(myFetch);
 const pets = await api.listPets({ limit: '10' });
+```
+
+与 `runtimeImplementationStyle: 'shared'` 一起使用时，响应类型和 URL helpers 与普通 shared 风格一样保留在顶层，只有 operations 被移入工厂函数。工厂接收的 `fetch` 会作为 `options.fetch` 传给 shared runtime；调用时在 options 中传入的 `fetch` 优先。设置了全局 `override.mutator` 时，由 mutator 发起请求，因此不会使用工厂的 `fetch`。
+
+```ts
+export const getListPetsUrl = (params: ListPetsParams) => {
+  // ...
+};
+
+export const getSwaggerPetstore = (fetchFn: typeof globalThis.fetch = fetch) => {
+  const listPets = (params: ListPetsParams, options?: CallOptions) =>
+    execute<listPetsResponse>({
+      url: getListPetsUrl(params),
+      method: 'GET',
+      options: { fetch: fetchFn, ...options },
+    });
+
+  return { listPets, getListPetsUrl };
+};
 ```
 
 ---

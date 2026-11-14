@@ -1519,6 +1519,26 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // The factory wraps the shared-style operations and hands its fetch to the
+  // runtime as `options.fetch` (#4520).
+  sharedRuntimeFactory: {
+    output: {
+      target: '../generated/fetch/shared-runtime-factory/endpoints.ts',
+      schemas: '../generated/fetch/shared-runtime-factory/model',
+      client: 'fetch',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        fetch: {
+          runtimeImplementationStyle: 'shared',
+          httpClientInjection: 'factory',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   sharedRuntimeOptions: {
     output: {
       target: '../generated/fetch/shared-runtime-options/endpoints.ts',
