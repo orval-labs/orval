@@ -5,6 +5,8 @@ description: Generate Fetch API clients from OpenAPI
 
 The Fetch API is a native browser API requiring no additional dependencies. It also works in server-side frameworks and edge runtimes like Cloudflare Workers, Vercel Edge, and Deno.
 
+Generated code has no runtime dependencies of its own, and every operation is a standalone function, so bundlers can tree-shake unused operations and split the rest by route. See [Bundle size](#bundle-size) for measured numbers.
+
 ## Configuration
 
 Set the `client` option to `fetch`:
@@ -90,6 +92,31 @@ export const listPets = async (
   return { status: res.status, data };
 };
 ```
+
+## Bundle size
+
+The fetch client generates plain functions on top of the native Fetch API, so the client code that ships to the browser is limited to what your application calls:
+
+- **No runtime dependencies.** Everything, including the shared runtime, is generated into your project.
+- **Tree-shaking.** Each operation is a separate export, so operations you never import are removed by the bundler.
+- **Route-level code splitting.** Bundlers split code along module boundaries. With `mode: 'tags'` or `'tags-split'`, each tag is its own module, so a lazily loaded page only pulls in the modules for the tags it imports. With `mode: 'single'` or `'split'`, all operations live in one module: unused operations are still tree-shaken, but the operations your application imports end up in the same chunk instead of being split by route.
+
+The following sizes were measured for both runtime styles (see [Shared Runtime](#shared-runtime)):
+
+| Metric | Style | 50 operations | 100 operations | 200 operations |
+| --- | --- | ---: | ---: | ---: |
+| Total bundle, minified + gzipped | inline | 1.42 kB | 2.26 kB | 3.89 kB |
+| | shared | 2.29 kB | 3.05 kB | 4.50 kB |
+| Total bundle, minified | inline | 18.9 kB | 38.1 kB | 76.2 kB |
+| | shared | 9.0 kB | 14.8 kB | 26.3 kB |
+| First load, minified + gzipped | inline | 1.40 kB | 1.45 kB | 1.55 kB |
+| | shared | 2.16 kB | 2.21 kB | 2.31 kB |
+
+*Total bundle* is the whole application without code splitting. *First load* is what the first page downloads when the application is split by route, with 10 operations per lazily loaded page.
+
+> **Note:** These numbers are a snapshot measured with orval 8.47.0 in November 2026, using a synthetic OpenAPI spec in which every operation is used, `mode: 'tags-split'`, and otherwise default options. Bundles were built and minified with esbuild, and gzip sizes use level 9 applied to each output file. They show general trends; actual sizes depend on your spec and configuration.
+
+`httpClientInjection: 'factory'` returns every operation from a single factory call, so its operations cannot be tree-shaken or split by route. Use it when a single configured client matters more than bundle size.
 
 ## Custom Fetch Function
 
@@ -177,6 +204,19 @@ that directory.
 
 The per-status type aliases of the inline style (`listPetsResponse200`, ...) are
 not generated; use `StatusOf<listPetsResponse, 404>['data']` instead.
+
+### Choosing between inline and shared
+
+Both styles generate the same call signatures and response shape, so you can switch between them by changing one option. They differ in how the generated code trades download size for parse size (see [Bundle size](#bundle-size)):
+
+- **inline** repeats the request handling in every operation. Gzip compresses the repetition very well, so it has the smallest download size and the smallest first load, but the browser has to parse more code after decompressing it.
+- **shared** generates the request handling once in `runtime.ts`. Its minified size is roughly a third of inline's for larger specs, so there is less code to parse and execute, and the generated source is much smaller to review.
+
+As a rule of thumb:
+
+- Choose **inline** (the default) when download size and the first page load matter most, for example on public sites where many visitors arrive without a cache.
+- Choose **shared** when your spec is large, when you target low-end devices where parsing JavaScript is expensive, or when you commit the generated code and review its diffs.
+- If you are unsure, **shared** is the balanced choice: it stays close to inline on download size and is much smaller after minification.
 
 See the
 [`runtimeImplementationStyle` reference](/docs/reference/configuration/output#runtimeimplementationstyle),
