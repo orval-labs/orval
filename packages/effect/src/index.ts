@@ -800,14 +800,9 @@ export const generateEffectValidationSchemaDefinition = (
       functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
     } else if (min !== undefined && !(isCountBound && min === 0)) {
       const safeMin = assertSafeNumericConstraint(min, 'minimum');
-      if (safeMin === 1) {
-        functions.push(['min', `${safeMin}`]);
-      } else {
-        consts.push(
-          `export const ${name}Min${constsCounterValue} = ${safeMin};`,
-        );
-        functions.push(['min', `${name}Min${constsCounterValue}`]);
-      }
+      // Export every bound, 1 included, so consumers can read any of them.
+      consts.push(`export const ${name}Min${constsCounterValue} = ${safeMin};`);
+      functions.push(['min', `${name}Min${constsCounterValue}`]);
     }
 
     // oxlint-disable-next-line typescript/no-unnecessary-condition
