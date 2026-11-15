@@ -99,7 +99,7 @@ The fetch client generates plain functions on top of the native Fetch API, so th
 
 - **No runtime dependencies.** Everything, including the shared runtime, is generated into your project.
 - **Tree-shaking.** Each operation is a separate export, so operations you never import are removed by the bundler.
-- **Route-level code splitting.** With `mode: 'tags-split'` (or `split`), each tag is its own module, so a lazily loaded page only pulls in the operations it uses. With `mode: 'single'`, all operations live in one module and are bundled together.
+- **Route-level code splitting.** Bundlers split code along module boundaries. With `mode: 'tags'` or `'tags-split'`, each tag is its own module, so a lazily loaded page only pulls in the modules for the tags it imports. With `mode: 'single'` or `'split'`, all operations live in one module: unused operations are still tree-shaken, but the operations your application imports end up in the same chunk instead of being split by route.
 
 The following sizes were measured for both runtime styles (see [Shared Runtime](#shared-runtime)):
 
