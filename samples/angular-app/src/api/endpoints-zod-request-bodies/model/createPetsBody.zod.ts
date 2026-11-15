@@ -6,20 +6,22 @@
  */
 import * as zod from 'zod';
 
+export const createPetsBodyNameMin = 1;
 export const createPetsBodyNameMax = 100;
 
+export const createPetsBodyTagMin = 1;
 export const createPetsBodyTagMax = 50;
 
 export const createPetsBodyStatusDefault = `available`;
 export const CreatePetsBody = zod.object({
   name: zod
     .string()
-    .min(1)
+    .min(createPetsBodyNameMin)
     .max(createPetsBodyNameMax)
     .describe('Name of the pet'),
   tag: zod
     .string()
-    .min(1)
+    .min(createPetsBodyTagMin)
     .max(createPetsBodyTagMax)
     .describe('Classification tag'),
   email: zod.email().optional().describe('Owner contact email'),

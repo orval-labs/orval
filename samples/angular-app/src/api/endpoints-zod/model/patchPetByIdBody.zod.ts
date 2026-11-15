@@ -6,8 +6,12 @@
  */
 import * as zod from 'zod';
 
+export const patchPetByIdBodyIdMin = 1;
+
+export const patchPetByIdBodyNameMin = 1;
 export const patchPetByIdBodyNameMax = 100;
 
+export const patchPetByIdBodyTagMin = 1;
 export const patchPetByIdBodyTagMax = 50;
 
 export const patchPetByIdBodyStatusDefault = `available`;
@@ -21,15 +25,18 @@ export const patchPetByIdBodyRatingMultipleOf = 0.5;
 export const patchPetByIdBodyPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const PatchPetByIdBody = zod.object({
-  id: zod.int().min(1).describe('Unique identifier for the pet'),
+  id: zod
+    .int()
+    .min(patchPetByIdBodyIdMin)
+    .describe('Unique identifier for the pet'),
   name: zod
     .string()
-    .min(1)
+    .min(patchPetByIdBodyNameMin)
     .max(patchPetByIdBodyNameMax)
     .describe('Name of the pet'),
   tag: zod
     .string()
-    .min(1)
+    .min(patchPetByIdBodyTagMin)
     .max(patchPetByIdBodyTagMax)
     .optional()
     .describe('Optional classification tag'),

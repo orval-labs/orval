@@ -8,8 +8,12 @@ import * as zod from 'zod';
 
 export const PetsMax = 100;
 
+export const petsItemIdMin = 1;
+
+export const petsItemNameMin = 1;
 export const petsItemNameMax = 100;
 
+export const petsItemTagMin = 1;
 export const petsItemTagMax = 50;
 
 export const petsItemStatusDefault = `available`;
@@ -25,15 +29,18 @@ export const petsItemPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 export const Pets = zod
   .array(
     zod.object({
-      id: zod.int().min(1).describe('Unique identifier for the pet'),
+      id: zod
+        .int()
+        .min(petsItemIdMin)
+        .describe('Unique identifier for the pet'),
       name: zod
         .string()
-        .min(1)
+        .min(petsItemNameMin)
         .max(petsItemNameMax)
         .describe('Name of the pet'),
       tag: zod
         .string()
-        .min(1)
+        .min(petsItemTagMin)
         .max(petsItemTagMax)
         .optional()
         .describe('Optional classification tag'),

@@ -6,8 +6,12 @@
  */
 import * as zod from 'zod';
 
+export const petIdMin = 1;
+
+export const petNameMin = 1;
 export const petNameMax = 100;
 
+export const petTagMin = 1;
 export const petTagMax = 50;
 
 export const petStatusDefault = `available`;
@@ -21,11 +25,15 @@ export const petRatingMultipleOf = 0.5;
 export const petPhoneRegExp = new RegExp('^\\+?[1-9]\\d{1,14}$');
 
 export const Pet = zod.object({
-  id: zod.int().min(1).describe('Unique identifier for the pet'),
-  name: zod.string().min(1).max(petNameMax).describe('Name of the pet'),
+  id: zod.int().min(petIdMin).describe('Unique identifier for the pet'),
+  name: zod
+    .string()
+    .min(petNameMin)
+    .max(petNameMax)
+    .describe('Name of the pet'),
   tag: zod
     .string()
-    .min(1)
+    .min(petTagMin)
     .max(petTagMax)
     .optional()
     .describe('Optional classification tag'),
