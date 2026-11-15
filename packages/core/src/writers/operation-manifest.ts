@@ -35,6 +35,7 @@ import {
 } from '../utils';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { generateOrvalHelperTypes } from './implementation-parts';
 import { resolveMockSchemasPath } from './mock-utils';
 
 export interface OperationManifestPathParam {
@@ -381,7 +382,14 @@ export function buildOperationManifest(
   let implementation = renderEntries(entries);
   implementation += '\nexport type OperationName = keyof typeof operations;\n';
   if (withTypes) {
-    implementation += `\n${renderTypes(types)}`;
+    const renderedTypes = renderTypes(types);
+    // A body with readOnly props is typed `NonReadonly<T>`, a helper each
+    // generated file declares locally rather than exports, so declare it here too.
+    const helperTypes = generateOrvalHelperTypes(
+      renderedTypes,
+      output.override.useReadonlyArrays,
+    );
+    implementation += `${helperTypes ? `\n${helperTypes.trimEnd()}\n` : ''}\n${renderedTypes}`;
   }
 
   const imports = withTypes

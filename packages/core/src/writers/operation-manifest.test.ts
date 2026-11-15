@@ -240,7 +240,7 @@ describe('getOperationManifestTypes', () => {
 
 describe('buildOperationManifest', () => {
   const context = createTestContextSpec({ spec });
-  const build = (output = context.output) =>
+  const build = (output = context.output, options = verbOptions()) =>
     buildOperationManifest(
       {
         operations: {
@@ -252,7 +252,7 @@ describe('buildOperationManifest', () => {
           },
         } as unknown as Record<string, GeneratorOperation>,
         verbOptions: {},
-        operationVerbOptions: [verbOptions()],
+        operationVerbOptions: [options],
         spec,
         target: 'spec.yaml',
       },
@@ -277,6 +277,34 @@ describe('buildOperationManifest', () => {
     );
     expect(content).toContain('export type OperationTypes = {');
     expect(content).toContain('    response: Pet;');
+  });
+
+  it('declares NonReadonly when a body type uses it', () => {
+    const content = build(
+      context.output,
+      verbOptions({
+        verb: 'post',
+        body: {
+          ...verbOptions().body,
+          definition: 'NonReadonly<NewPet>',
+          imports: [{ name: 'NewPet' }],
+          contentType: 'application/json',
+          isOptional: false,
+        },
+      }),
+    );
+
+    expect(content).toContain('    body: NonReadonly<NewPet>;');
+    expect(content).toContain('type NonReadonly<T> =');
+    expect(content).toMatch(/import type \{[^}]*\bNewPet\b[^}]*\}/);
+    // Declared before the map that uses it.
+    expect(content.indexOf('type NonReadonly<T> =')).toBeLessThan(
+      content.indexOf('export type OperationTypes'),
+    );
+  });
+
+  it('does not declare NonReadonly when no type uses it', () => {
+    expect(build()).not.toContain('NonReadonly');
   });
 
   it('writes the data only when types are off', () => {
