@@ -38,14 +38,21 @@ export const AddListQueryParams = zod.object({
   birthdate: zod.iso.date().optional().describe('birth date'),
 });
 
+export const addListBodyListItemMin = 1;
 export const addListBodyListItemMax = 10;
 
+export const addListBodyListMin = 1;
 export const addListBodyListMax = 10;
 
 export const AddListBody = zod.object({
   list: zod
-    .array(zod.coerce.number().min(1).max(addListBodyListItemMax))
-    .min(1)
+    .array(
+      zod.coerce
+        .number()
+        .min(addListBodyListItemMin)
+        .max(addListBodyListItemMax),
+    )
+    .min(addListBodyListMin)
     .max(addListBodyListMax),
 });
 
