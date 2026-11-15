@@ -11,6 +11,14 @@ export {
   resolveComponentName,
 } from './component-names';
 export { createImportCheck, withInlineImports } from './inline-module';
+export {
+  assertNoOutputTypeClash,
+  collectOperationSchemas,
+  getImportedNames,
+  type LibraryOptions,
+  type OperationSchema,
+  type SchemaParsers,
+} from './operation-schemas';
 export { omitDirectional, relaxWriteOnly } from './read-only';
 export { createWarnOnceReporter } from './reporter';
 export {

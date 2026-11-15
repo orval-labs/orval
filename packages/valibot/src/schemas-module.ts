@@ -1,22 +1,13 @@
 import {
+  assertNoOutputTypeClash,
   camelPathParamName,
   type ContextSpec,
+  collectOperationSchemas,
   type GeneratorSchema,
   type GeneratorVerbOptions,
-  getNumberWord,
   getRefInfo,
-  GetterPropType,
   type NormalizedOutputOptions,
-  type OpenApiParameterObject,
-  type OpenApiReferenceObject,
-  type OpenApiSchemaObject,
-  type OpenApiRequestBodyObject,
-  type OpenApiResponseObject,
-  pascal,
-  resolveRef,
-  sanitize,
-  getLocalRefTarget,
-  getRef,
+  type SchemaParsers,
   toComponentRef,
 } from '@orval/core';
 
@@ -35,29 +26,36 @@ import {
 
 const VALIBOT_IMPORT = "import * as v from 'valibot';";
 
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-
-const PRIMITIVE_NAMES: ReadonlySet<string> = new Set([
-  'string',
-  'number',
-  'boolean',
-  'bigint',
-  'null',
-  'undefined',
-  'void',
-  'unknown',
-  'any',
-  'never',
-  'object',
-  'Blob',
-  'Date',
-]);
-
-const ANY_KEYS = plainNode({
-  kind: 'object',
-  mode: 'looseObject',
-  entries: [],
-});
+const PARSERS: SchemaParsers<ValibotNode> = {
+  library: 'valibot',
+  options: (override) => override.valibot,
+  parseBody: ({ media: [contentType, media], ...options }) =>
+    parseBodyAndResponse({
+      ...options,
+      data: { content: { [contentType]: media } },
+      isRequest: true,
+      anyMediaType: true,
+    }),
+  parseSchema: parseDirectionalSchema,
+  parseParameters,
+  // Clients name path parameters by their generated identifiers.
+  withPathParamNames: (node) =>
+    node.schema.kind === 'object'
+      ? {
+          ...node,
+          schema: {
+            ...node.schema,
+            entries: node.schema.entries.map((entry) => ({
+              ...entry,
+              key: camelPathParamName(entry.key),
+            })),
+          },
+        }
+      : node,
+  anyKeys: plainNode({ kind: 'object', mode: 'looseObject', entries: [] }),
+  unknown: plainNode({ kind: 'unknown' }),
+  warn: warnOnce,
+};
 
 interface ValibotSchemasModuleInput {
   spec: ContextSpec['spec'];
@@ -96,240 +94,6 @@ const renderEntry = ({
     `export type ${types?.outputName ?? `${name}Output`} = ${types?.output ?? `v.InferOutput<typeof ${constName}>`};`,
     ...(constName === name ? [] : [`export { ${constName} as ${name} };`]),
   ].join('\n');
-
-const isArraySchema = (schema: OpenApiSchemaObject): boolean => {
-  if (typeof schema !== 'object') return false;
-  const { type } = schema;
-  return type === 'array' || (Array.isArray(type) && type.includes('array'));
-};
-
-// Peels an inline array down to its inline item schema, under the name core
-// gives that item. A `$ref` item is left to its component constant.
-const getInlineItem = (
-  schema: OpenApiSchemaObject | OpenApiReferenceObject | undefined,
-  name: string,
-  context: ContextSpec,
-): { name: string; schema: OpenApiSchemaObject } | undefined => {
-  const { itemPrefix, itemSuffix } = context.output.override.components.schemas;
-  let current = schema;
-  let itemName = name;
-  let depth = 0;
-  while (
-    typeof current === 'object' &&
-    !('$ref' in current) &&
-    isArraySchema(current) &&
-    typeof current.items === 'object' &&
-    !Array.isArray(current.items)
-  ) {
-    current = current.items;
-    itemName = itemPrefix + itemName + itemSuffix;
-    depth += 1;
-  }
-  return depth === 0 ||
-    typeof current !== 'object' ||
-    '$ref' in current ||
-    isArraySchema(current)
-    ? undefined
-    : { name: itemName, schema: current };
-};
-
-// `Item[]` or `Item[] | null`, as core writes an inline array response.
-const ARRAY_VALUE = /^(?:readonly )?([A-Za-z_$][\w$]*)(?:\[\])+(?: \| null)?$/;
-
-// Inline bodies under the names `getResReqTypes` gives them. A `$ref` body is
-// imported by the name of its component instead.
-const getBodySchemas = (
-  verb: GeneratorVerbOptions,
-  context: ContextSpec,
-): { name: string; node: ValibotNode | undefined }[] => {
-  const { requestBody } = verb.originalOperation;
-  const { strict, exactOptional, generate } = verb.override.valibot;
-  if (!requestBody) return [];
-  // The response type keeps `content` optional: an unvalidated spec may omit it.
-  const content = Object.entries(
-    resolveRef<OpenApiRequestBodyObject | OpenApiResponseObject>(
-      requestBody,
-      context,
-    ).schema.content ?? {},
-  );
-  const baseName = sanitize(
-    pascal(verb.typeName) +
-      pascal(context.output.override.components.requestBodies.suffix),
-    {
-      underscore: '_',
-      whitespace: '_',
-      dash: true,
-      es5keyword: true,
-      es5IdentifierName: true,
-    },
-  );
-  const imported = new Set(verb.body.imports.map(({ name }) => name));
-  return content.flatMap(([contentType, media], index) => {
-    const name =
-      content.length > 1
-        ? baseName + pascal(getNumberWord(index + 1))
-        : baseName;
-    // A `$ref` body is imported as its component.
-    if (typeof media.schema === 'object' && '$ref' in media.schema) return [];
-    if (imported.has(name)) {
-      return [
-        {
-          name,
-          node: parseBodyAndResponse({
-            data: { content: { [contentType]: media } },
-            context,
-            strict: strict.body,
-            exactOptional,
-            generate: generate.body,
-            isRequest: true,
-            operation: verb.operationName,
-            anyMediaType: true,
-          }),
-        },
-      ];
-    }
-    // An inline array body is typed by its item.
-    const item = getInlineItem(media.schema, name, context);
-    return item && generate.body && imported.has(item.name)
-      ? [
-          {
-            name: item.name,
-            node: parseDirectionalSchema({
-              schema: item.schema,
-              context,
-              strict: strict.body,
-              exactOptional,
-              label: `${verb.operationName} body`,
-              direction: 'readOnly',
-            }),
-          },
-        ]
-      : [];
-  });
-};
-
-// Clients name path parameters by their generated identifiers.
-const withPathParamNames = (
-  node: ValibotNode | undefined,
-): ValibotNode | undefined =>
-  node?.schema.kind === 'object'
-    ? {
-        ...node,
-        schema: {
-          ...node.schema,
-          entries: node.schema.entries.map((entry) => ({
-            ...entry,
-            key: camelPathParamName(entry.key),
-          })),
-        },
-      }
-    : node;
-
-const getVerbSchemas = (
-  verb: GeneratorVerbOptions,
-  context: ContextSpec,
-): { name: string; node: ValibotNode | undefined }[] => {
-  const { strict, exactOptional, generate } = verb.override.valibot;
-  const typeName = pascal(verb.typeName);
-  const operation = verb.originalOperation;
-  if (verb.override.splitByContentType) {
-    throw new Error(
-      `[orval/valibot] schemas.type "valibot" cannot be used with splitByContentType (${verb.operationName}).`,
-    );
-  }
-  const pathItem = context.spec.paths?.[verb.pathRoute];
-  const pathRef = getRef(pathItem);
-  const resolvedPathItem = pathRef
-    ? (getLocalRefTarget(pathRef, context) as typeof pathItem)
-    : pathItem;
-  const pathParameters = resolvedPathItem?.parameters as
-    | (OpenApiParameterObject | OpenApiReferenceObject)[]
-    | undefined;
-  const { params, queryParams, headers } = parseParameters({
-    data: [...(pathParameters ?? []), ...(operation.parameters ?? [])],
-    context,
-    strict,
-    exactOptional,
-    generate,
-    operation: verb.operationName,
-  });
-  const responses = generate.response
-    ? [...verb.response.types.success, ...verb.response.types.errors].flatMap(
-        ({ value, isRef, originalSchema }) => {
-          const item = ARRAY_VALUE.exec(value)?.[1];
-          const name = item ?? value;
-          const schema =
-            item === undefined
-              ? originalSchema
-              : getInlineItem(originalSchema, '', context)?.schema;
-          return schema === undefined ||
-            isRef ||
-            !IDENTIFIER.test(name) ||
-            PRIMITIVE_NAMES.has(name)
-            ? []
-            : [
-                {
-                  name,
-                  node: parseDirectionalSchema({
-                    schema,
-                    context,
-                    strict: strict.response,
-                    exactOptional,
-                    label: `${verb.operationName} response`,
-                    direction: 'writeOnly',
-                  }),
-                },
-              ];
-        },
-      )
-    : [];
-
-  return [
-    ...getBodySchemas(verb, context),
-    ...(verb.override.useNamedParameters
-      ? [
-          {
-            name: `${typeName}PathParameters`,
-            node: withPathParamNames(params),
-          },
-        ]
-      : []),
-    // Core types parameters this package has no schema for, such as ones
-    // declared with `content`, so the fallback accepts any keys.
-    {
-      name: `${typeName}Params`,
-      node: queryParams ?? (verb.queryParams && ANY_KEYS),
-    },
-    { name: `${typeName}Headers`, node: headers ?? (verb.headers && ANY_KEYS) },
-    ...responses,
-  ];
-};
-
-// Every schema name a client file imports for this operation.
-const getImportedNames = ({
-  body,
-  headers,
-  params,
-  props,
-  queryParams,
-  response,
-}: GeneratorVerbOptions): string[] =>
-  [
-    ...response.imports,
-    ...body.imports,
-    ...params.flatMap(({ imports }) => imports),
-    ...props.flatMap((prop) =>
-      prop.type === GetterPropType.NAMED_PATH_PARAMS ? [prop.schema] : [],
-    ),
-    ...(queryParams ? [queryParams.schema] : []),
-    ...(headers ? [headers.schema] : []),
-  ].flatMap((schema) =>
-    ('importPath' in schema && schema.importPath) ||
-    PRIMITIVE_NAMES.has(schema.name) ||
-    !IDENTIFIER.test(schema.name)
-      ? []
-      : [schema.name],
-  );
 
 /**
  * The module `schemas: { type: 'valibot' }` writes: the component constants in
@@ -372,71 +136,24 @@ export const generateValibotSchemasModule = (
   const components = new Set(
     entries.flatMap(({ name, constName = name }) => [name, constName]),
   );
-  const taken = new Set(components);
-  const add = (
-    name: string,
-    node: ValibotNode,
-    exactOptional = output.override.valibot.exactOptional,
-  ) => {
-    taken.add(name);
+  for (const { name, node, exactOptional } of collectOperationSchemas({
+    parsers: PARSERS,
+    context,
+    verbs: Object.values(verbOptions),
+    schemas,
+    components,
+  })) {
     entries.push({
       name,
       expression: renderValibot(node, { exactOptional }),
     });
-  };
-
-  const verbs = Object.values(verbOptions);
-  for (const verb of verbs) {
-    for (const { name, node } of getVerbSchemas(verb, context)) {
-      if (!node) continue;
-      if (components.has(name)) {
-        throw new Error(
-          `[orval/valibot] schemas.type "valibot" names a schema of ${verb.operationName} "${name}", which is also a component. Rename one in the OpenAPI source.`,
-        );
-      }
-      if (!taken.has(name)) {
-        add(name, node, verb.override.valibot.exactOptional);
-      }
-    }
   }
 
-  // What clients import beyond the above, such as a named response or request
-  // body component, or the item of an inline array body.
-  const bodyNames = new Set(
-    verbs.flatMap(({ body }) => body.imports.map(({ name }) => name)),
+  assertNoOutputTypeClash(
+    'valibot',
+    entries.map(({ name }) => name),
+    new Set([...components, ...entries.map(({ name }) => name)]),
   );
-  const schemasByName = new Map(schemas.map((schema) => [schema.name, schema]));
-  for (const name of new Set(verbs.flatMap(getImportedNames))) {
-    if (taken.has(name)) continue;
-    const model = schemasByName.get(name);
-    if (model?.schema === undefined) {
-      warnOnce(`No schema found for "${name}", so it is validated as unknown.`);
-      add(name, plainNode({ kind: 'unknown' }));
-    } else {
-      add(
-        name,
-        parseDirectionalSchema({
-          schema: model.schema,
-          context,
-          strict:
-            output.override.valibot.strict[
-              bodyNames.has(name) ? 'body' : 'response'
-            ],
-          exactOptional: output.override.valibot.exactOptional,
-          label: name,
-          direction: bodyNames.has(name) ? 'readOnly' : 'writeOnly',
-        }),
-      );
-    }
-  }
-
-  for (const { name } of entries) {
-    if (taken.has(`${name}Output`)) {
-      throw new Error(
-        `[orval/valibot] schemas.type "valibot" exports the output type of "${name}" as "${name}Output", which is also a schema. Rename one in the OpenAPI source.`,
-      );
-    }
-  }
 
   return entries.length === 0
     ? ''
