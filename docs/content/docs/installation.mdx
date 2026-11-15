@@ -30,6 +30,50 @@ pnpm add orval -D
   </Tab>
 </Tabs>
 
+## Minimal installation
+
+For an opt-in installation with only the generators you need, install `@orval/cli` and the selected generator packages at matching versions. For example, to generate a Fetch client:
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -d @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install -D @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add -D @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add -D @orval/cli @orval/fetch
+```
+  </Tab>
+</Tabs>
+
+```ts title="orval.config.ts"
+import { defineConfig } from '@orval/cli';
+
+export default defineConfig({
+  api: {
+    input: './openapi.yaml',
+    output: { target: './src/api.ts', client: 'fetch' },
+  },
+});
+```
+
+Run the installed executable with `pnpm exec orval`. The `fetch` client is explicit because the default client is `axios`.
+
+Install the generator package for each configured client (the TanStack Query clients share `@orval/query`). Add `@orval/mock` for mocks and the corresponding schema generator for schema output. Shared parser/core dependencies and each generator's own dependencies are installed transitively. A missing-generator error identifies the package to install. When migrating from `orval`, change imports such as `defineConfig`, `defineTransformer`, and programmatic `generate` to `@orval/cli`, and install the generators your configuration uses. Generator-specific types, such as `ZodParamsContext`, can be imported from their generator package. The full `orval` package remains available with all generators and its existing imports unchanged.
+
+A function-valued `output.client` receives the complete generator table and requires all generators. Use a named client, as above, for a minimal installation.
+
 ## Docker
 
 Orval 8+ requires Node.js 22.18 or newer. If your project targets an older Node LTS version, you can run code generation with the official Docker image instead of installing Orval locally.

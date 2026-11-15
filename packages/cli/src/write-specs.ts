@@ -65,6 +65,7 @@ import {
   readReExportSpecifiers,
   reconcileWorkspaceBarrel,
 } from './utils';
+import { loadGenerator } from './utils/generator';
 import { namesAFile } from './utils/options';
 
 // The Zod writers form a self-contained chunk. Load them only for Zod schema
@@ -74,7 +75,10 @@ let zodWritersModuleCache:
   | undefined;
 
 const loadZodWriters = () =>
-  (zodWritersModuleCache ??= import('./write-zod-specs'));
+  (zodWritersModuleCache ??= loadGenerator(
+    '@orval/zod',
+    () => import('./write-zod-specs'),
+  ));
 
 async function runExternalFormatter(
   bin: string,
@@ -350,11 +354,9 @@ async function writeFakerSchemaMocks(
     imports,
     strictMockSchemaTypeNames,
     strictMockSchemaKinds,
-  } = (await import('@orval/mock')).generateFakerForSchemas(
-    schemasWithDef,
-    context,
-    fakerEntry,
-  );
+  } = (
+    await loadGenerator('@orval/mock', () => import('@orval/mock'))
+  ).generateFakerForSchemas(schemasWithDef, context, fakerEntry);
 
   if (!implementation.trim()) {
     return undefined;
@@ -770,7 +772,10 @@ async function writeSpecsInternal(
     }
 
     if (isObject(output.schemas) && output.schemas.type === 'valibot') {
-      const { generateValibotSchemasModule } = await import('@orval/valibot');
+      const { generateValibotSchemasModule } = await loadGenerator(
+        '@orval/valibot',
+        () => import('@orval/valibot'),
+      );
       const schemasModule = generateValibotSchemasModule(
         {
           spec: builder.spec,
@@ -1116,14 +1121,14 @@ async function writeSpecsInternal(
           getReferencedIdentifiers(operation.implementation).has('v'),
         ));
     const valibotModule = needValibotSchemasInline
-      ? await import('@orval/valibot')
+      ? await loadGenerator('@orval/valibot', () => import('@orval/valibot'))
       : undefined;
 
     const effectModule = shouldGenerateEffectSchemasInline(
       output,
       builder.operations,
     )
-      ? await import('@orval/effect')
+      ? await loadGenerator('@orval/effect', () => import('@orval/effect'))
       : undefined;
 
     implementationPaths = await writeMode({

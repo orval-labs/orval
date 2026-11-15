@@ -21,6 +21,7 @@
     "build:watch": "vp run -F './packages/*' build:debug --watch",
     "typecheck": "vp run -F './packages/*' typecheck",
     "test": "vp run -F './packages/*' test",
+    "test:installation": "bun scripts/test-minimal-installation.mjs",
     "test:cli": "vp run -F orval-tests clean && vp run -F orval-tests generate-api && vp run -F orval-tests build",
     "test:samples": "vp run -F './samples/**' test",
     "test:snapshots": "vp run -F './packages/*' build:release && vp run -F './samples/**' -F orval-tests generate-api && vp run -F './samples/**' -F orval-tests test:snapshots",

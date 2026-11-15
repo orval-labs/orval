@@ -55,10 +55,9 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@commander-js/extra-typings": "^15.0.0",
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
-    "@orval/core": "workspace:*",
+    "@orval/cli": "workspace:*",
     "@orval/effect": "workspace:*",
     "@orval/fetch": "workspace:*",
     "@orval/hono": "workspace:*",
@@ -69,43 +68,12 @@
     "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/valibot": "workspace:*",
-    "@orval/zod": "workspace:*",
-    "@scalar/json-magic": "^0.16.1",
-    "@scalar/openapi-parser": "^0.29.15",
-    "@scalar/openapi-types": "catalog:",
-    "chokidar": "^5.0.0",
-    "commander": "^15.0.0",
-    "execa": "^9.6.1",
-    "get-tsconfig": "^4.14.3",
-    "jiti": "^2.6.1",
-    "js-yaml": "4.3.2",
-    "json5": "2.2.3",
-    "string-argv": "^0.3.2"
+    "@orval/zod": "workspace:*"
   },
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
     "rimraf": "catalog:",
-    "typedoc": "^0.28.19",
-    "typedoc-plugin-coverage": "^4.0.2",
-    "typedoc-plugin-markdown": "^4.10.0",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
-  },
-  "peerDependencies": {
-    "prettier": ">=3.0.0",
-    "typedoc": "^0.28.19",
-    "typedoc-plugin-markdown": "^4.10.0"
-  },
-  "peerDependenciesMeta": {
-    "prettier": {
-      "optional": true
-    },
-    "typedoc": {
-      "optional": true
-    },
-    "typedoc-plugin-markdown": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=22.18.0"

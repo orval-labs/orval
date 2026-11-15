@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { escapePath, glob } from 'tinyglobby';
+import { escapePath as escapeGlobPath, glob } from 'tinyglobby';
 
 import { isDirectory } from './assertion';
 
@@ -37,7 +37,8 @@ export function stripFileExtension(
  * around a user-configured directory name (which may contain those
  * characters) stay in step with whatever engine is in use.
  */
-export { escapePath };
+// Keep the public declaration independent of the glob engine's other types.
+export const escapePath: (path: string) => string = escapeGlobPath;
 
 export function getFileInfo(
   target = '',
