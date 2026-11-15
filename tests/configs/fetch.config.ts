@@ -1678,4 +1678,18 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
+  // https://github.com/orval-labs/orval/issues/4528
+  operationManifestReadonlyBody: {
+    output: {
+      target:
+        '../generated/fetch/operation-manifest-readonly-body/endpoints.ts',
+      client: 'fetch',
+      operationManifest: { types: true },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/readonly.yaml',
+    },
+  },
 });
