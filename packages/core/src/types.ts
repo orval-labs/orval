@@ -1,6 +1,3 @@
-import type { allLocales } from '@faker-js/faker';
-import type { McpServerOptions as McpSdkServerOptions } from '@modelcontextprotocol/server';
-
 // Type-only, so it is erased: no runtime `types` -> `constants` cycle.
 import type { OPERATION_METHODS } from './constants';
 // Type-only, so it is erased: no runtime `types` -> `writers` dependency.
@@ -683,6 +680,88 @@ export type PreferredContentType =
   | 'application/octet-stream'
   | (string & {});
 
+// Keep configuration declarations usable without installing a mock generator.
+// Include locales from supported Faker releases; types.test.ts checks parity
+// with the development version and preserves newer compatible locales.
+type FakerLocale =
+  | 'af_ZA'
+  | 'ar'
+  | 'az'
+  | 'base'
+  | 'bn_BD'
+  | 'cs_CZ'
+  | 'cy'
+  | 'da'
+  | 'de'
+  | 'de_AT'
+  | 'de_CH'
+  | 'dv'
+  | 'el'
+  | 'en'
+  | 'en_AU'
+  | 'en_AU_ocker'
+  | 'en_BORK'
+  | 'en_CA'
+  | 'en_GB'
+  | 'en_GH'
+  | 'en_HK'
+  | 'en_IE'
+  | 'en_IN'
+  | 'en_NG'
+  | 'en_NP'
+  | 'en_US'
+  | 'en_ZA'
+  | 'eo'
+  | 'es'
+  | 'es_MX'
+  | 'fa'
+  | 'fi'
+  | 'fr'
+  | 'fr_BE'
+  | 'fr_CA'
+  | 'fr_CH'
+  | 'fr_LU'
+  | 'fr_SN'
+  | 'he'
+  | 'hr'
+  | 'hu'
+  | 'hy'
+  | 'id_ID'
+  | 'it'
+  | 'ja'
+  | 'ka_GE'
+  | 'ko'
+  | 'ku_ckb'
+  | 'ku_kmr_latin'
+  | 'lv'
+  | 'mk'
+  | 'mn_MN_cyrl'
+  | 'nb_NO'
+  | 'ne'
+  | 'nl'
+  | 'nl_BE'
+  | 'pl'
+  | 'pt_BR'
+  | 'pt_PT'
+  | 'ro'
+  | 'ro_MD'
+  | 'ru'
+  | 'sk'
+  | 'sl_SI'
+  | 'sr_RS_latin'
+  | 'sv'
+  | 'ta_IN'
+  | 'th'
+  | 'tr'
+  | 'uk'
+  | 'ur'
+  | 'uz_UZ_latin'
+  | 'vi'
+  | 'yo_NG'
+  | 'zh_CN'
+  | 'zh_TW'
+  | 'zu_ZA';
+
 // Shared by every mock generator.
 export interface CommonMockOptions {
   // Use OpenAPI examples to seed mock values where available
@@ -690,7 +769,7 @@ export interface CommonMockOptions {
   // Generate response factories for every HTTP status defined in the spec
   generateEachHttpStatus?: boolean;
   // Faker locale (controls the `@faker-js/faker/locale/<x>` import path)
-  locale?: keyof typeof allLocales;
+  locale?: FakerLocale;
   // Selects which response schema is mocked when multiple content types exist
   preferredContentType?: string;
   // Emit reusable mock factories for object-like array item schemas found in
@@ -1757,6 +1836,23 @@ export interface NormalizedMcpHandlerOptions {
   default: boolean;
 }
 
+// Mirror only the generated configuration surface, without requiring the MCP
+// SDK in clients that use other generators. types.test.ts checks SDK parity.
+type McpCacheHints = Partial<
+  Record<
+    | 'tools/list'
+    | 'prompts/list'
+    | 'resources/list'
+    | 'resources/templates/list'
+    | 'resources/read'
+    | 'server/discover',
+    {
+      ttlMs?: number;
+      cacheScope?: 'public' | 'private';
+    }
+  >
+>;
+
 export interface McpOptions {
   server?: McpServerOptions;
   handler?: McpHandlerOptions;
@@ -1770,13 +1866,13 @@ export interface McpOptions {
    * to an hour. The server never sends `listChanged`, so a redeploy with new
    * tools becomes visible only once the TTL expires.
    */
-  cacheHints?: McpSdkServerOptions['cacheHints'];
+  cacheHints?: McpCacheHints;
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
-  cacheHints?: McpSdkServerOptions['cacheHints'];
+  cacheHints?: McpCacheHints;
 }
 
 /**

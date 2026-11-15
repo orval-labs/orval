@@ -28,6 +28,8 @@ import {
   pascal,
 } from '@orval/core';
 
+import { loadGenerator } from './utils/generator';
+
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
 type GeneratorModule = { default: unknown };
@@ -134,7 +136,7 @@ const loadGeneratorModule = async (key: string): Promise<GeneratorModule> => {
     throw new Error(`Unknown generator module: ${key}`);
   }
 
-  const module = await loader();
+  const module = await loadGenerator(`@orval/${key}`, loader);
   moduleCache.set(key, module);
   return module;
 };
@@ -490,7 +492,7 @@ const invokeMockGenerator = async (
   }
   // Mock support is only needed when a built-in mock generator is configured.
   // Defer its package cost for projects that do not generate mocks.
-  mockModuleCache ??= import('@orval/mock');
+  mockModuleCache ??= loadGenerator('@orval/mock', () => import('@orval/mock'));
   return (await mockModuleCache).generateMock(verbOption, {
     ...options,
     mock: entry,

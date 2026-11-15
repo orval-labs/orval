@@ -61,6 +61,9 @@ jobs:
       - name: Test packages
         run: vp run -w test
 
+      - name: Test packaged installations
+        run: vp run -w test:installation
+
       - name: Verify snapshot
         # this step also runs the generate-api task
         run: vp run -w test:snapshots

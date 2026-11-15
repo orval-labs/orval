@@ -41,17 +41,5 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
-  },
-  "peerDependencies": {
-    "@faker-js/faker": ">=8",
-    "@modelcontextprotocol/server": ">=2"
-  },
-  "peerDependenciesMeta": {
-    "@faker-js/faker": {
-      "optional": true
-    },
-    "@modelcontextprotocol/server": {
-      "optional": true
-    }
   }
 }
