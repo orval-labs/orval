@@ -271,6 +271,40 @@ describe('composites', () => {
     ).toBe('S.Struct({\n  "id": S.optional(S.String)\n})');
   });
 
+  it('emits an empty S.Struct for a closed object without properties', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    };
+    expect(gen(schema).effect).toBe('S.Struct({})');
+    expect(genV4(schema).effect).toBe('S.Struct({})');
+    expect(gen({ type: 'object', additionalProperties: false }).effect).toBe(
+      'S.Struct({})',
+    );
+  });
+
+  it('keeps the layout of an open object without properties', () => {
+    expect(gen({ type: 'object' }).effect).toBe(
+      'S.extend(S.Struct({\n\n}), S.Record({ key: S.String, value: S.Unknown }))',
+    );
+    expect(genV4({ type: 'object', properties: {} }).effect).toBe(
+      'S.StructWithRest(S.Struct({\n\n}), [S.Record(S.String, S.Unknown)])',
+    );
+  });
+
+  it('merges a closed object without properties into its allOf siblings', () => {
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        { type: 'object', properties: { id: { type: 'string' } } },
+        { type: 'object', additionalProperties: false },
+      ],
+    };
+    expect(genV4(schema).effect).toBe(
+      'S.Struct({\n  "id": S.optional(S.String)\n}).pipe(S.fieldsAssign(S.Struct({}).fields))',
+    );
+  });
+
   it('adds the index signature of open allOf members once', () => {
     const open = (key: string): OpenApiNonBooleanSchemaObject => ({
       type: 'object',
