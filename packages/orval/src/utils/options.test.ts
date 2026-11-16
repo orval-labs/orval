@@ -3591,7 +3591,13 @@ describe('normalizeOptions', () => {
                 generate: { response: false },
               },
               operations: {
-                listPets: { effect: { strict: { query: true } } },
+                listPets: {
+                  effect: {
+                    strict: { query: true },
+                    exactOptional: undefined,
+                    generate: { response: undefined },
+                  },
+                },
               },
               tags: { pets: { effect: { useBrandedTypes: true } } },
             },
@@ -3601,8 +3607,9 @@ describe('normalizeOptions', () => {
       );
 
       const { override } = normalized.output;
-      expect(override.operations.listPets?.effect).toEqual({
+      expect(override.operations.listPets?.effect).toStrictEqual({
         strict: { query: true },
+        generate: {},
       });
       expect(override.tags.pets?.effect).toEqual({ useBrandedTypes: true });
 

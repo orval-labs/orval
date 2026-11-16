@@ -1755,12 +1755,25 @@ const tagBucketModes = new Set<OutputMode>([
   OutputMode.TAGS_OPERATIONS_SPLIT,
 ]);
 
+// An explicitly undefined key is unset, so it must not replace the global value
+// when the override is merged over it.
+function withoutUndefined<T extends object>(options: T): T {
+  return Object.fromEntries(
+    Object.entries(options)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [
+        key,
+        isObject(value) ? withoutUndefined(value) : value,
+      ]),
+  ) as T;
+}
+
 function withoutReusableSchemasFlag<T extends object>(
   options: T,
 ): Omit<T, 'generateReusableSchemas'> {
   const { generateReusableSchemas: _ignored, ...rest } = {
     generateReusableSchemas: undefined,
-    ...options,
+    ...withoutUndefined(options),
   };
   return rest;
 }
