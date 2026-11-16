@@ -885,7 +885,9 @@ function getEnum(
     item.isRef &&
     type === 'string' &&
     item.enum.every((e) => isString(e)) &&
-    context.output.override.enumGenerationType !== EnumGeneration.UNION
+    context.output.override.enumGenerationType !== EnumGeneration.UNION &&
+    (typeof context.output.schemas !== 'object' ||
+      context.output.schemas.type === 'typescript')
   ) {
     enumValue = `Object.values(${item.name})`;
     imports.push({
