@@ -614,6 +614,20 @@ describe('formats', () => {
     expect(effect).toContain('S.pattern(');
   });
 
+  // Only the schemas module reads a URI with any scheme, a space between the
+  // date and the time, and the `u` flag of a Unicode property escape.
+  it('keeps the patterns of formats outside the schemas module', () => {
+    expect(gen({ type: 'string', format: 'uri' }).effect).toContain(
+      String.raw`S.pattern(/^https?:\/\/.+/)`,
+    );
+    expect(gen({ type: 'string', format: 'date-time' }).effect).toContain(
+      String.raw`\d{2}T\d{2}`,
+    );
+    expect(
+      gen({ type: 'string', pattern: String.raw`^\p{L}+$` }).consts,
+    ).toContain(String.raw`new RegExp('^\\p{L}+$')`);
+  });
+
   it('uses S.DateFromString when useDates is enabled', () => {
     const context = createTestContextSpec({
       override: { useDates: true },

@@ -26,6 +26,7 @@
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
+    "effect3": "npm:effect@3.21.2",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"

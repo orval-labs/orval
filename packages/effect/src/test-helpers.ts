@@ -12,6 +12,7 @@ import type {
   OpenApiSchemaObject,
 } from '@orval/core';
 import { Effect, Schema as S } from 'effect';
+import { Schema as S3 } from 'effect3';
 import ts from 'typescript';
 
 import { generateEffect } from '.';
@@ -147,6 +148,20 @@ export const evaluate = (code: string, name: string): S.Codec<unknown> => {
     Date,
   });
   if (!isCodec(value)) throw new Error(`${name} is not a schema`);
+  return value;
+};
+
+const isCodecV3 = (value: unknown): value is S3.Schema<unknown> =>
+  S3.isSchema(value);
+
+/** Evaluates generated code against the real `effect` 3. */
+export const evaluateV3 = (code: string, name: string): S3.Schema<unknown> => {
+  const value: unknown = runInNewContext(scriptOf(`${code}\n;${name}`), {
+    S: S3,
+    File,
+    Date,
+  });
+  if (!isCodecV3(value)) throw new Error(`${name} is not a schema`);
   return value;
 };
 

@@ -15,9 +15,14 @@ interface RenderTypeOptions {
   direction: 'type' | 'encoded';
   exactOptional: boolean;
   isEffectV4: boolean;
+  // Whether an allOf merges the fields of its members, as Effect 4 does and
+  // the schemas module of Effect 3 does, instead of intersecting them.
+  mergesMembers?: boolean;
   // The constants on a cycle, with the name of their encoded type. Their
   // types are declared, so a reference reads them by name.
   declared: ReadonlyMap<string, string>;
+  // The name of their decoded type where it is not the name of the constant.
+  declaredTypes?: ReadonlyMap<string, string>;
 }
 
 interface Rendered {
@@ -61,7 +66,14 @@ const structText = (fields: Iterable<string>, open: boolean): string => {
  */
 export const renderEffectType = (
   definition: Definition,
-  { direction, exactOptional, isEffectV4, declared }: RenderTypeOptions,
+  {
+    direction,
+    exactOptional,
+    isEffectV4,
+    mergesMembers = isEffectV4,
+    declared,
+    declaredTypes,
+  }: RenderTypeOptions,
 ): string => {
   const encoded = direction === 'encoded';
 
@@ -86,8 +98,7 @@ export const renderEffectType = (
       case 'any': {
         return fn;
       }
-      case 'number':
-      case 'integer': {
+      case 'number': {
         return 'number';
       }
       case 'date': {
@@ -144,7 +155,7 @@ export const renderEffectType = (
         const members = membersOf(arg);
         if (members.length === 0) return 'unknown';
         if (members.length === 1) return render(members[0], false).text;
-        if (!isEffectV4) {
+        if (!mergesMembers) {
           // `S.extend` takes members without their defaults, so a member's
           // encoded type does not admit `undefined` for one.
           return members
@@ -163,8 +174,8 @@ export const renderEffectType = (
             )
             .join(' & ');
         }
-        // Effect 4 merges the members' fields, so a later key replaces an
-        // earlier one. The merge admits `null` when every member does.
+        // A later key replaces an earlier one. The merge admits `null` when
+        // every member does.
         const merged = mergeVariants(members)
           .map(({ fields, open }) => structText(fields.values(), open))
           .join(' | ');
@@ -173,7 +184,9 @@ export const renderEffectType = (
       case 'ref': {
         const encodedName = isString(arg) ? declared.get(arg) : undefined;
         if (encodedName === undefined) return typeOfSchema(arg);
-        return encoded ? encodedName : String(arg);
+        return encoded
+          ? encodedName
+          : (declaredTypes?.get(String(arg)) ?? String(arg));
       }
       default: {
         return undefined;

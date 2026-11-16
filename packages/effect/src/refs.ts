@@ -2,6 +2,7 @@ import {
   type ContextSpec,
   getComponentNames as getSharedComponentNames,
   getRef,
+  getSchemaLibrary,
   isObject,
   isString,
   jsStringEscape,
@@ -34,6 +35,8 @@ export const getReservedNames = (context: ContextSpec): ReadonlySet<string> => {
   if (known) return known;
   const reserved = new Set([
     ...RESERVED_NAMES,
+    // The check of an integer in the schemas module reads it.
+    ...(isSchemasOutput(context) ? ['Number'] : []),
     ...Object.values(override.formatType ?? {}).flatMap((config) =>
       [
         config?.effect?.schemaImport?.name,
@@ -51,8 +54,19 @@ const IDENTIFIER_PATH = /^[\w$]+(?:\.[\w$]+)*$/;
 export const isIdentifierPath = (expression: string): boolean =>
   IDENTIFIER_PATH.test(expression);
 
+/** Whether the schemas are written for `schemas: { type: 'effect' }`. */
+export const isSchemasOutput = (context: ContextSpec): boolean =>
+  getSchemaLibrary(context.output) === 'effect';
+
+/** The option that turns reusable schemas on, as errors name it. */
+export const reusableSchemasOption = (context: ContextSpec): string =>
+  isSchemasOutput(context)
+    ? 'schemas.type "effect"'
+    : 'generateReusableSchemas';
+
 export const isReusableSchemasEnabled = (context: ContextSpec): boolean =>
-  context.output.override.effect.generateReusableSchemas;
+  context.output.override.effect.generateReusableSchemas ||
+  isSchemasOutput(context);
 
 /** The identifier a component's constant is declared and referenced by. */
 const resolveComponentName = (ref: string, context: ContextSpec): string =>
@@ -65,6 +79,7 @@ export const getComponentNames = (
   getSharedComponentNames(context, {
     library: 'effect',
     reserved: getReservedNames(context),
+    option: reusableSchemasOption(context),
   });
 
 /**

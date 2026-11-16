@@ -53,7 +53,7 @@ import {
   unique,
 } from '@orval/core';
 
-import { logger, reporter, startRun } from './logger';
+import { logger, reporter, startRun, warnOnce } from './logger';
 import { createRefPolicy, createRootRefPolicy } from './ref-policy';
 import {
   admitsNull,
@@ -63,10 +63,12 @@ import {
   getReservedNames,
   isIdentifierPath,
   isReusableSchemasEnabled,
+  isSchemasOutput,
 } from './refs';
 import { assertNoNameClash, seedConstNameRegistry } from './reusable-schemas';
 
 export { generateEffectSchemasInline } from './schemas-inline';
+export { generateEffectSchemasModule } from './schemas-module';
 
 const effectImport = (name: string, alias?: string) => ({
   default: false,
@@ -175,6 +177,42 @@ export interface EffectValidationSchemaDefinition {
 }
 
 const minAndMaxTypes = new Set(['number', 'string', 'array']);
+
+// An escape that means a code point or a property only with the `u` flag.
+const UNICODE_ESCAPE = /(^|[^\\])(?:\\\\)*\\[pPu]\{/;
+
+const isRegExp = (pattern: string, flags: string): boolean => {
+  try {
+    new RegExp(pattern, flags);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// A pattern is delimited by a slash at each end with something between them.
+// A closing slash that a backslash escapes belongs to the pattern, and `//`
+// is the text `//`.
+const isDelimitedPattern = (pattern: string): boolean => {
+  if (
+    pattern.length < 3 ||
+    !pattern.startsWith('/') ||
+    !pattern.endsWith('/')
+  ) {
+    return false;
+  }
+
+  const body = pattern.slice(1, -1).split('');
+  const trailingBackslashes =
+    body.length - 1 - body.findLastIndex((char) => char !== '\\');
+
+  return trailingBackslashes % 2 === 0;
+};
+
+// `integer` alone, as `number` also admits fractions.
+const isInteger = ({ type }: OpenApiNonBooleanSchemaObject): boolean =>
+  type === 'integer' ||
+  (Array.isArray(type) && type.includes('integer') && !type.includes('number'));
 
 const removeReadOnlyProperties = (
   schema: OpenApiSchemaObject,
@@ -395,9 +433,13 @@ export const generateEffectValidationSchemaDefinition = (
     )[];
 
     // An instance of an allOf satisfies every member, so a key that the parent
-    // or any member requires is required wherever it is declared.
+    // or any member requires is required wherever it is declared. The schemas
+    // module assigns the members of a oneOf or anyOf over the properties of the
+    // schema, so it requires the keys of the schema in them as well.
     const requiredKeys =
-      separator === 'allOf' ? new Set(requiredKeysOf(schema, name)) : undefined;
+      separator === 'allOf' || isSchemasOutput(context)
+        ? new Set(requiredKeysOf(schema, name))
+        : undefined;
 
     const baseSchemas = schemas.map((schema, index) =>
       requireFields(
@@ -444,12 +486,17 @@ export const generateEffectValidationSchemaDefinition = (
       );
 
       if (schema.oneOf || schema.anyOf) {
+        const members: EffectValidationSchemaDefinition = {
+          functions: [[separator, baseSchemas]],
+          consts: [],
+        };
+        // The schemas module assigns the members last, so a member that
+        // narrows a property of the schema (a discriminator) keeps its value.
         functions.push([
           'allOf',
-          [
-            { functions: [[separator, baseSchemas]], consts: [] },
-            additionalPropertiesDefinition,
-          ],
+          isSchemasOutput(context)
+            ? [additionalPropertiesDefinition, members]
+            : [members, additionalPropertiesDefinition],
         ]);
       } else {
         baseSchemas.push(additionalPropertiesDefinition);
@@ -532,7 +579,7 @@ export const generateEffectValidationSchemaDefinition = (
         return generateEffectValidationSchemaDefinition(
           {
             ...(schema as Record<string, unknown>),
-            type: t,
+            type: t === 'number' && isInteger(schema) ? 'integer' : t,
             // An unmapped `binary` format would check a `File`, not the
             // string the member is typed as.
             ...(memberContext !== context &&
@@ -772,6 +819,13 @@ export const generateEffectValidationSchemaDefinition = (
         // A closed object without properties has no fields to declare. An empty
         // struct accepts any value but `null` and `undefined`.
         functions.push([type, type === 'object' ? {} : undefined]);
+        if (
+          type === 'number' &&
+          isSchemasOutput(context) &&
+          isInteger(schema)
+        ) {
+          functions.push(['integer', undefined]);
+        }
 
         break;
       }
@@ -854,14 +908,30 @@ export const generateEffectValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${jsStringLiteralEscape(
-      matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
-    )}')`;
+    // The schemas module reads a pattern as the source of a RegExp, so a slash
+    // is part of it unless one at each end delimits it.
+    const pattern =
+      isSchemasOutput(context) && !isDelimitedPattern(matches)
+        ? matches
+        : matches.slice(
+            isStartWithSlash ? 1 : 0,
+            isEndWithSlash ? -1 : undefined,
+          );
+    // `\p{...}` is a Unicode property only with the `u` flag.
+    const unicode = isSchemasOutput(context) && UNICODE_ESCAPE.test(pattern);
 
-    consts.push(
-      `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
-    );
-    functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
+    if (isSchemasOutput(context) && !isRegExp(pattern, unicode ? 'u' : '')) {
+      // A pattern that does not compile would throw when the module loads,
+      // and fail every schema in it.
+      warnOnce(`Skipping pattern that is not a JavaScript RegExp: ${pattern}`);
+    } else {
+      const regexp = `new RegExp('${jsStringLiteralEscape(pattern)}'${unicode ? ", 'u'" : ''})`;
+
+      consts.push(
+        `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
+      );
+      functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
+    }
   }
 
   if (schema.enum && type !== 'array') {
@@ -926,7 +996,6 @@ const CONSTRUCTORS = new Set([
   'never',
   'string',
   'number',
-  'integer',
   'boolean',
   'null',
   'unknown',
@@ -955,6 +1024,7 @@ const FILTERS = new Set([
   'empty',
   'gt',
   'lt',
+  'integer',
   'multipleOf',
   'regex',
   'email',
@@ -974,6 +1044,7 @@ const renderFilter = (
   arg: string,
   baseType: 'string' | 'number' | 'array' | 'unknown',
   isEffectV4: boolean,
+  isSchemas: boolean,
 ): string => {
   const filter = (v3Name: string, v4Name: string, filterArg = arg) =>
     `S.${isEffectV4 ? v4Name : v3Name}(${filterArg})`;
@@ -998,6 +1069,13 @@ const renderFilter = (
     case 'lt': {
       return filter('lessThan', 'isLessThan');
     }
+    case 'integer': {
+      // A whole number beyond the safe range is an integer too, and an `int64`
+      // id is one. `S.Int` takes safe integers only.
+      return isEffectV4
+        ? "S.makeFilter(Number.isInteger, { expected: 'an integer' })"
+        : "S.filter(Number.isInteger, { description: 'an integer' })";
+    }
     case 'multipleOf': {
       return filter('multipleOf', 'isMultipleOf');
     }
@@ -1019,16 +1097,24 @@ const renderFilter = (
       );
     }
     case 'url': {
-      return filter('pattern', 'isPattern', String.raw`/^https?:\/\/.+/`);
+      // A URI of the schemas module has any scheme, as `URL` reads it.
+      return filter(
+        'pattern',
+        'isPattern',
+        isSchemas
+          ? String.raw`/^[A-Za-z][A-Za-z0-9+.-]*:/`
+          : String.raw`/^https?:\/\/.+/`,
+      );
     }
     case 'dateFormat': {
       return filter('pattern', 'isPattern', String.raw`/^\d{4}-\d{2}-\d{2}$/`);
     }
     case 'dateTimeFormat': {
+      // RFC 3339 allows a space between the date and the time.
       return filter(
         'pattern',
         'isPattern',
-        String.raw`/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/`,
+        String.raw`/^\d{4}-\d{2}-\d{2}${isSchemas ? '[T ]' : 'T'}\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/`,
       );
     }
     default: {
@@ -1042,7 +1128,7 @@ const determineBaseType = (
 ): 'string' | 'number' | 'array' | 'unknown' => {
   for (const [fn] of functions) {
     if (fn === 'string') return 'string';
-    if (fn === 'number' || fn === 'integer') return 'number';
+    if (fn === 'number') return 'number';
     if (fn === 'array') return 'array';
   }
   return 'unknown';
@@ -1061,7 +1147,9 @@ export interface ParseEffectOptions {
 /**
  * Parse the intermediate definition into Effect Schema source code.
  * `lazyRefs` maps each component on a cycle to the name of its encoded type;
- * references to them are read through `S.suspend`.
+ * references to them are read through `S.suspend`. `typeNames` names their
+ * decoded type where it is not the name of the component, and `bases` the
+ * constant the getter reads where it is not the component's own.
  */
 export const parseEffectValidationSchemaDefinition = (
   input: EffectValidationSchemaDefinition,
@@ -1071,6 +1159,8 @@ export const parseEffectValidationSchemaDefinition = (
   exactOptional = false,
   isEffectV4 = false,
   lazyRefs: ReadonlyMap<string, string> = new Map(),
+  typeNames: ReadonlyMap<string, string> = new Map(),
+  bases: ReadonlyMap<string, string> = new Map(),
 ): { effect: string; consts: string } => {
   if (input.functions.length === 0) {
     return { effect: '', consts: '' };
@@ -1120,7 +1210,15 @@ export const parseEffectValidationSchemaDefinition = (
         continue;
       }
       if (FILTERS.has(fn)) {
-        filters.push(renderFilter(fn, formatArg(arg), baseType, isEffectV4));
+        filters.push(
+          renderFilter(
+            fn,
+            formatArg(arg),
+            baseType,
+            isEffectV4,
+            isSchemasOutput(context),
+          ),
+        );
         continue;
       }
       if (
@@ -1306,11 +1404,24 @@ export const parseEffectValidationSchemaDefinition = (
     const rendered = renderSchema({ ...definition, functions }, false);
     if (functions.length !== 1 || (fn !== 'object' && fn !== 'strictObject')) {
       throw new Error(
-        `Effect 4 output merges allOf members as structs, and this member is not one: ${rendered}`,
+        `Effect ${isEffectV4 ? 4 : 3} output merges allOf members as structs, and this member is not one: ${rendered}`,
       );
     }
     return [{ struct: rendered, open: false }];
   };
+
+  // Members merge by their fields: Effect 4 has no `extend`, and `S.extend` of
+  // Effect 3 fails on members it cannot merge when the module loads. A member
+  // that is not a struct fails when the schemas are generated instead.
+  const assignFields = (target: string, source: string) =>
+    isEffectV4
+      ? `${target}.pipe(S.fieldsAssign(${source}.fields))`
+      : `S.Struct({ ...${target}.fields, ...${source}.fields })`;
+
+  const withRest = (struct: string) =>
+    isEffectV4
+      ? `S.StructWithRest(${struct}, [S.Record(S.String, S.Unknown)])`
+      : `S.extend(${struct}, S.Record({ key: S.String, value: S.Unknown }))`;
 
   const allOfVariants = (members: EffectValidationSchemaDefinition[]) =>
     members
@@ -1320,7 +1431,7 @@ export const parseEffectValidationSchemaDefinition = (
           sources.map((source) => ({
             struct:
               target.struct && source.struct
-                ? `${target.struct}.pipe(S.fieldsAssign(${source.struct}.fields))`
+                ? assignFields(target.struct, source.struct)
                 : (target.struct ?? source.struct),
             open: target.open || source.open,
           })),
@@ -1335,8 +1446,7 @@ export const parseEffectValidationSchemaDefinition = (
       case 'string': {
         return 'S.String';
       }
-      case 'number':
-      case 'integer': {
+      case 'number': {
         return 'S.Number';
       }
       case 'boolean': {
@@ -1352,7 +1462,11 @@ export const parseEffectValidationSchemaDefinition = (
         return 'S.Any';
       }
       case 'date': {
-        return 'S.DateFromString';
+        // Only `S.Date` of Effect 3 rejects a string that is not a date, as the
+        // schemas module of Valibot does.
+        return isSchemasOutput(context) && !isEffectV4
+          ? 'S.Date'
+          : 'S.DateFromString';
       }
       case 'formatSchema': {
         return arg as string;
@@ -1361,7 +1475,7 @@ export const parseEffectValidationSchemaDefinition = (
         if (!isString(arg)) return 'S.Unknown';
         const encodedName = lazyRefs.get(arg);
         if (encodedName === undefined) return arg;
-        return `S.suspend((): S.${isEffectV4 ? 'Codec' : 'Schema'}<${arg}, ${encodedName}> => ${arg})`;
+        return `S.suspend((): S.${isEffectV4 ? 'Codec' : 'Schema'}<${typeNames.get(arg) ?? arg}, ${encodedName}> => ${bases.get(arg) ?? arg})`;
       }
       case 'literal': {
         // Effect 4 has no `null` literal: `S.Null` takes its place.
@@ -1442,7 +1556,7 @@ export const parseEffectValidationSchemaDefinition = (
         if (args.length === 1) {
           return renderSchema(args[0], false);
         }
-        if (!isEffectV4) {
+        if (!isEffectV4 && !isSchemasOutput(context)) {
           // S.extend takes pairs; chain via reduce. Effect 3 throws on a second
           // string index signature, so an open member adds only its fields and
           // the merge adds the index signature once. It also throws on the
@@ -1477,19 +1591,19 @@ export const parseEffectValidationSchemaDefinition = (
               : []),
           ].reduce((acc, cur) => `S.extend(${acc}, ${cur})`);
         }
-        // Effect 4 has no `extend`: assign each later member's fields to the
-        // first, distributed over union members, into a struct or a union of
-        // structs. The result admits `null` only when every member does.
+        // Assign each later member's fields to the first, distributed over
+        // union members, into a struct or a union of structs. The result
+        // admits `null` only when every member does.
         const variants = allOfVariants(args).map(
           ({ struct = 'S.Struct({})', open }) =>
-            open
-              ? `S.StructWithRest(${struct}, [S.Record(S.String, S.Unknown)])`
-              : struct,
+            open ? withRest(struct) : struct,
         );
         const merged =
           variants.length === 1
             ? variants[0]
-            : `S.Union([${variants.join(', ')}])`;
+            : isEffectV4
+              ? `S.Union([${variants.join(', ')}])`
+              : `S.Union(${variants.join(', ')})`;
         return args.every(admitsNull) ? `S.NullOr(${merged})` : merged;
       }
       default: {
@@ -1540,9 +1654,13 @@ export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
   policy?: RefPolicy,
+  // Where the schema is used, named in the error of an expansion that is too
+  // large.
+  label?: string,
 ): OpenApiNonBooleanSchemaObject =>
   policy
     ? dereferenceWithPolicy(schema, context, policy, {
+        label,
         suggestReusable: false,
         reporter,
       })
@@ -2082,6 +2200,7 @@ const generateEffectRoute = (
         .join('\n'),
       `operation ${typeName}`,
       componentNames,
+      context,
     );
   }
   const constName = (baseName: string) =>
