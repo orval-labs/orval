@@ -769,7 +769,9 @@ export const generateEffectValidationSchemaDefinition = (
           break;
         }
 
-        functions.push([type, undefined]);
+        // A closed object without properties has no fields to declare. An empty
+        // struct accepts any value but `null` and `undefined`.
+        functions.push([type, type === 'object' ? {} : undefined]);
 
         break;
       }
@@ -1405,7 +1407,11 @@ export const parseEffectValidationSchemaDefinition = (
           const value = renderSchema(def, true);
           return `  ${JSON.stringify(key)}: ${value}`;
         });
-        const struct = `S.Struct({\n${entries.join(',\n')}\n})`;
+        // Only a closed object renders inline: an open one keeps its layout.
+        const struct =
+          entries.length === 0 && fn !== 'looseObject'
+            ? 'S.Struct({})'
+            : `S.Struct({\n${entries.join(',\n')}\n})`;
         if (fn === 'looseObject') {
           return isEffectV4
             ? `S.StructWithRest(${struct}, [S.Record(S.String, S.Unknown)])`

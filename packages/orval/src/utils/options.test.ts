@@ -3568,6 +3568,64 @@ describe('normalizeOptions', () => {
     }
   });
 
+  it('keeps global effect settings when an operation or tag override sets only some', async () => {
+    const workspace = await createTempWorkspace();
+
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            target: './generated.ts',
+            client: 'effect',
+            override: {
+              effect: {
+                exactOptional: true,
+                version: 3,
+                generate: { response: false },
+              },
+              operations: {
+                listPets: {
+                  effect: {
+                    strict: { query: true },
+                    exactOptional: undefined,
+                    generate: { response: undefined },
+                  },
+                },
+              },
+              tags: { pets: { effect: { useBrandedTypes: true } } },
+            },
+          },
+        },
+        workspace,
+      );
+
+      const { override } = normalized.output;
+      expect(override.operations.listPets?.effect).toStrictEqual({
+        strict: { query: true },
+        generate: {},
+      });
+      expect(override.tags.pets?.effect).toEqual({ useBrandedTypes: true });
+
+      const merged = mergeDeep(override, override.operations.listPets ?? {});
+      expect(merged.effect).toEqual({
+        ...override.effect,
+        strict: { ...override.effect.strict, query: true },
+      });
+      expect(merged.effect.exactOptional).toBe(true);
+      expect(merged.effect.version).toBe(3);
+      expect(merged.effect.generate.response).toBe(false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
   describe('schemas.type valibot', () => {
     const normalizeSchemas = async (
       schemas: Record<string, unknown>,
@@ -3813,9 +3871,8 @@ describe('normalizeOptions', () => {
         },
       });
       const { operations, tags } = normalized.output.override;
-      expect(operations.listPets?.effect?.exactOptional).toBe(true);
-      expect(operations.listPets?.effect?.generateReusableSchemas).toBe(false);
-      expect(tags.pets?.effect?.generateReusableSchemas).toBe(false);
+      expect(operations.listPets?.effect).toEqual({ exactOptional: true });
+      expect(tags.pets?.effect).toEqual({});
     });
 
     it('warns for a defined operation override but not for undefined', async () => {
