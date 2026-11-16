@@ -93,7 +93,7 @@ export const buildAcceptTextCondition = (contentTypes: string[]): string => {
 
 /**
  * Indicates whether the configured schema output target writes validation
- * schemas, Zod or Valibot.
+ * schemas, Zod, Valibot or Effect.
  */
 export const isZodSchemaOutput = (output: NormalizedOutputOptions): boolean =>
   getSchemaLibrary(output) !== undefined;

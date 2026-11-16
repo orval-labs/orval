@@ -3,6 +3,7 @@ import {
   type ContextSpec,
   nodesOnCycles,
   orderByDependencies,
+  resolveIsEffectV4,
   toComponentRef,
 } from '@orval/core';
 
@@ -12,7 +13,6 @@ import {
   generateEffectValidationSchemaDefinition,
   parseEffectValidationSchemaDefinition,
 } from '.';
-import { resolveIsEffectV4 } from './compatible-v4';
 import { startRun } from './logger';
 import { createRefPolicy } from './ref-policy';
 import { collectRefNames, getComponentNames } from './refs';

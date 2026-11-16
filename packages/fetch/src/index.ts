@@ -31,6 +31,7 @@ import {
   getStatusCodeType,
   getSchemaLibrary,
   getSchemaNamespaceImport,
+  getStandardSchemaLibrary,
   getUniqueName,
   getZodNamespaceImportSource,
   resolveStandardSchema,
@@ -259,11 +260,11 @@ const generateRequestFunctionParts = (
     (parameter) => parameter.name,
   );
 
-  // Valibot schemas type parameters as their wire strings: only the schema
-  // turns them into `Date`, and it validates responses, not parameters.
+  // Valibot and Effect schemas type parameters as their wire strings: only the
+  // schema turns them into `Date`, and it validates responses, not parameters.
   const paramsHoldDates =
     !!context.output.override.useDates &&
-    getSchemaLibrary(context.output) !== 'valibot';
+    !getStandardSchemaLibrary(context.output);
   const hasDateTimeParams = (group: OpenApiParameterObject[]) =>
     paramsHoldDates &&
     group.some((parameter) => isDateTimeParam(parameter, context));
@@ -522,7 +523,7 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     response.imports,
     responseType,
     getSchemaValueRef,
-    getSchemaLibrary(context.output),
+    context.output,
   );
   const hasSchema =
     hasSchemaImport(response.imports, responseType) ||
@@ -1103,8 +1104,12 @@ export const getFetchResponseValidationImports = (
   const isNamedSchema = hasSchemaImport(response.imports, responseType);
   const schemaImportName = isNamedSchema
     ? responseType
-    : getArrayResponseSchema(response.imports, responseType, undefined, library)
-        ?.elementName;
+    : getArrayResponseSchema(
+        response.imports,
+        responseType,
+        undefined,
+        context.output,
+      )?.elementName;
   if (schemaImportName === undefined) return undefined;
 
   return {
@@ -1151,7 +1156,7 @@ const generateFetchOperation = (
     ...generateVerbImports(normalizedVerbOptions),
     // Zod reaches a composed schema through `getFetchDependencies`.
     ...(responseValidationImports?.composesZod &&
-    getSchemaLibrary(options.context.output) === 'valibot'
+    getStandardSchemaLibrary(options.context.output)
       ? [getSchemaNamespaceImport(options.context.output)]
       : []),
   ];

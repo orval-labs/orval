@@ -2,20 +2,23 @@ import type {
   AngularRuntimeValidation,
   GeneratorImport,
   NormalizedAngularRuntimeValidation,
+  NormalizedEffectOptions,
   NormalizedOutputOptions,
   NormalizedOverrideOutput,
   NormalizedRuntimeValidation,
   OpenApiSchemaObject,
+  PackageJson,
   RuntimeValidation,
   RuntimeValidationStrategy,
 } from '../types';
+import { escapeRegExp, pascal, resolveIsEffectV4 } from '../utils';
 import {
   STANDARD_SCHEMA_PARSE_NAME,
   STANDARD_SCHEMA_SAFE_PARSE_NAME,
 } from './standard-schema-helper';
 
 /** The validator library `output.schemas` generates schemas for. */
-export type SchemaLibrary = 'zod' | 'valibot';
+export type SchemaLibrary = 'zod' | 'valibot' | 'effect';
 
 /**
  * The library of the validator schemas written to `output.schemas`, or
@@ -26,16 +29,29 @@ export const getSchemaLibrary = (
 ): SchemaLibrary | undefined => {
   const { schemas } = output;
   if (typeof schemas !== 'object') return undefined;
-  return schemas.type === 'zod' || schemas.type === 'valibot'
+  return schemas.type === 'zod' ||
+    schemas.type === 'valibot' ||
+    schemas.type === 'effect'
     ? schemas.type
     : undefined;
 };
 
 /**
- * Whether a client's `runtimeValidation.standardSchema` is on. Valibot schemas
- * have no `parse` method, so with `schemas.type: 'valibot'` the helpers are the
- * only way to validate. Read at emit time, after tag and operation overrides
- * were merged.
+ * The library of the schemas when they are Valibot or Effect ones. They have no
+ * `parse` method and convert dates themselves, unlike Zod ones.
+ */
+export const getStandardSchemaLibrary = (
+  output: Pick<NormalizedOutputOptions, 'schemas'>,
+): Exclude<SchemaLibrary, 'zod'> | undefined => {
+  const library = getSchemaLibrary(output);
+  return library === 'zod' ? undefined : library;
+};
+
+/**
+ * Whether a client's `runtimeValidation.standardSchema` is on. Valibot and
+ * Effect schemas have no `parse` method, so with them the helpers are the only
+ * way to validate. Read at emit time, after tag and operation overrides were
+ * merged.
  */
 export const resolveStandardSchema = (
   output: Pick<NormalizedOutputOptions, 'schemas'>,
@@ -43,12 +59,11 @@ export const resolveStandardSchema = (
     | Pick<NormalizedRuntimeValidation, 'standardSchema'>
     | undefined,
 ): boolean | undefined => {
-  if (getSchemaLibrary(output) !== 'valibot') {
-    return runtimeValidation?.standardSchema;
-  }
+  const library = getStandardSchemaLibrary(output);
+  if (!library) return runtimeValidation?.standardSchema;
   if (runtimeValidation?.standardSchema === false) {
     throw new Error(
-      '`runtimeValidation.standardSchema: false` cannot be used with `schemas.type: "valibot"`: Valibot schemas are validated through Standard Schema.',
+      `\`runtimeValidation.standardSchema: false\` cannot be used with \`schemas.type: "${library}"\`: ${pascal(library)} schemas are validated through Standard Schema.`,
     );
   }
   return true;
@@ -450,10 +465,22 @@ export interface ArrayResponseSchema {
   outputTypeRef: string;
 }
 
-const SCHEMA_NAMESPACES: Record<SchemaLibrary, string> = {
-  zod: 'zod',
+// What choosing an array constructor reads of the output.
+interface SchemaOutput extends Pick<NormalizedOutputOptions, 'schemas'> {
+  override?: { effect: Pick<NormalizedEffectOptions, 'version'> };
+  packageJson?: PackageJson;
+}
+
+// A lowercase alias for Effect's `Schema`: a component's schema is imported by
+// its own name, and a component is never named in lowercase.
+const EFFECT_NAMESPACE = 'effectSchema';
+
+// How generated code reaches each library's array constructor.
+const ARRAY_CONSTRUCTORS: Record<SchemaLibrary, string> = {
+  zod: 'zod.array',
   // Not `v`: generated functions have parameters of that name, such as `/{v}/pets`.
-  valibot: 'valibot',
+  valibot: 'valibot.array',
+  effect: `${EFFECT_NAMESPACE}.Array`,
 };
 
 /**
@@ -465,8 +492,24 @@ export const composesArraySchema = (
   library: SchemaLibrary = 'zod',
 ): boolean =>
   new RegExp(
-    String.raw`(?<![\w$.])${SCHEMA_NAMESPACES[library]}\.array\(`,
+    String.raw`(?<![\w$.])${escapeRegExp(ARRAY_CONSTRUCTORS[library])}\(`,
   ).test(code);
+
+// An Effect array is a plain schema: it needs the Standard Schema wrapper of
+// the installed major, and is mutable to match the declared `Item[]`.
+const composeEffectArray = (
+  item: string,
+  output?: SchemaOutput,
+): string | undefined => {
+  if (!output || getSchemaLibrary(output) !== 'effect') return undefined;
+  const wrap = resolveIsEffectV4(
+    output.override?.effect.version,
+    output.packageJson,
+  )
+    ? 'toStandardSchemaV1'
+    : 'standardSchemaV1';
+  return `${EFFECT_NAMESPACE}.${wrap}(${EFFECT_NAMESPACE}.mutable(${ARRAY_CONSTRUCTORS.effect}(${item})))`;
+};
 
 /** A definition that is exactly one `[]` level over a bare identifier. */
 const ARRAY_DEFINITION_PATTERN = /^([A-Za-z_$][\w$]*)\[]$/;
@@ -481,12 +524,15 @@ const ARRAY_DEFINITION_PATTERN = /^([A-Za-z_$][\w$]*)\[]$/;
  *
  * @param toValueRef Maps the element name to the identifier its schema value is
  *   bound to at the call site (`Error` is emitted as `ErrorSchema`).
+ * @param output The schemas output, which picks the library the array is
+ *   composed with, and for Effect the wrapper of the installed major. Zod when
+ *   left out.
  */
 export const getArrayResponseSchema = (
   imports: readonly { name: string }[],
   definition: string | undefined,
   toValueRef: (typeName: string) => string = (typeName) => typeName,
-  library: SchemaLibrary = 'zod',
+  output?: SchemaOutput,
 ): ArrayResponseSchema | undefined => {
   if (definition === undefined) return undefined;
 
@@ -496,9 +542,13 @@ export const getArrayResponseSchema = (
   }
   if (!imports.some((imp) => imp.name === elementName)) return undefined;
 
+  const library = (output && getSchemaLibrary(output)) ?? 'zod';
+  const item = toValueRef(elementName);
   return {
     elementName,
-    schemaRef: `${SCHEMA_NAMESPACES[library]}.array(${toValueRef(elementName)})`,
+    schemaRef:
+      composeEffectArray(item, output) ??
+      `${ARRAY_CONSTRUCTORS[library]}(${item})`,
     outputTypeRef: `${getSchemaOutputTypeRef(elementName)}[]`,
   };
 };
@@ -523,13 +573,29 @@ export const getZodNamespaceImport = (override?: NormalizedOverrideOutput) => ({
 
 /** The namespace import a composed array expression requires. */
 export const getSchemaNamespaceImport = (
-  output: Pick<NormalizedOutputOptions, 'schemas' | 'override'>,
-) =>
-  getSchemaLibrary(output) === 'valibot'
-    ? {
-        name: SCHEMA_NAMESPACES.valibot,
+  output: Pick<NormalizedOutputOptions, 'schemas'> & {
+    override?: NormalizedOverrideOutput;
+  },
+) => {
+  switch (getSchemaLibrary(output)) {
+    case 'valibot': {
+      return {
+        name: 'valibot',
         values: true,
         namespaceImport: true,
         importPath: 'valibot',
-      }
-    : getZodNamespaceImport(output.override);
+      };
+    }
+    case 'effect': {
+      return {
+        name: 'Schema',
+        alias: EFFECT_NAMESPACE,
+        values: true,
+        importPath: 'effect',
+      };
+    }
+    default: {
+      return getZodNamespaceImport(output.override);
+    }
+  }
+};

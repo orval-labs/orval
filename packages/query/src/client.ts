@@ -27,6 +27,7 @@ import {
   type GetterResponse,
   GetterPropType,
   getSchemaLibrary,
+  getStandardSchemaLibrary,
   resolveStandardSchema,
   isOperationInTagBucket,
   isSyntheticDefaultImportsAllow,
@@ -178,15 +179,14 @@ export const generateAngularHttpRequestFunction = (
   );
   // Detect if Zod runtime validation should be applied
   const responseType = response.definition.success || 'unknown';
-  const schemaLibrary = getSchemaLibrary(context.output);
-  const isZodOutput = schemaLibrary !== undefined;
+  const isZodOutput = getSchemaLibrary(context.output) !== undefined;
   // An inline array response (`Item[]`) is validated through its element
   // schema, since the exact-name check never matches it (#3718, #4106).
   const responseArraySchema = getArrayResponseSchema(
     response.imports,
     responseType,
     getSchemaValueRef,
-    schemaLibrary,
+    context.output,
   );
   const shouldValidateResponse =
     override.query.runtimeValidation?.enabled &&
@@ -362,10 +362,9 @@ export const generateAxiosRequestFunction = (
     isFormUrlEncoded,
   });
 
-  // A Valibot schema type keeps date strings typed as strings here.
+  // A Valibot or Effect schema type keeps date strings typed as strings here.
   const useDatesTransform =
-    override.useDatesTransform &&
-    getSchemaLibrary(context.output) !== 'valibot';
+    override.useDatesTransform && !getStandardSchemaLibrary(context.output);
   const dateDeserializer = useDatesTransform
     ? generateResponseDateDeserializer({ operationName, response, context })
     : undefined;

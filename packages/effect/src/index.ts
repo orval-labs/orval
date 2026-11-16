@@ -37,6 +37,7 @@ import {
   type OutputHttpClient,
   type PackageJson,
   pascal,
+  resolveIsEffectV4,
   resolveRef,
   toObjectSchema,
   safeNumericConstraint,
@@ -52,7 +53,6 @@ import {
   unique,
 } from '@orval/core';
 
-import { resolveIsEffectV4 } from './compatible-v4';
 import { logger, reporter, startRun } from './logger';
 import { createRefPolicy, createRootRefPolicy } from './ref-policy';
 import {

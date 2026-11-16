@@ -7,6 +7,8 @@ export interface ComponentNameOptions {
   library: string;
   // Globals the generated code calls, which a constant must not shadow.
   reserved: ReadonlySet<string>;
+  // The option that turned the library's schemas on, as errors name it.
+  option?: string;
 }
 
 /** The identifier a component's constant is declared and referenced by. */
@@ -49,7 +51,7 @@ const resolveNames = (
     const owner = owners.get(name);
     if (owner !== undefined) {
       throw new Error(
-        `[orval/${options.library}] generateReusableSchemas: refs ${owner} and ${ref} both resolve to the export name "${name}". Rename one in the OpenAPI source.`,
+        `[orval/${options.library}] ${options.option ?? 'generateReusableSchemas'}: refs ${owner} and ${ref} both resolve to the export name "${name}". Rename one in the OpenAPI source.`,
       );
     }
     owners.set(name, ref);
