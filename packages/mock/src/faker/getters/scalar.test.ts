@@ -1466,6 +1466,33 @@ describe('getMockScalar (referenced string enum by enumGenerationType #3690)', (
     );
   });
 
+  it.each(['zod', 'valibot'] as const)(
+    'inlines the enum values when `schemas.type` is %s (#4535)',
+    (schemaType) => {
+      const result = getScalar({
+        ...baseArg,
+        item: { ...enumRefItem },
+        context: scalarContext(
+          { enumGenerationType: EnumGeneration.CONST },
+          {
+            schemas: {
+              type: schemaType,
+              path: './schemas',
+              splitByTags: false,
+            },
+          },
+        ),
+      });
+
+      expect(result.value).toBe(
+        "faker.helpers.arrayElement(['ONE','TWO','THREE'] as const)",
+      );
+      expect(result.imports).not.toContainEqual(
+        expect.objectContaining({ name: 'MyEnum', values: true }),
+      );
+    },
+  );
+
   it('inlines a referenced enum whose members are not actually strings', () => {
     // Numeric members emit a numeric TS enum, and those compile to a two-way
     // map (`{1: 'NUMBER_1', NUMBER_1: 1}`). `Object.values` would then also
