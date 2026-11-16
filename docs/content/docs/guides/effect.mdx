@@ -5,6 +5,15 @@ description: Generate Effect schemas from OpenAPI
 
 Generate [Effect Schema](https://effect.website/docs/schema/introduction/) schemas from your OpenAPI specification for runtime validation.
 
+`client: 'effect'` writes a schema for each operation, as described below. `schemas.type: 'effect'` writes one for each model, so a fetch-based client can [validate its responses](#validating-http-client-responses) with them:
+
+```ts
+import { Schema as S } from 'effect';
+import { Pet, type PetOutput } from './src/api/model/index.effect';
+
+const pet: PetOutput = S.decodeUnknownSync(Pet)(data);
+```
+
 ## Configuration
 
 Set the `client` option to `effect`:
@@ -48,7 +57,7 @@ Orval reads the `effect` version installed in your project and emits Effect 3 or
 
 Options live under [`override.effect`](/docs/reference/configuration/output#overrideeffect):
 
-- `strict` - per location (`param`, `query`, `header`, `body`, `response`), fail on extra fields in object schemas. All `false` by default.
+- `strict` - per location (`param`, `query`, `header`, `body`, `response`). It has no effect yet: Effect schemas drop extra fields instead of rejecting them. All `false` by default.
 - `generate` - per location, choose which schemas are generated. All `true` by default.
 - `useBrandedTypes` - append `S.brand()` to the generated schemas. `false` by default.
 - `exactOptional` - emit optional properties for projects with `exactOptionalPropertyTypes`. `false` by default. Can also be set per operation or tag.
@@ -101,7 +110,7 @@ Each constant on a cycle also gets two exported types: `Pet` for what it decodes
 
 ### Limitations
 
-- With `client: 'effect'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error.
+- With `client: 'effect'`, `generateReusableSchemas` and `output.schemas` can't be set together: generation fails with an error. To write the schemas to their own module, set [`schemas.type`](#validating-http-client-responses) to `effect` with an HTTP client.
 - A `$ref` is still inlined where a constant would not behave the same, such as form bodies, parameters, `allOf` members, an array body or response (generated from its items, which stay references), schemas with a `default`, and members of a `oneOf` or `anyOf` with sibling keywords such as `properties`, `type` or `required`. Effect merges `allOf` members by their fields, so an `allOf` of references stays inlined.
 - A `$ref` to a schema that is `readOnly` or `writeOnly` is always inlined, and so is one that holds such a property when it is read in a request body.
 - A location with another `exactOptional` than the output inlines its schemas.
@@ -150,6 +159,72 @@ if (Exit.isSuccess(result)) {
 ```
 
 With Effect 3, use `S.decodeUnknownEither` and `Either.isRight` instead.
+
+## Validating HTTP Client Responses
+
+Set `schemas.type` to `effect` and turn on the client's `runtimeValidation`. The generated client then validates responses with Effect schemas instead of Zod.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: { path: './src/api/model', type: 'effect' },
+      override: {
+        fetch: { runtimeValidation: true },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+Every schema goes to one module, `<schemas.path>/index.effect.ts`, or `schemas.path` itself when it names a file. Each schema is wrapped as a [Standard Schema](https://standardschema.dev/) (`S.toStandardSchemaV1` on Effect 4, `S.standardSchemaV1` on Effect 3.15 or newer, and generation stops on an older one), so it stays an Effect schema and also validates through `schema['~standard'].validate()`. It exports the types `X` (`S.Codec.Encoded` on Effect 4, `S.Schema.Encoded` on Effect 3) and `XOutput` (`S.Schema.Type`). A schema on a cycle declares both in full, because they cannot be inferred.
+
+- Validation runs through the `runtimeValidation` option of `override.fetch` for `fetch` and for `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` with `httpClient: 'fetch'`, `override.angular` for `angular`, and `override.query` for `angular-query`. It is off by default.
+- [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on. Validation errors are therefore `StandardSchemaError`, not `ParseError` (Effect 3) or `SchemaError` (Effect 4), and async schemas are not supported.
+- Axios clients do not validate.
+- Generated validation is skipped for custom mutators. With [`includeZodSchemaInArguments`](/docs/reference/configuration/output#includezodschemainarguments), the mutator of `fetch` or a fetch-backed client receives the schema as `schema` ([example](#custom-mutator)). Angular clients do not pass it.
+- `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. The conversion is lenient: it accepts strings such as `"2024"`. `useDatesTransform` turns on `useDates` and nothing more: the client adds no date deserializer.
+- `version`, `generate` and `exactOptional` of [`override.effect`](/docs/reference/configuration/output#overrideeffect) apply. `strict`, `useBrandedTypes` and `generateEachHttpStatus` have no effect.
+
+The following fail with a configuration error: `schemas.mode: 'split'`, `schemas.routes`, `schemas.splitByTags`, mock generators, `operationSchemas`, `factoryMethods`, `splitByContentType`, `standardSchema: false`, `override.formatType`, `override.useBigInt`, `override.namingConvention.properties`, Angular `runtimeValidation.requestBodies` with `useDates`, and the clients `zod`, `effect`, `valibot`, `hono` and `mcp`.
+
+Known limits:
+
+- Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
+- `format: binary` maps to `S.instanceOf(File)` also in JSON, so a JSON response with such a property fails validation.
+- On Effect 3 the wrapped schema loses `.fields` and `.make`. Effect 4 keeps them.
+- Every component gets a constant. One that can't be generated is left out with a warning, unless an operation reaches it: that stops generation with an error. So does an operation schema (such as `ListPetsParams`) named like a component.
+- `$ref` inlining, cycles that can't stay a reference and `allOf` members merged as structs (on Effect 3 too) follow the [limitations of Reusable Schemas](#limitations).
+
+### Custom Mutator
+
+The mutator receives the Effect schema itself, with `~standard` added. The schema describes the success response only, but the mutator also sees error statuses, so check `response.ok` before validating. Return the same `{ data, status, headers }` object as the fetch mutator.
+
+```ts title="src/custom-fetch.ts"
+import { Schema as S } from 'effect';
+
+export const customFetch = async <T>(
+  url: string,
+  // On Effect 3, type `schema` as `S.Schema.AnyNoContext`.
+  options: RequestInit & { schema?: S.Decoder<unknown> },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const text = await response.text();
+  const data: unknown = text ? JSON.parse(text) : undefined;
+
+  return {
+    data: schema && response.ok ? S.decodeUnknownSync(schema)(data) : data,
+    status: response.status,
+    headers: response.headers,
+  } as T;
+};
+```
+
+To validate through Standard Schema instead, type `schema` as `StandardSchemaV1` (from `effect/StandardSchema` on Effect 4, or `@standard-schema/spec` on Effect 3) and call `schema['~standard'].validate(data)`.
 
 ## Combining with HTTP Clients
 
