@@ -18,6 +18,7 @@ await describeApiGenerationSnapshots({
     generated('cli'),
     generated('default'),
     generated('effect'),
+    generated('effect-schemas'),
     generated('fetch'),
     generated('hono'),
     generated('mcp'),

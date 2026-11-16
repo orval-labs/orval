@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Effect schemas names
+  version: 1.0.0
+  description: |-
+    Components named like what generated clients bind by import: `S` and
+    `Schema`, each returned as an inline array.
+paths:
+  /s:
+    get:
+      operationId: listS
+      responses:
+        '200':
+          description: The list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/S'
+  /schemas:
+    get:
+      operationId: listSchemas
+      responses:
+        '200':
+          description: The list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+components:
+  schemas:
+    S:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+    Schema:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string

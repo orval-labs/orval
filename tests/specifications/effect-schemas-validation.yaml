@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: Effect schemas validation
+  version: 1.0.0
+  description: |-
+    Responses the schemas module must accept: a oneOf whose members narrow a
+    property of the schema, and the formats `uri` and `date-time` and a pattern
+    with a Unicode property escape.
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        '200':
+          description: The pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+  /link:
+    get:
+      operationId: getLink
+      responses:
+        '200':
+          description: The link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [petType]
+      properties:
+        petType:
+          type: string
+          enum: [cat, dog]
+        name:
+          type: string
+      oneOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      required: [petType]
+      properties:
+        petType:
+          type: string
+          enum: [cat]
+        lives:
+          type: integer
+    Dog:
+      type: object
+      required: [petType]
+      properties:
+        petType:
+          type: string
+          enum: [dog]
+        packSize:
+          type: integer
+    Link:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        handle:
+          type: string
+          pattern: '^\p{L}+$'
+        seenAt:
+          type: string
+          format: date-time
