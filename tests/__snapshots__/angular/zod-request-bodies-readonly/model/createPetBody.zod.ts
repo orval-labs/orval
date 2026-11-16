@@ -6,9 +6,11 @@
  */
 import * as zod from 'zod';
 
+export const createPetBodyNameMin = 1;
+
 export const CreatePetBody = zod.object({
   id: zod.int(),
-  name: zod.string().min(1),
+  name: zod.string().min(createPetBodyNameMin),
 });
 
 export type CreatePetBody = zod.input<typeof CreatePetBody>;

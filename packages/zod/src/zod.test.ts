@@ -15701,7 +15701,7 @@ describe('arrays without an item schema (#4522)', () => {
       'zod.array(zod.unknown())',
     );
     expect(render({ type: 'array', minItems: 1 })).toBe(
-      'zod.array(zod.unknown()).min(1)',
+      'zod.array(zod.unknown()).min(createNoteMin)',
     );
   });
 
@@ -15710,6 +15710,54 @@ describe('arrays without an item schema (#4522)', () => {
       'zod.array(zod.never())',
     );
   });
+});
+
+describe('a lower bound of 1 (#4529)', () => {
+  const context = createTestContextSpec({
+    output: { override: { useDates: false } },
+  });
+
+  const render = (schema: OpenApiSchemaObject) =>
+    parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'newPet',
+        false,
+        false,
+        { required: true },
+      ),
+      context,
+      false,
+      false,
+      false,
+    );
+
+  it.each<[string, OpenApiSchemaObject, string]>([
+    [
+      'minimum',
+      { type: 'integer', minimum: 1 },
+      'zod.number().int().min(newPetMin)',
+    ],
+    [
+      'minLength',
+      { type: 'string', minLength: 1 },
+      'zod.string().min(newPetMin)',
+    ],
+    [
+      'minItems',
+      { type: 'array', items: { type: 'string' }, minItems: 1 },
+      'zod.array(zod.string()).min(newPetMin)',
+    ],
+  ])(
+    'exports a %s of 1 as a constant like any other bound',
+    (_, schema, zod) => {
+      const parsed = render(schema);
+
+      expect(parsed.zod).toBe(zod);
+      expect(parsed.consts).toContain('export const newPetMin = 1;');
+    },
+  );
 });
 
 describe('object schemas narrowed by an enum (#4351)', () => {
@@ -16100,7 +16148,7 @@ describe('formatType', () => {
         { isZodV4: false, required: false },
       ).zod,
     ).toBe(
-      'zod.string().datetime({}).min(1).transform((value) => dayjs(value)).optional()',
+      'zod.string().datetime({}).min(fieldMin).transform((value) => dayjs(value)).optional()',
     );
     expect(
       render(dateTime, { 'date-time': dayjs }, { variant: 'mini' }).zod,

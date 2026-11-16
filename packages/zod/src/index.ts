@@ -2421,14 +2421,9 @@ export const generateZodValidationSchemaDefinition = (
       functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
     } else if (min !== undefined) {
       const safeMin = assertSafeNumericConstraint(min, 'minimum');
-      if (safeMin === 1) {
-        functions.push(['min', `${safeMin}`]);
-      } else {
-        consts.push(
-          `export const ${name}Min${constsCounterValue} = ${safeMin};`,
-        );
-        functions.push(['min', `${name}Min${constsCounterValue}`]);
-      }
+      // Export every bound, 1 included, so consumers can read any of them.
+      consts.push(`export const ${name}Min${constsCounterValue} = ${safeMin};`);
+      functions.push(['min', `${name}Min${constsCounterValue}`]);
     }
 
     // Handle maximum constraints: exclusiveMaximum (<.lt()) takes priority over maximum (.max())

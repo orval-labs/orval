@@ -6,6 +6,7 @@
  */
 import * as zod from 'zod';
 
+export const searchPetsParamsLimitMin = 1;
 export const searchPetsParamsLimitMax = 100;
 
 export const SearchPetsParams = zod.object({
@@ -13,7 +14,11 @@ export const SearchPetsParams = zod.object({
   requirednullableStringTwo: zod.string().nullable(),
   nonRequirednullableString: zod.string().nullish(),
   status: zod.enum(['available', 'pending', 'sold']).optional(),
-  limit: zod.int().min(1).max(searchPetsParamsLimitMax).optional(),
+  limit: zod
+    .int()
+    .min(searchPetsParamsLimitMin)
+    .max(searchPetsParamsLimitMax)
+    .optional(),
 });
 
 export type SearchPetsParams = zod.input<typeof SearchPetsParams>;

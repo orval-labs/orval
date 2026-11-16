@@ -107,6 +107,21 @@ describe('constraints', () => {
     expect(effect).toContain('S.lessThan(');
   });
 
+  // A lower bound of 1 is exported like every other bound (#4529).
+  it.each<[string, OpenApiSchemaObject, string]>([
+    ['minimum', { type: 'integer', minimum: 1 }, 'S.greaterThanOrEqualTo'],
+    ['minLength', { type: 'string', minLength: 1 }, 'S.minLength'],
+    [
+      'minItems',
+      { type: 'array', items: { type: 'string' }, minItems: 1 },
+      'S.minItems',
+    ],
+  ])('exports a %s of 1 as a constant', (_, schema, filter) => {
+    const { effect, consts } = gen(schema);
+    expect(consts).toContain('export const testMin = 1;');
+    expect(effect).toContain(`${filter}(testMin)`);
+  });
+
   it('maps pattern to S.pattern', () => {
     const { effect } = gen({ type: 'string', pattern: '^foo' });
     expect(effect).toContain('S.pattern(');
