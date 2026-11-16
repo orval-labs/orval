@@ -260,6 +260,16 @@
         "typescript": "catalog:ts6",
         "vite-plus": "catalog:",
       },
+      "peerDependencies": {
+        "prettier": ">=3.0.0",
+        "typedoc": "^0.28.19",
+        "typedoc-plugin-markdown": "^4.10.0",
+      },
+      "optionalPeers": [
+        "prettier",
+        "typedoc",
+        "typedoc-plugin-markdown",
+      ],
     },
     "packages/pinia-colada": {
       "name": "@orval/pinia-colada",

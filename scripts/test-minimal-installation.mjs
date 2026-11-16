@@ -271,7 +271,7 @@ try {
         run(bun, ['run', 'orval', '--config', 'missing.config.ts'], dir, {
           failure: true,
         }),
-        /@orval\/axios/,
+        /Generator package "@orval\/axios" is not installed\. Install @orval\/axios@\S+ alongside @orval\/cli\./,
       );
       write(
         dir,
@@ -282,7 +282,7 @@ try {
         run(bun, ['run', 'orval', '--config', 'missing-mock.config.ts'], dir, {
           failure: true,
         }),
-        /@orval\/mock/,
+        /Generator package "@orval\/mock" is not installed\. Install @orval\/mock@\S+ alongside @orval\/cli\./,
       );
     }
   }
