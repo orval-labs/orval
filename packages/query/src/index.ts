@@ -163,8 +163,7 @@ export const generateQuery: ClientBuilder = async (
       ? getFetchResponseValidationImports(verbOptions, options)
       : undefined;
 
-  const schemaLibrary = getSchemaLibrary(options.context.output);
-  const isZodOutput = schemaLibrary !== undefined;
+  const isZodOutput = getSchemaLibrary(options.context.output) !== undefined;
   const responseType = verbOptions.response.definition.success;
   // A custom mutator skips the generated parse entirely, so its schema
   // import stays type-only and no rewrite is needed.
@@ -188,7 +187,7 @@ export const generateQuery: ClientBuilder = async (
           verbOptions.response.imports,
           responseType,
           undefined,
-          schemaLibrary,
+          options.context.output,
         )
       : undefined;
 

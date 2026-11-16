@@ -191,7 +191,7 @@ const getResponseValidation = (
         response.imports,
         responseType,
         getSchemaValueRef,
-        getSchemaLibrary(context.output),
+        context.output,
       );
   if (!hasSchemaImport(response.imports, responseType) && !arraySchema) {
     return undefined;

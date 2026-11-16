@@ -1,8 +1,5 @@
-import {
-  compareVersions,
-  type EffectVersionOption,
-  type PackageJson,
-} from '@orval/core';
+import type { EffectVersionOption, PackageJson } from '../types';
+import { compareVersions } from './compare-version';
 
 const getEffectPackageVersion = (packageJson: PackageJson) => {
   return (

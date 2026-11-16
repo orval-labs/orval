@@ -810,7 +810,7 @@ const resolveParseSchema = (
     response.imports,
     responseType,
     undefined,
-    getSchemaLibrary(output),
+    output,
   );
   return arraySchema
     ? { importName: arraySchema.elementName, schemaRef: arraySchema.schemaRef }

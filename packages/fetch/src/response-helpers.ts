@@ -6,6 +6,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getSchemaLibrary,
+  getStandardSchemaLibrary,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   OutputClient,
@@ -103,8 +104,9 @@ export const getIsDatesTransformEnabled = (
 ) =>
   override.useDatesTransform &&
   context.output.client !== OutputClient.MCP &&
-  // A Valibot schema converts the date strings itself and rejects a `Date`.
-  getSchemaLibrary(context.output) !== 'valibot';
+  // A Valibot or Effect schema converts the date strings itself and rejects a
+  // `Date`.
+  !getStandardSchemaLibrary(context.output);
 
 /**
  * Builds the `deserialize{Op}Response` function for a verb's response, or

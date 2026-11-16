@@ -1140,7 +1140,7 @@ should not preserve readonly request fields by default.
 
 Without Standard Schema, Zod validation throws a `ZodError`. With
 `runtimeValidation: { standardSchema: true }`, or always with
-`schemas: { type: 'valibot' }`, validation throws a `StandardSchemaError` with an
+`schemas: { type: 'valibot' }` or `{ type: 'effect' }`, validation throws a `StandardSchemaError` with an
 `issues` array.
 
 For `HttpClient` services, handle it in your subscription, effect, or error

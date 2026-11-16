@@ -5,6 +5,15 @@ description: 从 OpenAPI 生成 Effect schema
 
 从 OpenAPI 规范生成 [Effect Schema](https://effect.website/docs/schema/introduction/) schema，用于运行时校验。
 
+`client: 'effect'` 为每个 operation 生成 schema，详见下文。`schemas.type: 'effect'` 为每个 model 生成一个 schema，基于 fetch 的 client 可用它们[校验响应](#校验-http-client-响应)：
+
+```ts
+import { Schema as S } from 'effect';
+import { Pet, type PetOutput } from './src/api/model/index.effect';
+
+const pet: PetOutput = S.decodeUnknownSync(Pet)(data);
+```
+
 ## 配置
 
 将 `client` 选项设置为 `effect`：
@@ -44,7 +53,7 @@ export const CreatePetsBody = S.Struct({
 
 选项位于 [`override.effect`](/zh/docs/reference/configuration/output#overrideeffect)：
 
-- `strict` - 按位置（`param`、`query`、`header`、`body`、`response`）设置，对象 schema 遇到多余字段时报错。默认全部为 `false`。
+- `strict` - 按位置（`param`、`query`、`header`、`body`、`response`）设置。目前不起作用：Effect schema 会丢弃多余字段，而不是报错。默认全部为 `false`。
 - `generate` - 按位置选择生成哪些 schema。默认全部为 `true`。
 - `useBrandedTypes` - 为生成的 schema 追加 `S.brand()`。默认 `false`。
 - `exactOptional` - 为启用 `exactOptionalPropertyTypes` 的项目生成可选属性。默认 `false`。也可以按 operation 或 tag 设置。
@@ -97,7 +106,7 @@ export const ListPetsResponse = S.Array(ListPetsResponseItem);
 
 ### 限制
 
-- 使用 `client: 'effect'` 时，`generateReusableSchemas` 不能与 `output.schemas` 同时设置：生成时会报错。
+- 使用 `client: 'effect'` 时，`generateReusableSchemas` 不能与 `output.schemas` 同时设置：生成时会报错。要把 schema 写入单独的模块，请在 HTTP client 上把 [`schemas.type`](#校验-http-client-响应) 设为 `effect`。
 - 在常量行为不一致的位置，`$ref` 仍会被内联，例如表单 body、参数、`allOf` 成员、数组 body 或响应（按其 items 生成，items 保持引用）、带 `default` 的 schema，以及带有 `properties`、`type` 或 `required` 等同级关键字的 `oneOf` 或 `anyOf` 的成员。Effect 按字段合并 `allOf` 成员，因此由引用组成的 `allOf` 会保持内联。
 - 对本身为 `readOnly` 或 `writeOnly` 的 schema 的 `$ref` 始终会被内联；对带有此类属性的 schema 的 `$ref`，在请求 body 中也会被内联。
 - `exactOptional` 与输出级设置不同的位置会内联其 schema。
@@ -144,6 +153,72 @@ if (Either.isRight(result)) {
   console.error(result.left);
 }
 ```
+
+## 校验 HTTP Client 响应
+
+将 `schemas.type` 设为 `effect` 并开启 client 的 `runtimeValidation`。生成的 client 会用 Effect schema 而不是 Zod 校验响应。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: { path: './src/api/model', type: 'effect' },
+      override: {
+        fetch: { runtimeValidation: true },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+所有 schema 写入同一个模块 `<schemas.path>/index.effect.ts`；若 `schemas.path` 指向文件，则写入该文件。每个 schema 都包装为 [Standard Schema](https://standardschema.dev/)（Effect 4 用 `S.toStandardSchemaV1`，Effect 3 用 `S.standardSchemaV1`，需要 Effect 3.15 或更高版本，版本更低时生成会报错），因此它仍是 Effect schema，同时也可通过 `schema['~standard'].validate()` 校验。每个 schema 还会导出类型 `X`（Effect 4 为 `S.Codec.Encoded`，Effect 3 为 `S.Schema.Encoded`）和 `XOutput`（`S.Schema.Type`）。位于循环中的 schema 会完整声明这两个类型，因为它们无法被推导。
+
+- 校验通过 `override.fetch` 的 `runtimeValidation` 选项运行，适用于 `fetch`，以及 `httpClient: 'fetch'` 的 `react-query`、`vue-query`、`svelte-query`、`solid-query`、`swr`、`pinia-colada`；`angular` 使用 `override.angular`，`angular-query` 使用 `override.query`。默认关闭。
+- [`standardSchema`](/zh/docs/reference/configuration/output#standardschema) 始终开启。因此校验错误是 `StandardSchemaError`，而不是 `ParseError`（Effect 3）或 `SchemaError`（Effect 4），且不支持异步 schema。
+- axios client 不校验响应。
+- 自定义 mutator 会跳过生成的校验。使用 [`includeZodSchemaInArguments`](/zh/docs/reference/configuration/output#includezodschemainarguments) 时，`fetch` 或基于 fetch 的 client 的 mutator 会收到 `schema`（[示例](#自定义-mutator)）。Angular client 不会传入。
+- `useDates` 使 schema 把日期字符串转换为 `Date`，因此 `XOutput` 中是 `Date`，`X` 中是 `string`。转换较宽松：`"2024"` 这类字符串也会被接受。`useDatesTransform` 只会开启 `useDates`：client 不会再添加日期反序列化器。
+- `override.effect` 的 `version`、`generate` 和 `exactOptional` 生效；`strict`、`useBrandedTypes` 和 `generateEachHttpStatus` 不起作用。
+
+以下配置会报错：`schemas.mode: 'split'`、`schemas.routes`、`schemas.splitByTags`、mock 生成器、`operationSchemas`、`factoryMethods`、`splitByContentType`、`standardSchema: false`、`override.formatType`、`override.useBigInt`、`override.namingConvention.properties`、与 `useDates` 同时使用的 Angular `runtimeValidation.requestBodies`，以及 `zod`、`effect`、`valibot`、`hono`、`mcp` client。
+
+已知限制：
+
+- 请求和响应共用组件 schema，因此其中必填的 `writeOnly` 属性是可选的。
+- `format: binary` 在 JSON 中同样映射为 `S.instanceOf(File)`，因此带有此类属性的 JSON 响应会校验失败。
+- 在 Effect 3 上，包装后的 schema 会丢失 `.fields` 和 `.make`；Effect 4 会保留。
+- 每个组件都会生成常量。无法生成的组件会被省略并给出警告，除非有操作用到它：此时生成会报错。操作的 schema（例如 `ListPetsParams`）与某个组件同名时也会报错。
+- `$ref` 内联、无法保持为引用的循环，以及按 struct 合并的 `allOf` 成员（Effect 3 也是）适用[可复用 Schema 的限制](#限制)。
+
+### 自定义 Mutator
+
+mutator 会收到 Effect schema 本身，并附带 `~standard`。该 schema 只描述成功响应，但 mutator 也会收到错误状态码的响应，因此校验前先检查 `response.ok`。返回与 fetch mutator 相同的 `{ data, status, headers }` 对象。
+
+```ts title="src/custom-fetch.ts"
+import { Schema as S } from 'effect';
+
+export const customFetch = async <T>(
+  url: string,
+  // 在 Effect 3 上，把 `schema` 的类型写成 `S.Schema.AnyNoContext`。
+  options: RequestInit & { schema?: S.Decoder<unknown> },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const text = await response.text();
+  const data: unknown = text ? JSON.parse(text) : undefined;
+
+  return {
+    data: schema && response.ok ? S.decodeUnknownSync(schema)(data) : data,
+    status: response.status,
+    headers: response.headers,
+  } as T;
+};
+```
+
+若要改用 Standard Schema 校验，请把 `schema` 的类型写成 `StandardSchemaV1`（Effect 4 来自 `effect/StandardSchema`，Effect 3 来自 `@standard-schema/spec`），并调用 `schema['~standard'].validate(data)`。
 
 ## 与 HTTP 客户端组合
 

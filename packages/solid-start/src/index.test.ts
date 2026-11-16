@@ -756,27 +756,30 @@ describe('generateSolidStart — deepObject query parameters', () => {
     );
   });
 
-  it('keeps date params as strings with valibot schemas', async () => {
-    const parameters = [
-      {
-        name: 'since',
-        in: 'query',
-        schema: { type: 'string', format: 'date-time' },
-      },
-    ];
-    const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
-    const context = makeContext(parameters, true);
-    context.output.schemas = {
-      path: './model',
-      type: 'valibot',
-    } as typeof context.output.schemas;
-    const implementation = await generateImplementation(
-      verbOptions,
-      makeOptions(context),
-    );
+  it.each(['valibot', 'effect'] as const)(
+    'keeps date params as strings with %s schemas',
+    async (type) => {
+      const parameters = [
+        {
+          name: 'since',
+          in: 'query',
+          schema: { type: 'string', format: 'date-time' },
+        },
+      ];
+      const verbOptions = makeVerbOptions({ queryParams: STUB_QUERY_PARAMS });
+      const context = makeContext(parameters, true);
+      context.output.schemas = {
+        path: './model',
+        type,
+      } as typeof context.output.schemas;
+      const implementation = await generateImplementation(
+        verbOptions,
+        makeOptions(context),
+      );
 
-    expect(implementation).not.toContain('instanceof Date');
-  });
+      expect(implementation).not.toContain('instanceof Date');
+    },
+  );
 });
 
 describe('generateSolidStart — date-time format on array items (useDates)', () => {

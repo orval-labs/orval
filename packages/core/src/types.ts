@@ -244,12 +244,12 @@ export interface NormalizedOverrideOutput {
    */
   useNullForOptional?: boolean;
   /**
-   * When enabled, the zod or valibot schema of the response is passed to the
-   * custom mutator as an extra `schema` option, so the mutator can validate the
-   * response itself.
+   * When enabled, the zod, valibot or effect schema of the response is passed
+   * to the custom mutator as an extra `schema` option, so the mutator can
+   * validate the response itself.
    *
-   * Requires `schemas: { type: 'zod' | 'valibot' }` and runtime validation enabled for the
-   * client (e.g. `override.fetch.runtimeValidation`).
+   * Requires `schemas: { type: 'zod' | 'valibot' | 'effect' }` and runtime
+   * validation enabled for the client (e.g. `override.fetch.runtimeValidation`).
    *
    * @default false
    */
@@ -422,7 +422,7 @@ export const EnumGeneration = {
 export type EnumGeneration =
   (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
-export type SchemaGenerationType = 'typescript' | 'zod' | 'valibot';
+export type SchemaGenerationType = 'typescript' | 'zod' | 'valibot' | 'effect';
 
 export type GeneratedSchemaKind = 'enum' | 'schema';
 
@@ -1030,12 +1030,12 @@ export interface OverrideOutput {
    */
   useNullForOptional?: boolean;
   /**
-   * When enabled, the zod or valibot schema of the response is passed to the
-   * custom mutator as an extra `schema` option, so the mutator can validate the
-   * response itself.
+   * When enabled, the zod, valibot or effect schema of the response is passed
+   * to the custom mutator as an extra `schema` option, so the mutator can
+   * validate the response itself.
    *
-   * Requires `schemas: { type: 'zod' | 'valibot' }` and runtime validation enabled for the
-   * client (e.g. `override.fetch.runtimeValidation`).
+   * Requires `schemas: { type: 'zod' | 'valibot' | 'effect' }` and runtime
+   * validation enabled for the client (e.g. `override.fetch.runtimeValidation`).
    *
    * @default false
    */

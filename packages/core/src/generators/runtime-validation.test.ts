@@ -10,6 +10,7 @@ import {
   getArrayResponseSchema,
   getSchemaLibrary,
   getSchemaNamespaceImport,
+  getStandardSchemaLibrary,
   resolveStandardSchema,
   getSchemaOutputTypeRef,
   getSchemaValueRef,
@@ -23,7 +24,7 @@ import {
 import { getStandardSchemaHelper } from './standard-schema-helper';
 
 describe('schema library helpers', () => {
-  const output = (type: 'typescript' | 'zod' | 'valibot') => ({
+  const output = (type: 'typescript' | 'zod' | 'valibot' | 'effect') => ({
     schemas: { path: './model', type, splitByTags: false },
   });
 
@@ -33,31 +34,79 @@ describe('schema library helpers', () => {
     expect(getSchemaLibrary(output('typescript'))).toBeUndefined();
     expect(getSchemaLibrary(output('zod'))).toBe('zod');
     expect(getSchemaLibrary(output('valibot'))).toBe('valibot');
+    expect(getSchemaLibrary(output('effect'))).toBe('effect');
   });
 
-  it('keeps standardSchema as configured outside valibot', () => {
+  it('names the library of schemas that validate through Standard Schema', () => {
+    expect(getStandardSchemaLibrary(output('typescript'))).toBeUndefined();
+    expect(getStandardSchemaLibrary(output('zod'))).toBeUndefined();
+    expect(getStandardSchemaLibrary(output('valibot'))).toBe('valibot');
+    expect(getStandardSchemaLibrary(output('effect'))).toBe('effect');
+  });
+
+  it('keeps standardSchema as configured for zod', () => {
     expect(resolveStandardSchema(output('zod'), {})).toBeUndefined();
     expect(
       resolveStandardSchema(output('zod'), { standardSchema: false }),
     ).toBe(false);
   });
 
-  it('turns standardSchema on for valibot and rejects an explicit false', () => {
-    expect(resolveStandardSchema(output('valibot'), {})).toBe(true);
-    expect(() =>
-      resolveStandardSchema(output('valibot'), { standardSchema: false }),
-    ).toThrow(/cannot be used with `schemas\.type: "valibot"`/);
-  });
+  it.each(['valibot', 'effect'] as const)(
+    'turns standardSchema on for %s and rejects an explicit false',
+    (type) => {
+      expect(resolveStandardSchema(output(type), {})).toBe(true);
+      expect(() =>
+        resolveStandardSchema(output(type), { standardSchema: false }),
+      ).toThrow(
+        new RegExp(`cannot be used with \`schemas\\.type: "${type}"\``),
+      );
+    },
+  );
 
   it('composes an array with the library of the schemas', () => {
     const imports = [{ name: 'Item' }];
     expect(
-      getArrayResponseSchema(imports, 'Item[]', undefined, 'valibot')
+      getArrayResponseSchema(imports, 'Item[]', undefined, output('valibot'))
         ?.schemaRef,
     ).toBe('valibot.array(Item)');
     expect(getArrayResponseSchema(imports, 'Item[]')?.schemaRef).toBe(
       'zod.array(Item)',
     );
+  });
+
+  describe('effect array', () => {
+    const imports = [{ name: 'Item' }];
+    const schemaRef = (
+      version: 3 | 4 | 'auto',
+      packageJson?: { dependencies: Record<string, string> },
+    ) =>
+      getArrayResponseSchema(imports, 'Item[]', undefined, {
+        ...output('effect'),
+        override: { effect: { version } },
+        packageJson,
+      })?.schemaRef;
+
+    it('wraps for a pinned major', () => {
+      expect(schemaRef(3)).toBe(
+        'effectSchema.standardSchemaV1(effectSchema.mutable(effectSchema.Array(Item)))',
+      );
+      expect(schemaRef(4)).toBe(
+        'effectSchema.toStandardSchemaV1(effectSchema.mutable(effectSchema.Array(Item)))',
+      );
+    });
+
+    it('wraps for the major of the installed effect', () => {
+      expect(schemaRef('auto', { dependencies: { effect: '3.21.2' } })).toBe(
+        schemaRef(3),
+      );
+      expect(schemaRef('auto', { dependencies: { effect: '4.0.0' } })).toBe(
+        schemaRef(4),
+      );
+    });
+
+    it('wraps for Effect 4 when no effect is installed', () => {
+      expect(schemaRef('auto')).toBe(schemaRef(4));
+    });
   });
 
   it('detects a composed array of the library only', () => {
@@ -68,19 +117,34 @@ describe('schema library helpers', () => {
     expect(composesArraySchema('a.valibot.array(Item)', 'valibot')).toBe(false);
     expect(composesArraySchema('zod.array(Item).parse(x)')).toBe(true);
     expect(composesArraySchema('zod.array(Item)', 'valibot')).toBe(false);
+    expect(
+      composesArraySchema(
+        'wrap(effectSchema.mutable(effectSchema.Array(Item)))',
+        'effect',
+      ),
+    ).toBe(true);
+    expect(composesArraySchema('a.effectSchema.Array(Item)', 'effect')).toBe(
+      false,
+    );
+    expect(composesArraySchema('S.Array(Item)', 'effect')).toBe(false);
+    expect(composesArraySchema('valibot.array(Item)', 'effect')).toBe(false);
   });
 
   it('imports the valibot namespace for valibot schemas', () => {
-    expect(
-      getSchemaNamespaceImport({
-        ...output('valibot'),
-        override: {} as never,
-      }),
-    ).toEqual({
+    expect(getSchemaNamespaceImport(output('valibot'))).toEqual({
       name: 'valibot',
       values: true,
       namespaceImport: true,
       importPath: 'valibot',
+    });
+  });
+
+  it('imports Schema under an alias no component can be named', () => {
+    expect(getSchemaNamespaceImport(output('effect'))).toEqual({
+      name: 'Schema',
+      alias: 'effectSchema',
+      values: true,
+      importPath: 'effect',
     });
   });
 });

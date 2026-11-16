@@ -19,7 +19,7 @@ import {
   getIsBodyVerb,
   getQueryDelimiter,
   getQueryParamsEncoding,
-  getSchemaLibrary,
+  getStandardSchemaLibrary,
   GetterPropType,
   isDateTimeParam,
   isFormDataContentType,
@@ -328,10 +328,11 @@ const generateImplementation = (
     (parameter) => parameter.name,
   );
 
-  // Valibot schemas keep date params as strings, the schema converts them.
+  // Valibot and Effect schemas keep date params as strings, the schema
+  // converts them.
   const paramsHoldDates =
     !!context.output.override.useDates &&
-    getSchemaLibrary(context.output) !== 'valibot';
+    !getStandardSchemaLibrary(context.output);
 
   const hasExplodedDateParams =
     paramsHoldDates &&

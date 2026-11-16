@@ -77,6 +77,17 @@ describe('renderEffectType', () => {
     );
   });
 
+  it('lets a later allOf member replace a key of an earlier one when Effect 3 merges members', () => {
+    const member = (type: string) =>
+      def(['object', { tag: def([type, undefined]) }]);
+    expect(
+      render(def(['allOf', [member('string'), member('null')]]), {
+        isEffectV4: false,
+        mergesMembers: true,
+      }),
+    ).toBe('{ readonly "tag": null }');
+  });
+
   it('merges each alternative of an allOf union', () => {
     const object = (key: string) =>
       def(['object', { [key]: def(['string', undefined]) }]);

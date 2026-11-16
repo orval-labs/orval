@@ -33,6 +33,15 @@ describe('getComponentNames', () => {
     ).toThrow('[orval/effect] generateReusableSchemas: refs');
   });
 
+  it('names the option that turned the schemas on', () => {
+    expect(() =>
+      getComponentNames(contextOf(['File', 'FileSchema']), {
+        ...options,
+        option: 'schemas.type "effect"',
+      }),
+    ).toThrow('[orval/effect] schemas.type "effect": refs');
+  });
+
   it('keeps the names of each library apart', () => {
     const context = contextOf(['File']);
     expect(getComponentNames(context, options).get('File')).toBe('FileSchema');

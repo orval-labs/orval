@@ -69,9 +69,11 @@ import {
   OutputMockType,
   OutputMode,
   type OverrideOutput,
+  pascal,
   PropertySortOrder,
   type QueryOptions,
   RefComponentSuffix,
+  type SchemaGenerationType,
   type SchemaOptions,
   upath,
   type ZodOptions,
@@ -312,7 +314,7 @@ function normalizeSchemasOption(
     );
   }
 
-  validateValibotSchemas(schemas);
+  validateModuleSchemas(schemas);
 
   if (
     schemas.mode !== undefined &&
@@ -330,8 +332,9 @@ function normalizeSchemasOption(
     }
   }
 
-  // All Valibot schemas share one module, so cycles between them can resolve.
-  const mode = schemas.type === 'valibot' ? 'single' : schemas.mode;
+  // All Valibot or Effect schemas share one module, so cycles between them can
+  // resolve.
+  const mode = isModuleSchemaType(schemas.type) ? 'single' : schemas.mode;
 
   if (mode !== 'single') {
     assertSchemasPathIsDirectory(schemas.path, 'schemas.path');
@@ -352,22 +355,32 @@ function normalizeSchemasOption(
   };
 }
 
-/** Rejects the schema layouts `schemas.type: 'valibot'` cannot generate. */
-function validateValibotSchemas(schemas: SchemaOptions): void {
-  if (schemas.type !== 'valibot') return;
+// The schema types written as one module of Standard Schema validators.
+const MODULE_SCHEMA_TYPES = ['valibot', 'effect'] as const;
+
+function isModuleSchemaType(
+  type: SchemaGenerationType | undefined,
+): type is (typeof MODULE_SCHEMA_TYPES)[number] {
+  return MODULE_SCHEMA_TYPES.some((moduleType) => moduleType === type);
+}
+
+/** Rejects the schema layouts `schemas.type: 'valibot' | 'effect'` cannot generate. */
+function validateModuleSchemas(schemas: SchemaOptions): void {
+  const { type } = schemas;
+  if (!isModuleSchemaType(type)) return;
   if (schemas.mode === 'split') {
     throw new Error(
-      'schemas.mode "split" cannot be used with schemas.type "valibot": all Valibot schemas are written to one module, because references between separate files break on cycles.',
+      `schemas.mode "split" cannot be used with schemas.type "${type}": all ${pascal(type)} schemas are written to one module, because references between separate files break on cycles.`,
     );
   }
   if (schemas.routes) {
     throw new Error(
-      'schemas.routes cannot be used with schemas.type "valibot".',
+      `schemas.routes cannot be used with schemas.type "${type}".`,
     );
   }
   if (schemas.splitByTags) {
     throw new Error(
-      'schemas.splitByTags cannot be used with schemas.type "valibot".',
+      `schemas.splitByTags cannot be used with schemas.type "${type}".`,
     );
   }
 }
@@ -468,49 +481,50 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
     }
   }
   if (!schemas || isString(schemas)) return;
+  const { type } = schemas;
   if (
-    schemas.type === 'valibot' &&
+    isModuleSchemaType(type) &&
     isString(output.client) &&
     SCHEMA_WRITING_CLIENTS.has(output.client)
   ) {
     throw new Error(
-      `schemas.type "valibot" cannot be used with client "${output.client}", which generates its own schemas or needs Zod ones.`,
+      `schemas.type "${type}" cannot be used with client "${output.client}", which generates its own schemas or needs Zod ones.`,
     );
   }
-  if (schemas.type === 'valibot') {
-    // Valibot schemas keep the wire keys, strings and numbers, while client
+  if (isModuleSchemaType(type)) {
+    // These schemas keep the wire keys, strings and numbers, while client
     // code would use the renamed keys and the mapped types.
     if (output.override.namingConvention.properties) {
       throw new Error(
-        '`override.namingConvention.properties` cannot be used with schemas.type "valibot".',
+        `\`override.namingConvention.properties\` cannot be used with schemas.type "${type}".`,
       );
     }
     if (Object.keys(output.override.formatType ?? {}).length > 0) {
       throw new Error(
-        '`override.formatType` cannot be used with schemas.type "valibot".',
+        `\`override.formatType\` cannot be used with schemas.type "${type}".`,
       );
     }
     if (output.override.useBigInt) {
       throw new Error(
-        '`override.useBigInt` cannot be used with schemas.type "valibot".',
+        `\`override.useBigInt\` cannot be used with schemas.type "${type}".`,
       );
     }
   }
   if (schemas.mode === 'single') {
     if (output.operationSchemas || output.factoryMethods) {
       throw new Error(
-        `${schemas.type === 'valibot' ? 'schemas.type "valibot"' : 'schemas.mode "single"'} cannot be combined with operationSchemas or factoryMethods.`,
+        `${isModuleSchemaType(type) ? `schemas.type "${type}"` : 'schemas.mode "single"'} cannot be combined with operationSchemas or factoryMethods.`,
       );
     }
-    // TypeScript mocks import types from the single module (#4235); Zod and
-    // Valibot single mode have not been checked with mocks yet.
+    // TypeScript mocks import types from the single module (#4235); Zod,
+    // Valibot and Effect single mode have not been checked with mocks yet.
     if (
-      (schemas.type === 'zod' || schemas.type === 'valibot') &&
+      (type === 'zod' || isModuleSchemaType(type)) &&
       output.mock.generators.length > 0
     ) {
       throw new Error(
-        schemas.type === 'valibot'
-          ? 'schemas.type "valibot" cannot be combined with mock generators.'
+        isModuleSchemaType(type)
+          ? `schemas.type "${type}" cannot be combined with mock generators.`
           : 'schemas.mode "single" cannot be combined with mock generators when schemas.type is "zod".',
       );
     }
@@ -955,14 +969,14 @@ export async function normalizeOptions(
       (isString(outputOptions.schemas) &&
         (outputOptions.client ?? client) === 'zod' &&
         outputOptions.override?.zod?.generateReusableSchemas === true));
-  const isValibotSchemasOutput =
-    !!outputOptions.schemas &&
-    !isString(outputOptions.schemas) &&
-    outputOptions.schemas.type === 'valibot';
+  const moduleSchemaType =
+    outputOptions.schemas && !isString(outputOptions.schemas)
+      ? outputOptions.schemas.type
+      : undefined;
   const defaultSchemaFileExtension = isZodSchemasOutput
     ? '.zod.ts'
-    : isValibotSchemasOutput
-      ? '.valibot.ts'
+    : isModuleSchemaType(moduleSchemaType)
+      ? `.${moduleSchemaType}.ts`
       : defaultFileExtension;
 
   const factoryMethodsConfig = outputOptions.factoryMethods;

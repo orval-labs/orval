@@ -14,8 +14,8 @@ import {
   encodeRouteParameters,
   getSchemaLibrary,
   getSchemaNamespaceImport,
+  getStandardSchemaLibrary,
   resolveStandardSchema,
-  type SchemaLibrary,
   getArrayResponseSchema,
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
@@ -93,7 +93,7 @@ const getSchemaValueRef = (typeName: string): string =>
 const resolveValidatableSchema = (
   imports: readonly { name: string }[],
   value: string,
-  library: SchemaLibrary | undefined,
+  output: NormalizedOutputOptions,
 ):
   | { outputTypeRef: string; schemaRef: string; elementName?: string }
   | undefined => {
@@ -104,7 +104,7 @@ const resolveValidatableSchema = (
       schemaRef: getSchemaValueRef(value),
     };
   }
-  return getArrayResponseSchema(imports, value, getSchemaValueRef, library);
+  return getArrayResponseSchema(imports, value, getSchemaValueRef, output);
 };
 
 const NON_READONLY_PATTERN = /^NonReadonly<(.+)>$/;
@@ -126,11 +126,7 @@ const getGeneratedResponseType = (
     !!contentType &&
     isJsonContentType(contentType)
   ) {
-    const resolved = resolveValidatableSchema(
-      response.imports,
-      value,
-      getSchemaLibrary(output),
-    );
+    const resolved = resolveValidatableSchema(response.imports, value, output);
     if (resolved) return resolved.outputTypeRef;
   }
 
@@ -159,7 +155,7 @@ const getClientResultType = (
     response.imports,
     dataType,
     getSchemaValueRef,
-    getSchemaLibrary(output),
+    output,
   );
   const shouldValidateResponse =
     override.angular.runtimeValidation.enabled &&
@@ -237,12 +233,10 @@ export const getRequestBodySchema = (
     return undefined;
   }
 
-  if (
-    getSchemaLibrary(output) === 'valibot' &&
-    (override.useDates || override.useDatesTransform)
-  ) {
+  const standardLibrary = getStandardSchemaLibrary(output);
+  if (standardLibrary && (override.useDates || override.useDatesTransform)) {
     throw new Error(
-      '`runtimeValidation.requestBodies` cannot be used with `useDates` and `schemas.type: "valibot"`: the parsed body is what gets sent, and the schema turns its date strings into `Date`.',
+      `\`runtimeValidation.requestBodies\` cannot be used with \`useDates\` and \`schemas.type: "${standardLibrary}"\`: the parsed body is what gets sent, and the schema turns its date strings into \`Date\`.`,
     );
   }
 
@@ -251,11 +245,7 @@ export const getRequestBodySchema = (
   // no readonly markers, so that is structurally `Pet` and parses with it.
   const definition =
     NON_READONLY_PATTERN.exec(body.definition)?.[1] ?? body.definition;
-  const schema = resolveValidatableSchema(
-    body.imports,
-    definition,
-    getSchemaLibrary(output),
-  );
+  const schema = resolveValidatableSchema(body.imports, definition, output);
   if (!schema) return undefined;
 
   return {
@@ -588,7 +578,7 @@ export const generateHttpClientImplementation = (
     response.imports,
     dataType,
     getSchemaValueRef,
-    getSchemaLibrary(context.output),
+    context.output,
   );
   const isZodOutput = isZodSchemaOutput(context.output);
   const shouldValidateResponse =
@@ -900,7 +890,7 @@ export const generateHttpClientImplementation = (
       ? resolveValidatableSchema(
           response.imports,
           jsonSuccessValues[0],
-          getSchemaLibrary(context.output),
+          context.output,
         )
       : undefined;
   const parsedJsonReturnType = jsonSchema?.outputTypeRef ?? jsonReturnType;
@@ -1370,7 +1360,7 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ...(validatedBody ? [DEFER_IMPORT] : []),
     // Only a composed array expression and `zod.encode` reference the schema
     // namespace; a named schema calls `Schema.parse` on its own binding.
-    // `zod.encode` needs `formatType`, which `schemas.type: 'valibot'` rejects.
+    // `zod.encode` needs `formatType`, which `schemas.type: 'valibot' | 'effect'` rejects.
     ...(composesArraySchema(
       implementation,
       getSchemaLibrary(options.context.output),

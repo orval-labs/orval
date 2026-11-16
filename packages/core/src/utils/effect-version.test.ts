@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { isEffectVersionV4, resolveIsEffectV4 } from './compatible-v4';
+import { isEffectVersionV4, resolveIsEffectV4 } from './effect-version';
 
 describe('isEffectVersionV4', () => {
   it('returns false when effect is not in package.json', () => {

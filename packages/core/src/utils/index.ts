@@ -8,6 +8,7 @@ export * from './content-type';
 export * from './deep-non-nullable';
 export * from './doc';
 export * from './dynamic-import';
+export * from './effect-version';
 export * from './extension';
 export * from './file';
 export * from './file-extensions';
