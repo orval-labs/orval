@@ -718,11 +718,26 @@ function getImplementationPathsForIndex(
 }
 
 /** Coordinates schema, operation, mock, and client generation for one spec. */
-/** The one module `schemas.type: 'valibot'` writes: the path itself when it names a file. */
+/** The one module `schemas.type: 'valibot' | 'effect'` writes: the path itself when it names a file. */
 function getSchemasModulePath(schemasPath: string, extension: string): string {
   return namesAFile(schemasPath)
     ? schemasPath
     : path.join(schemasPath, `index${extension}`);
+}
+
+/** The library of the one schemas module `schemas.type` writes, if it does. */
+function getSchemasModuleType(
+  output: NormalizedOptions['output'],
+): 'valibot' | 'effect' | undefined {
+  const type = isObject(output.schemas) ? output.schemas.type : undefined;
+  return type === 'valibot' || type === 'effect' ? type : undefined;
+}
+
+async function loadSchemasModuleGenerator(type: 'valibot' | 'effect') {
+  if (type === 'valibot') {
+    return (await import('@orval/valibot')).generateValibotSchemasModule;
+  }
+  return (await import('@orval/effect')).generateEffectSchemasModule;
 }
 
 async function writeSpecsInternal(
@@ -769,9 +784,11 @@ async function writeSpecsInternal(
       );
     }
 
-    if (isObject(output.schemas) && output.schemas.type === 'valibot') {
-      const { generateValibotSchemasModule } = await import('@orval/valibot');
-      const schemasModule = generateValibotSchemasModule(
+    const schemasModuleType = getSchemasModuleType(output);
+    if (schemasModuleType) {
+      const generateSchemasModule =
+        await loadSchemasModuleGenerator(schemasModuleType);
+      const schemasModule = generateSchemasModule(
         {
           spec: builder.spec,
           target: builder.target,
@@ -1236,15 +1253,14 @@ async function writeSpecsInternal(
         isObject(output.schemas) &&
         output.schemas.mode === 'single' &&
         namesAFile(schemasPath);
-      const isValibotSchemas =
-        isObject(output.schemas) && output.schemas.type === 'valibot';
+      const isSchemasModule = getSchemasModuleType(output) !== undefined;
 
       if (schemaOutputPlan) {
         imports.push(
           upath.getRelativeImportPath(indexFile, schemaOutputPlan.basePath),
         );
-      } else if (isValibotSchemas || isNamedSingleSchema) {
-        const schemasModule = isValibotSchemas
+      } else if (isSchemasModule || isNamedSingleSchema) {
+        const schemasModule = isSchemasModule
           ? getSchemasModulePath(schemasPath, output.schemaFileExtension)
           : schemasPath;
         const schemaSourceExtension = path.extname(schemasModule);

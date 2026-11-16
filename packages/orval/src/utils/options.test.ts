@@ -3626,7 +3626,7 @@ describe('normalizeOptions', () => {
     }
   });
 
-  describe('schemas.type valibot', () => {
+  describe.each(['valibot', 'effect'] as const)('schemas.type %s', (type) => {
     const normalizeSchemas = async (
       schemas: Record<string, unknown>,
       output: Record<string, unknown> = {},
@@ -3645,7 +3645,7 @@ describe('normalizeOptions', () => {
             output: {
               client: 'fetch',
               target: './generated.ts',
-              schemas: { path: './model', type: 'valibot', ...schemas },
+              schemas: { path: './model', type, ...schemas },
               ...output,
             },
           },
@@ -3656,14 +3656,16 @@ describe('normalizeOptions', () => {
       }
     };
 
-    it('writes one module with the .valibot.ts extension', async () => {
+    it('writes one module with its own extension', async () => {
       const { output } = await normalizeSchemas({});
-      expect(output.schemaFileExtension).toBe('.valibot.ts');
+      expect(output.schemaFileExtension).toBe(`.${type}.ts`);
       expect((output.schemas as NormalizedSchemaOptions).mode).toBe('single');
     });
 
     it('accepts a path that names the module', async () => {
-      const { output } = await normalizeSchemas({ path: './model.valibot.ts' });
+      const { output } = await normalizeSchemas({
+        path: `./model.${type}.ts`,
+      });
       expect((output.schemas as NormalizedSchemaOptions).mode).toBe('single');
     });
 
@@ -3689,13 +3691,26 @@ describe('normalizeOptions', () => {
       ['factoryMethods', { factoryMethods: {} }],
     ])('rejects %s', async (_, output) => {
       await expect(normalizeSchemas({}, output)).rejects.toThrow(
-        'schemas.type "valibot" cannot be combined with operationSchemas or factoryMethods',
+        `schemas.type "${type}" cannot be combined with operationSchemas or factoryMethods`,
+      );
+    });
+
+    it.each([
+      [
+        'namingConvention.properties',
+        { namingConvention: { properties: 'camelCase' } },
+      ],
+      ['formatType', { formatType: { uuid: { type: 'string' } } }],
+      ['useBigInt', { useBigInt: true }],
+    ])('rejects %s', async (name, override) => {
+      await expect(normalizeSchemas({}, { override })).rejects.toThrow(
+        `\`override.${name}\` cannot be used with schemas.type "${type}"`,
       );
     });
 
     it('rejects mock generators', async () => {
       await expect(normalizeSchemas({}, { mock: true })).rejects.toThrow(
-        'schemas.type "valibot" cannot be combined with mock generators',
+        `schemas.type "${type}" cannot be combined with mock generators`,
       );
     });
   });
