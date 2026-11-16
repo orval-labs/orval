@@ -30,6 +30,70 @@ pnpm add orval -D
   </Tab>
 </Tabs>
 
+## 按需安装
+
+如果只需要部分生成器，可以选择安装 `@orval/cli` 和所需的生成器包，并保持它们的版本一致。例如，生成 Fetch 客户端：
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -d @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="npm">
+```bash
+npm install -D @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add -D @orval/cli @orval/fetch
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add -D @orval/cli @orval/fetch
+```
+  </Tab>
+</Tabs>
+
+```ts title="orval.config.ts"
+import { defineConfig } from '@orval/cli';
+
+export default defineConfig({
+  api: {
+    input: './openapi.yaml',
+    output: { target: './src/api.ts', client: 'fetch' },
+  },
+});
+```
+
+使用 `pnpm exec orval` 运行已安装的命令。这里显式指定 `fetch`，因为默认客户端是 `axios`。
+
+始终安装基础包 `@orval/cli`，并根据配置添加下表中的生成器包，保持版本一致：
+
+| 客户端 / 功能 | 生成器包 |
+| --- | --- |
+| `fetch` | `@orval/fetch` |
+| `axios`, `axios-functions` | `@orval/axios` |
+| `angular` | `@orval/angular` |
+| `react-query`, `angular-query`, `vue-query`, `svelte-query`, `solid-query` | `@orval/query` |
+| `solid-start` | `@orval/solid-start` |
+| `swr` | `@orval/swr` |
+| `pinia-colada` | `@orval/pinia-colada` |
+| `zod` | `@orval/zod` |
+| `valibot` | `@orval/valibot` |
+| `effect` | `@orval/effect` |
+| `hono` | `@orval/hono` |
+| `mcp` | `@orval/mcp` |
+| MSW / Faker mock（在客户端之外添加） | `@orval/mock` |
+
+`@orval/core` 和各生成器的依赖会自动安装。普通 TypeScript 模型无需额外生成器；生成代码引用的运行时库仍需作为应用依赖安装。缺少生成器时，错误信息会指出需要安装的包。
+
+从 `orval` 迁移时，将 `defineConfig`、`defineTransformer` 和用于编程调用的 `generate` 等导入改为 `@orval/cli`。生成器专用类型（如 `ZodParamsContext`）可从对应的生成器包导入。完整的 `orval` 包仍包含所有生成器，并保留现有导入方式。
+
+当 `output.client` 是函数时，它会接收完整的生成器表，因此需要安装所有生成器。按需安装时请使用上面示例中的客户端名称。
+
 ## Docker
 
 Orval 8+ 需要 Node.js 22.18 或更高版本。如果项目仍使用较旧的 Node LTS，可以用官方 Docker 镜像运行代码生成，而无需在本地安装 Orval。

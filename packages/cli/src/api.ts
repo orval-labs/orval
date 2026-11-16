@@ -34,12 +34,17 @@ import {
   generateOperations,
 } from './client';
 import { logger } from './logger';
+import { loadGenerator } from './utils/generator';
 
 // API construction only needs Mock when an output actually emits mocks. Keep
 // the resolved module for later projects without making it part of startup.
 let mockModuleCache: Promise<typeof import('@orval/mock')> | undefined;
 
-const loadMockModule = () => (mockModuleCache ??= import('@orval/mock'));
+const loadMockModule = () =>
+  (mockModuleCache ??= loadGenerator(
+    '@orval/mock',
+    () => import('@orval/mock'),
+  ));
 
 /**
  * Every `mutationInvalidates` list that reaches this output: the top-level one

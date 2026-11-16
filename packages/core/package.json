@@ -33,7 +33,7 @@
     "tinyglobby": "^0.2.16"
   },
   "devDependencies": {
-    "@faker-js/faker": "catalog:tooling",
+    "@faker-js/faker": "10.6.0",
     "@modelcontextprotocol/server": "catalog:mcp",
     "@types/esutils": "^2.0.2",
     "@types/jsesc": "^3.0.3",
@@ -41,16 +41,10 @@
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
-  "peerDependencies": {
-    "@faker-js/faker": ">=8",
-    "@modelcontextprotocol/server": ">=2"
-  },
-  "peerDependenciesMeta": {
-    "@faker-js/faker": {
-      "optional": true
-    },
-    "@modelcontextprotocol/server": {
-      "optional": true
-    }
+  "inlinedDependencies": {
+    "@faker-js/faker": "10.6.0",
+    "@modelcontextprotocol/core": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.6.2"
   }
 }
