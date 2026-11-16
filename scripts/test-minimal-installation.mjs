@@ -188,14 +188,38 @@ try {
       'tsconfig.node.json',
       JSON.stringify({
         extends: './tsconfig.json',
-        compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext' },
+        compilerOptions: {
+          module: 'NodeNext',
+          moduleResolution: 'NodeNext',
+          types: [],
+        },
         include: ['orval.config.ts', 'usage.ts'],
       }),
     );
     write(
       dir,
       'usage.ts',
-      `import generate, { generate as named, defineConfig, defineTransformer, type Options${fixture === 'full' ? ', type ZodParamsContext' : ''} } from '${packageName}';\nvoid [generate, named, defineConfig, defineTransformer];\ntype PublicOptions = Options;\n${fixture === 'full' ? 'type PublicZodContext = ZodParamsContext;\n' : ''}`,
+      `import generate, { generate as named, defineConfig, defineTransformer, type Options, type CommonMockOptions, type McpOptions${fixture === 'full' ? ', type ZodParamsContext' : ''} } from '${packageName}';
+void [generate, named, defineConfig, defineTransformer];
+type PublicOptions = Options;
+${fixture === 'full' ? 'type PublicZodContext = ZodParamsContext;\n' : ''}
+const localeNepal: CommonMockOptions = { locale: 'en_NP' };
+const localeMongolian: CommonMockOptions = { locale: 'mn_MN_cyrl' };
+const invalidLocale: CommonMockOptions = {
+  // @ts-expect-error Invalid locale must be rejected.
+  locale: 'not_a_locale',
+};
+const cache: McpOptions = { cacheHints: { 'tools/list': { ttlMs: 100, cacheScope: 'public' } } };
+const invalidScope: McpOptions = { cacheHints: { 'tools/list': {
+  // @ts-expect-error Invalid cache scope must be rejected.
+  cacheScope: 'not_a_scope',
+} } };
+const invalidMethod: McpOptions = { cacheHints: {
+  // @ts-expect-error Unknown MCP cache method must be rejected.
+  'tools/unknown': { ttlMs: 100 },
+} };
+void [localeNepal, localeMongolian, invalidLocale, cache, invalidScope, invalidMethod];
+`,
     );
     run(bun, ['install', '--ignore-scripts'], dir, { timeout: 300_000 });
     console.log(
