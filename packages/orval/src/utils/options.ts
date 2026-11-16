@@ -1978,15 +1978,9 @@ function normalizeOperationsAndTags(
                   },
                 }
               : {}),
-            ...(effect
-              ? {
-                  effect: normalizeEffectOptions(
-                    withoutReusableSchemasFlag(effect),
-                  ),
-                }
-              : {}),
             // Kept partial so the deep merge only overrides what is set. The
             // output-wide reusable schemas flag never travels with it.
+            ...(effect ? { effect: withoutReusableSchemasFlag(effect) } : {}),
             ...(valibot
               ? {
                   valibot: withoutReusableSchemasFlag(valibot),

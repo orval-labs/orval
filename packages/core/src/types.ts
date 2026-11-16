@@ -280,7 +280,7 @@ export interface NormalizedOperationOptions {
   angular?: NormalizedAngularOptions;
   swr?: SwrOptions;
   zod?: NormalizedOperationZodOptions;
-  effect?: NormalizedEffectOptions;
+  effect?: OperationEffectOptions;
   valibot?: OperationValibotOptions;
   operationName?: (
     operation: OpenApiOperationObject,
