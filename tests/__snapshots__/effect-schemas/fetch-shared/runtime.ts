@@ -36,7 +36,9 @@ export interface ExecuteArgs<Options extends object = CallOptions> {
   body?: unknown;
   contentType?: string;
   accept?: string;
-  headers?: RequestInit['headers'];
+  headers?:
+    | RequestInit['headers']
+    | Record<string, string | number | boolean | undefined>;
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   reviver?: (key: string, value: unknown) => unknown;
