@@ -258,6 +258,24 @@ export default defineConfig({
       target: '../specifications/typed-header-parameters.yaml',
     },
   },
+  typedHeaderParametersNoRequestOptions: {
+    output: {
+      target:
+        '../generated/fetch/typed-header-parameters-no-request-options/endpoints.ts',
+      schemas:
+        '../generated/fetch/typed-header-parameters-no-request-options/model',
+      client: 'fetch',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        requestOptions: false,
+      },
+    },
+    input: {
+      target: '../specifications/typed-header-parameters.yaml',
+    },
+  },
   typedHeaderParametersShared: {
     output: {
       target: '../generated/fetch/typed-header-parameters-shared/endpoints.ts',
