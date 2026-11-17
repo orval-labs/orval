@@ -77,7 +77,7 @@ const statusCodeTypes = HTTP_STATUS_CODE_SHARED_TYPES.filter(
 // The runtime names fetch types only through `RequestInit`: `BodyInit` and
 // `HeadersInit` are DOM-lib globals that other runtimes, such as Bun, don't
 // declare (#4344). `ClientConfig.mutator` types `schema` as optional `never`:
-// a mutator typed for `includeZodSchemaInArguments` may declare any optional
+// a mutator typed for `includeSchemaInArguments` may declare any optional
 // `schema` (`schema?: ZodType`), but not a required one, since operations
 // without a validated response pass none.
 //

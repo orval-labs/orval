@@ -66,7 +66,7 @@ export default defineConfig({
     client: 'fetch',
     override: {
       ...fetchValidation,
-      includeZodSchemaInArguments: true,
+      includeSchemaInArguments: true,
       mutator: {
         path: '../mutators/valibot-schema-fetch.ts',
         name: 'schemaFetch',
@@ -77,7 +77,7 @@ export default defineConfig({
     client: 'fetch',
     override: {
       ...fetchValidation,
-      includeZodSchemaInArguments: true,
+      includeSchemaInArguments: true,
       mutator: {
         path: '../mutators/effect-schema-fetch.ts',
         name: 'effectSchemaFetch',

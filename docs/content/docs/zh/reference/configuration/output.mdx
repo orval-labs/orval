@@ -2969,7 +2969,7 @@ export const getSwaggerPetstore = (fetchFn: typeof globalThis.fetch = fetch) => 
 | `angular` | `override.angular.runtimeValidation` | ✅ | 通过 `Schema.parse()` 校验 JSON body responses；跳过 primitive / `void`、`observe: 'events'/'response'` 以及 custom mutator 路径 |
 | `angular-query` | `override.query.runtimeValidation` | ✅ | 在 RxJS pipeline 中通过 `Schema.parse()` 校验符合条件的响应；响应类型会变成 schema 的 `zod.output` 别名；跳过 primitive / `void` 和 custom mutator 路径 |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | 通过 `Schema.parse()` 校验 JSON 响应；响应类型会变成 schema 的 `zod.output` 别名；跳过 primitive / `void`、ndjson 和 custom mutator 路径 |
-| 任意使用 custom mutator 的 client | varies | ⚠️ | 运行时校验可能会因 mutator 路径和签名而被绕过（见 [#2858](https://github.com/orval-labs/orval/issues/2858)）。对于 `fetch` client，可以通过 [`override.includeZodSchemaInArguments`](#includezodschemainarguments) 把 schema 传给 mutator，让它自行完成响应校验 |
+| 任意使用 custom mutator 的 client | varies | ⚠️ | 运行时校验可能会因 mutator 路径和签名而被绕过（见 [#2858](https://github.com/orval-labs/orval/issues/2858)）。对于 `fetch` client，可以通过 [`override.includeSchemaInArguments`](#includeschemainarguments) 把 schema 传给 mutator，让它自行完成响应校验 |
 
 运行时校验默认**关闭**（`false`）。启用后，这三个受支持的 Client 都接受对象形式 `{ strategy: 'throw' | 'both' }`，而 `true` 则是 `{ strategy: 'throw' }` 的简写。`throw` 会直接 parse 并抛错；`both` 除了抛错外，还会在重新抛出前通过 `console.error` 输出原始 `ZodError`，从而在不放弃 fail-fast 行为的前提下，提高生产环境中的可观测性。
 
@@ -3390,16 +3390,16 @@ export interface Pet {
 }
 ```
 
-### includeZodSchemaInArguments
+### includeSchemaInArguments
 
 **类型：** `Boolean`
 **默认值：** `false`
 
-把响应对应的 Zod schema 作为额外的 `schema` 选项传给自定义 `mutator`，这样 mutator 就可以自己完成响应校验。
+把响应对应的 Zod、Valibot 或 Effect schema 作为额外的 `schema` 选项传给自定义 `mutator`，这样 mutator 就可以自己完成响应校验。
 
 自定义 mutator 会自己发出请求，因此 Orval 为 `runtimeValidation` 生成的 `Schema.parse()` 调用不会运行。启用这个选项后，schema 会改为直接交给 mutator 处理。
 
-适用于 `fetch` Client。需要 `schemas: { type: 'zod' }` 和 `override.fetch.runtimeValidation: true`。对于没有可校验响应的 operation，不会传入 schema，比如 primitive 或 `void` 响应，以及 `application/x-ndjson` stream（流）。
+适用于 `fetch` Client。需要 `schemas: { type: 'zod' }`、`{ type: 'valibot' }` 或 `{ type: 'effect' }`，以及 `override.fetch.runtimeValidation: true`。对于没有可校验响应的 operation，不会传入 schema，比如 primitive 或 `void` 响应，以及 `application/x-ndjson` stream（流）。
 
 使用 `schemas: { type: 'effect' }` 时，mutator 会收到 Effect schema，参见[自定义 Mutator](/zh/docs/guides/effect#自定义-mutator)。
 
@@ -3410,7 +3410,7 @@ export default defineConfig({
       client: 'fetch',
       schemas: { path: 'src/gen/model', type: 'zod' },
       override: {
-        includeZodSchemaInArguments: true,
+        includeSchemaInArguments: true,
         mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
         fetch: { runtimeValidation: true },
       },
@@ -3437,6 +3437,8 @@ export const customFetch = async <T>(
 <Callout type="info">
 `schema.parse()` 在不匹配时会抛出 `ZodError`。如果你希望自己处理校验失败，请在 mutator 中改用 `safeParse()`。
 </Callout>
+
+`includeZodSchemaInArguments` 是该选项已弃用的别名，可能会在 9.0 中移除。两者同时设置时，以 `includeSchemaInArguments` 为准。
 
 ## factoryMethods
 

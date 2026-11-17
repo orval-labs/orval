@@ -185,7 +185,7 @@ Every schema goes to one module, `<schemas.path>/index.effect.ts`, or `schemas.p
 - Validation runs through the `runtimeValidation` option of `override.fetch` for `fetch` and for `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` with `httpClient: 'fetch'`, `override.angular` for `angular`, and `override.query` for `angular-query`. It is off by default.
 - [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on. Validation errors are therefore `StandardSchemaError`, not `ParseError` (Effect 3) or `SchemaError` (Effect 4), and async schemas are not supported.
 - Axios clients do not validate.
-- Generated validation is skipped for custom mutators. With [`includeZodSchemaInArguments`](/docs/reference/configuration/output#includezodschemainarguments), the mutator of `fetch` or a fetch-backed client receives the schema as `schema` ([example](#custom-mutator)). Angular clients do not pass it.
+- Generated validation is skipped for custom mutators. With [`includeSchemaInArguments`](/docs/reference/configuration/output#includeschemainarguments), the mutator of `fetch` or a fetch-backed client receives the schema as `schema` ([example](#custom-mutator)). Angular clients do not pass it.
 - `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. The conversion is lenient: it accepts strings such as `"2024"`. `useDatesTransform` turns on `useDates` and nothing more: the client adds no date deserializer.
 - `version`, `generate` and `exactOptional` of [`override.effect`](/docs/reference/configuration/output#overrideeffect) apply. `strict`, `useBrandedTypes` and `generateEachHttpStatus` have no effect.
 

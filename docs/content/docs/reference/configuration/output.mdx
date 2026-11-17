@@ -3436,7 +3436,7 @@ customFetch(url, options, {
 });
 ```
 
-The mutator's third parameter can use `{ errorResponses: readonly { status: number; contentType: string }[] }`. The list respects `override.contentType` and is empty when no errors are declared. Responses without a body use an empty `contentType`. The second argument remains the request options, including `schema` when `includeZodSchemaInArguments` is enabled.
+The mutator's third parameter can use `{ errorResponses: readonly { status: number; contentType: string }[] }`. The list respects `override.contentType` and is empty when no errors are declared. Responses without a body use an empty `contentType`. The second argument remains the request options, including `schema` when `includeSchemaInArguments` is enabled.
 
 The mutator owns parsing, validation, and error handling. Matching the supplied status and media type does not validate the response body. Named and default mutator exports are supported; hook mutators are not. Only explicit error status codes are supported among the responses retained by `override.contentType`. A retained `default` or range such as `4XX` causes generation to fail. Responses excluded by the filter are omitted from both the generated error types and metadata and do not prevent generation.
 
@@ -3762,7 +3762,7 @@ configured.
 | `angular` | `override.angular.runtimeValidation` | ✅ | Validates JSON body responses via `Schema.parse()`, including `observe: 'events'/'response'`; types them as the schema's `zod.output` alias; skips `void`/`unknown` and custom mutator paths. [`requestBodies`](#requestbodies) also parses JSON request bodies before sending |
 | `angular-query` | `override.query.runtimeValidation` | ✅ | Validates eligible responses via `Schema.parse()` in RxJS pipeline; types them as the schema's `zod.output` alias; skips `void`/`unknown` and custom mutator paths |
 | `fetch` | `override.fetch.runtimeValidation` | ✅ | Validates JSON responses via `Schema.parse()`; types them as the schema's `zod.output` alias; skips `void`/`unknown`, ndjson and custom mutator paths |
-| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeZodSchemaInArguments`](#includezodschemainarguments) passes the schema to the mutator so it can validate the response itself |
+| any client with custom mutator | varies | ⚠️ | Runtime validation may be bypassed depending on mutator path and signature (see [#2858](https://github.com/orval-labs/orval/issues/2858)). For the `fetch` client, [`override.includeSchemaInArguments`](#includeschemainarguments) passes the schema to the mutator so it can validate the response itself |
 
 Runtime validation is **disabled by default** (`false`). When enabled, all three supporting clients accept the object form `{ strategy: 'throw' | 'both' }`, and `true` is shorthand for `{ strategy: 'throw' }`. The `throw` strategy parses and throws; `both` additionally `console.error`s the raw `ZodError` before re-throwing, for production observability without giving up fail-fast behaviour.
 
@@ -4227,15 +4227,15 @@ export interface Pet {
 }
 ```
 
-### includeZodSchemaInArguments
+### includeSchemaInArguments
 
 With `schemas: { type: 'valibot' }` or `{ type: 'effect' }` the mutator receives the Valibot or Effect schema, which it validates through `schema['~standard'].validate()`. An Effect schema can also be decoded with Effect, see [Custom Mutator](/docs/guides/effect#custom-mutator).
 
 **Type:** `Boolean`
 **Default:** `false`
 
-Pass the zod schema of the response to the custom `mutator` as an extra
-`schema` option, so the mutator can validate the response itself.
+Pass the zod, valibot or effect schema of the response to the custom `mutator`
+as an extra `schema` option, so the mutator can validate the response itself.
 
 A custom mutator issues the request on its own, so the `Schema.parse()` call
 Orval generates for `runtimeValidation` never runs (see
@@ -4255,7 +4255,7 @@ export default defineConfig({
       client: 'fetch',
       schemas: { path: 'src/gen/model', type: 'zod' },
       override: {
-        includeZodSchemaInArguments: true,
+        includeSchemaInArguments: true,
         mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
         fetch: { runtimeValidation: true },
       },
@@ -4283,6 +4283,9 @@ export const customFetch = async <T>(
 `schema.parse()` throws a `ZodError` on a mismatch. Use `safeParse()` in the
 mutator if you would rather handle validation failures yourself.
 </Callout>
+
+`includeZodSchemaInArguments` is a deprecated alias of this option and may be
+removed in 9.0. When both are set, `includeSchemaInArguments` wins.
 
 ## factoryMethods
 

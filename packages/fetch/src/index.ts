@@ -74,6 +74,7 @@ import {
   getResponseDateDeserializer,
   isContentTypeNdJson,
   passesZodSchemaToMutator,
+  resolveIncludeSchemaInArguments,
   wrapSchemaWithDateDeserializer,
 } from './response-helpers';
 import { GET_HEADERS_HELPER } from './runtime';
@@ -1092,9 +1093,9 @@ export const getFetchResponseValidationImports = (
 
   // A custom mutator issues the request itself, so the generated parse never
   // runs there: the schema is referenced — and so has to be a value import —
-  // only when `includeZodSchemaInArguments` hands it to the mutator, and the
+  // only when `includeSchemaInArguments` hands it to the mutator, and the
   // declared types keep the schema (input) name in that case.
-  if (mutator && !context.output.override.includeZodSchemaInArguments) {
+  if (mutator && !resolveIncludeSchemaInArguments(context.output.override)) {
     return undefined;
   }
 

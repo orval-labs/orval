@@ -742,13 +742,36 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
       includeHttpErrorResponse: true,
     });
     const context = makeZodContext();
-    context.output.override.includeZodSchemaInArguments = true;
+    context.output.override.includeSchemaInArguments = true;
     const implementation = generateRequestFunction(
       operation,
       makeOptions(context),
     );
     expect(implementation).toMatch(/schema: Pets\s*}\s*,/);
     expect(implementation).toContain(JSON.stringify({ errorResponses: [] }));
+  });
+
+  it('passes the schema to the mutator for a legacy-only normalized override', () => {
+    const operation = makeZodValidationVerbOptions({
+      mutator: {
+        name: 'customFetch',
+        path: './mutator.ts',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: '',
+        hasSecondArg: true,
+        hasThirdArg: true,
+        isHook: false,
+      },
+    });
+    const context = makeZodContext();
+    delete context.output.override.includeSchemaInArguments;
+    context.output.override.includeZodSchemaInArguments = true;
+    const implementation = generateRequestFunction(
+      operation,
+      makeOptions(context),
+    );
+    expect(implementation).toMatch(/schema: Pets\s*}/);
   });
 
   it('keeps the schema (input) type when the schemas output is not zod', () => {
@@ -1154,7 +1177,7 @@ ${generateRequestFunction(verb, makeOptions(context))}
         type: 'zod',
         splitByTags: false,
       });
-      context.output.override.includeZodSchemaInArguments = true;
+      context.output.override.includeSchemaInArguments = true;
       const verb = makeVerbOptions({
         verb: Verbs.POST,
         body: {
@@ -1847,7 +1870,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
         type: 'zod',
         splitByTags: false,
       });
-      context.output.override.includeZodSchemaInArguments = true;
+      context.output.override.includeSchemaInArguments = true;
       context.output.override.zod.variant = variant;
       return context;
     }

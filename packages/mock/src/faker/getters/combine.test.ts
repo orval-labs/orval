@@ -200,6 +200,7 @@ function createMockContext(): ContextSpec {
         requestOptions: true,
         splitByContentType: false,
         aliasCombinedTypes: false,
+        includeSchemaInArguments: false,
         includeZodSchemaInArguments: false,
         mcp: {},
       },

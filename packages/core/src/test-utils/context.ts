@@ -185,6 +185,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
     requestOptions: true,
     splitByContentType: false,
     aliasCombinedTypes: false,
+    includeSchemaInArguments: false,
     includeZodSchemaInArguments: false,
     mcp: {},
   }) satisfies NormalizedOverrideOutput;

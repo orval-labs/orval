@@ -1,6 +1,6 @@
 import { Schema as S } from 'effect';
 
-// NOTE: `override.includeZodSchemaInArguments` hands the mutator the Effect
+// NOTE: `override.includeSchemaInArguments` hands the mutator the Effect
 // schema itself, so it decodes with Effect instead of going through `~standard`.
 export const effectSchemaFetch = async <T>(
   url: string,

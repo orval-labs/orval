@@ -253,6 +253,11 @@ export interface NormalizedOverrideOutput {
    *
    * @default false
    */
+  includeSchemaInArguments?: boolean;
+  /**
+   * @deprecated Renamed to `includeSchemaInArguments`. Holds the same resolved
+   * value so existing plugins keep working until it is removed.
+   */
   includeZodSchemaInArguments: boolean;
 }
 
@@ -1038,6 +1043,12 @@ export interface OverrideOutput {
    * validation enabled for the client (e.g. `override.fetch.runtimeValidation`).
    *
    * @default false
+   */
+  includeSchemaInArguments?: boolean;
+  /**
+   * @deprecated Renamed to `includeSchemaInArguments`, since it also covers
+   * valibot and effect schemas. The old name will be removed in a future major
+   * release.
    */
   includeZodSchemaInArguments?: boolean;
 }
