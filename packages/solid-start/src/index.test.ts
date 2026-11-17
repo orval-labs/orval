@@ -1071,6 +1071,11 @@ describe('generateSolidStart — multipart Content-Type', () => {
   });
 });
 
+const requestHeadersDeclaration = (implementation: string) =>
+  /const requestHeaders.+;$/m
+    .exec(implementation)?.[0]
+    .replace(': Record<string, string>', '');
+
 describe('generateSolidStart — form bodies', () => {
   const headerParams = {
     schema: {
@@ -1131,7 +1136,7 @@ describe('generateSolidStart — form bodies', () => {
     );
 
     expect(implementation).toContain(
-      "headers: Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))",
+      "headers: Object.fromEntries(Object.entries(requestHeaders).filter(([key]) => key.toLowerCase() !== 'content-type'))",
     );
   });
 
@@ -1211,13 +1216,35 @@ describe('generateSolidStart — form bodies', () => {
 
       expect(
         new Headers(
-          runInNewContext(`(${headersExpression})`, {
-            headers: callerHeaders,
-          }) as Record<string, string>,
+          runInNewContext(
+            `${requestHeadersDeclaration(implementation)} (${headersExpression})`,
+            { headers: callerHeaders },
+          ) as Record<string, string>,
         ).get('content-type'),
       ).toBe(contentType);
     },
   );
+
+  it('sends typed header parameters as strings and skips unset ones', async () => {
+    const implementation = await generateCreatePet(
+      { contentType: 'application/json' },
+      { headers: headerParams },
+    );
+
+    expect(
+      runInNewContext(
+        `${requestHeadersDeclaration(implementation)} requestHeaders`,
+        {
+          headers: {
+            'X-Tenant-Id': 42,
+            'X-Dry-Run': false,
+            'X-Tags': ['a', 'b'],
+            'X-Trace': undefined,
+          },
+        },
+      ),
+    ).toEqual({ 'X-Tenant-Id': '42', 'X-Dry-Run': 'false', 'X-Tags': 'a,b' });
+  });
 });
 
 describe('generateSolidStart — Content-Type header escaping', () => {
