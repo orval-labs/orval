@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Typed header parameters
+  version: 1.0.0
+paths:
+  /items:
+    get:
+      operationId: listItems
+      parameters:
+        - in: header
+          name: X-Tenant-Id
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - in: header
+          name: X-Dry-Run
+          required: true
+          schema:
+            type: boolean
+        - in: header
+          name: X-Tags
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - in: header
+          name: X-Label
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK

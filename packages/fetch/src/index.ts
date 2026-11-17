@@ -725,7 +725,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     globalFetchOptions = '';
   }
   const usesHeadersHelper =
-    headerSources.length > 0 && (isRequestOptions || headerSources.length > 1);
+    headerSources.length > 0 &&
+    (isRequestOptions || headerSources.length > 1 || Boolean(headers));
   const headersCall = hoistHeadersHelper
     ? FETCH_HEADERS_REFERENCE
     : 'getHeaders(';
@@ -734,7 +735,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const fetchHeadersOption = usesHeadersHelper
     ? `headers: ${headersCall}${headerSources.join(', ')}${isRequestOptions ? ', options?.headers' : ''})`
     : headerSources.length > 0
-      ? `headers: ${headers ? '{ ...headers }' : headerSources[0]}`
+      ? `headers: ${headerSources[0]}`
       : '';
   const requestBodyParams = generateBodyOptions(
     requestSerializer
