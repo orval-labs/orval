@@ -26,9 +26,9 @@ import { HTTP_STATUS_CODE_SHARED_TYPES } from '@orval/core';
 // declaration. DOM accepts strings, while some other runtimes accept arrays.
 // Custom mutators can accept undefined record values even with DOM types;
 // those entries are filtered before the result becomes RequestInit headers.
-// Typed header parameters can be numbers or booleans; they are sent as strings,
-// the way `fetch` serializes header values.
-export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string | number | boolean | undefined>)[]) => {
+// Typed header parameters can be numbers, booleans or bigints (`useBigInt`) and
+// are sent as strings, the way `fetch` serializes header values. Arrays are kept.
+export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string | number | boolean | bigint | readonly string[] | undefined>)[]) => {
     const seen = new Set<string>();
     const layers: [string, string | readonly string[]][][] = [];
     for (const source of sources.reverse()) {
@@ -37,7 +37,7 @@ export const GET_HEADERS_HELPER = `  const getHeaders = (...sources: (RequestIni
         ? source.entries()
         : Symbol.iterator in source
           ? Array.from(source as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])
-          : Object.entries<string | number | boolean | readonly string[] | undefined>(source);
+          : Object.entries<string | number | boolean | bigint | readonly string[] | undefined>(source);
       const layer: [string, string | readonly string[]][] = [];
       for (const [name, value] of entries) {
         if (value !== undefined && !seen.has(name.toLowerCase())) layer.push([name, typeof value === 'object' ? value : String(value)]);
@@ -112,7 +112,10 @@ export interface ExecuteArgs<Options extends object = CallOptions> {
   accept?: string;
   headers?:
     | RequestInit['headers']
-    | Record<string, string | number | boolean | undefined>;
+    | Record<
+        string,
+        string | number | boolean | bigint | readonly string[] | undefined
+      >;
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   reviver?: (key: string, value: unknown) => unknown;

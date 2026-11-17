@@ -1397,7 +1397,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       Headers,
     }) as (
       body: string,
-      headers: Record<string, string | number | boolean>,
+      headers: Record<string, string | number | boolean | bigint>,
       options?: { headers: unknown },
     ) => Promise<unknown>;
     return { request, fetch };
@@ -1464,9 +1464,13 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
     });
   });
 
-  it('sends number and boolean header parameters as strings', async () => {
+  it('sends number, boolean and bigint header parameters as strings', async () => {
     const { request, fetch } = createRequest();
-    await request('body', { 'X-Tenant-Id': 42, 'X-Dry-Run': false });
+    await request('body', {
+      'X-Tenant-Id': 42,
+      'X-Dry-Run': false,
+      'X-Big-Id': 9007199254740993n,
+    });
 
     expect(fetch.mock.calls[0]?.[1].headers).toEqual({
       'Content-Type': 'application/json',
@@ -1474,6 +1478,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       'x-trace': 'configured',
       'X-Tenant-Id': '42',
       'X-Dry-Run': 'false',
+      'X-Big-Id': '9007199254740993',
     });
   });
 

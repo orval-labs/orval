@@ -21,7 +21,10 @@ import type {
 const getHeaders = (
   ...sources: (
     | RequestInit['headers']
-    | Record<string, string | number | boolean | undefined>
+    | Record<
+        string,
+        string | number | boolean | bigint | readonly string[] | undefined
+      >
   )[]
 ) => {
   const seen = new Set<string>();
@@ -37,7 +40,7 @@ const getHeaders = (
               (entry) => Array.from(entry) as [string, string],
             )
           : Object.entries<
-              string | number | boolean | readonly string[] | undefined
+              string | number | boolean | bigint | readonly string[] | undefined
             >(source);
     const layer: [string, string | readonly string[]][] = [];
     for (const [name, value] of entries) {

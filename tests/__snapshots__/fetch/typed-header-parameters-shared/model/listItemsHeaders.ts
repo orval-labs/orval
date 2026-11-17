@@ -8,5 +8,6 @@
 export type ListItemsHeaders = {
   'X-Tenant-Id': number;
   'X-Dry-Run': boolean;
+  'X-Tags': string[];
   'X-Label': string;
 };

@@ -19,6 +19,13 @@ paths:
           schema:
             type: boolean
         - in: header
+          name: X-Tags
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+        - in: header
           name: X-Label
           required: true
           schema:
