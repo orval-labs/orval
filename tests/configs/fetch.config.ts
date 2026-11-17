@@ -243,6 +243,21 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // Header parameters with integer and boolean schemas are typed as number and
+  // boolean. The generated getHeaders helper must accept them and send strings.
+  typedHeaderParameters: {
+    output: {
+      target: '../generated/fetch/typed-header-parameters/endpoints.ts',
+      schemas: '../generated/fetch/typed-header-parameters/model',
+      client: 'fetch',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typed-header-parameters.yaml',
+    },
+  },
   // Issue #1879: header parameter referenced via a JSON Pointer `$ref` that
   // targets another path's parameter (`#/paths/~1requestA/post/parameters/0`)
   // used to type the header as a dangling synthesized name (`N0`) and import

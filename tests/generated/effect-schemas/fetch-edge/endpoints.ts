@@ -108,7 +108,10 @@ function orvalParseStandardSchema<O>(
 }
 
 const getHeaders = (
-  ...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]
+  ...sources: (
+    | RequestInit['headers']
+    | Record<string, string | number | boolean | undefined>
+  )[]
 ) => {
   const seen = new Set<string>();
   const layers: [string, string | readonly string[]][][] = [];
@@ -122,11 +125,13 @@ const getHeaders = (
               source as Iterable<Iterable<string>>,
               (entry) => Array.from(entry) as [string, string],
             )
-          : Object.entries<string | readonly string[] | undefined>(source);
+          : Object.entries<
+              string | number | boolean | readonly string[] | undefined
+            >(source);
     const layer: [string, string | readonly string[]][] = [];
     for (const [name, value] of entries) {
       if (value !== undefined && !seen.has(name.toLowerCase()))
-        layer.push([name, value]);
+        layer.push([name, typeof value === 'object' ? value : String(value)]);
     }
     for (const [name] of layer) seen.add(name.toLowerCase());
     layers.push(layer);

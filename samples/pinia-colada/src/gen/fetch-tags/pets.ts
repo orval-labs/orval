@@ -30,7 +30,7 @@ import type {
 
 
 
-const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]) => {
+const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string | number | boolean | undefined>)[]) => {
   const seen = new Set<string>();
   const layers: [string, string | readonly string[]][][] = [];
   for (const source of sources.reverse()) {
@@ -39,10 +39,10 @@ const getHeaders = (...sources: (RequestInit['headers'] | Record<string, string 
       ? source.entries()
       : Symbol.iterator in source
         ? Array.from(source as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string])
-        : Object.entries<string | readonly string[] | undefined>(source);
+        : Object.entries<string | number | boolean | readonly string[] | undefined>(source);
     const layer: [string, string | readonly string[]][] = [];
     for (const [name, value] of entries) {
-      if (value !== undefined && !seen.has(name.toLowerCase())) layer.push([name, value]);
+      if (value !== undefined && !seen.has(name.toLowerCase())) layer.push([name, typeof value === 'object' ? value : String(value)]);
     }
     for (const [name] of layer) seen.add(name.toLowerCase());
     layers.push(layer);
