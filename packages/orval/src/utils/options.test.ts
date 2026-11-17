@@ -8,6 +8,7 @@ import type {
   NormalizedSchemaOptions,
   OutputClientFunc,
   OutputMocksConfig,
+  OverrideOutput,
 } from '@orval/core';
 import {
   afterEach,
@@ -2323,38 +2324,107 @@ describe('normalizeOptions', () => {
     }
   });
 
-  it('normalizes includeZodSchemaInArguments (default false, opt-in true)', async () => {
-    const workspace = await createTempWorkspace();
+  describe('includeSchemaInArguments', () => {
+    const normalizeOverride = async (override: OverrideOutput | undefined) => {
+      const workspace = await createTempWorkspace();
 
-    try {
-      const input = {
-        target: {
-          openapi: '3.1.0',
-          info: { title: 'Test', version: '1.0.0' },
-          paths: {},
-        },
-      };
-
-      const defaults = await normalizeOptions(
-        { input, output: { target: './generated.ts' } },
-        workspace,
-      );
-      expect(defaults.output.override.includeZodSchemaInArguments).toBe(false);
-
-      const enabled = await normalizeOptions(
-        {
-          input,
-          output: {
-            target: './generated.ts',
-            override: { includeZodSchemaInArguments: true },
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: { target: './generated.ts', override },
           },
-        },
-        workspace,
+          workspace,
+        );
+        return normalized.output.override;
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    const normalizeWithOverride = async (
+      override: OverrideOutput | undefined,
+    ) => (await normalizeOverride(override)).includeSchemaInArguments;
+
+    beforeEach(() => {
+      logWarningSpy.mockClear();
+    });
+
+    it('defaults to false', async () => {
+      expect(await normalizeWithOverride(undefined)).toBe(false);
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('enables with the new name without warning', async () => {
+      expect(
+        await normalizeWithOverride({ includeSchemaInArguments: true }),
+      ).toBe(true);
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps the deprecated includeZodSchemaInArguments alias working and warns once', async () => {
+      expect(
+        await normalizeWithOverride({ includeZodSchemaInArguments: true }),
+      ).toBe(true);
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '`override.includeZodSchemaInArguments` is deprecated',
+        ),
       );
-      expect(enabled.output.override.includeZodSchemaInArguments).toBe(true);
-    } finally {
-      await rm(workspace, { recursive: true, force: true });
-    }
+
+      logWarningSpy.mockClear();
+      expect(
+        await normalizeWithOverride({ includeZodSchemaInArguments: false }),
+      ).toBe(false);
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('prefers the new name when both are set and differ', async () => {
+      expect(
+        await normalizeWithOverride({
+          includeSchemaInArguments: false,
+          includeZodSchemaInArguments: true,
+        }),
+      ).toBe(false);
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining('`override.includeSchemaInArguments` is used'),
+      );
+    });
+
+    it('mirrors the resolved value to the deprecated key for plugins', async () => {
+      for (const override of [
+        undefined,
+        { includeSchemaInArguments: true },
+        { includeZodSchemaInArguments: true },
+        { includeSchemaInArguments: false, includeZodSchemaInArguments: true },
+      ]) {
+        const normalized = await normalizeOverride(override);
+        expect(normalized.includeZodSchemaInArguments).toBe(
+          normalized.includeSchemaInArguments,
+        );
+      }
+    });
+
+    it('does not report a conflict when both names agree', async () => {
+      expect(
+        await normalizeWithOverride({
+          includeSchemaInArguments: true,
+          includeZodSchemaInArguments: true,
+        }),
+      ).toBe(true);
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+      expect(logWarningSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('is used'),
+      );
+    });
   });
 
   it('defaults schemas.type to typescript when omitted', async () => {

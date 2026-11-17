@@ -413,7 +413,7 @@ describe('primitive response runtime validation (#4138)', () => {
     },
   );
 
-  it('leaves custom mutators unchanged, including includeZodSchemaInArguments', async () => {
+  it('leaves custom mutators unchanged, including includeSchemaInArguments', async () => {
     await writeFile(
       path.join(workspace, 'mutator.ts'),
       `
@@ -427,7 +427,7 @@ export const request = async <T>(url: string, options: RequestInit): Promise<T> 
       client: 'fetch',
       override: {
         mutator: { path: './mutator.ts', name: 'request' },
-        includeZodSchemaInArguments: true,
+        includeSchemaInArguments: true,
         fetch: { runtimeValidation: true },
       },
     });

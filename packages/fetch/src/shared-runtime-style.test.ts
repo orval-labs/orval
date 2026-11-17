@@ -176,7 +176,7 @@ function makeSharedOptions(
         : undefined,
     ),
   );
-  options.context.output.override.includeZodSchemaInArguments =
+  options.context.output.override.includeSchemaInArguments =
     zodSchemaInArguments;
   options.context.output.target = '/proj/src/api/endpoints.ts';
   options.context.output.client = client;
@@ -898,7 +898,7 @@ describe('generateSharedRequestFunction', () => {
       );
     });
 
-    it('passes no schema without includeZodSchemaInArguments', () => {
+    it('passes no schema without includeSchemaInArguments', () => {
       const { imports, implementation } = generateSharedClient(
         validatedVerbOptions(),
         makeSharedOptions([], { mutator: true }),

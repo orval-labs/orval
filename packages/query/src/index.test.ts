@@ -52,7 +52,7 @@ describe('throws when trying to use named parameters with vue-query client', () 
   });
 });
 
-describe('generateQuery — includeZodSchemaInArguments with a custom mutator', () => {
+describe('generateQuery — includeSchemaInArguments with a custom mutator', () => {
   const makeVerbOptions = (
     overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
   ): GeneratorVerbOptions =>
@@ -104,11 +104,11 @@ describe('generateQuery — includeZodSchemaInArguments with a custom mutator', 
       ...overrides,
     });
 
-  const makeOptions = (includeZodSchemaInArguments: boolean) =>
+  const makeOptions = (includeSchemaInArguments: boolean) =>
     createTestGeneratorOptions({
       route: '/pets',
       pathRoute: '/pets',
-      override: { includeZodSchemaInArguments },
+      override: { includeSchemaInArguments },
       context: {
         output: {
           client: OutputClient.REACT_QUERY,

@@ -179,7 +179,7 @@ export default defineConfig({
 - 校验通过 `override.fetch` 的 `runtimeValidation` 选项运行，适用于 `fetch`，以及 `httpClient: 'fetch'` 的 `react-query`、`vue-query`、`svelte-query`、`solid-query`、`swr`、`pinia-colada`；`angular` 使用 `override.angular`，`angular-query` 使用 `override.query`。默认关闭。
 - [`standardSchema`](/zh/docs/reference/configuration/output#standardschema) 始终开启。因此校验错误是 `StandardSchemaError`，而不是 `ParseError`（Effect 3）或 `SchemaError`（Effect 4），且不支持异步 schema。
 - axios client 不校验响应。
-- 自定义 mutator 会跳过生成的校验。使用 [`includeZodSchemaInArguments`](/zh/docs/reference/configuration/output#includezodschemainarguments) 时，`fetch` 或基于 fetch 的 client 的 mutator 会收到 `schema`（[示例](#自定义-mutator)）。Angular client 不会传入。
+- 自定义 mutator 会跳过生成的校验。使用 [`includeSchemaInArguments`](/zh/docs/reference/configuration/output#includeschemainarguments) 时，`fetch` 或基于 fetch 的 client 的 mutator 会收到 `schema`（[示例](#自定义-mutator)）。Angular client 不会传入。
 - `useDates` 使 schema 把日期字符串转换为 `Date`，因此 `XOutput` 中是 `Date`，`X` 中是 `string`。转换较宽松：`"2024"` 这类字符串也会被接受。`useDatesTransform` 只会开启 `useDates`：client 不会再添加日期反序列化器。
 - `override.effect` 的 `version`、`generate` 和 `exactOptional` 生效；`strict`、`useBrandedTypes` 和 `generateEachHttpStatus` 不起作用。
 

@@ -425,7 +425,7 @@ export const getSchemaOutputTypeRef = (typeName: string): string =>
  *
  * `includeOutputType: false` keeps the value-import flip but skips the alias —
  * for call sites where validation is delegated (e.g. a custom mutator handed
- * the schema via `includeZodSchemaInArguments`) and the declared type is
+ * the schema via `includeSchemaInArguments`) and the declared type is
  * intentionally left as the schema (input) name.
  */
 export const rewriteImportsForResponseValidation = (

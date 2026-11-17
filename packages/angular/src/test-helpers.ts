@@ -164,6 +164,7 @@ export const createAngularOutput = (
       enumGenerationType: 'const',
       splitByContentType: false,
       aliasCombinedTypes: false,
+      includeSchemaInArguments: false,
       includeZodSchemaInArguments: false,
       suppressReadonlyModifier: false,
       mcp: {},

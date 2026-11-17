@@ -755,6 +755,35 @@ function normalizeEffectOptions(
   };
 }
 
+/**
+ * Resolves `includeSchemaInArguments`, honoring the deprecated
+ * `includeZodSchemaInArguments` alias. The new name wins when both are set.
+ */
+function normalizeIncludeSchemaInArguments(
+  override: OverrideOutput | undefined,
+): boolean {
+  const { includeSchemaInArguments, includeZodSchemaInArguments } =
+    override ?? {};
+
+  if (isNullish(includeZodSchemaInArguments)) {
+    return includeSchemaInArguments ?? false;
+  }
+
+  const conflict =
+    !isNullish(includeSchemaInArguments) &&
+    includeSchemaInArguments !== includeZodSchemaInArguments;
+
+  logger.warn(
+    `\`override.includeZodSchemaInArguments\` is deprecated and will be removed in a future major release. Please use \`override.includeSchemaInArguments\` instead.${
+      conflict
+        ? ' Both are set to different values, so `override.includeSchemaInArguments` is used.'
+        : ''
+    }`,
+  );
+
+  return includeSchemaInArguments ?? includeZodSchemaInArguments;
+}
+
 const ANGULAR_BASE_URL_API_ID_REGEX = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 /**
@@ -1017,6 +1046,10 @@ export async function normalizeOptions(
       resolveTsconfigPath,
     ),
   };
+
+  const includeSchemaInArguments = normalizeIncludeSchemaInArguments(
+    outputOptions.override,
+  );
 
   const normalizedOptions: NormalizedOptions = {
     input: {
@@ -1395,8 +1428,9 @@ export async function normalizeOptions(
           outputOptions.override?.preserveReadonlyRequestBodies ?? 'strip',
         splitByContentType: outputOptions.override?.splitByContentType ?? false,
         aliasCombinedTypes: outputOptions.override?.aliasCombinedTypes ?? false,
-        includeZodSchemaInArguments:
-          outputOptions.override?.includeZodSchemaInArguments ?? false,
+        includeSchemaInArguments,
+        // Mirrors the resolved value for plugins that still read the old name
+        includeZodSchemaInArguments: includeSchemaInArguments,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,

@@ -24,6 +24,12 @@ export const isContentTypeNdJson = (contentType: string) => {
   );
 };
 
+/** Resolves the flag, falling back to the legacy field for older overrides. */
+export const resolveIncludeSchemaInArguments = (
+  override: ContextSpec['output']['override'],
+) =>
+  !!(override.includeSchemaInArguments ?? override.includeZodSchemaInArguments);
+
 /**
  * Whether a custom mutator receives the response's zod schema as `schema:`.
  * When the response also has a date deserializer, the inline style's schema
@@ -35,7 +41,7 @@ export const passesZodSchemaToMutator = (
   context: ContextSpec,
 ) =>
   mutator !== undefined &&
-  !!context.output.override.includeZodSchemaInArguments &&
+  resolveIncludeSchemaInArguments(context.output.override) &&
   getSchemaLibrary(context.output) !== undefined;
 
 export const getMutatorErrorResponses = (

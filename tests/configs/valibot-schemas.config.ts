@@ -49,7 +49,7 @@ export default defineConfig({
     client: 'fetch',
     override: {
       ...fetchValidation,
-      includeZodSchemaInArguments: true,
+      includeSchemaInArguments: true,
       mutator: {
         path: '../mutators/valibot-schema-fetch.ts',
         name: 'schemaFetch',
