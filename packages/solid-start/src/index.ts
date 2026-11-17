@@ -477,14 +477,19 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
   // is dropped: the browser sets the multipart one, because only it knows the
   // boundary, and a url-encoded body sends the declared media type. For JSON,
   // the default is only added when the caller sets no Content-Type in any
-  // casing, since fetch would combine both into one header.
-  const headersWithoutContentType = `Object.fromEntries(Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'content-type'))`;
+  // casing, since fetch would combine both into one header. Header parameters
+  // can be numbers, booleans or arrays and optional ones can be undefined,
+  // which fetch would send as "undefined", so they are stringified first.
+  const requestHeadersCode = headers
+    ? `const requestHeaders: Record<string, string> = Object.fromEntries(Object.entries(headers ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]));\n    `
+    : '';
+  const headersWithoutContentType = `Object.fromEntries(Object.entries(requestHeaders).filter(([key]) => key.toLowerCase() !== 'content-type'))`;
   const headersCode = isFormDataBody
     ? `headers: ${headers ? headersWithoutContentType : '{}'}`
     : isFormUrlEncodedBody
       ? `headers: { 'Content-Type': '${jsStringLiteralEscape(body.contentType)}'${headers ? `, ...${headersWithoutContentType}` : ''} }`
       : headers
-        ? `headers: Object.keys(headers ?? {}).some((key) => key.toLowerCase() === 'content-type') ? headers : { 'Content-Type': 'application/json', ...headers }`
+        ? `headers: Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type') ? requestHeaders : { 'Content-Type': 'application/json', ...requestHeaders }`
         : `headers: { 'Content-Type': 'application/json' }`;
 
   // Build body code
@@ -499,7 +504,7 @@ ${delimitedParameters.length > 0 ? `    const delimitedParameters = new Map<stri
 
   return `  ${operationName}: ${functionName}(async (${propsImplementation}) => {${bodyForm}
     ${queryParamsCode}
-    const response = await fetch(url, {
+    ${requestHeadersCode}const response = await fetch(url, {
       method: '${verb.toUpperCase()}',
       ${headersCode}${fetchBodyPart}
     });

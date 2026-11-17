@@ -124,4 +124,17 @@ export default defineConfig({
       target: '../specifications/form-url-encoded.yaml',
     },
   },
+  typedHeaderParameters: {
+    output: {
+      target: '../generated/solid-start/typed-header-parameters/endpoints.ts',
+      schemas: '../generated/solid-start/typed-header-parameters/model',
+      client: 'solid-start',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typed-header-parameters.yaml',
+    },
+  },
 });
