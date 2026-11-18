@@ -2427,7 +2427,7 @@ export const CreateUserBody = zod.object({
 
 Injection scope:
 
-- Applied to base types (`string`, `number`, `boolean`, `bigint`, `date`, `integer`), constraints (`min`, `max`, `gt`, `lt`, `multipleOf`, `regex`, `length`), formats (`email`, `url`, `uuid`, `hostname`, `datetime`, `time`), and `literal`, `enum`, `instanceof`, `stringFormat`.
+- Applied to base types (`string`, `number`, `boolean`, `bigint`, `date`, `integer`), constraints (`min`, `max`, `gt`, `lt`, `multipleOf`, `regex`, `length`), formats (`email`, `url`, `uuid`, `hostname`, `ipv4`, `ipv6`, `ip`, `datetime`, `time`), and `literal`, `enum`, `instanceof`, `stringFormat`.
 - Skipped on modifiers (`optional`, `nullable`, `nullish`, `default`, `describe`) and structural calls (`object`, `array`, `tuple`, `union`, `rest`, `passthrough`, `strict`).
 - `fieldPath` only includes object property names, mirroring Zod's own `issue.path`. Array indices and tuple positions are not appended — the inner element of `{ tags: array<string> }` and a top-level `tags: string` both see `fieldPath: ['tags']`. Use the `validator` field to distinguish a container (`'array'`, `'tuple'`) from its element (`'string'`, `'number'`).
 

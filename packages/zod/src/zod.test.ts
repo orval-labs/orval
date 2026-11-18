@@ -907,12 +907,13 @@ describe('parseZodValidationSchemaDefinition with params injection', () => {
     expect(zod).not.toContain('.array(zodParams');
   });
 
-  it('merges into existing options for iso.datetime / datetime / iso.time / time', () => {
+  it('merges into existing options for iso.datetime / datetime / iso.time / time / ip', () => {
     const cases: [string, string][] = [
       ['iso.datetime', '{"offset":true}'],
       ['datetime', '{"offset":true}'],
       ['iso.time', '{"precision":3}'],
       ['time', '{"precision":3}'],
+      ['ip', "{ version: 'v4' }"],
     ];
 
     for (const [fn, optsArg] of cases) {
@@ -2318,6 +2319,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
       ['uri', 'url'],
       ['hostname', 'hostname'],
       ['uuid', 'uuid'],
+      ['ipv4', 'ipv4'],
+      ['ipv6', 'ipv6'],
     ]);
 
     for (const format of predefinedZodFormats) {
@@ -2445,6 +2448,58 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     expect(parsed.zod).toContain('.url()');
     expect(parsed.zod).not.toContain('.hostname()');
+  });
+
+  it.each(['ipv4', 'ipv6'])(
+    'generates top-level %s validator in v4',
+    (format) => {
+      const context = createTestContextSpec({
+        output: { override: { useDates: false } },
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          { type: 'string', format },
+          context,
+          'testIp',
+          true,
+          true, // Zod v4
+          { required: true },
+        ),
+        context,
+        false,
+        true,
+        true,
+      );
+
+      expect(parsed.zod).toBe(`zod.${format}()`);
+    },
+  );
+
+  it.each([
+    ['ipv4', 'v4'],
+    ['ipv6', 'v6'],
+  ])('generates ip validator for %s format in v3', (format, version) => {
+    const context = createTestContextSpec({
+      output: { override: { useDates: false } },
+    });
+
+    const parsed = parseZodValidationSchemaDefinition(
+      generateZodValidationSchemaDefinition(
+        { type: 'string', format },
+        context,
+        'testIp',
+        true,
+        false, // Zod v3
+        { required: true },
+      ),
+      context,
+      false,
+      true,
+      false,
+    );
+
+    expect(parsed.zod).toBe(`zod.string().ip({ version: '${version}' })`);
   });
 
   // Regression test for #3472: in Zod v4, string formats must be emitted as
