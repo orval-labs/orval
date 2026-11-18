@@ -58,7 +58,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
   const encodedParams = { ...params };
   if (encodedParams.after != null) {
     encodedParams.after =
-      typeof encodedParams.after === 'string'
+      typeof encodedParams.after === 'string' || encodedParams.after == null
         ? encodedParams.after
         : (String(
             encodedParams.after,
@@ -66,7 +66,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
   }
   if (encodedParams.before != null) {
     encodedParams.before =
-      typeof encodedParams.before === 'string'
+      typeof encodedParams.before === 'string' || encodedParams.before == null
         ? encodedParams.before
         : (String(
             encodedParams.before,
@@ -76,7 +76,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
     encodedParams.days = encodedParams.days.map((item0) => {
       let value0 = item0;
       value0 =
-        typeof value0 === 'string'
+        typeof value0 === 'string' || value0 == null
           ? value0
           : (String(value0) as unknown as typeof value0);
       return value0;
@@ -221,24 +221,24 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (String(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.date != null) {
     copy.date =
-      typeof copy.date === 'string'
+      typeof copy.date === 'string' || copy.date == null
         ? copy.date
         : (String(copy.date) as unknown as typeof copy.date);
   }
   if (copy.publishAt != null) {
     copy.publishAt =
-      typeof copy.publishAt === 'string'
+      typeof copy.publishAt === 'string' || copy.publishAt == null
         ? copy.publishAt
         : (String(copy.publishAt) as unknown as typeof copy.publishAt);
   }
   if (copy.endsAt != null) {
     copy.endsAt =
-      typeof copy.endsAt === 'string'
+      typeof copy.endsAt === 'string' || copy.endsAt == null
         ? copy.endsAt
         : (String(copy.endsAt) as unknown as typeof copy.endsAt);
   }

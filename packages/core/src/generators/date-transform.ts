@@ -520,7 +520,7 @@ const buildResolvedStatements = ({
  * the shared property builder (both directions), where it distinguishes a
  * required date leaf (unguarded — a response's `new Date(undefined)` degrades
  * to `Invalid Date` rather than throwing, and a request's
- * `x instanceof Date ? … : x` already tolerates `undefined`) from a required
+ * `instanceof Date` or `formatType` encode passes it through) from a required
  * container (object copy or shallow mutation, array `.map` or in-place loop,
  * map copy or key loop, or union dispatch), which must be null-guarded in
  * both directions so an omitted container isn't turned into `{}`, thrown on,
@@ -1713,9 +1713,13 @@ const buildCopyingMapStatements = ({
   };
 };
 
-/** A request statement encoding a value that is not a string already. */
+/**
+ * A request statement encoding a value that is not a string already. A
+ * missing value is left as it is, for `JSON.stringify` to drop, like the
+ * `instanceof Date` check of `serializeLeafStatement` does.
+ */
 const encodeLeafStatement = (read: string, write: string, encode: string) =>
-  `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
+  `${write} = typeof ${read} === 'string' || ${read} == null ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
 
 const requestMode: DateTransformMode = {
   isLeaf: (schema, context) =>
