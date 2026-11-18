@@ -2207,6 +2207,14 @@ export const generateZodValidationSchemaDefinition = (
         }
 
         if (schema.format === 'ipv4' || schema.format === 'ipv6') {
+          // A fixed value is stricter than the format check. Zod 3 already
+          // emitted the literal above, and a literal has no `.ip()` method.
+          if ('const' in schema) {
+            if (isZodV4) {
+              functions.push(['literal', JSON.stringify(String(schema.const))]);
+            }
+            break;
+          }
           if (isZodV4) {
             functions.push([schema.format, undefined]);
           } else {

@@ -2502,6 +2502,32 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toBe(`zod.string().ip({ version: '${version}' })`);
   });
 
+  it.each([true, false])(
+    'emits only the literal for an ip format with const (Zod 4: %s)',
+    (isZodV4) => {
+      const context = createTestContextSpec({
+        output: { override: { useDates: false } },
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        generateZodValidationSchemaDefinition(
+          { type: 'string', format: 'ipv4', const: '127.0.0.1' },
+          context,
+          'testIpConst',
+          true,
+          isZodV4,
+          { required: true },
+        ),
+        context,
+        false,
+        true,
+        isZodV4,
+      );
+
+      expect(parsed.zod).toBe('zod.literal("127.0.0.1")');
+    },
+  );
+
   // Regression test for #3472: in Zod v4, string formats must be emitted as
   // top-level APIs (e.g. `zod.uuid()`, `zod.iso.datetime()`) rather than the
   // deprecated method-chain form (`zod.string().uuid()`). Zod v3 keeps the
