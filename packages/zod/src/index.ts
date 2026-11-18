@@ -4991,6 +4991,10 @@ export {
   resolveIsZodV4,
   supportsZodXor,
 } from './compatible-v4';
-export { renderZodExport, type ZodExportBlock } from './export-emitter';
+export {
+  renderZodBrand,
+  renderZodExport,
+  type ZodExportBlock,
+} from './export-emitter';
 
 export default builder;

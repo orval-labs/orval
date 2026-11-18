@@ -2280,3 +2280,125 @@ describe('formatType imports', () => {
     }
   });
 });
+
+describe('override.useBrandedTypes on zod component schemas (#4534)', () => {
+  const brandSpec = {
+    openapi: '3.1.0',
+    info: { title: 'test', version: '1.0.0' },
+    components: {
+      schemas: {
+        CharacterID: { type: 'string', maxLength: 64 },
+        MessageID: { type: 'string', format: 'uuid' },
+        Label: { type: 'string', default: 'none' },
+        Record: {
+          type: 'object',
+          required: ['character', 'message'],
+          properties: {
+            character: { $ref: '#/components/schemas/CharacterID' },
+            message: { $ref: '#/components/schemas/MessageID' },
+          },
+        },
+      },
+    },
+  };
+  const createBrandBuilder = () =>
+    ({
+      spec: brandSpec,
+      target: '',
+      schemas: Object.entries(brandSpec.components.schemas).map(
+        ([name, schema]) => ({ name, schema }),
+      ),
+    }) as Parameters<typeof writeZodSchemas>[0];
+  const createBrandOptions = ({
+    reusable,
+    branded = true,
+  }: {
+    reusable: boolean;
+    branded?: boolean;
+  }) => {
+    const options = createOutputOptions();
+    options.override.useBrandedTypes = branded;
+    options.override.zod.generateReusableSchemas = reusable;
+    return options;
+  };
+  const expectBrands = (content: string) => {
+    expect(content).toMatch(
+      /export const CharacterID = [^\n]*\.brand\("CharacterID"\)/,
+    );
+    expect(content).toMatch(
+      /export const MessageID = [^\n]*\.brand\("MessageID"\)/,
+    );
+    // A `default` and an object are not brandable, as in the TS output.
+    expect(content).not.toContain('.brand("Label")');
+    expect(content).not.toContain('.brand("Record")');
+  };
+  const writeAll = async (options: Parameters<typeof writeZodSchemas>[4]) => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-brand-'),
+    );
+    try {
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemas(
+        createBrandBuilder(),
+        schemasPath,
+        '.ts',
+        '',
+        options,
+      );
+      const files = await Promise.all(
+        ['CharacterID', 'MessageID', 'Label', 'Record'].map((name) =>
+          fs.promises.readFile(path.join(schemasPath, `${name}.ts`), 'utf8'),
+        ),
+      );
+      return files.join('\n');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  };
+
+  it.each([false, true])(
+    'brands named primitive schemas written per file (reusable: %s)',
+    async (reusable) => {
+      expectBrands(await writeAll(createBrandOptions({ reusable })));
+    },
+  );
+
+  it.each([false, true])(
+    'brands named primitive schemas written inline (reusable: %s)',
+    (reusable) => {
+      expectBrands(
+        generateZodSchemasInline(
+          createBrandBuilder(),
+          createBrandOptions({ reusable }),
+        ),
+      );
+    },
+  );
+
+  it('keeps the reusable schema statement terminated after the brand', () => {
+    expect(
+      generateZodSchemasInline(
+        createBrandBuilder(),
+        createBrandOptions({ reusable: true }),
+      ),
+    ).toMatch(/\.brand\("CharacterID"\);\n/);
+  });
+
+  it('uses the zod v3 brand syntax for zod v3', () => {
+    const options = createBrandOptions({ reusable: false });
+    options.override.zod.version = 3;
+    expect(generateZodSchemasInline(createBrandBuilder(), options)).toContain(
+      '.brand<"CharacterID">()',
+    );
+  });
+
+  it('leaves schemas unbranded without useBrandedTypes', async () => {
+    for (const reusable of [false, true]) {
+      const options = createBrandOptions({ reusable, branded: false });
+      expect(await writeAll(options)).not.toContain('.brand(');
+      expect(
+        generateZodSchemasInline(createBrandBuilder(), options),
+      ).not.toContain('.brand(');
+    }
+  });
+});

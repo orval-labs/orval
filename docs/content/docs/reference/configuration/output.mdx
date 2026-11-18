@@ -5181,6 +5181,7 @@ getUser(user.id); // OK
 
 - Only schemas that resolve to `string`, `number`, `boolean`, `bigint` or `Date` are branded. Object, enum and composed (`allOf` / `oneOf` / `anyOf`) schemas, and schemas with a `default`, are unchanged.
 - Independent of the Zod [`useBrandedTypes`](#usebrandedtypes) option, which uses `.brand()` and produces a different type.
+- With `schemas: { type: 'zod' }`, the same named primitive component schemas get a Zod brand instead (`export const UserId = zod.uuid().brand('UserId')`). Zod brands the schema's output, so `UserIdOutput` and parsed responses are branded, while the `UserId` input type stays a plain `string`.
 
 ### requestOptions
 

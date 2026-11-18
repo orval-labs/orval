@@ -14,6 +14,7 @@ import {
   getImportExtension,
   getRefInfo,
   hasSchemaDefinition,
+  isBrandablePrimitiveSchema,
   isComponentRef,
   kebab,
   type NamingConvention,
@@ -44,6 +45,7 @@ import {
   getFormatTypeZodImports,
   getZodImportSource,
   parseZodValidationSchemaDefinition,
+  renderZodBrand,
   renderZodExport,
   resolveIsZodV4,
   supportsZodXor,
@@ -67,7 +69,24 @@ interface ZodSchemaFileEntry {
   zodExpression: string;
   /** Pre-rendered `import { x } from './x'` lines for reusable-schema refs. */
   importStatements?: string[];
+  /** Brand the schema with its name (`override.useBrandedTypes`). */
+  brand?: { isZodV4: boolean };
 }
+
+/**
+ * The brand of a named component schema under `override.useBrandedTypes`:
+ * set for the same primitive schemas the TypeScript model output brands.
+ *
+ * @param rawSchema - The raw `components/schemas` entry.
+ */
+const getComponentBrand = (
+  output: { override: { useBrandedTypes?: boolean } },
+  rawSchema: unknown,
+  isZodV4: boolean,
+): { isZodV4: boolean } | undefined =>
+  output.override.useBrandedTypes && isBrandablePrimitiveSchema(rawSchema)
+    ? { isZodV4 }
+    : undefined;
 
 type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
   filePath: string;
@@ -127,6 +146,7 @@ interface WriteZodOutputOptions {
   tsconfig?: Tsconfig;
   override: {
     useNamedParameters?: boolean;
+    useBrandedTypes?: boolean;
     formatType?: NormalizedFormatTypeMap;
     zod: {
       variant: ZodVariantOption;
@@ -294,7 +314,7 @@ function generateZodSchemaFileContent(
   ].join('\n');
 
   const schemaContent = schemas
-    .map(({ schemaName, consts, zodExpression }) => {
+    .map(({ schemaName, consts, zodExpression, brand }) => {
       const schemaConsts = consts ? `${consts}\n` : '';
 
       return (
@@ -303,6 +323,7 @@ function generateZodSchemaFileContent(
           name: schemaName,
           expression: zodExpression,
           variant: zodVariant,
+          brand,
           companionTypes: true,
         })
       );
@@ -360,22 +381,23 @@ function renderReusableSchemaEntry(
   entry: ReusableSchemaEntry,
   context: ContextSpec,
   zodVariant: ZodVariantOption,
+  isZodV4: boolean,
 ): RenderedReusableSchemaEntry {
   const consts = entry.consts ? `${entry.consts}\n\n` : '';
+  // Resolve the lookup key through `getRefInfo` (the same util every other
+  // ref consumer uses) rather than slicing the prefix off `entry.ref` by
+  // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
+  // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
+  // `components.schemas`. `originalName` is the decoded final segment, which
+  // matches the raw `components.schemas` key.
+  const rawName = isComponentRef(entry.ref)
+    ? getRefInfo(entry.ref, context).originalName
+    : undefined;
+  const schema = rawName
+    ? context.spec.components?.schemas?.[rawName]
+    : undefined;
 
   if (entry.isRecursive) {
-    // Resolve the lookup key through `getRefInfo` (the same util every other
-    // ref consumer uses) rather than slicing the prefix off `entry.ref` by
-    // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
-    // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
-    // `components.schemas`. `originalName` is the decoded final segment, which
-    // matches the raw `components.schemas` key.
-    const rawName = isComponentRef(entry.ref)
-      ? getRefInfo(entry.ref, context).originalName
-      : undefined;
-    const schema = rawName
-      ? context.spec.components?.schemas?.[rawName]
-      : undefined;
     // The zod generator maps every integer to `zod.int()` regardless of
     // `useBigInt`, so the pinned TS type must also say `number` or
     // `zod.ZodType<X>` rejects the schema (#4390).
@@ -467,8 +489,12 @@ function renderReusableSchemaEntry(
         // for the emitter to add) to preserve this call site's pre-existing
         // output byte-for-byte; the schema-file entry above passes its
         // expression bare and emits none. See the module-drift note on
-        // `renderReusableSchemaEntry`.
-        expression: `${entry.zod};`,
+        // `renderReusableSchemaEntry`. The brand goes before that `;`.
+        expression: `${entry.zod}${
+          getComponentBrand(context.output, schema, isZodV4)
+            ? renderZodBrand(entry.name, isZodV4)
+            : ''
+        };`,
         variant: zodVariant,
         companionTypes: true,
       }),
@@ -879,6 +905,7 @@ export function generateZodSchemasInline(
       schemaName: name,
       consts: parsedZodDefinition.consts,
       zodExpression: parsedZodDefinition.zod,
+      brand: getComponentBrand(output, schemaObject, isZodV4),
     });
   }
 
@@ -956,8 +983,12 @@ function generateZodSchemasInlineReusable(
   const body = rewritten
     .map(
       (entry) =>
-        renderReusableSchemaEntry(entry, context, output.override.zod.variant)
-          .content,
+        renderReusableSchemaEntry(
+          entry,
+          context,
+          output.override.zod.variant,
+          isZodV4,
+        ).content,
     )
     .join('\n\n');
 
@@ -1083,6 +1114,7 @@ export async function writeZodSchemas(
       filePath,
       consts: parsedZodDefinition.consts,
       zodExpression: parsedZodDefinition.zod,
+      brand: getComponentBrand(output, schemaObject, isZodV4),
     });
   }
 
@@ -1229,6 +1261,7 @@ async function writeZodSchemasReusable(
       entry,
       context,
       output.override.zod.variant,
+      isZodV4,
     );
     const refImports = buildSiblingImports({
       usedRefs: entry.usedRefs,

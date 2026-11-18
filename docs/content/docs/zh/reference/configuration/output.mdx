@@ -4063,6 +4063,7 @@ getUser(user.id); // OK
 
 - 只有解析为 `string`、`number`、`boolean`、`bigint` 或 `Date` 的 schema 会被标记。object、enum、组合（`allOf` / `oneOf` / `anyOf`）schema 以及带 `default` 的 schema 保持不变。
 - 与 Zod 的 [`useBrandedTypes`](#usebrandedtypes) 选项相互独立，后者使用 `.brand()`，生成的类型并不相同。
+- 使用 `schemas: { type: 'zod' }` 时，同样的具名原始类型组件 schema 会改为带上 Zod brand（`export const UserId = zod.uuid().brand('UserId')`）。Zod 只为 schema 的输出添加 brand，因此 `UserIdOutput` 和解析后的响应带 brand，而 `UserId` 输入类型仍是普通的 `string`。
 
 ### requestOptions
 
