@@ -2225,13 +2225,26 @@ const buildHttpResourceExtraFile = (
   // dependency alongside real model types. Route them through the standard
   // dependency merge instead, which resolves each import from its own path.
   const schemaVerbImports = verbImports.filter((imp) => !imp.importPath);
+  // A relative path, such as a `formatType` import's, is written for the
+  // target's directory, which a `tags-split` resource file sits below. The
+  // mode writers re-resolve it for their files the same way.
+  const targetDirname = getFileInfo(output.target).dirname;
   const externalVerbImports = mergeDependencies(
     verbImports
       .filter(
         (imp): imp is GeneratorImport & { importPath: string } =>
           !!imp.importPath,
       )
-      .map((imp) => ({ exports: [imp], dependency: imp.importPath })),
+      .map((imp) => ({
+        exports: [imp],
+        dependency: imp.importPath.startsWith('.')
+          ? upath.getRelativeImportPath(
+              outputPath,
+              upath.joinSafe(targetDirname, imp.importPath),
+              true,
+            )
+          : imp.importPath,
+      })),
   );
 
   const schemaImports = buildSchemaImportDependencies(

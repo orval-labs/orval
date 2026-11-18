@@ -5459,4 +5459,34 @@ describe('useDatesTransform', () => {
       'const deserializeGetPetByIdResponse = (data: Pet): Pet => {',
     );
   });
+
+  it('resolves a relative formatType import from a tags-split resource file', async () => {
+    const base = datesOutput(
+      { target: '/tmp/endpoints.ts', mode: 'tags-split' },
+      angularOverride('both'),
+    );
+    const output = {
+      ...base,
+      override: {
+        ...base.override,
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            decode: 'toDayjs',
+            decodeImport: { name: 'toDayjs', importPath: '../lib/dates' },
+          },
+        },
+      },
+    };
+    const [file] = await generateHttpResourceExtraFiles(
+      { getPetById: datedVerb({ tags: ['pets'] }) },
+      output,
+      datesContext(output),
+    );
+
+    expect(file.path).toBe('/tmp/pets/pets.resource.ts');
+    expect(file.content).toMatch(
+      /import \{\s*toDayjs\s*\} from '\.\.\/\.\.\/lib\/dates';/,
+    );
+  });
 });
