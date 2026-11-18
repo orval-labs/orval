@@ -7,6 +7,7 @@ import {
   getFormatTypeError,
   getModelFormatType,
   getNamedValueContext,
+  getRefInfo,
   getUnnamedValueContext,
   hasNarrowedPropertyNames,
   isSchemaParameter,
@@ -274,6 +275,11 @@ interface BuildResult {
    * that closes a cycle can drop its statements entirely — see buildStatements.
    */
   cyclicRefs: Set<string>;
+  /**
+   * True when the value is handed to a converter, which on the request side
+   * copies it itself, so the caller must not.
+   */
+  delegated?: boolean;
 }
 
 const emptyResult = (): BuildResult => ({
@@ -281,10 +287,16 @@ const emptyResult = (): BuildResult => ({
   cyclicRefs: new Set(),
 });
 
-const mergeResults = (results: BuildResult[]): BuildResult => ({
-  statements: results.flatMap((result) => result.statements),
-  cyclicRefs: new Set(results.flatMap((result) => [...result.cyclicRefs])),
-});
+const mergeResults = (results: BuildResult[]): BuildResult => {
+  const contributing = results.filter((result) => result.statements.length > 0);
+  return {
+    statements: contributing.flatMap((result) => result.statements),
+    cyclicRefs: new Set(results.flatMap((result) => [...result.cyclicRefs])),
+    delegated:
+      contributing.length > 0 &&
+      contributing.every((result) => result.delegated),
+  };
+};
 
 interface BuildParams {
   schema: SchemaOrRef;
@@ -311,7 +323,237 @@ interface BuildParams {
    * sitting beside a properties-declaring sibling is.
    */
   mapSuppressed?: boolean;
+  /**
+   * The TypeScript type of the value at `accessor`, spelled from the helper's
+   * own type, when it can be: it types a recursive schema's converter. Unset
+   * under a union, whose members a property can't be looked up on.
+   */
+  typePath?: string;
+  /**
+   * Expands a recursive schema here rather than calling its converter: an
+   * `allOf` branch beside others or a discriminator mapping target shares its
+   * value with them, typed as more than the schema.
+   */
+  inlineRef?: boolean;
 }
+
+/**
+ * The recursive schemas one `deserialize{Op}Response` or
+ * `serialize{Op}Request` reaches. Expanding a schema that refers back to
+ * itself would never end, so each is converted by a `convert{Type}` function
+ * declared inside the helper, which calls itself and the others.
+ *
+ * Whether a converter converts anything and the type to declare it with are
+ * only known once the walk has seen its schema, so the walk runs again until
+ * neither changes. A converter is first assumed to convert nothing. One whose
+ * type can't be spelled, because the schema is only reached through a union,
+ * is expanded in place as before, and dropped where its cycle closes.
+ */
+interface RecursionScope {
+  /** Type names in scope in the helper, see `getTypeNames`. */
+  typeNames: Set<string>;
+  /** Whether each schema refers back to itself. */
+  recursive: Map<string, boolean>;
+  /** Whether each converter converts something, as far as is known. */
+  nonEmpty: Map<string, boolean>;
+  /** Each converter's type, the schema's type name. */
+  types: Map<string, string>;
+  /**
+   * The local aliases declaring the type names the helper doesn't import,
+   * spelled from the first value whose type could be.
+   */
+  aliases: Map<string, string>;
+  /** Converters without a type, whose schemas are expanded in place. */
+  untyped: Set<string>;
+  /** The converters built by the current walk, by ref. */
+  built: Map<string, { name: string; implementation: string }>;
+  /** Refs whose converter is being built. */
+  building: Set<string>;
+  /** Refs whose converter was assumed empty while it was being built. */
+  assumedEmpty: Set<string>;
+  /** Converters typed after the walk had built them untyped. */
+  typedLate: Set<string>;
+  /** Recursive schemas with dates the walk dropped where their cycle closed. */
+  dropped: Set<string>;
+}
+
+const COMPONENT_SCHEMA_REF_REGEX = /^#\/components\/schemas\/[^/]+$/;
+
+/** The schemas directly inside `schema`, `$ref`s left unresolved. */
+const getSubschemas = (schema: OpenApiNonBooleanSchemaObject): unknown[] => [
+  ...Object.values(schema.properties ?? {}),
+  ...(Array.isArray(schema.items) ? schema.items : [schema.items]),
+  schema.additionalProperties,
+  ...(schema.allOf ?? []),
+  ...(schema.oneOf ?? []),
+  ...(schema.anyOf ?? []),
+];
+
+/**
+ * True when `schemaOrRef`, or anything it refers to, satisfies `matches`:
+ * `$ref` the schema it is asked about, for recursion, or a value the walk
+ * converts, for the warning on a dropped recursive schema.
+ */
+const reachesSchema = (
+  schemaOrRef: unknown,
+  context: ContextSpec,
+  matches: (schema: OpenApiNonBooleanSchemaObject, ref?: string) => boolean,
+  seenRefs: Set<string> = new Set(),
+): boolean => {
+  if (schemaOrRef === null || typeof schemaOrRef !== 'object') return false;
+  if ('$ref' in schemaOrRef && typeof schemaOrRef.$ref === 'string') {
+    const ref = schemaOrRef.$ref;
+    if (matches({}, ref)) return true;
+    if (seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+    try {
+      const { schema } = resolveRef<OpenApiSchemaObject>(
+        schemaOrRef as OpenApiReferenceObject,
+        context,
+      );
+      return reachesSchema(schema, context, matches, seenRefs);
+    } catch {
+      return false;
+    }
+  }
+  const schema = schemaOrRef as OpenApiNonBooleanSchemaObject;
+  return (
+    matches(schema) ||
+    getSubschemas(schema).some((child) =>
+      reachesSchema(child, context, matches, seenRefs),
+    )
+  );
+};
+
+/**
+ * True when the walk calls a converter for this `$ref`: a component schema
+ * that refers back to itself, with a plain model type (not a generic alias
+ * bound through `$defs` or `$dynamicAnchor`). Under Zod schema types, which
+ * stop at the recursion and so don't match from one level to the next, a
+ * recursive schema is still expanded in place and dropped.
+ */
+const callsConverter = (
+  recursion: RecursionScope,
+  schemaOrRef: SchemaOrRef,
+  schema: OpenApiNonBooleanSchemaObject,
+  ref: string,
+  context: ContextSpec,
+): boolean => {
+  if (
+    !COMPONENT_SCHEMA_REF_REGEX.test(ref) ||
+    recursion.untyped.has(ref) ||
+    (typeof schemaOrRef === 'object' && '$defs' in schemaOrRef) ||
+    '$dynamicAnchor' in schema
+  ) {
+    return false;
+  }
+  const namedContext = getNamedValueContext(context);
+  // getUnnamedValueContext only makes a new context under Zod schema types.
+  if (getUnnamedValueContext(namedContext) !== namedContext) return false;
+  let recursive = recursion.recursive.get(ref);
+  if (recursive === undefined) {
+    recursive = reachesSchema(
+      schema,
+      namedContext,
+      (_, childRef) => childRef === ref,
+    );
+    recursion.recursive.set(ref, recursive);
+  }
+  return recursive;
+};
+
+/**
+ * True when the schema, or an `allOf` branch of it, walks its
+ * `additionalProperties` as a map. Only such a schema converts differently
+ * under `mapSuppressed`, so only it is expanded in place there.
+ */
+const walksOwnMap = (
+  schemaOrRef: SchemaOrRef,
+  context: ContextSpec,
+  seenRefs: Set<string> = new Set(),
+): boolean => {
+  const { schema, ref } = normalizeSchema(schemaOrRef, context);
+  if (ref) {
+    if (seenRefs.has(ref)) return false;
+    seenRefs.add(ref);
+  }
+  return (
+    mapValueSchema(schema, context) !== undefined ||
+    (schema.allOf ?? []).some((branch: SchemaOrRef) =>
+      walksOwnMap(branch, context, seenRefs),
+    )
+  );
+};
+
+/**
+ * The name of the converter for the recursive schema `ref`, building it first
+ * if this walk hasn't, or undefined when it converts nothing. See
+ * {@link RecursionScope}.
+ */
+const useConverter = (
+  recursion: RecursionScope,
+  ref: string,
+  typePath: string | undefined,
+  context: ContextSpec,
+  mode: DateTransformMode,
+): string | undefined => {
+  const namedContext = getNamedValueContext(context);
+  const typeName = getRefInfo(ref, namedContext).name;
+  const name = `convert${typeName}`;
+  const { schema, nullable } = normalizeSchema({ $ref: ref }, namedContext);
+  if (!recursion.types.has(ref)) {
+    if (recursion.typeNames.has(typeName)) {
+      recursion.types.set(
+        ref,
+        nullable ? `NonNullable<${typeName}>` : typeName,
+      );
+    } else if (typePath) {
+      recursion.types.set(ref, typeName);
+      recursion.aliases.set(
+        ref,
+        `type ${typeName} = NonNullable<${typePath}>;`,
+      );
+    }
+    if (
+      recursion.types.has(ref) &&
+      (recursion.built.has(ref) || recursion.building.has(ref))
+    ) {
+      recursion.typedLate.add(ref);
+    }
+  }
+  if (recursion.building.has(ref)) {
+    if (!recursion.nonEmpty.get(ref)) recursion.assumedEmpty.add(ref);
+  } else if (!recursion.built.has(ref)) {
+    recursion.building.add(ref);
+    try {
+      const type = recursion.types.get(ref);
+      const body = buildStatements({
+        schema: { $ref: ref },
+        accessor: mode.converterAccessor,
+        context: namedContext,
+        visitedRefs: new Set(),
+        depth: 0,
+        mode,
+        typePath: type,
+        inlineRef: true,
+      });
+      if (body.statements.length > 0) recursion.nonEmpty.set(ref, true);
+      recursion.built.set(ref, {
+        name,
+        implementation: mode.converterDeclaration({
+          name,
+          type: type ?? 'never',
+          schema,
+          context: namedContext,
+          body,
+        }),
+      });
+    } finally {
+      recursion.building.delete(ref);
+    }
+  }
+  return recursion.nonEmpty.get(ref) ? name : undefined;
+};
 
 const buildStatements = ({
   schema: schemaOrRef,
@@ -322,8 +564,34 @@ const buildStatements = ({
   writeAccessor,
   mode,
   mapSuppressed,
+  typePath,
+  inlineRef,
 }: BuildParams): BuildResult => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
+  const { recursion } = mode;
+  if (
+    ref &&
+    recursion &&
+    !inlineRef &&
+    !(mapSuppressed && walksOwnMap(schemaOrRef, context)) &&
+    callsConverter(recursion, schemaOrRef, schema, ref, context)
+  ) {
+    const name = useConverter(recursion, ref, typePath, context, mode);
+    if (!name) return emptyResult();
+    return {
+      statements: [
+        mode.converterStatement({
+          read: accessor,
+          write: writeAccessor ?? accessor,
+          name,
+          schema: schemaOrRef,
+          context,
+        }),
+      ],
+      cyclicRefs: new Set(),
+      delegated: true,
+    };
+  }
   if (ref) {
     if (visitedRefs.has(ref)) {
       return { statements: [], cyclicRefs: new Set([ref]) };
@@ -346,6 +614,7 @@ const buildStatements = ({
       writeAccessor,
       mode,
       mapSuppressed,
+      typePath,
     });
   } finally {
     if (ref) visitedRefs.delete(ref);
@@ -362,6 +631,7 @@ const buildResolvedStatements = ({
   writeAccessor,
   mode,
   mapSuppressed,
+  typePath,
 }: {
   schema: OpenApiSchemaObject;
   ref?: string;
@@ -372,6 +642,7 @@ const buildResolvedStatements = ({
   writeAccessor?: string;
   mode: DateTransformMode;
   mapSuppressed?: boolean;
+  typePath?: string;
 }): BuildResult => {
   if (isBooleanJsonSchema(schema)) return emptyResult();
 
@@ -429,7 +700,14 @@ const buildResolvedStatements = ({
     // mutually-exclusive branches — a schema can combine `allOf` with its
     // own `properties` (or, less commonly, `items`), and every one of them
     // must contribute its date statements.
-    const allOfResults = (schema.allOf ?? []).map((branch: SchemaOrRef) =>
+    const allOf: SchemaOrRef[] = schema.allOf ?? [];
+    // A lone `allOf` branch, the OAS 3.0 spelling of a nullable or described
+    // `$ref`, has the whole value to itself.
+    const shared =
+      allOf.length > 1 ||
+      hasOwnProperties(schema) ||
+      !!(schema.items ?? schema.oneOf ?? schema.anyOf ?? mapValue);
+    const allOfResults = allOf.map((branch) =>
       buildStatements({
         schema: branch,
         accessor,
@@ -439,6 +717,8 @@ const buildResolvedStatements = ({
         writeAccessor,
         mode,
         mapSuppressed: mapSuppressedHere,
+        typePath,
+        inlineRef: shared,
       }),
     );
 
@@ -459,6 +739,7 @@ const buildResolvedStatements = ({
           visitedRefs,
           depth,
           mode,
+          typePath: typePath && `NonNullable<${typePath}>[number]`,
         })
       : emptyResult();
 
@@ -470,6 +751,7 @@ const buildResolvedStatements = ({
           visitedRefs,
           depth,
           mode,
+          typePath: typePath && `NonNullable<${typePath}>[string]`,
         })
       : emptyResult();
 
@@ -482,6 +764,7 @@ const buildResolvedStatements = ({
           visitedRefs,
           depth,
           mode,
+          typePath,
         })
       : emptyResult();
 
@@ -500,6 +783,12 @@ const buildResolvedStatements = ({
       // closes would leave deeper dates as strings while the generated types
       // claim `Date`, so emit nothing for the whole subtree instead. Sibling
       // (non-recursive) fields are unaffected.
+      if (
+        mode.recursion &&
+        reachesSchema(schema, context, (child) => mode.isLeaf(child, context))
+      ) {
+        mode.recursion.dropped.add(ref);
+      }
       const cyclicRefs = new Set(result.cyclicRefs);
       cyclicRefs.delete(ref);
       result = { statements: [], cyclicRefs };
@@ -615,6 +904,26 @@ interface DateTransformMode {
    * schemas: emit nothing rather than wrong code.
    */
   dropArrayObjectConflict: boolean;
+  /** Set when recursive schemas are converted, see {@link RecursionScope}. */
+  recursion?: RecursionScope;
+  /** The value a converter's statements work on. */
+  converterAccessor: string;
+  /** Call of a converter. */
+  converterStatement: (call: {
+    read: string;
+    write: string;
+    name: string;
+    schema: SchemaOrRef;
+    context: ContextSpec;
+  }) => string;
+  /** Declaration of a converter. */
+  converterDeclaration: (converter: {
+    name: string;
+    type: string;
+    schema: OpenApiSchemaObject;
+    context: ContextSpec;
+    body: BuildResult;
+  }) => string;
 }
 
 interface ArrayStatementsParams {
@@ -624,6 +933,8 @@ interface ArrayStatementsParams {
   visitedRefs: Set<string>;
   depth: number;
   mode: DateTransformMode;
+  /** The type of an element, see `BuildParams.typePath`. */
+  typePath?: string;
 }
 
 interface MapStatementsParams {
@@ -634,6 +945,8 @@ interface MapStatementsParams {
   visitedRefs: Set<string>;
   depth: number;
   mode: DateTransformMode;
+  /** The type of a value, see `BuildParams.typePath`. */
+  typePath?: string;
 }
 
 const buildInPlaceItemsStatements = ({
@@ -643,6 +956,7 @@ const buildInPlaceItemsStatements = ({
   visitedRefs,
   depth,
   mode,
+  typePath,
 }: ArrayStatementsParams): BuildResult => {
   const index = `i${depth}`;
   const { nullable } = normalizeSchema(items, context);
@@ -662,6 +976,7 @@ const buildInPlaceItemsStatements = ({
       visitedRefs,
       depth: depth + 1,
       mode,
+      typePath,
     });
     if (inner.statements.length === 0) return inner;
 
@@ -688,6 +1003,7 @@ const buildInPlaceItemsStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    typePath,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -722,6 +1038,7 @@ const buildInPlaceMapStatements = ({
   visitedRefs,
   depth,
   mode,
+  typePath,
 }: MapStatementsParams): BuildResult => {
   const key = `key${depth}`;
   const { nullable } = normalizeSchema(values, context);
@@ -739,6 +1056,7 @@ const buildInPlaceMapStatements = ({
       visitedRefs,
       depth: depth + 1,
       mode,
+      typePath,
     });
     if (inner.statements.length === 0) return inner;
 
@@ -760,6 +1078,7 @@ const buildInPlaceMapStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    typePath,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -806,6 +1125,20 @@ const responseMode: DateTransformMode = {
       : undefined,
   skipProperty: () => false,
   dropArrayObjectConflict: false,
+  converterAccessor: 'data',
+  // The value is converted in place, so only a converter replacing the value
+  // itself has a result to write back.
+  converterStatement: ({ read, write, name, schema, context }) =>
+    writesToAccessorItself(schema, context)
+      ? `${write} = ${name}(${read});`
+      : `${name}(${read});`,
+  converterDeclaration: ({ name, type, body }) =>
+    [
+      `const ${name} = (data: ${type}): ${type} => {`,
+      ...indent(body.statements),
+      '  return data;',
+      '};',
+    ].join('\n'),
 };
 
 const buildPropertiesStatements = ({
@@ -817,6 +1150,7 @@ const buildPropertiesStatements = ({
   depth,
   mode,
   presenceGuarded,
+  typePath,
 }: {
   properties: Record<string, SchemaOrRef>;
   required: string[] | undefined;
@@ -831,6 +1165,8 @@ const buildPropertiesStatements = ({
    * below).
    */
   presenceGuarded?: boolean;
+  /** The type of the object, see `BuildParams.typePath`. */
+  typePath?: string;
 }): BuildResult => {
   // An object level has a named type.
   const context = getNamedValueContext(valueContext);
@@ -856,11 +1192,17 @@ const buildPropertiesStatements = ({
           propertySchema,
         ),
         mode,
+        typePath:
+          typePath && !presenceGuarded
+            ? `NonNullable<${typePath}>[${JSON.stringify(key)}]`
+            : undefined,
       });
       if (inner.statements.length === 0) return inner;
 
       const statements = [
-        ...mode.objectPrelude(target, property, context),
+        ...(inner.delegated
+          ? []
+          : mode.objectPrelude(target, property, context)),
         ...inner.statements,
       ];
 
@@ -874,7 +1216,7 @@ const buildPropertiesStatements = ({
         !requiredSet.has(key) ||
         nullable ||
         !writesToAccessorItself(property, context);
-      if (!needsGuard) return { ...inner, statements };
+      if (!needsGuard) return { statements, cyclicRefs: inner.cyclicRefs };
 
       const condition = presenceGuarded
         ? `${JSON.stringify(key)} in ${accessor} && ${target} != null`
@@ -946,6 +1288,7 @@ const buildMappedUnionStatements = ({
           // revisit, and on the response side overwrite, the discriminator
           // key the switch just read.
           mapSuppressed: true,
+          inlineRef: true,
         });
       } catch {
         // An unresolvable mapping target must not abort generation of the
@@ -1128,6 +1471,7 @@ const discoverVariantCycles = ({
       depth,
       mode,
       mapSuppressed: true,
+      inlineRef: true,
     }).cyclicRefs;
   } catch {
     return new Set<string>();
@@ -1355,6 +1699,14 @@ const buildUndiscriminatedUnionStatements = ({
             result.cyclicRefs.has(variantRef),
           );
         if (closesHere) {
+          if (
+            mode.recursion &&
+            reachesSchema(variantSchema, context, (child) =>
+              mode.isLeaf(child, context),
+            )
+          ) {
+            mode.recursion.dropped.add(variantRef);
+          }
           for (const [key, result] of perKey) {
             const cyclicRefs = new Set(result.cyclicRefs);
             cyclicRefs.delete(variantRef);
@@ -1614,6 +1966,7 @@ const buildCopyingItemsStatements = ({
   visitedRefs,
   depth,
   mode,
+  typePath,
 }: ArrayStatementsParams): BuildResult => {
   const element = `item${depth}`;
   const value = `value${depth}`;
@@ -1626,6 +1979,7 @@ const buildCopyingItemsStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    typePath,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -1635,7 +1989,9 @@ const buildCopyingItemsStatements = ({
   const body = [
     ...(nullable ? [`if (${element} == null) return ${element};`] : []),
     `let ${value} = ${element};`,
-    ...(needsObjectCopy(items, context) ? [`${value} = { ...${value} };`] : []),
+    ...(needsObjectCopy(items, context) && !inner.delegated
+      ? [`${value} = { ...${value} };`]
+      : []),
     ...inner.statements,
     `return ${value};`,
   ];
@@ -1677,6 +2033,7 @@ const buildCopyingMapStatements = ({
   visitedRefs,
   depth,
   mode,
+  typePath,
 }: MapStatementsParams): BuildResult => {
   const key = `key${depth}`;
   const value = `value${depth}`;
@@ -1689,13 +2046,14 @@ const buildCopyingMapStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    typePath,
   });
   if (inner.statements.length === 0) return inner;
 
   const body = [
     `let ${value} = ${accessor}[${key}]!;`,
     ...(nullable ? [`if (${value} == null) continue;`] : []),
-    ...(needsObjectCopy(values, context)
+    ...(needsObjectCopy(values, context) && !inner.delegated
       ? [`${value} = { ...${value} };`]
       : []),
     ...inner.statements,
@@ -1716,6 +2074,21 @@ const buildCopyingMapStatements = ({
 /** A request statement encoding a value that is not a string already. */
 const encodeLeafStatement = (read: string, write: string, encode: string) =>
   `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
+
+/**
+ * Declares `copy`, the request value the statements write into: a shallow
+ * copy when they write into its properties, the value itself when they
+ * replace it (an array's `.map`, a date, or a converter's own copy).
+ */
+const copyDeclaration = (
+  schema: SchemaOrRef,
+  context: ContextSpec,
+  body: BuildResult,
+  workingType = '',
+): string =>
+  body.delegated || !needsObjectCopy(schema, context)
+    ? `let copy = data${workingType};`
+    : `const copy = { ...data }${workingType};`;
 
 const requestMode: DateTransformMode = {
   isLeaf: (schema, context) =>
@@ -1743,6 +2116,17 @@ const requestMode: DateTransformMode = {
   skipProperty: (schema) =>
     !isBooleanJsonSchema(schema) && schema.readOnly === true,
   dropArrayObjectConflict: true,
+  converterAccessor: 'copy',
+  // A converter returns a copy, which replaces the value.
+  converterStatement: ({ read, write, name }) => `${write} = ${name}(${read});`,
+  converterDeclaration: ({ name, type, schema, context, body }) =>
+    [
+      `const ${name} = (data: ${type}): ${type} => {`,
+      `  ${copyDeclaration(schema, context, body)}`,
+      ...indent(body.statements),
+      '  return copy;',
+      '};',
+    ].join('\n'),
 };
 
 export interface BuildRequestDateSerializeParams {
@@ -1843,6 +2227,96 @@ export const getQueryParamsEncoding = (
   ].join('\n');
 };
 
+const CONVERTER_CALL_REGEX = /(?<![\w$.])(convert[\w$]+)\(/g;
+
+/** The warnings already given, per spec, see `buildWithRecursion`. */
+const warnedDroppedSchemas = new WeakMap<object, Set<string>>();
+
+/**
+ * Runs `build` until the converters of the recursive schemas it reaches stop
+ * changing (see {@link RecursionScope}), and returns its result with the
+ * declarations of the converters it calls, directly or through each other,
+ * for the top of the helper. Warns, once per operation and schema, about a
+ * recursive schema whose dates stay strings.
+ */
+const buildWithRecursion = (
+  mode: DateTransformMode,
+  {
+    operationName,
+    typeNames,
+    context,
+  }: { operationName: string; typeNames: string[]; context: ContextSpec },
+  build: (mode: DateTransformMode) => BuildResult,
+): { result: BuildResult; declarations: string[] } => {
+  const recursion: RecursionScope = {
+    typeNames: new Set(typeNames),
+    recursive: new Map(),
+    nonEmpty: new Map(),
+    types: new Map(),
+    aliases: new Map(),
+    untyped: new Set(),
+    built: new Map(),
+    building: new Set(),
+    assumedEmpty: new Set(),
+    typedLate: new Set(),
+    dropped: new Set(),
+  };
+  for (;;) {
+    recursion.built.clear();
+    recursion.assumedEmpty.clear();
+    recursion.typedLate.clear();
+    recursion.dropped.clear();
+    const result = build({ ...mode, recursion });
+    if (
+      recursion.typedLate.size > 0 ||
+      [...recursion.assumedEmpty].some((ref) => recursion.nonEmpty.get(ref))
+    ) {
+      continue;
+    }
+
+    const refsByName = new Map(
+      [...recursion.built].map(([ref, { name }]) => [name, ref]),
+    );
+    const called: string[] = [];
+    const findCalls = (code: string) => {
+      for (const [, name] of code.matchAll(CONVERTER_CALL_REGEX)) {
+        const ref = refsByName.get(name);
+        if (ref === undefined || called.includes(ref)) continue;
+        called.push(ref);
+        findCalls(recursion.built.get(ref)?.implementation ?? '');
+      }
+    };
+    findCalls(result.statements.join('\n'));
+    const untyped = called.filter((ref) => !recursion.types.has(ref));
+    if (untyped.length > 0) {
+      for (const ref of untyped) recursion.untyped.add(ref);
+      continue;
+    }
+
+    const warned = warnedDroppedSchemas.get(context.spec) ?? new Set();
+    warnedDroppedSchemas.set(context.spec, warned);
+    for (const ref of recursion.dropped) {
+      const schemaName = getRefInfo(ref, context).name;
+      const key = `${operationName} ${schemaName}`;
+      if (warned.has(key)) continue;
+      warned.add(key);
+      logger.warn(
+        `operation \`${operationName}\`: \`useDatesTransform\` leaves the dates of recursive schema \`${schemaName}\` as strings`,
+      );
+    }
+    return {
+      result,
+      declarations: [
+        ...called.flatMap((ref) => recursion.aliases.get(ref) ?? []),
+        ...called.flatMap((ref) => {
+          const converter = recursion.built.get(ref);
+          return converter ? [converter.implementation] : [];
+        }),
+      ],
+    };
+  }
+};
+
 /**
  * Resolves a request body down to its single JSON content schema. Returns
  * undefined for non-JSON bodies and for bodies offering several JSON media
@@ -1927,15 +2401,6 @@ export const generateRequestDateSerializer = ({
     );
   }
 
-  const statements = buildRequestDateSerializeStatements({
-    schema,
-    accessor: 'copy',
-    context: isInlineSchema(body.originalSchema)
-      ? getUnnamedValueContext(context)
-      : context,
-  });
-  if (statements.length === 0) return undefined;
-
   const dataType = body.definition;
 
   // A body type carrying any readOnly property is emitted as `NonReadonly<T>`,
@@ -1949,12 +2414,32 @@ export const generateRequestDateSerializer = ({
   const workingType = modelType ? ` as unknown as ${modelType}` : '';
   const returnValue = modelType ? `copy as unknown as ${dataType}` : 'copy';
 
-  // The root is reassigned rather than spread when the body is an array or a
-  // bare date: `.map` builds the new array itself, and spreading either would
-  // be wrong.
-  const declaration = needsObjectCopy(schema, context)
-    ? `const copy = { ...data }${workingType};`
-    : `let copy = data${workingType};`;
+  const { result, declarations } = buildWithRecursion(
+    requestMode,
+    {
+      operationName,
+      typeNames: body.imports.map(({ name }) => name),
+      context,
+    },
+    (mode) =>
+      buildStatements({
+        schema,
+        accessor: 'copy',
+        context: isInlineSchema(body.originalSchema)
+          ? getUnnamedValueContext(context)
+          : context,
+        visitedRefs: new Set(),
+        depth: 0,
+        mode,
+        typePath: modelType ?? dataType,
+      }),
+  );
+  if (result.statements.length === 0) return undefined;
+
+  // The root is reassigned rather than spread when the body is an array, a
+  // bare date or a recursive schema: `.map` and a converter build the new
+  // value themselves, and spreading any of them would be wrong.
+  const declaration = copyDeclaration(schema, context, result, workingType);
 
   const name = `serialize${pascal(operationName)}Request`;
 
@@ -1969,8 +2454,8 @@ export const generateRequestDateSerializer = ({
 
   const implementation = `const ${name} = (data: ${dataType}${optionalSuffix}): ${dataType}${optionalSuffix} => {
   if (data == null) return data;
-  ${declaration}
-${indent(statements).join('\n')}
+${indent(declarations.flatMap((it) => it.split('\n'))).join('\n')}${declarations.length > 0 ? '\n' : ''}  ${declaration}
+${indent(result.statements).join('\n')}
   return ${returnValue};
 };
 `;
@@ -2012,18 +2497,35 @@ export const generateResponseDateDeserializer = ({
     return undefined;
   }
 
-  const statements = buildDateTransformStatements({
-    schema: successType.originalSchema,
-    accessor: 'data',
-    context: successType.isRef ? context : getUnnamedValueContext(context),
-  });
-  if (statements.length === 0) return undefined;
-
+  const { originalSchema } = successType;
   const dataType = response.definition.success || 'unknown';
+  const { result, declarations } = buildWithRecursion(
+    responseMode,
+    {
+      operationName,
+      typeNames: [
+        ...response.imports.map(({ name }) => name),
+        ...successType.imports.map(({ name }) => name),
+      ],
+      context,
+    },
+    (mode) =>
+      buildStatements({
+        schema: originalSchema,
+        accessor: 'data',
+        context: successType.isRef ? context : getUnnamedValueContext(context),
+        visitedRefs: new Set(),
+        depth: 0,
+        mode,
+        typePath: dataType === 'unknown' ? undefined : dataType,
+      }),
+  );
+  if (result.statements.length === 0) return undefined;
+
   const name = `deserialize${pascal(operationName)}Response`;
   const implementation = `const ${name} = (data: ${dataType}): ${dataType} => {
   if (data == null) return data;
-${indent(statements).join('\n')}
+${indent([...declarations.flatMap((it) => it.split('\n')), ...result.statements]).join('\n')}
   return data;
 };
 `;

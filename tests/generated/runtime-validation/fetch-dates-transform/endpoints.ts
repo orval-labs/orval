@@ -9,6 +9,7 @@ import {
   AppointmentWindow,
   AppointmentWithDuplicateDate,
   AuditRecord,
+  Folder,
   LastInspection,
   OrderDetails,
   ShelterIntake,
@@ -21,6 +22,7 @@ import type {
   AuditRecordOutput,
   Cat,
   Dog,
+  FolderOutput,
   LastInspectionOutput,
   OrderDetailsOutput,
   ReminderUpdate,
@@ -946,4 +948,116 @@ const serializeUpdateAppointmentWindowRequest = (
         : copy.closedAt;
   }
   return copy;
+};
+
+export type getFolderResponse200 = {
+  data: FolderOutput;
+  status: 200;
+};
+
+export type getFolderResponseSuccess = getFolderResponse200 & {
+  headers: Headers;
+};
+export type getFolderResponse = getFolderResponseSuccess;
+
+export const getGetFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const getFolder = async (
+  folderId: string,
+  options?: RequestInit,
+): Promise<getFolderResponse> => {
+  const res = await fetch(getGetFolderUrl(folderId), {
+    ...options,
+    method: 'GET',
+  });
+
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  if (body && contentType.includes('json') && res.status === 200) {
+    parsedBody = deserializeGetFolderResponse(parsedBody as Folder);
+  }
+  const data = contentType.includes('json')
+    ? Folder.parse(parsedBody)
+    : parsedBody;
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getFolderResponse;
+};
+
+const deserializeGetFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  return data;
+};
+
+export type updateFolderResponse200 = {
+  data: FolderOutput;
+  status: 200;
+};
+
+export type updateFolderResponseSuccess = updateFolderResponse200 & {
+  headers: Headers;
+};
+export type updateFolderResponse = updateFolderResponseSuccess;
+
+export const getUpdateFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const updateFolder = async (
+  folderId: string,
+  folder: Folder,
+  options?: RequestInit,
+): Promise<updateFolderResponse> => {
+  const res = await fetch(getUpdateFolderUrl(folderId), {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
+    body: JSON.stringify(folder),
+  });
+
+  const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let parsedBody = body
+    ? contentType.includes('json')
+      ? JSON.parse(body)
+      : body
+    : {};
+  if (body && contentType.includes('json') && res.status === 200) {
+    parsedBody = deserializeUpdateFolderResponse(parsedBody as Folder);
+  }
+  const data = contentType.includes('json')
+    ? Folder.parse(parsedBody)
+    : parsedBody;
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updateFolderResponse;
+};
+
+const deserializeUpdateFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  return data;
 };
