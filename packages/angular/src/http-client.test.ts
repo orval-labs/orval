@@ -3,9 +3,10 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
+  OpenApiSchemaObject,
   ResReqTypesValue,
 } from '@orval/core';
-import { GetterPropType, Verbs } from '@orval/core';
+import { GetterPropType, logger as coreLogger, Verbs } from '@orval/core';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 import { ANGULAR_HTTP_CLIENT_DEPENDENCIES } from './constants';
@@ -3533,6 +3534,369 @@ describe('runtimeValidation.requestBodies (#4145)', () => {
     );
     expect(imports).toContainEqual(
       expect.objectContaining({ name: 'zod', namespaceImport: true }),
+    );
+  });
+});
+
+describe('useDatesTransform', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const schemas = {
+    Pet: {
+      type: 'object',
+      required: ['bornAt'],
+      properties: {
+        bornAt: { type: 'string', format: 'date-time' },
+        visits: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Visit' },
+        },
+      },
+    },
+    Visit: {
+      type: 'object',
+      properties: { day: { type: 'string', format: 'date' } },
+    },
+    Tag: { type: 'object', properties: { name: { type: 'string' } } },
+  } satisfies Record<string, OpenApiSchemaObject>;
+
+  const datesOutput = (
+    override: Partial<NormalizedOutputOptions['override']> = {},
+    outputOverrides: Partial<NormalizedOutputOptions> = {},
+  ): NormalizedOutputOptions => {
+    const output = createOutput(outputOverrides);
+    return {
+      ...output,
+      override: {
+        ...output.override,
+        useDates: true,
+        useDatesTransform: true,
+        ...override,
+      },
+    };
+  };
+
+  const refResponse = (name: string) =>
+    baseResponse({
+      imports: [{ name }],
+      definition: { success: name, errors: 'Error' },
+      types: {
+        success: [
+          {
+            ...createSuccessType(name, 'application/json'),
+            originalSchema: { $ref: `#/components/schemas/${name}` },
+            isRef: true,
+          },
+        ],
+        errors: [],
+      },
+    });
+
+  const datedVerb = ({
+    output = datesOutput(),
+    ...overrides
+  }: Partial<GeneratorVerbOptions> & {
+    output?: NormalizedOutputOptions;
+  } = {}) =>
+    createVerbOption({
+      response: refResponse('Pet'),
+      override: {
+        ...createVerbOption().override,
+        useDatesTransform: output.override.useDatesTransform,
+        angular: output.override.angular,
+      } as GeneratorVerbOptions['override'],
+      ...overrides,
+    });
+
+  const createPetVerb = (output = datesOutput()) =>
+    datedVerb({
+      output,
+      operationId: 'createPet',
+      operationName: 'createPet',
+      typeName: 'createPet',
+      verb: Verbs.POST,
+      route: '/pets',
+      pathRoute: '/pets',
+      body: {
+        implementation: 'petBody',
+        definition: 'Pet',
+        imports: [{ name: 'Pet' }],
+        schemas: [],
+        originalSchema: {
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Pet' },
+            },
+          },
+        },
+        contentType: 'application/json',
+        formData: '',
+        formUrlEncoded: '',
+        isBlob: false,
+        isOptional: false,
+      },
+      params: [],
+      props: [
+        {
+          name: 'petBody',
+          definition: 'petBody: Pet',
+          implementation: 'petBody: Pet',
+          default: false,
+          required: true,
+          type: GetterPropType.BODY,
+        },
+      ],
+    });
+
+  const generate = (
+    verbOption: GeneratorVerbOptions,
+    output = datesOutput(),
+  ) => {
+    const context = createContextSpec(output);
+    return generateAngular(
+      verbOption,
+      createGeneratorOptions({
+        route: '/api/pets',
+        context: {
+          ...context,
+          spec: { ...context.spec, components: { schemas } },
+        },
+        override: output.override,
+      }),
+      'angular',
+      output,
+    );
+  };
+
+  it('converts the response body in every observe branch', async () => {
+    const { implementation } = await generate(datedVerb());
+
+    expect(implementation).toContain(
+      '.pipe(map(data => deserializeGetPetByIdResponse(data as Pet) as TData))',
+    );
+    expect(implementation).toContain(
+      '.pipe(map(response => response.clone({ body: deserializeGetPetByIdResponse(response.body as Pet) as TData })))',
+    );
+    expect(implementation).toContain(
+      '.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: deserializeGetPetByIdResponse(event.body as Pet) as TData }) : event))',
+    );
+  });
+
+  it('declares the deserializer after the ClientResult alias, outside the class', async () => {
+    const { implementation, returnType } = await generate(datedVerb());
+    const footer = returnType?.() ?? '';
+
+    expect(implementation).not.toContain('const deserializeGetPetByIdResponse');
+    expect(footer).toMatch(
+      /^export type GetPetByIdClientResult = NonNullable<Pet>\n\nconst deserializeGetPetByIdResponse = \(data: Pet\): Pet => \{/,
+    );
+    // A nested array of a referenced schema is converted too.
+    expect(footer).toContain('data.bornAt = new Date(data.bornAt);');
+    expect(footer).toContain('item0.day = new Date(item0.day);');
+  });
+
+  it('imports HttpResponse as a value for the event narrowing', async () => {
+    const { imports } = await generate(datedVerb());
+
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'HttpResponse', values: true }),
+    );
+    expect(imports).toContainEqual(
+      expect.objectContaining({ name: 'map', importPath: 'rxjs' }),
+    );
+  });
+
+  it('pipes the body alone without request options', async () => {
+    const verb = datedVerb();
+    const { implementation } = await generate({
+      ...verb,
+      override: { ...verb.override, requestOptions: false },
+    });
+
+    expect(implementation).toContain(
+      '.pipe(map(data => deserializeGetPetByIdResponse(data as Pet) as TData));',
+    );
+    expect(implementation).not.toContain('instanceof AngularHttpResponse');
+  });
+
+  it('generates nothing for a response without dates', async () => {
+    const { implementation, imports, returnType } = await generate(
+      datedVerb({ response: refResponse('Tag') }),
+    );
+
+    expect(implementation).not.toContain('deserialize');
+    expect(returnType?.()).toBe(
+      'export type GetPetByIdClientResult = NonNullable<Tag>',
+    );
+    expect(imports).not.toContainEqual(
+      expect.objectContaining({ name: 'HttpResponse', values: true }),
+    );
+  });
+
+  it('generates nothing without useDatesTransform', async () => {
+    const output = datesOutput({ useDatesTransform: false });
+    const { implementation, returnType } = await generate(
+      datedVerb({ output }),
+      output,
+    );
+
+    expect(implementation).not.toContain('deserialize');
+    expect(returnType?.()).not.toContain('deserialize');
+  });
+
+  it('serializes a JSON request body', async () => {
+    const { implementation, returnType } = await generate(createPetVerb());
+
+    expect(
+      implementation.match(
+        /`\/api\/pets`,\s*serializeCreatePetRequest\(petBody\),/g,
+      ),
+    ).toHaveLength(3);
+    expect(returnType?.()).toContain(
+      'const serializeCreatePetRequest = (data: Pet): Pet => {',
+    );
+  });
+
+  describe('with a formatType value', () => {
+    const formatTypeOutput = (encode = true) =>
+      datesOutput({
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            decode: 'dayjs',
+            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            ...(encode
+              ? {
+                  encode: 'toIsoString',
+                  encodeImport: { name: 'toIsoString', importPath: './dates' },
+                }
+              : {}),
+          },
+          date: { type: 'Dayjs', decode: 'dayjs' },
+        },
+      });
+
+    it('decodes the response and encodes the request body', async () => {
+      const output = formatTypeOutput();
+      const { returnType, imports } = await generate(
+        createPetVerb(output),
+        output,
+      );
+      const footer = returnType?.() ?? '';
+
+      expect(footer).toContain(
+        "data.bornAt = typeof data.bornAt === 'string' ? dayjs(data.bornAt as unknown as string) : data.bornAt;",
+      );
+      expect(footer).toContain(
+        "copy.bornAt = typeof copy.bornAt === 'string' ? copy.bornAt : (toIsoString(copy.bornAt) as unknown as typeof copy.bornAt);",
+      );
+      expect(imports).toContainEqual(
+        expect.objectContaining({ name: 'dayjs', importPath: 'dayjs' }),
+      );
+      expect(imports).toContainEqual(
+        expect.objectContaining({ name: 'toIsoString', importPath: './dates' }),
+      );
+    });
+
+    it('warns when a mapped date in the request body has no encode', async () => {
+      const warn = vi
+        .spyOn(coreLogger, 'warn')
+        .mockImplementation(() => undefined);
+      const output = formatTypeOutput(false);
+      await generate(createPetVerb(output), output);
+
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "operation `createPet`: `useDatesTransform` sends a request body's value through its `toJSON` for lack of `encode`",
+        ),
+      );
+    });
+  });
+
+  describe('with Zod runtime validation', () => {
+    const zodOutput = (
+      runtimeValidation: AngularOverride['runtimeValidation'] = {
+        enabled: true,
+        strategy: 'throw',
+      },
+    ) =>
+      datesOutput(
+        { angular: { ...angularOverride('httpClient'), runtimeValidation } },
+        {
+          schemas: {
+            type: 'zod',
+            path: '/tmp/schemas',
+          } as NormalizedOutputOptions['schemas'],
+        },
+      );
+
+    it('converts the dates before the schema parses the response', async () => {
+      const output = zodOutput();
+      const { implementation } = await generate(datedVerb({ output }), output);
+
+      expect(implementation).toContain(
+        '.pipe(map(data => deserializeGetPetByIdResponse(data as unknown as Pet))).pipe(map(data => Pet.parse(data)))',
+      );
+      expect(implementation).toContain(
+        '.pipe(map(response => response.clone({ body: deserializeGetPetByIdResponse(response.body as unknown as Pet) }))).pipe(map(response => response.clone({ body: Pet.parse(response.body) })))',
+      );
+    });
+
+    it('sends a parsed request body as the schema returns it', async () => {
+      const requestBodies = {
+        enabled: true,
+        strategy: 'throw',
+        requestBodies: true,
+      } as const;
+      const output = zodOutput(requestBodies);
+      const { implementation, returnType } = await generate(
+        createPetVerb(output),
+        output,
+      );
+
+      expect(implementation).toContain('Pet.parse(petBody)');
+      expect(implementation).not.toContain('serializeCreatePetRequest');
+      expect(returnType?.()).not.toContain('serializeCreatePetRequest');
+    });
+  });
+
+  it('skips Valibot schemas, which convert the date strings themselves', async () => {
+    const output = datesOutput(
+      {},
+      {
+        schemas: {
+          type: 'valibot',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      },
+    );
+    const { implementation } = await generate(datedVerb({ output }), output);
+
+    expect(implementation).not.toContain('deserialize');
+  });
+
+  it('pipes the result of a mutator and serializes the body it sends', async () => {
+    const { implementation } = await generate({
+      ...createPetVerb(),
+      mutator: {
+        name: 'customInstance',
+        path: './custom-instance.ts',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: 'Error',
+        hasSecondArg: true,
+        hasThirdArg: false,
+        isHook: false,
+      },
+    });
+
+    expect(implementation).toContain(
+      'data: serializeCreatePetRequest(petBody)',
+    );
+    expect(implementation).toContain(
+      '.pipe(map((data) => deserializeCreatePetResponse(data as Pet) as TData));',
     );
   });
 });

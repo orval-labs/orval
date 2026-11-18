@@ -4,6 +4,7 @@ import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOutputOptions,
+  OpenApiSchemaObject,
   ResReqTypesValue,
 } from '@orval/core';
 import { GetterPropType, Verbs } from '@orval/core';
@@ -5185,5 +5186,277 @@ describe('angular httpResource generator', () => {
         'const baseUrl = options?.injector ? options.injector.get(EXAMPLE_API_BASE_URL) : inject(EXAMPLE_API_BASE_URL);',
       );
     });
+  });
+});
+
+describe('useDatesTransform', () => {
+  beforeEach(() => {
+    routeRegistry.reset();
+  });
+
+  const schemas = {
+    Pet: {
+      type: 'object',
+      required: ['bornAt'],
+      properties: {
+        bornAt: { type: 'string', format: 'date-time' },
+        adoptedOn: { type: 'string', format: 'date' },
+      },
+    },
+    Tag: { type: 'object', properties: { name: { type: 'string' } } },
+  } satisfies Record<string, OpenApiSchemaObject>;
+
+  const datesOutput = (
+    outputOverrides: Partial<NormalizedOutputOptions> = {},
+    angular = angularOverride('httpResource'),
+  ): NormalizedOutputOptions => {
+    const output = createOutput(outputOverrides);
+    return {
+      ...output,
+      override: {
+        ...output.override,
+        angular,
+        useDates: true,
+        useDatesTransform: true,
+      },
+    };
+  };
+
+  const zodOutput = (angular = angularOverride('httpResource')) =>
+    datesOutput(
+      {
+        schemas: {
+          type: 'zod',
+          path: '/tmp/schemas',
+        } as NormalizedOutputOptions['schemas'],
+      },
+      angular,
+    );
+
+  const refResponse = (name: string) =>
+    baseResponse({
+      imports: [{ name }],
+      definition: { success: name, errors: 'Error' },
+      types: {
+        success: [
+          {
+            ...createSuccessType(name, 'application/json'),
+            originalSchema: { $ref: `#/components/schemas/${name}` },
+            isRef: true,
+          },
+        ],
+        errors: [],
+      },
+    });
+
+  const petBody: GeneratorVerbOptions['body'] = {
+    implementation: 'petBody',
+    definition: 'Pet',
+    imports: [{ name: 'Pet' }],
+    schemas: [],
+    originalSchema: {
+      content: {
+        'application/json': { schema: { $ref: '#/components/schemas/Pet' } },
+      },
+    },
+    contentType: 'application/json',
+    formData: '',
+    formUrlEncoded: '',
+    isBlob: false,
+    isOptional: false,
+  };
+
+  const datedVerb = (
+    overrides: Partial<GeneratorVerbOptions> = {},
+  ): GeneratorVerbOptions => {
+    const verb = createVerbOption({ response: refResponse('Pet') });
+    return {
+      ...verb,
+      override: { ...verb.override, useDatesTransform: true },
+      ...overrides,
+    };
+  };
+
+  const postVerb = (operationName: string, retrieval = false) => {
+    const verb = datedVerb();
+    return datedVerb({
+      operationId: operationName,
+      operationName,
+      typeName: operationName,
+      verb: Verbs.POST,
+      route: '/pets',
+      pathRoute: '/pets',
+      body: petBody,
+      params: [],
+      props: [
+        {
+          name: 'petBody',
+          definition: 'petBody: Pet',
+          implementation: 'petBody: Pet',
+          default: false,
+          required: true,
+          type: GetterPropType.BODY,
+        },
+      ],
+      override: retrieval
+        ? {
+            ...verb.override,
+            operations: {
+              [operationName]: {
+                angular: { ...verb.override.angular, client: 'httpResource' },
+              },
+            },
+          }
+        : verb.override,
+    });
+  };
+
+  const datesContext = (output: NormalizedOutputOptions) => {
+    const context = createContextSpec(output);
+    return { ...context, spec: { ...context.spec, components: { schemas } } };
+  };
+
+  /** Runs the per-operation builder, then the header, as the writer does. */
+  const generateFile = async (
+    verbOptions: GeneratorVerbOptions[],
+    output = datesOutput(),
+  ) => {
+    const clients = await Promise.all(
+      verbOptions.map(async (verbOption) =>
+        generateHttpResourceClient(
+          verbOption,
+          createGeneratorOptions({
+            route: verbOption.route,
+            context: datesContext(output),
+            override: output.override,
+          }),
+          'angular',
+          output,
+        ),
+      ),
+    );
+    const clientImplementation = clients
+      .map(({ implementation }) => implementation)
+      .join('\n');
+    const header = asHeaderString(
+      generateHttpResourceHeader(
+        createHeaderParams({
+          output,
+          verbOptions: Object.fromEntries(
+            verbOptions.map((verbOption) => [
+              verbOption.operationId,
+              verbOption,
+            ]),
+          ),
+          clientImplementation,
+        }),
+      ),
+    );
+    return { clients, clientImplementation, header };
+  };
+
+  it('returns the helpers as the operation code, without its doc comment', async () => {
+    const { clients } = await generateFile([datedVerb()]);
+
+    expect(clients[0].implementation).toContain(
+      'const deserializeGetPetByIdResponse = (data: Pet): Pet => {',
+    );
+    expect(clients[0].implementation).toContain(
+      'data.bornAt = new Date(data.bornAt);',
+    );
+    expect(clients[0].docComment).toBe('');
+  });
+
+  it('converts the response in the resource parse option', async () => {
+    const { header } = await generateFile([datedVerb()]);
+
+    expect(header).toContain(
+      'parse: (raw: unknown) => deserializeGetPetByIdResponse(raw as Pet)',
+    );
+    // The generated parse replaces the caller's.
+    expect(header).toContain(
+      'options?: OrvalHttpResourceOptions<Pet, unknown, true>',
+    );
+  });
+
+  it('generates nothing for a response without dates', async () => {
+    const { clients, header } = await generateFile([
+      datedVerb({ response: refResponse('Tag') }),
+    ]);
+
+    expect(clients[0].implementation).toBe('\n');
+    expect(header).not.toContain('deserialize');
+    expect(header).not.toContain('parse:');
+    expect(header).toContain(
+      'options?: OrvalHttpResourceOptions<Tag, unknown>',
+    );
+  });
+
+  it('converts the dates before the Zod schema parses the response', async () => {
+    const { header } = await generateFile([datedVerb()], zodOutput());
+
+    expect(header).toContain(
+      'parse: (raw: unknown) => Pet.parse(deserializeGetPetByIdResponse(raw as Pet))',
+    );
+  });
+
+  it('logs and re-throws after converting under the both strategy', async () => {
+    const angular = angularOverride('httpResource');
+    const { header } = await generateFile(
+      [datedVerb()],
+      zodOutput({
+        ...angular,
+        runtimeValidation: { enabled: true, strategy: 'both' },
+      }),
+    );
+
+    expect(header).toContain(
+      "parse: (raw: unknown) => (() => { const result = Pet.safeParse(deserializeGetPetByIdResponse(raw as Pet)); if (!result.success) { console.error('[orval] getPetById response validation failed', result.error); throw result.error; } return result.data; })()",
+    );
+  });
+
+  it('serializes the body of a retrieval', async () => {
+    const { header } = await generateFile([postVerb('searchPets', true)]);
+
+    expect(header).toContain('body: serializeSearchPetsRequest(petBody())');
+  });
+
+  it('converts both directions of a mutation method', async () => {
+    const { header } = await generateFile([postVerb('createPet')]);
+
+    expect(header).toMatch(/`\/pets`,\s*serializeCreatePetRequest\(petBody\),/);
+    expect(header).toContain(
+      '.pipe(map(data => deserializeCreatePetResponse(data as Pet) as TData))',
+    );
+    expect(header).toContain(
+      'event.clone({ body: deserializeCreatePetResponse(event.body as Pet) as TData })',
+    );
+  });
+
+  it('imports HttpResponse as a value for a mutation that narrows events', async () => {
+    const { clients } = await generateFile([postVerb('createPet')]);
+
+    expect(clients[0].imports).toContainEqual(
+      expect.objectContaining({ name: 'HttpResponse', values: true }),
+    );
+  });
+
+  it('declares the helpers of a both-mode resource file there', async () => {
+    const output = datesOutput(
+      { target: '/tmp/pets.ts' },
+      angularOverride('both'),
+    );
+    const [file] = await generateHttpResourceExtraFiles(
+      { getPetById: datedVerb() },
+      output,
+      datesContext(output),
+    );
+
+    expect(file.content).toContain(
+      'parse: (raw: unknown) => deserializeGetPetByIdResponse(raw as Pet)',
+    );
+    expect(file.content).toContain(
+      'const deserializeGetPetByIdResponse = (data: Pet): Pet => {',
+    );
   });
 });
