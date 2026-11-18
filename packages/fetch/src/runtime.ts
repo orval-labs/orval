@@ -337,7 +337,13 @@ const decodeResponseBody = async (
   if (responseType === 'auto' || responseType === 'void' || validateResponse) {
     const empty = responseType === 'void' ? undefined : {};
     const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
-    if (!contentType.includes('json')) return body ? body : empty;
+    if (!contentType.includes('json')) {
+      if (body) return body;
+      // An empty body declared as non-JSON (e.g. text/plain) is a string.
+      return body !== null && contentType && responseType !== 'void'
+        ? ''
+        : empty;
+    }
     const data = body ? parseJson(body) : empty;
     return validateResponse ? validateResponse(data, res.status) : data;
   }

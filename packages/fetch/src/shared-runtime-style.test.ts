@@ -1248,6 +1248,42 @@ describe('shared runtime options', () => {
       expect(result).toBe('plain');
     });
 
+    it('decodes an empty text/plain body as an empty string (#4544)', async () => {
+      const auto = { responseType: 'auto', returnData: true };
+
+      expect(await call(auto, '', 200, 'text/plain')).toBe('');
+      expect(await call(auto, 'hello', 200, 'text/plain')).toBe('hello');
+      expect(await call(auto, '{"n":1}', 200, 'application/json')).toEqual({
+        n: 1,
+      });
+      // No Content-Type and no-content statuses keep their fallbacks.
+      expect(await call(auto, '', 200, '')).toEqual({});
+      expect(
+        await execute({
+          url: '/pets',
+          method: 'GET',
+          ...auto,
+          options: {
+            fetch: () =>
+              Promise.resolve(
+                new Response(null, {
+                  status: 204,
+                  headers: { 'content-type': 'text/plain' },
+                }),
+              ),
+          },
+        }),
+      ).toEqual({});
+      expect(
+        await call(
+          { responseType: 'void', returnData: true },
+          '',
+          200,
+          'text/plain',
+        ),
+      ).toBeUndefined();
+    });
+
     it('validates only a response declared as JSON, as inline does', async () => {
       const validateResponse = (data: unknown) => ({ validated: data });
       const deserializeResponseDates = () => 'deserialized';
