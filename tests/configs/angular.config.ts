@@ -39,6 +39,80 @@ export default defineConfig({
       target: '../specifications/date-type.yaml',
     },
   },
+  // `date` converts to `Date`, the mapped `date-time` through `formatType`.
+  datesTransform: {
+    output: {
+      target: '../generated/angular/dates-transform/endpoints.ts',
+      schemas: '../generated/angular/dates-transform/model',
+      client: 'angular',
+      override: {
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  datesTransformHttpResource: {
+    output: {
+      target: '../generated/angular/dates-transform-http-resource/endpoints.ts',
+      schemas: '../generated/angular/dates-transform-http-resource/model',
+      client: 'angular',
+      override: {
+        angular: { retrievalClient: 'httpResource' },
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  // The Zod schemas decode the mapped `date-time` themselves; `date` converts
+  // to `Date` before `zod.date()` validates it.
+  datesTransformZod: {
+    output: {
+      target: '../generated/angular/dates-transform-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/dates-transform-zod/model',
+      },
+      client: 'angular',
+      override: {
+        angular: { retrievalClient: 'both', runtimeValidation: true },
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
   formatTypeZodCodec: {
     output: {
       target: '../generated/angular/format-type-zod-codec/endpoints.ts',
