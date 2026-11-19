@@ -42,7 +42,7 @@ const toRunnableJs = (implementation: string): string => {
   const start = implementation.indexOf('(data: ');
   const arrow = implementation.indexOf('=>', start);
   return `${implementation.slice(0, start)}(data) ${implementation.slice(arrow)}`
-    .replace(/ as unknown as [\w<>[\] |]+/g, '')
+    .replace(/ as unknown as [\w<>[\] |.]+/g, '')
     .replaceAll(']!', ']');
 };
 
@@ -6542,8 +6542,100 @@ describe('formatType values', () => {
         },
       }),
     ).toBe(
-      "copy.startsAt = typeof copy.startsAt === 'string' ? copy.startsAt : (toIso(copy.startsAt) as unknown as typeof copy.startsAt);",
+      "copy.startsAt = typeof copy.startsAt === 'string' || copy.startsAt == null ? copy.startsAt : (toIso(copy.startsAt) as unknown as typeof copy.startsAt);",
     );
+  });
+
+  it('leaves a missing request value out of encode where nothing else checks it', () => {
+    const encoded = (value: string, checked = true) =>
+      `${value} = typeof ${value} === 'string'${checked ? ` || ${value} == null` : ''} ? ${value} : (toIso(${value}) as unknown as typeof ${value});`;
+    const nullableDateTime: OpenApiSchemaObject = {
+      anyOf: [dateTime, { type: 'null' }],
+    };
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      required: ['startsAt', 'days', 'byKey'],
+      properties: {
+        startsAt: dateTime,
+        endsAt: dateTime,
+        days: { type: 'array', items: dateTime },
+        byKey: { type: 'object', additionalProperties: dateTime },
+      },
+    };
+
+    expect(serialize(schema)).toBe(
+      [
+        encoded('copy.startsAt'),
+        'if (copy.endsAt != null) {',
+        `  ${encoded('copy.endsAt', false)}`,
+        '}',
+        'if (copy.days != null) {',
+        '  copy.days = copy.days.map((item0) => {',
+        '    let value0 = item0;',
+        `    ${encoded('value0')}`,
+        '    return value0;',
+        '  });',
+        '}',
+        'if (copy.byKey != null) {',
+        '  copy.byKey = { ...copy.byKey };',
+        '  for (const key0 of Object.keys(copy.byKey)) {',
+        '    let value0 = copy.byKey[key0]!;',
+        `    ${encoded('value0')}`,
+        '    copy.byKey[key0] = value0;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+    expect(serialize({ type: 'array', items: nullableDateTime })).toBe(
+      [
+        'copy = copy.map((item0) => {',
+        '  if (item0 == null) return item0;',
+        '  let value0 = item0;',
+        `  ${encoded('value0', false)}`,
+        '  return value0;',
+        '});',
+      ].join('\n'),
+    );
+    expect(
+      serialize({ type: 'object', additionalProperties: nullableDateTime }),
+    ).toBe(
+      [
+        'copy = { ...copy };',
+        'for (const key0 of Object.keys(copy)) {',
+        '  let value0 = copy[key0]!;',
+        '  if (value0 == null) continue;',
+        `  ${encoded('value0', false)}`,
+        '  copy[key0] = value0;',
+        '}',
+      ].join('\n'),
+    );
+    expect(serialize(dateTime)).toBe(encoded('copy'));
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putStart',
+        body: makeJsonBody(dateTime),
+        context: dayjs,
+      })?.implementation,
+    ).toContain(
+      `  if (data == null) return data;\n  let copy = data;\n  ${encoded('copy', false)}`,
+    );
+
+    const result = generateRequestDateSerializer({
+      operationName: 'putEvent',
+      body: makeJsonBody(schema),
+      context: dayjs,
+    });
+    const withEncode = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
+      `((toIso) => {\n${toRunnableJs(result!.implementation)}\nreturn ${result!.name};\n})`,
+    ) as (toIso: (value: Date) => string) => (data: unknown) => unknown;
+    const fn = withEncode((value) => String(value.getTime()));
+
+    expect(
+      JSON.stringify(
+        fn({ days: [undefined, null, new Date(0)], byKey: { a: undefined } }),
+      ),
+    ).toBe('{"days":[null,null,"0"],"byKey":{}}');
   });
 
   it('serializes a `date` mapped to `Date` as a calendar day', () => {
@@ -6607,7 +6699,7 @@ describe('query parameter formatType values', () => {
         'if (encodedParams.days != null) {',
         '  encodedParams.days = encodedParams.days.map((item0) => {',
         '    let value0 = item0;',
-        "    value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
+        "    value0 = typeof value0 === 'string' || value0 == null ? value0 : (toIso(value0) as unknown as typeof value0);",
         '    return value0;',
         '  });',
         '}',
