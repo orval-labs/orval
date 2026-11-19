@@ -3,10 +3,14 @@ import { Schema as S } from 'effect';
 import { Schema as S3 } from 'effect3';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
+import {
+  generateEffectValidationSchemaDefinition,
+  parseEffectValidationSchemaDefinition,
+} from '.';
 import { createTestContextSpec } from '../../core/src/test-utils';
 import { logger } from './logger';
 import { generateEffectSchemasModule } from './schemas-module';
-import { evaluate, evaluateV3 } from './test-helpers';
+import { evaluate, evaluateV3, generateOperation } from './test-helpers';
 
 const moduleOf = (
   schemas: Record<string, OpenApiSchemaObject>,
@@ -851,4 +855,314 @@ describe('generateEffectSchemasModule', () => {
       warn.mockRestore();
     });
   });
+});
+
+describe('allOf members that declare a key again', () => {
+  const member = (
+    properties: Record<string, OpenApiSchemaObject>,
+    required?: string[],
+  ): OpenApiSchemaObject => ({
+    type: 'object',
+    properties,
+    ...(required && { required }),
+  });
+  const min = member({ x: { type: 'string', minLength: 5 } });
+  const max = member({ x: { type: 'string', maxLength: 10 } });
+
+  // The warnings a generation writes.
+  const warned = async (run: () => unknown) => {
+    const warn = vi.spyOn(logger, 'warn').mockReturnValue(undefined);
+    await run();
+    const messages = warn.mock.calls.map(([message]) => message);
+    warn.mockRestore();
+    return messages;
+  };
+  const warnedSchemas = (
+    schemas: Record<string, OpenApiSchemaObject>,
+    version: 3 | 4,
+  ) => warned(() => moduleOf(schemas, version));
+  const pets = {
+    Cat: { type: 'string', enum: ['cat'] },
+    Dog: { type: 'string', enum: ['dog'] },
+  } satisfies Record<string, OpenApiSchemaObject>;
+  const warnedModule = (allOf: OpenApiSchemaObject[], version: 3 | 4) =>
+    warnedSchemas({ ...pets, Pet: { allOf } }, version);
+
+  it.each([3, 4] as const)(
+    'warns once with the key and the schema in the schemas module of Effect %i',
+    async (version) => {
+      expect(await warnedModule([min, max], version)).toEqual([
+        'allOf members of Pet declare "x" with different definitions, so only the last one is checked',
+      ]);
+    },
+  );
+
+  it('warns for an allOf nested in another', async () => {
+    expect(
+      await warnedModule([{ allOf: [min, max] }, member({})], 4),
+    ).toHaveLength(1);
+  });
+
+  it.each([3, 4] as const)(
+    'warns for a key declared again through an inheritance chain in Effect %i',
+    async (version) => {
+      expect(
+        await warnedSchemas(
+          {
+            Base: min,
+            Pet: { allOf: [ref('Base'), member({ age: { type: 'number' } })] },
+            Dog: { allOf: [ref('Pet'), max] },
+          },
+          version,
+        ),
+      ).toEqual([
+        'allOf members of Dog declare "x" with different definitions, so only the last one is checked',
+      ]);
+    },
+  );
+
+  it('warns for a key declared again in a branch of a union', async () => {
+    expect(
+      await warnedModule([min, { oneOf: [max, member({ y: {} })] }], 4),
+    ).toHaveLength(1);
+  });
+
+  it('does not warn for the branches of a union that differ', async () => {
+    expect(
+      await warnedModule([{ oneOf: [min, max] }, member({ y: {} })], 4),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['pattern', { pattern: '^a;b$' }, { pattern: '^a;c$' }],
+    ['default', { default: 'x;1' }, { default: 'x;2' }],
+  ])('warns for a %s that holds a semicolon', async (_, first, second) => {
+    const field = (extra: { pattern?: string; default?: string }) =>
+      member({ p: { type: 'string', ...extra } });
+
+    expect(await warnedModule([field(first), field(second)], 4)).toHaveLength(
+      1,
+    );
+  });
+
+  it('warns with the key and the operation in an Effect 4 client', async () => {
+    const messages = await warned(() =>
+      generateOperation(
+        { schemas: {}, schema: { allOf: [min, max] }, target: 'body' },
+        false,
+      ),
+    );
+
+    expect(messages).toEqual([
+      'allOf members of createPets declare "x" with different definitions, so only the last one is checked',
+    ]);
+  });
+
+  it('does not warn in an Effect 3 client (S.extend path)', async () => {
+    const context = createTestContextSpec();
+    const definition = generateEffectValidationSchemaDefinition(
+      { allOf: [min, max] },
+      context,
+      'test',
+      false,
+      { required: true },
+    );
+
+    expect(
+      await warned(() =>
+        parseEffectValidationSchemaDefinition(
+          definition,
+          context,
+          false,
+          undefined,
+          false,
+          false,
+          undefined,
+          undefined,
+          undefined,
+          'test',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    [
+      'an enum that is not a subset of the earlier one',
+      { type: 'string', enum: ['a', 'b', 'c'] },
+      { type: 'string', enum: ['b', 'c', 'd'] },
+    ],
+    [
+      'an enum that is a subset of the earlier one',
+      { type: 'string', enum: ['dog', 'cat'] },
+      { type: 'string', enum: ['dog'] },
+    ],
+    [
+      'a numeric enum that is a subset of the earlier one',
+      { type: 'number', enum: [1, 2] },
+      { type: 'number', enum: [1] },
+    ],
+    [
+      'a string enum that replaces a boolean',
+      { type: 'boolean' },
+      { type: 'string', enum: ['yes', 'no'] },
+    ],
+    [
+      'a nullable enum that replaces an enum',
+      { type: 'string', enum: ['dog', 'cat'] },
+      { type: ['string', 'null'], enum: ['dog', 'cat', null] },
+    ],
+    [
+      'a nullable enum that replaces a plain string',
+      { type: 'string' },
+      { type: ['string', 'null'], enum: ['dog'] },
+    ],
+    ['another reference', ref('Cat'), ref('Dog')],
+    ['a reference that replaces a string', { type: 'string' }, ref('Dog')],
+  ] as [string, OpenApiSchemaObject, OpenApiSchemaObject][])(
+    'warns for %s',
+    async (_, first, second) => {
+      for (const version of [3, 4] as const) {
+        expect(
+          await warnedModule(
+            [member({ kind: first }), member({ kind: second })],
+            version,
+          ),
+        ).toEqual([
+          'allOf members of Pet declare "kind" with different definitions, so only the last one is checked',
+        ]);
+      }
+    },
+  );
+
+  it.each([
+    ['identical definitions', [min, min]],
+    ['keys that do not overlap', [min, member({ y: { type: 'number' } })]],
+    [
+      'an enum that narrows a string',
+      [
+        member({ kind: { type: 'string' } }),
+        member({ kind: { type: 'string', enum: ['dog'] } }),
+      ],
+    ],
+    [
+      'a literal that narrows a string',
+      [
+        member({ kind: { type: 'string' } }),
+        member({ kind: { type: 'string', const: 'dog' } }),
+      ],
+    ],
+    [
+      'a required enum that narrows a required string',
+      [
+        member({ kind: { type: 'string' } }, ['kind']),
+        member({ kind: { type: 'string', enum: ['dog'] } }, ['kind']),
+      ],
+    ],
+    [
+      'identical definitions with different descriptions',
+      [
+        member({ kind: { type: 'string', description: 'one' } }),
+        member({ kind: { type: 'string', description: 'two' } }),
+      ],
+    ],
+    [
+      'a described enum that narrows a described string',
+      [
+        member({ kind: { type: 'string', description: 'one' } }),
+        member({ kind: { type: 'string', enum: ['dog'], description: 'two' } }),
+      ],
+    ],
+    [
+      'identical references',
+      [member({ kind: ref('Dog') }), member({ kind: ref('Dog') })],
+    ],
+    [
+      'identical enums',
+      [
+        member({ kind: { type: 'string', enum: ['dog', 'cat'] } }),
+        member({ kind: { type: 'string', enum: ['dog', 'cat'] } }),
+      ],
+    ],
+  ] as [string, OpenApiSchemaObject[]][])(
+    'does not warn for %s',
+    async (_, allOf) => {
+      for (const version of [3, 4] as const) {
+        expect(await warnedModule(allOf, version)).toEqual([]);
+      }
+    },
+  );
+
+  it.each([3, 4] as const)(
+    'does not warn for a nested object declared in another key order in Effect %i',
+    async (version) => {
+      const nested = (properties: Record<string, OpenApiSchemaObject>) =>
+        member({ owner: member(properties) });
+      const a = { type: 'string' } as const;
+      const b = { type: 'number' } as const;
+
+      expect(
+        await warnedModule([nested({ a, b }), nested({ b, a })], version),
+      ).toEqual([]);
+    },
+  );
+
+  it.each([3, 4] as const)(
+    'warns for a nested object whose field differs in Effect %i',
+    async (version) => {
+      const nested = (name: OpenApiSchemaObject) =>
+        member({ owner: member({ name, id: { type: 'number' } }) });
+
+      expect(
+        await warnedModule(
+          [
+            nested({ type: 'string', minLength: 5 }),
+            nested({ type: 'string', maxLength: 10 }),
+          ],
+          version,
+        ),
+      ).toEqual([
+        'allOf members of Pet declare "owner" with different definitions, so only the last one is checked',
+      ]);
+    },
+  );
+
+  it.each([3, 4] as const)(
+    'compares identical bounds on a non-ASCII field in Effect %i',
+    async (version) => {
+      const cafe = member({ café: { type: 'string', minLength: 5 } });
+
+      expect(await warnedModule([cafe, cafe], version)).toEqual([]);
+    },
+  );
+
+  it.each([3, 4] as const)(
+    'warns for an enum that replaces a constrained string in Effect %i',
+    async (version) => {
+      expect(
+        await warnedModule(
+          [
+            member({ kind: { type: 'string', minLength: 5 } }),
+            member({ kind: { type: 'string', enum: ['dog'] } }),
+          ],
+          version,
+        ),
+      ).toHaveLength(1);
+    },
+  );
+
+  it.each([3, 4] as const)(
+    'warns for an optional enum that replaces a required string in Effect %i',
+    async (version) => {
+      expect(
+        await warnedModule(
+          [
+            member({ kind: { type: 'string' } }, ['kind']),
+            member({ kind: { type: 'string', enum: ['dog'], readOnly: true } }),
+          ],
+          version,
+        ),
+      ).toHaveLength(1);
+    },
+  );
 });

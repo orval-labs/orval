@@ -136,6 +136,66 @@ const childrenOf = (arg: unknown): Definition[] =>
     ? [arg]
     : [...membersOf(arg), ...fieldsOf(arg).map(([, field]) => field)];
 
+// A const name carries the position of its member, so definitions compare by
+// the values behind their names.
+const signatureOf = (definition: Definition): string => {
+  const values = new Map<string, string>();
+  return JSON.stringify(definition, (_, value: unknown) => {
+    if (isDefinition(value)) {
+      for (const chunk of value.consts) {
+        const [, name, text] =
+          /const (\S+) = ([\s\S]*?);?\s*$/.exec(chunk) ?? [];
+        if (name && text) values.set(name, text);
+      }
+      return { functions: value.functions.filter(([fn]) => fn !== 'describe') };
+    }
+    // Field records compare by their fields, not the order they were declared in.
+    if (isObject(value) && !Array.isArray(value)) {
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left < right ? -1 : left > right ? 1 : 0,
+        ),
+      );
+    }
+    return isString(value) ? (values.get(value) ?? value) : value;
+  });
+};
+
+// The functions of a definition by name, without its description.
+const kindsOf = ({ functions }: Definition): string[] =>
+  functions.map(([fn]) => fn).filter((fn) => fn !== 'describe');
+
+// A plain string that an enum or literal of strings replaces, wrapped the same
+// way, loses nothing. A string with any check, or any other base, does.
+const narrowsString = (earlier: Definition, later: Definition): boolean => {
+  const [base, ...wrappers] = kindsOf(earlier);
+  const [choice, ...laterWrappers] = kindsOf(later);
+  return (
+    base === 'string' &&
+    (choice === 'enum' || choice === 'literal') &&
+    wrappers.every((fn) => fn === 'optional') &&
+    wrappers.join() === laterWrappers.join()
+  );
+};
+
+/**
+ * The keys that both sides of an allOf merge declare, where the later
+ * definition differs from the earlier one, unless it is an enum or literal
+ * that replaces a plain string.
+ */
+export const overlappingKeys = (
+  earlier: ReadonlyMap<string, Definition>,
+  later: ReadonlyMap<string, Definition>,
+): string[] =>
+  [...later].flatMap(([key, field]) => {
+    const before = earlier.get(key);
+    return before &&
+      signatureOf(before) !== signatureOf(field) &&
+      !narrowsString(before, field)
+      ? [key]
+      : [];
+  });
+
 /** The names of the components a definition references, each once. */
 export const collectRefNames = (definition: Definition): Set<string> => {
   const names = new Set<string>();
