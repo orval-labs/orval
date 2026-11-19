@@ -25,6 +25,7 @@ import {
   getAngularObjectParamStrategies,
   getQueryParamsEncoding,
   getFileInfo,
+  getDateHelperNames,
   getFormatTypeFunctionImports,
   getImportExtension,
   getFullRoute,
@@ -1709,14 +1710,15 @@ export function ${TO_RESOURCE_STATE_FUNCTION_NAME}<T>(ref: HttpResourceRef<T>): 
  * `generateHttpResourceClient` returns them as the operation's code.
  */
 const getDeclaredDateHelpers = (
-  { operationName }: GeneratorVerbOptions,
+  { operationName, props }: GeneratorVerbOptions,
   clientImplementation: string,
 ): DateHelperNames => {
+  const { deserializer, serializer } = getDateHelperNames(operationName, props);
   const declared = (name: string) =>
     clientImplementation.includes(`const ${name} = `) ? { name } : undefined;
   return {
-    deserializer: declared(`deserialize${pascal(operationName)}Response`),
-    serializer: declared(`serialize${pascal(operationName)}Request`),
+    deserializer: declared(deserializer),
+    serializer: declared(serializer),
   };
 };
 

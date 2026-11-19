@@ -280,7 +280,7 @@ export const getDateHelpers = (
   context: ContextSpec,
   { parsesBody }: { parsesBody: boolean },
 ): DateHelperNames & { implementation: string } => {
-  const { operationName, response, body, verb, override } = verbOptions;
+  const { operationName, response, body, verb, props, override } = verbOptions;
   if (!override.useDatesTransform || getStandardSchemaLibrary(context.output)) {
     return { implementation: '' };
   }
@@ -289,10 +289,11 @@ export const getDateHelpers = (
     operationName,
     response,
     context,
+    props,
   });
   const serializer =
     getIsBodyVerb(verb) && !parsesBody
-      ? generateRequestDateSerializer({ operationName, body, context })
+      ? generateRequestDateSerializer({ operationName, body, context, props })
       : undefined;
 
   return {

@@ -16,6 +16,7 @@ import type {
   ContextSpec,
   GetterBody,
   GetterParameters,
+  GetterProps,
   GetterQueryParam,
   GetterResponse,
   OpenApiNonBooleanSchemaObject,
@@ -23,7 +24,13 @@ import type {
   OpenApiRequestBodyObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isInlineSchema, logger, pascal, toObjectSchema } from '../utils';
+import {
+  getUniqueName,
+  isInlineSchema,
+  logger,
+  pascal,
+  toObjectSchema,
+} from '../utils';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
@@ -1868,6 +1875,28 @@ const resolveJsonBodySchema = (
   return jsonEntries[0][1].schema;
 };
 
+/**
+ * The names of an operation's date helpers. A parameter of the operation
+ * function would shadow a helper of the same name where the function calls
+ * it, so such a name is numbered past the parameters in `props`.
+ */
+export const getDateHelperNames = (
+  operationName: string,
+  props: GetterProps = [],
+) => {
+  const parameterNames = new Set(props.map(({ name }) => name));
+  return {
+    deserializer: getUniqueName(
+      `deserialize${pascal(operationName)}Response`,
+      parameterNames,
+    ),
+    serializer: getUniqueName(
+      `serialize${pascal(operationName)}Request`,
+      parameterNames,
+    ),
+  };
+};
+
 export interface GeneratedDateSerializer {
   name: string;
   implementation: string;
@@ -1892,10 +1921,13 @@ export const generateRequestDateSerializer = ({
   operationName,
   body,
   context,
+  props,
 }: {
   operationName: string;
   body: GetterBody;
   context: ContextSpec;
+  /** See {@link getDateHelperNames}. */
+  props?: GetterProps;
 }): GeneratedDateSerializer | undefined => {
   if (body.isBlob || !body.definition || !body.implementation) return undefined;
 
@@ -1956,7 +1988,7 @@ export const generateRequestDateSerializer = ({
     ? `const copy = { ...data }${workingType};`
     : `let copy = data${workingType};`;
 
-  const name = `serialize${pascal(operationName)}Request`;
+  const name = getDateHelperNames(operationName, props).serializer;
 
   // An operation prop generated from a `requestBody` that isn't `required: true`
   // (the OpenAPI default) is typed `T | undefined` at the call site
@@ -1992,10 +2024,13 @@ export const generateResponseDateDeserializer = ({
   operationName,
   response,
   context,
+  props,
 }: {
   operationName: string;
   response: GetterResponse;
   context: ContextSpec;
+  /** See {@link getDateHelperNames}. */
+  props?: GetterProps;
 }): GeneratedDateDeserializer | undefined => {
   if (response.isBlob) return undefined;
 
@@ -2020,7 +2055,7 @@ export const generateResponseDateDeserializer = ({
   if (statements.length === 0) return undefined;
 
   const dataType = response.definition.success || 'unknown';
-  const name = `deserialize${pascal(operationName)}Response`;
+  const name = getDateHelperNames(operationName, props).deserializer;
   const implementation = `const ${name} = (data: ${dataType}): ${dataType} => {
   if (data == null) return data;
 ${indent(statements).join('\n')}

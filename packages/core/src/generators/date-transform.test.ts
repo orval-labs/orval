@@ -10,6 +10,7 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
+import { GetterPropType } from '../types';
 import { logger } from '../utils';
 import {
   buildDateTransformStatements,
@@ -3778,6 +3779,15 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
   });
 });
 
+const shadowingParam = (name: string) => ({
+  name,
+  definition: `${name}: string`,
+  implementation: `${name}: string`,
+  default: false,
+  required: true,
+  type: GetterPropType.PARAM,
+});
+
 describe('generateResponseDateDeserializer', () => {
   const datedSchema: OpenApiSchemaObject = {
     type: 'object',
@@ -3802,6 +3812,22 @@ describe('generateResponseDateDeserializer', () => {
   return data;
 };
 `,
+    );
+  });
+
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateResponseDateDeserializer({
+      operationName: 'getPet',
+      response: makeResponse({
+        successTypes: [{ originalSchema: datedSchema }],
+      }),
+      context: makeContext(),
+      props: [shadowingParam('deserializeGetPetResponse')],
+    });
+
+    expect(result?.name).toBe('deserializeGetPetResponse2');
+    expect(result?.implementation).toMatch(
+      /^const deserializeGetPetResponse2 = /,
     );
   });
 
@@ -5447,6 +5473,23 @@ const makeJsonBody = (
   }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+      props: [
+        shadowingParam('serializePutItemRequest'),
+        shadowingParam('serializePutItemRequest2'),
+      ],
+    });
+
+    expect(result?.name).toBe('serializePutItemRequest3');
+  });
+
   it('generates a copying serializer for a date-only body field', () => {
     const result = generateRequestDateSerializer({
       operationName: 'putItem',

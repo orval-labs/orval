@@ -3759,6 +3759,32 @@ describe('useDatesTransform', () => {
     );
   });
 
+  it('numbers a helper past a parameter of the same name', async () => {
+    const verb = createPetVerb();
+    const param = 'serializeCreatePetRequest';
+    const { implementation, returnType } = await generate({
+      ...verb,
+      route: `/pets/\${${param}}`,
+      props: [
+        {
+          name: param,
+          definition: `${param}: string`,
+          implementation: `${param}: string`,
+          default: false,
+          required: true,
+          type: GetterPropType.PARAM,
+        },
+        ...verb.props,
+      ],
+    });
+
+    expect(implementation).toContain(`${param}: string`);
+    expect(implementation).toContain('serializeCreatePetRequest2(petBody)');
+    expect(returnType?.()).toContain(
+      'const serializeCreatePetRequest2 = (data: Pet): Pet => {',
+    );
+  });
+
   describe('with a formatType value', () => {
     const formatTypeOutput = (encode = true) =>
       datesOutput({

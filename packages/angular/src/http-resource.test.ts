@@ -5421,6 +5421,29 @@ describe('useDatesTransform', () => {
     expect(header).toContain('body: serializeSearchPetsRequest(petBody())');
   });
 
+  it('calls a helper numbered past a parameter of the same name', async () => {
+    const verb = datedVerb();
+    const param = 'deserializeGetPetByIdResponse';
+    const { header } = await generateFile([
+      {
+        ...verb,
+        params: [{ ...verb.params[0], name: param }],
+        props: [
+          {
+            ...verb.props[0],
+            name: param,
+            definition: `${param}: string`,
+            implementation: `${param}: string`,
+          },
+        ],
+      },
+    ]);
+
+    expect(header).toContain(
+      'parse: (raw: unknown) => deserializeGetPetByIdResponse2(raw as Pet)',
+    );
+  });
+
   it('converts both directions of a mutation method', async () => {
     const { header } = await generateFile([postVerb('createPet')]);
 
