@@ -26,7 +26,9 @@ export const getHealth = (fetchFn: typeof globalThis.fetch = fetch) => {
       ? contentType.includes('json')
         ? JSON.parse(body)
         : body
-      : {};
+      : body !== null && contentType && !contentType.includes('json')
+        ? body
+        : {};
     return data;
   };
 
