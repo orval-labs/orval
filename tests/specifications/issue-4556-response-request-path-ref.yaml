@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: Issue 4556 — response and request body $ref into paths
+  version: 1.0.0
+paths:
+  /articles:
+    post:
+      operationId: createArticle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+      responses:
+        '201':
+          description: Created
+  /articles/{id}:
+    get:
+      operationId: getArticle
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+    put:
+      operationId: updateArticle
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        $ref: '#/paths/~1articles/post/requestBody'
+      responses:
+        '200':
+          $ref: '#/paths/~1articles~1%7Bid%7D/get/responses/200'
+  /articles/by-slug/{slug}:
+    get:
+      operationId: getArticleBySlug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/paths/~1articles~1%7Bid%7D/get/responses/200'
