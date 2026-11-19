@@ -27,6 +27,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  Folder,
   LastInspection,
   OrderDetails,
   ReminderUpdate,
@@ -384,6 +385,17 @@ export const getAuditRecord = (auditId: string, signal?: AbortSignal) => {
 
 const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
   if (data == null) return data;
+  type AuditNode = NonNullable<NonNullable<AuditRecord>['tree']>;
+  const convertAuditNode = (data: AuditNode): AuditNode => {
+    data.createdAt = new Date(data.createdAt);
+    if (data.children != null) {
+      for (let i0 = 0; i0 < data.children.length; i0++) {
+        const item0 = data.children[i0]!;
+        convertAuditNode(item0);
+      }
+    }
+    return data;
+  };
   (
     data as { -readonly [K in keyof typeof data]: (typeof data)[K] }
   ).recordedAt = new Date(data.recordedAt);
@@ -399,6 +411,9 @@ const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
         item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }
       ).changedAt = new Date(item0.changedAt);
     }
+  }
+  if (data.tree != null) {
+    convertAuditNode(data.tree);
   }
   return data;
 };
@@ -1735,4 +1750,328 @@ export const useUpdateAppointmentWindow = <
     getUpdateAppointmentWindowMutationOptions(options),
     queryClient,
   );
+};
+
+export const getFolder = (folderId: string, signal?: AbortSignal) => {
+  return customInstance<Folder>({
+    url: `/folders/${folderId}`,
+    method: 'GET',
+    signal,
+  }).then(deserializeGetFolderResponse);
+};
+
+const deserializeGetFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+export const getGetFolderQueryKey = (folderId: string) => {
+  return [`/folders/${folderId}`] as const;
+};
+
+export const getGetFolderQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFolder>>,
+  TError = unknown,
+>(
+  folderId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData>
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFolderQueryKey(folderId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFolder>>> = ({
+    signal,
+  }) => getFolder(folderId, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: folderId !== null && folderId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetFolderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFolder>>
+>;
+export type GetFolderQueryError = unknown;
+
+export function useGetFolder<
+  TData = Awaited<ReturnType<typeof getFolder>>,
+  TError = unknown,
+>(
+  folderId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFolder>>,
+          TError,
+          Awaited<ReturnType<typeof getFolder>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetFolder<
+  TData = Awaited<ReturnType<typeof getFolder>>,
+  TError = unknown,
+>(
+  folderId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFolder>>,
+          TError,
+          Awaited<ReturnType<typeof getFolder>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetFolder<
+  TData = Awaited<ReturnType<typeof getFolder>>,
+  TError = unknown,
+>(
+  folderId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetFolder<
+  TData = Awaited<ReturnType<typeof getFolder>>,
+  TError = unknown,
+>(
+  folderId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getFolder>>, TError, TData>
+    >;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetFolderQueryOptions(folderId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const updateFolder = (
+  folderId: string,
+  folder: Folder,
+  signal?: AbortSignal,
+) => {
+  return customInstance<Folder>({
+    url: `/folders/${folderId}`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: serializeUpdateFolderRequest(folder),
+    signal,
+  }).then(deserializeUpdateFolderResponse);
+};
+
+const deserializeUpdateFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+const serializeUpdateFolderRequest = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    const copy = { ...data };
+    copy.createdOn =
+      copy.createdOn instanceof Date
+        ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date)
+        : copy.createdOn;
+    if (copy.subfolders != null) {
+      copy.subfolders = copy.subfolders.map(convertFolder);
+    }
+    if (copy.owner != null) {
+      copy.owner = convertFolderOwner(copy.owner);
+    }
+    return copy;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    const copy = { ...data };
+    copy.since =
+      copy.since instanceof Date
+        ? (copy.since.toISOString().slice(0, 10) as unknown as Date)
+        : copy.since;
+    if (copy.homeFolder != null) {
+      copy.homeFolder = convertFolder(copy.homeFolder);
+    }
+    return copy;
+  };
+  let copy = data;
+  copy = convertFolder(copy);
+  return copy;
+};
+
+export const getUpdateFolderMutationKey = () => ['updateFolder'] as const;
+
+export const getUpdateFolderMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateFolder>>,
+    TError,
+    UpdateFolderMutationVariables,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFolder>>,
+  TError,
+  UpdateFolderMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFolderMutationKey();
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFolder>>,
+    UpdateFolderMutationVariables
+  > = (props) => {
+    const { folderId, data } = props ?? {};
+
+    return updateFolder(folderId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateFolderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFolder>>
+>;
+export type UpdateFolderMutationBody = Folder;
+export type UpdateFolderMutationError = unknown;
+export type UpdateFolderMutationVariables = { folderId: string; data: Folder };
+
+export const useUpdateFolder = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFolder>>,
+      TError,
+      UpdateFolderMutationVariables,
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFolder>>,
+  TError,
+  UpdateFolderMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFolderMutationOptions(options), queryClient);
 };

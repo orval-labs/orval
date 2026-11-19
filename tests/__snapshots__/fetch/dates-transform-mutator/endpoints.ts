@@ -11,6 +11,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  Folder,
   LastInspection,
   OrderDetails,
   ReminderUpdate,
@@ -186,6 +187,17 @@ export const getAuditRecord = async (
 
 const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
   if (data == null) return data;
+  type AuditNode = NonNullable<NonNullable<AuditRecord>['tree']>;
+  const convertAuditNode = (data: AuditNode): AuditNode => {
+    data.createdAt = new Date(data.createdAt);
+    if (data.children != null) {
+      for (let i0 = 0; i0 < data.children.length; i0++) {
+        const item0 = data.children[i0]!;
+        convertAuditNode(item0);
+      }
+    }
+    return data;
+  };
   (
     data as { -readonly [K in keyof typeof data]: (typeof data)[K] }
   ).recordedAt = new Date(data.recordedAt);
@@ -201,6 +213,9 @@ const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
         item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }
       ).changedAt = new Date(item0.changedAt);
     }
+  }
+  if (data.tree != null) {
+    convertAuditNode(data.tree);
   }
   return data;
 };
@@ -799,5 +814,186 @@ const serializeUpdateAppointmentWindowRequest = (
         ? (copy.closedAt.toISOString().slice(0, 10) as unknown as Date)
         : copy.closedAt;
   }
+  return copy;
+};
+
+export type getFolderResponse200 = {
+  data: Folder;
+  status: 200;
+};
+
+export type getFolderResponseSuccess = getFolderResponse200 & {
+  headers: Headers;
+};
+export type getFolderResponse = getFolderResponseSuccess;
+
+export const getGetFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const getFolder = async (
+  folderId: string,
+  options?: Parameters<typeof customFetch>[1],
+): Promise<getFolderResponse> => {
+  return customFetch<getFolderResponse>(getGetFolderUrl(folderId), {
+    ...options,
+    method: 'GET',
+  }).then((res) => {
+    if (res.status === 200) {
+      res.data = deserializeGetFolderResponse(res.data as Folder);
+    }
+    return res;
+  });
+};
+
+const deserializeGetFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+export type updateFolderResponse200 = {
+  data: Folder;
+  status: 200;
+};
+
+export type updateFolderResponseSuccess = updateFolderResponse200 & {
+  headers: Headers;
+};
+export type updateFolderResponse = updateFolderResponseSuccess;
+
+export const getUpdateFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const updateFolder = async (
+  folderId: string,
+  folder: Folder,
+  options?: Parameters<typeof customFetch>[1],
+): Promise<updateFolderResponse> => {
+  return customFetch<updateFolderResponse>(getUpdateFolderUrl(folderId), {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
+    body: JSON.stringify(serializeUpdateFolderRequest(folder)),
+  }).then((res) => {
+    if (res.status === 200) {
+      res.data = deserializeUpdateFolderResponse(res.data as Folder);
+    }
+    return res;
+  });
+};
+
+const deserializeUpdateFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+const serializeUpdateFolderRequest = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    const copy = { ...data };
+    copy.createdOn =
+      copy.createdOn instanceof Date
+        ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date)
+        : copy.createdOn;
+    if (copy.subfolders != null) {
+      copy.subfolders = copy.subfolders.map(convertFolder);
+    }
+    if (copy.owner != null) {
+      copy.owner = convertFolderOwner(copy.owner);
+    }
+    return copy;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    const copy = { ...data };
+    copy.since =
+      copy.since instanceof Date
+        ? (copy.since.toISOString().slice(0, 10) as unknown as Date)
+        : copy.since;
+    if (copy.homeFolder != null) {
+      copy.homeFolder = convertFolder(copy.homeFolder);
+    }
+    return copy;
+  };
+  let copy = data;
+  copy = convertFolder(copy);
   return copy;
 };

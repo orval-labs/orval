@@ -17,6 +17,7 @@ import type {
   AuditRecord,
   Cat,
   Dog,
+  Folder,
   LastInspection,
   OrderDetails,
   ReminderUpdate,
@@ -288,6 +289,17 @@ export const getAuditRecord = async (
 
 const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
   if (data == null) return data;
+  type AuditNode = NonNullable<NonNullable<AuditRecord>['tree']>;
+  const convertAuditNode = (data: AuditNode): AuditNode => {
+    data.createdAt = new Date(data.createdAt);
+    if (data.children != null) {
+      for (let i0 = 0; i0 < data.children.length; i0++) {
+        const item0 = data.children[i0]!;
+        convertAuditNode(item0);
+      }
+    }
+    return data;
+  };
   (
     data as { -readonly [K in keyof typeof data]: (typeof data)[K] }
   ).recordedAt = new Date(data.recordedAt);
@@ -303,6 +315,9 @@ const deserializeGetAuditRecordResponse = (data: AuditRecord): AuditRecord => {
         item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }
       ).changedAt = new Date(item0.changedAt);
     }
+  }
+  if (data.tree != null) {
+    convertAuditNode(data.tree);
   }
   return data;
 };
@@ -1337,6 +1352,282 @@ export const useUpdateAppointmentWindow = <TError = Promise<unknown>>(
     appointmentId,
     fetchOptions,
   );
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions);
+
+  return {
+    swrKey,
+    ...query,
+  };
+};
+
+export type getFolderResponse200 = {
+  data: Folder;
+  status: 200;
+};
+
+export type getFolderResponseSuccess = getFolderResponse200 & {
+  headers: Headers;
+};
+export type getFolderResponse = getFolderResponseSuccess;
+
+export const getGetFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const getFolder = async (
+  folderId: string,
+  options?: RequestInit,
+): Promise<getFolderResponse> => {
+  const res = await fetch(getGetFolderUrl(folderId), {
+    ...options,
+    method: 'GET',
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: getFolderResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeGetFolderResponse(data as Folder);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as getFolderResponse;
+};
+
+const deserializeGetFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+export const getGetFolderKey = (folderId: string) =>
+  [`/folders/${folderId}`] as const;
+
+export type GetFolderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFolder>>
+>;
+
+export const useGetFolder = <TError = Promise<unknown>>(
+  folderId: string,
+  options?: {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof getFolder>>, TError> & {
+      swrKey?: Key;
+      enabled?: boolean;
+    };
+    fetch?: RequestInit;
+  },
+) => {
+  const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
+
+  const isEnabled =
+    swrOptions?.enabled !== false &&
+    folderId !== null &&
+    folderId !== undefined;
+  const swrKey =
+    swrOptions?.swrKey ??
+    (() => (isEnabled ? getGetFolderKey(folderId) : null));
+  const swrFn = () => getFolder(folderId, fetchOptions);
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
+    swrKey,
+    swrFn,
+    swrOptions,
+  );
+
+  return {
+    swrKey,
+    ...query,
+  };
+};
+
+export type updateFolderResponse200 = {
+  data: Folder;
+  status: 200;
+};
+
+export type updateFolderResponseSuccess = updateFolderResponse200 & {
+  headers: Headers;
+};
+export type updateFolderResponse = updateFolderResponseSuccess;
+
+export const getUpdateFolderUrl = (folderId: string) => {
+  return `/folders/${folderId}`;
+};
+
+export const updateFolder = async (
+  folderId: string,
+  folder: Folder,
+  options?: RequestInit,
+): Promise<updateFolderResponse> => {
+  const res = await fetch(getUpdateFolderUrl(folderId), {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders(
+      { 'Content-Type': 'application/json' },
+      options?.headers,
+    ),
+    body: JSON.stringify(serializeUpdateFolderRequest(folder)),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  let data: updateFolderResponse['data'] = body ? JSON.parse(body) : {};
+  if (body && res.status === 200) {
+    data = deserializeUpdateFolderResponse(data as Folder);
+  }
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updateFolderResponse;
+};
+
+const deserializeUpdateFolderResponse = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    data.createdOn = new Date(data.createdOn);
+    if (data.modifiedAt != null) {
+      data.modifiedAt = new Date(data.modifiedAt);
+    }
+    if (data.subfolders != null) {
+      for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+        const item0 = data.subfolders[i0]!;
+        convertFolder(item0);
+      }
+    }
+    if (data.owner != null) {
+      convertFolderOwner(data.owner);
+    }
+    return data;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    data.since = new Date(data.since);
+    if (data.homeFolder != null) {
+      convertFolder(data.homeFolder);
+    }
+    return data;
+  };
+  data.createdOn = new Date(data.createdOn);
+  if (data.modifiedAt != null) {
+    data.modifiedAt = new Date(data.modifiedAt);
+  }
+  if (data.subfolders != null) {
+    for (let i0 = 0; i0 < data.subfolders.length; i0++) {
+      const item0 = data.subfolders[i0]!;
+      convertFolder(item0);
+    }
+  }
+  if (data.owner != null) {
+    convertFolderOwner(data.owner);
+  }
+  return data;
+};
+
+const serializeUpdateFolderRequest = (data: Folder): Folder => {
+  if (data == null) return data;
+  type FolderOwner = NonNullable<NonNullable<Folder>['owner']>;
+  const convertFolder = (data: Folder): Folder => {
+    const copy = { ...data };
+    copy.createdOn =
+      copy.createdOn instanceof Date
+        ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date)
+        : copy.createdOn;
+    if (copy.subfolders != null) {
+      copy.subfolders = copy.subfolders.map(convertFolder);
+    }
+    if (copy.owner != null) {
+      copy.owner = convertFolderOwner(copy.owner);
+    }
+    return copy;
+  };
+  const convertFolderOwner = (data: FolderOwner): FolderOwner => {
+    const copy = { ...data };
+    copy.since =
+      copy.since instanceof Date
+        ? (copy.since.toISOString().slice(0, 10) as unknown as Date)
+        : copy.since;
+    if (copy.homeFolder != null) {
+      copy.homeFolder = convertFolder(copy.homeFolder);
+    }
+    return copy;
+  };
+  let copy = data;
+  copy = convertFolder(copy);
+  return copy;
+};
+
+export const getUpdateFolderMutationFetcher = (
+  folderId: string,
+  options?: RequestInit,
+) => {
+  return (_: Key, { arg }: { arg: Folder }) => {
+    return updateFolder(folderId, arg, options);
+  };
+};
+export const getUpdateFolderMutationKey = (folderId: string) =>
+  [`/folders/${folderId}`] as const;
+
+export type UpdateFolderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateFolder>>
+>;
+
+export const useUpdateFolder = <TError = Promise<unknown>>(
+  folderId: string,
+  options?: {
+    swr?: SWRMutationConfiguration<
+      Awaited<ReturnType<typeof updateFolder>>,
+      TError,
+      Key,
+      Folder,
+      Awaited<ReturnType<typeof updateFolder>>
+    > & { swrKey?: string };
+    fetch?: RequestInit;
+  },
+) => {
+  const { swr: swrOptions, fetch: fetchOptions } = options ?? {};
+
+  const swrKey = swrOptions?.swrKey ?? getUpdateFolderMutationKey(folderId);
+  const swrFn = getUpdateFolderMutationFetcher(folderId, fetchOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions);
 
