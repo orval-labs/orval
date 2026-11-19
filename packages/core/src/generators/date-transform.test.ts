@@ -6787,11 +6787,7 @@ describe('recursive schemas', () => {
     const copy = { ...data };
     copy.createdOn = copy.createdOn instanceof Date ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date) : copy.createdOn;
     if (copy.children != null) {
-      copy.children = copy.children.map((item0) => {
-        let value0 = item0;
-        value0 = convertNode(value0);
-        return value0;
-      });
+      copy.children = copy.children.map(convertNode);
     }
     return copy;
   };
@@ -6810,6 +6806,31 @@ describe('recursive schemas', () => {
       '{"createdOn":"2026-07-01","children":[{"createdOn":"2026-07-02","children":[]}]}',
     );
     expect(input.children[0].createdOn).toBeInstanceOf(Date);
+  });
+
+  it('keeps the null check of nullable items handed to a converter', () => {
+    const body = makeJsonBody(
+      {
+        type: 'array',
+        items: { anyOf: [ref('Node'), { type: 'null' }] },
+      },
+      'Node[]',
+    );
+    body.imports = [{ name: 'Node' }];
+    const result = generateRequestDateSerializer({
+      operationName: 'putNodes',
+      body,
+      context: makeContext({ Node: node }),
+    });
+
+    expect(result?.implementation).toContain(
+      `  copy = copy.map((item0) => {
+    if (item0 == null) return item0;
+    let value0 = item0;
+    value0 = convertNode(value0);
+    return value0;
+  });`,
+    );
   });
 
   it('calls a mutually recursive schema found to convert after it was assumed not to', () => {

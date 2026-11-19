@@ -1055,11 +1055,7 @@ const serializeUpdateFolderRequest = (data: Folder): Folder => {
         ? (copy.createdOn.toISOString().slice(0, 10) as unknown as Date)
         : copy.createdOn;
     if (copy.subfolders != null) {
-      copy.subfolders = copy.subfolders.map((item0) => {
-        let value0 = item0;
-        value0 = convertFolder(value0);
-        return value0;
-      });
+      copy.subfolders = copy.subfolders.map(convertFolder);
     }
     if (copy.owner != null) {
       copy.owner = convertFolderOwner(copy.owner);

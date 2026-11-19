@@ -280,6 +280,8 @@ interface BuildResult {
    * copies it itself, so the caller must not.
    */
   delegated?: boolean;
+  /** The converter the value is handed to, when that is all that happens. */
+  converter?: string;
 }
 
 const emptyResult = (): BuildResult => ({
@@ -590,6 +592,7 @@ const buildStatements = ({
       ],
       cyclicRefs: new Set(),
       delegated: true,
+      converter: name,
     };
   }
   if (ref) {
@@ -1982,6 +1985,12 @@ const buildCopyingItemsStatements = ({
     typePath,
   });
   if (inner.statements.length === 0) return inner;
+  if (inner.converter && !nullable) {
+    return {
+      statements: [`${accessor} = ${accessor}.map(${inner.converter});`],
+      cyclicRefs: inner.cyclicRefs,
+    };
+  }
 
   // A `let` alias lets the recursion reassign the element itself (a date
   // leaf, or a nested array's `.map` result) as well as write into a copy
