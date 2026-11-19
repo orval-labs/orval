@@ -1988,9 +1988,11 @@ export const generateRequestDateSerializer = ({
   // `NonReadonly` dropped.
   const modelType = /^NonReadonly<(.+)>$/s.exec(dataType)?.[1];
   const workingType = modelType ? ` as unknown as ${modelType}` : '';
+  const isObjectShaped = needsObjectCopy(schema, context);
+  // A root that is neither object- nor array-shaped is a value the walk
+  // converted, directly or through an `allOf` branch.
   const returnValue =
-    wrapValueBody &&
-    requestMode.isLeaf(normalizeSchema(schema, bodyContext).schema, bodyContext)
+    wrapValueBody && !isObjectShaped && !isArrayShaped(schema, context)
       ? `{ toJSON: () => copy } as unknown as ${dataType}`
       : modelType
         ? `copy as unknown as ${dataType}`
@@ -1999,7 +2001,7 @@ export const generateRequestDateSerializer = ({
   // The root is reassigned rather than spread when the body is an array or a
   // bare date: `.map` builds the new array itself, and spreading either would
   // be wrong.
-  const declaration = needsObjectCopy(schema, context)
+  const declaration = isObjectShaped
     ? `const copy = { ...data }${workingType};`
     : `let copy = data${workingType};`;
 

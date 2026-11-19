@@ -5503,6 +5503,29 @@ describe('generateRequestDateSerializer', () => {
     expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
   });
 
+  it('wraps a date body reached through allOf', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody(
+        { allOf: [{ $ref: '#/components/schemas/Day' }] },
+        'Day',
+      ),
+      context: makeContext({ Day: { type: 'string', format: 'date' } }),
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Day;',
+    );
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = result!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
   it('encodes and wraps a body that is itself a formatType value', () => {
     const context = makeContext();
     context.output.override.formatType = {
