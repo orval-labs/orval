@@ -177,6 +177,10 @@ export const generateEffectSchemasModule = (
       undefined,
       exactOptional,
       isEffectV4,
+      undefined,
+      undefined,
+      undefined,
+      name,
     ),
   }));
 

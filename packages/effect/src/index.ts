@@ -58,12 +58,14 @@ import { createRefPolicy, createRootRefPolicy } from './ref-policy';
 import {
   admitsNull,
   collectRefNames,
+  fieldsOf,
   generateRefDefinition,
   getComponentNames,
   getReservedNames,
   isIdentifierPath,
   isReusableSchemasEnabled,
   isSchemasOutput,
+  overlappingKeys,
 } from './refs';
 import { assertNoNameClash, seedConstNameRegistry } from './reusable-schemas';
 
@@ -1149,7 +1151,8 @@ export interface ParseEffectOptions {
  * `lazyRefs` maps each component on a cycle to the name of its encoded type;
  * references to them are read through `S.suspend`. `typeNames` names their
  * decoded type where it is not the name of the component, and `bases` the
- * constant the getter reads where it is not the component's own.
+ * constant the getter reads where it is not the component's own. `label`
+ * names the schema or operation in a warning.
  */
 export const parseEffectValidationSchemaDefinition = (
   input: EffectValidationSchemaDefinition,
@@ -1161,6 +1164,7 @@ export const parseEffectValidationSchemaDefinition = (
   lazyRefs: ReadonlyMap<string, string> = new Map(),
   typeNames: ReadonlyMap<string, string> = new Map(),
   bases: ReadonlyMap<string, string> = new Map(),
+  label?: string,
 ): { effect: string; consts: string } => {
   if (input.functions.length === 0) {
     return { effect: '', consts: '' };
@@ -1374,10 +1378,16 @@ export const parseEffectValidationSchemaDefinition = (
 
   // A description, default or `null` on an allOf member does not stop the
   // member from being spread, and a `null` branch of a union adds no struct:
-  // `admitsNull` decides whether the merge admits `null`.
+  // `admitsNull` decides whether the merge admits `null`. A variant also holds
+  // the fields it declares, and the keys its merges declared again.
   const structVariants = (
     definition: EffectValidationSchemaDefinition,
-  ): { struct?: string; open: boolean }[] => {
+  ): {
+    struct?: string;
+    open: boolean;
+    fields: ReadonlyMap<string, EffectValidationSchemaDefinition>;
+    clashes: string[];
+  }[] => {
     const functions = definition.functions.filter(
       ([fn]) =>
         fn !== 'describe' &&
@@ -1400,14 +1410,24 @@ export const parseEffectValidationSchemaDefinition = (
             .flatMap((member) => structVariants(member));
     }
     const open = openMember(definition, functions);
-    if (open) return [open];
+    if (open) {
+      const fields = fn === 'looseObject' ? fieldsOf(arg) : [];
+      return [{ ...open, fields: new Map(fields), clashes: [] }];
+    }
     const rendered = renderSchema({ ...definition, functions }, false);
     if (functions.length !== 1 || (fn !== 'object' && fn !== 'strictObject')) {
       throw new Error(
         `Effect ${isEffectV4 ? 4 : 3} output merges allOf members as structs, and this member is not one: ${rendered}`,
       );
     }
-    return [{ struct: rendered, open: false }];
+    return [
+      {
+        struct: rendered,
+        open: false,
+        fields: new Map(fieldsOf(arg)),
+        clashes: [],
+      },
+    ];
   };
 
   // Members merge by their fields: Effect 4 has no `extend`, and `S.extend` of
@@ -1434,6 +1454,12 @@ export const parseEffectValidationSchemaDefinition = (
                 ? assignFields(target.struct, source.struct)
                 : (target.struct ?? source.struct),
             open: target.open || source.open,
+            fields: new Map([...target.fields, ...source.fields]),
+            clashes: [
+              ...target.clashes,
+              ...source.clashes,
+              ...overlappingKeys(target.fields, source.fields),
+            ],
           })),
         ),
       );
@@ -1594,9 +1620,17 @@ export const parseEffectValidationSchemaDefinition = (
         // Assign each later member's fields to the first, distributed over
         // union members, into a struct or a union of structs. The result
         // admits `null` only when every member does.
-        const variants = allOfVariants(args).map(
-          ({ struct = 'S.Struct({})', open }) =>
-            open ? withRest(struct) : struct,
+        const allOf = allOfVariants(args);
+        // The merge keeps only the last definition of a key, which loses the
+        // checks of the earlier ones.
+        const clashes = unique(allOf.flatMap((variant) => variant.clashes));
+        if (clashes.length > 0) {
+          warnOnce(
+            `allOf members${label ? ` of ${label}` : ''} declare "${clashes.join('", "')}" with different definitions, so only the last one is checked`,
+          );
+        }
+        const variants = allOf.map(({ struct = 'S.Struct({})', open }) =>
+          open ? withRest(struct) : struct,
         );
         const merged =
           variants.length === 1
@@ -2129,6 +2163,10 @@ const generateEffectRoute = (
     brand(`${pascalTypeName}Params`),
     effectOptions.exactOptional,
     isEffectV4,
+    undefined,
+    undefined,
+    undefined,
+    typeName,
   );
   const inputQueryParams = parseEffectValidationSchemaDefinition(
     parsedParameters.queryParams,
@@ -2137,6 +2175,10 @@ const generateEffectRoute = (
     brand(`${pascalTypeName}QueryParams`),
     effectOptions.exactOptional,
     isEffectV4,
+    undefined,
+    undefined,
+    undefined,
+    typeName,
   );
   const inputHeaders = parseEffectValidationSchemaDefinition(
     parsedParameters.headers,
@@ -2145,6 +2187,10 @@ const generateEffectRoute = (
     brand(`${pascalTypeName}Header`),
     effectOptions.exactOptional,
     isEffectV4,
+    undefined,
+    undefined,
+    undefined,
+    typeName,
   );
   const inputBody = parseEffectValidationSchemaDefinition(
     parsedBody.input,
@@ -2153,6 +2199,10 @@ const generateEffectRoute = (
     brand(`${pascalTypeName}Body`),
     effectOptions.exactOptional,
     isEffectV4,
+    undefined,
+    undefined,
+    undefined,
+    typeName,
   );
   const inputResponses = parsedResponses.map((parsedResponse, idx) =>
     parseEffectValidationSchemaDefinition(
@@ -2162,6 +2212,10 @@ const generateEffectRoute = (
       brand(pascal(`${typeName}-${responses[idx][0]}-response`)),
       effectOptions.exactOptional,
       isEffectV4,
+      undefined,
+      undefined,
+      undefined,
+      typeName,
     ),
   );
 
