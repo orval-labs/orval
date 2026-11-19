@@ -1900,11 +1900,6 @@ export const getDateHelperNames = (
 export interface GeneratedDateSerializer {
   name: string;
   implementation: string;
-  /**
-   * The body is itself a date, so the serializer returns a string, which a
-   * client must still send as JSON.
-   */
-  returnsString: boolean;
 }
 
 /**
@@ -1927,12 +1922,20 @@ export const generateRequestDateSerializer = ({
   body,
   context,
   props,
+  wrapValueBody = false,
 }: {
   operationName: string;
   body: GetterBody;
   context: ContextSpec;
   /** See {@link getDateHelperNames}. */
   props?: GetterProps;
+  /**
+   * For a client that sends a string body as it is rather than as JSON, such
+   * as Angular's `HttpClient`: a body that is itself a converted value is
+   * returned in an object whose `toJSON` gives the value, so the client still
+   * sends it as a JSON string.
+   */
+  wrapValueBody?: boolean;
 }): GeneratedDateSerializer | undefined => {
   if (body.isBlob || !body.definition || !body.implementation) return undefined;
 
@@ -1985,7 +1988,13 @@ export const generateRequestDateSerializer = ({
   // `NonReadonly` dropped.
   const modelType = /^NonReadonly<(.+)>$/s.exec(dataType)?.[1];
   const workingType = modelType ? ` as unknown as ${modelType}` : '';
-  const returnValue = modelType ? `copy as unknown as ${dataType}` : 'copy';
+  const returnValue =
+    wrapValueBody &&
+    requestMode.isLeaf(normalizeSchema(schema, bodyContext).schema, bodyContext)
+      ? `{ toJSON: () => copy } as unknown as ${dataType}`
+      : modelType
+        ? `copy as unknown as ${dataType}`
+        : 'copy';
 
   // The root is reassigned rather than spread when the body is an array or a
   // bare date: `.map` builds the new array itself, and spreading either would
@@ -2013,14 +2022,7 @@ ${indent(statements).join('\n')}
 };
 `;
 
-  return {
-    name,
-    implementation,
-    returnsString: requestMode.isLeaf(
-      normalizeSchema(schema, bodyContext).schema,
-      bodyContext,
-    ),
-  };
+  return { name, implementation };
 };
 
 export interface GeneratedDateDeserializer {

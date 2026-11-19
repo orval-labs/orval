@@ -5473,11 +5473,12 @@ const makeJsonBody = (
   }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
-  it('flags a body that is itself a date, which it returns as a string', () => {
+  it('wraps a body that is itself a date when asked, so it stays a JSON string', () => {
     const day = generateRequestDateSerializer({
       operationName: 'putDay',
       body: makeJsonBody({ type: ['string', 'null'], format: 'date' }, 'Date'),
       context: makeContext(),
+      wrapValueBody: true,
     });
     const item = generateRequestDateSerializer({
       operationName: 'putItem',
@@ -5486,10 +5487,40 @@ describe('generateRequestDateSerializer', () => {
         properties: { day: { type: 'string', format: 'date' } },
       }),
       context: makeContext(),
+      wrapValueBody: true,
     });
 
-    expect(day?.returnsString).toBe(true);
-    expect(item?.returnsString).toBe(false);
+    expect(day?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Date;',
+    );
+    expect(item?.implementation).toContain('return copy;');
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = day!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
+  it('encodes and wraps a body that is itself a formatType value', () => {
+    const context = makeContext();
+    context.output.override.formatType = {
+      money: { type: 'Money', encode: 'formatMoney' },
+    };
+    const result = generateRequestDateSerializer({
+      operationName: 'putPrice',
+      body: makeJsonBody({ type: 'string', format: 'money' }, 'Money'),
+      context,
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      "copy = typeof copy === 'string' ? copy : (formatMoney(copy) as unknown as typeof copy);",
+    );
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Money;',
+    );
   });
 
   it('numbers the name past a parameter that would shadow it', () => {

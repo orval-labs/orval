@@ -3759,7 +3759,7 @@ describe('useDatesTransform', () => {
     );
   });
 
-  it('leaves a body that is itself a date to its toJSON', async () => {
+  it('sends a body that is itself a date as a JSON string', async () => {
     const verb = createPetVerb();
     const { implementation, returnType } = await generate({
       ...verb,
@@ -3775,8 +3775,13 @@ describe('useDatesTransform', () => {
       },
     });
 
-    expect(implementation).toMatch(/`\/api\/pets`,\s*petBody,/);
-    expect(returnType?.()).not.toContain('serializeCreatePetRequest');
+    expect(implementation).toMatch(
+      /`\/api\/pets`,\s*serializeCreatePetRequest\(petBody\),/,
+    );
+    // `HttpClient` JSON-encodes an object, but sends a string as it is.
+    expect(returnType?.()).toContain(
+      'return { toJSON: () => copy } as unknown as Date;',
+    );
   });
 
   it('numbers a helper past a parameter of the same name', async () => {
@@ -3843,6 +3848,36 @@ describe('useDatesTransform', () => {
       );
       expect(imports).toContainEqual(
         expect.objectContaining({ name: 'toIsoString', importPath: './dates' }),
+      );
+    });
+
+    it('encodes a body that is itself a mapped value and sends it as JSON', async () => {
+      const output = formatTypeOutput();
+      const verb = createPetVerb(output);
+      const { returnType } = await generate(
+        {
+          ...verb,
+          body: {
+            ...verb.body,
+            definition: 'Dayjs',
+            imports: [],
+            originalSchema: {
+              content: {
+                'application/json': {
+                  schema: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          },
+        },
+        output,
+      );
+
+      expect(returnType?.()).toContain(
+        "copy = typeof copy === 'string' ? copy : (toIsoString(copy) as unknown as typeof copy);",
+      );
+      expect(returnType?.()).toContain(
+        'return { toJSON: () => copy } as unknown as Dayjs;',
       );
     });
 

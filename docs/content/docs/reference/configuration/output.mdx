@@ -5008,8 +5008,8 @@ converts it in its `parse` option, which its options type then leaves out. With
 `runtimeValidation`, dates are converted before the schema validates, since
 `zod.date()` rejects the wire string. A body parsed under
 `runtimeValidation.requestBodies` is sent as the schema returns it, and a body
-that is itself a date goes through its `toJSON`, since `HttpClient` sends a
-string body unquoted. With `schemas.type: 'valibot'` or `'effect'`, no
+that is itself a date is still sent as a JSON string, although `HttpClient`
+sends a string body unquoted. With `schemas.type: 'valibot'` or `'effect'`, no
 conversion is generated: the schema converts the date strings under
 `runtimeValidation`, and without it they stay strings.
 
