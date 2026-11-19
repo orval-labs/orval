@@ -6977,3 +6977,209 @@ describe('recursive schemas', () => {
     warn.mockRestore();
   });
 });
+
+describe('recursive schemas — review fixes', () => {
+  const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+  const day: OpenApiSchemaObject = { type: 'string', format: 'date' };
+  const instant: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+
+  const run = (
+    { name, implementation }: { name: string; implementation: string },
+    globals: Record<string, unknown> = {},
+  ) => {
+    const js = implementation
+      .replaceAll(/^\s*type \w+ = .*;$/gm, '')
+      .replaceAll(/\(data: .*?\): .*? =>/g, '(data) =>')
+      .replaceAll(/ as unknown as [\w<>[\] |.]+/g, '')
+      .replaceAll(/ as typeof [\w$.]+/g, '')
+      .replaceAll(']!', ']');
+    const names = Object.keys(globals);
+    return (
+      vm.runInThisContext(
+        `((${names.join(', ')}) => {\n${js}\nreturn ${name};\n})`,
+      ) as (...values: unknown[]) => (data: unknown) => unknown
+    )(...Object.values(globals));
+  };
+
+  it('declares a converter that is only passed to `.map`', () => {
+    const body = makeJsonBody({ type: 'array', items: ref('Node') }, 'Node[]');
+    body.imports = [{ name: 'Node' }];
+    const result = generateRequestDateSerializer({
+      operationName: 'putNodes',
+      body,
+      context: makeContext({
+        Node: {
+          type: 'object',
+          required: ['on'],
+          properties: {
+            on: day,
+            children: { type: 'array', items: ref('Node') },
+          },
+        },
+      }),
+    });
+
+    expect(result?.implementation).toContain(
+      '  const convertNode = (data: Node): Node => {',
+    );
+    expect(result?.implementation).toContain(
+      `  let copy = data;
+  copy = copy.map(convertNode);`,
+    );
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    expect(JSON.stringify(run(result!)([{ on: new Date('2026-07-01') }]))).toBe(
+      '[{"on":"2026-07-01"}]',
+    );
+  });
+
+  it('names a local alias apart from the types it refers to', () => {
+    const result = generateResponseDateDeserializer({
+      operationName: 'getReport',
+      response: makeResponse({
+        definition: { success: 'Report', errors: 'unknown' },
+        successTypes: [
+          {
+            originalSchema: {
+              type: 'object',
+              properties: { root: ref('NonNullable') },
+            },
+          },
+        ],
+      }),
+      context: makeContext({
+        NonNullable: {
+          type: 'object',
+          required: ['at'],
+          properties: { at: instant, next: ref('NonNullable') },
+        },
+      }),
+    });
+
+    expect(result?.implementation).toContain(
+      `  type NonNullable2 = NonNullable<NonNullable<Report>["root"]>;
+  const convertNonNullable = (data: NonNullable2): NonNullable2 => {`,
+    );
+  });
+
+  describe('a recursive schema composed with `allOf` below itself', () => {
+    const context = (format: OpenApiSchemaObject) =>
+      makeContext({
+        Node: {
+          type: 'object',
+          required: ['at'],
+          properties: {
+            at: format,
+            child: {
+              allOf: [
+                ref('Node'),
+                { type: 'object', properties: { label: { type: 'string' } } },
+              ],
+            },
+          },
+        },
+      });
+
+    it('converts the response at every level', () => {
+      const result = generateResponseDateDeserializer({
+        operationName: 'getNode',
+        response: makeResponse({
+          definition: { success: 'Node', errors: 'unknown' },
+          successTypes: [
+            { originalSchema: ref('Node') as OpenApiSchemaObject },
+          ],
+          imports: [{ name: 'Node' }],
+        }),
+        context: context(instant),
+      });
+
+      expect(result?.implementation).toContain(
+        `    if (data.child != null) {
+      convertNode(data.child);
+    }`,
+      );
+      // oxlint-disable-next-line typescript/no-non-null-assertion
+      const output = run(result!)({
+        at: '2026-07-01T00:00:00.000Z',
+        child: { at: '2026-07-02T00:00:00.000Z', label: 'a' },
+      }) as { child: { at: Date; label: string } };
+      expect(output.child.at).toBeInstanceOf(Date);
+      expect(output.child.label).toBe('a');
+    });
+
+    it('keeps the sibling fields on the request copy and leaves the input alone', () => {
+      const body = makeJsonBody(ref('Node') as OpenApiSchemaObject, 'Node');
+      body.imports = [{ name: 'Node' }];
+      const result = generateRequestDateSerializer({
+        operationName: 'putNode',
+        body,
+        context: context(day),
+      });
+
+      expect(result?.implementation).toContain(
+        '      copy.child = convertNode(copy.child) as typeof copy.child;',
+      );
+      const input = {
+        at: new Date('2026-07-01'),
+        child: { at: new Date('2026-07-02'), label: 'a' },
+      };
+      // oxlint-disable-next-line typescript/no-non-null-assertion
+      expect(JSON.stringify(run(result!)(input))).toBe(
+        '{"at":"2026-07-01","child":{"at":"2026-07-02","label":"a"}}',
+      );
+      expect(input.child.at).toBeInstanceOf(Date);
+    });
+
+    it('casts through a single-branch `allOf` nested in a shared one', () => {
+      const body = makeJsonBody(ref('Node') as OpenApiSchemaObject, 'Node');
+      body.imports = [{ name: 'Node' }];
+      const result = generateRequestDateSerializer({
+        operationName: 'putNode',
+        body,
+        context: makeContext({
+          Node: {
+            type: 'object',
+            required: ['at'],
+            properties: {
+              at: day,
+              child: {
+                allOf: [
+                  { allOf: [ref('Node')] },
+                  { type: 'object', properties: { tag: { type: 'string' } } },
+                ],
+              },
+            },
+          },
+        }),
+      });
+
+      expect(result?.implementation).toContain(
+        'copy.child = convertNode(copy.child) as typeof copy.child;',
+      );
+    });
+  });
+
+  it('finds the cycle of a recursive variant in a union it only walks for cycles', () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const result = generateResponseDateDeserializer({
+      operationName: 'getCat',
+      response: makeResponse({
+        successTypes: [
+          { originalSchema: { anyOf: [ref('Cat'), { type: 'string' }] } },
+        ],
+      }),
+      context: makeContext({
+        Cat: {
+          type: 'object',
+          required: ['bornAt'],
+          properties: { bornAt: instant, kitten: ref('Cat') },
+        },
+      }),
+    });
+
+    expect(result).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      'operation `getCat`: `useDatesTransform` leaves the dates of recursive schema `Cat` as strings',
+    );
+    warn.mockRestore();
+  });
+});
