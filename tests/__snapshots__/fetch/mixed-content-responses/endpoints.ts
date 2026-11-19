@@ -48,7 +48,9 @@ export const getData = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return { data, status: res.status, headers: res.headers } as getDataResponse;
 };
 
@@ -153,7 +155,9 @@ export const getMixedSuccess = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
