@@ -272,15 +272,17 @@ export const getRequestBodySchema = (
  * `deserialize{Op}Response` for its JSON success body and
  * `serialize{Op}Request` for its JSON request body, each only when there is
  * something to convert. A Valibot or Effect schema converts the date strings
- * itself and rejects a `Date`, and a body parsed under
- * `runtimeValidation.requestBodies` is sent as the schema returns it.
+ * itself and rejects a `Date`. A body parsed under
+ * `runtimeValidation.requestBodies` is sent as the schema returns it, and one
+ * typed through a mutator's `BodyType` need not have the schema's shape.
  */
 export const getDateHelpers = (
   verbOptions: GeneratorVerbOptions,
   context: ContextSpec,
   { parsesBody }: { parsesBody: boolean },
 ): DateHelperNames & { implementation: string } => {
-  const { operationName, response, body, verb, props, override } = verbOptions;
+  const { operationName, response, body, verb, props, mutator, override } =
+    verbOptions;
   if (!override.useDatesTransform || getStandardSchemaLibrary(context.output)) {
     return { implementation: '' };
   }
@@ -292,7 +294,7 @@ export const getDateHelpers = (
     props,
   });
   const serializer =
-    getIsBodyVerb(verb) && !parsesBody
+    getIsBodyVerb(verb) && !parsesBody && !mutator?.bodyTypeName
       ? generateRequestDateSerializer({
           operationName,
           body,

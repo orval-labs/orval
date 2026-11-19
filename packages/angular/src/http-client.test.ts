@@ -3980,4 +3980,25 @@ describe('useDatesTransform', () => {
       '.pipe(map((data) => deserializeCreatePetResponse(data as Pet) as TData));',
     );
   });
+
+  it("leaves a body typed through the mutator's BodyType to the mutator", async () => {
+    const { implementation, returnType } = await generate({
+      ...createPetVerb(),
+      mutator: {
+        name: 'customInstance',
+        path: './custom-instance.ts',
+        default: false,
+        hasErrorType: false,
+        errorTypeName: 'Error',
+        hasSecondArg: true,
+        hasThirdArg: false,
+        isHook: false,
+        bodyTypeName: 'BodyType',
+      },
+    });
+
+    expect(implementation).toContain('petBody: BodyType<Pet>');
+    expect(implementation).toContain('data: petBody');
+    expect(returnType?.()).not.toContain('serializeCreatePetRequest');
+  });
 });
