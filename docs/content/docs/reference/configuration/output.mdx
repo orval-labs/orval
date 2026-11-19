@@ -4979,10 +4979,12 @@ skipped entirely. `additionalProperties` maps are converted with a loop over
 narrows the keys to an enumerable set (`enum` or `const`, inline or via
 `$ref`), in which case those take precedence and it is never walked as a map.
 
-A recursive schema is converted by a `convert<Schema>` function declared inside
-the helper, which calls itself. Under Zod schema types, whose types stop at the
-recursion, or where it is only reached through a union, its dates stay strings
-and generation warns.
+A recursive component schema is converted by a `convert<Schema>` function
+declared inside the helper, which calls itself. Where that isn't possible, its
+dates stay strings and generation warns: under Zod schema types, whose types
+stop at the recursion, for a schema bound through `$dynamicAnchor` or `$defs`
+or referenced outside `#/components/schemas`, and for one only reached through
+a union.
 
 Current limitations: responses with multiple success shapes are skipped. A
 request body with several media types, several JSON media types, or a
