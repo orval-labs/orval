@@ -1,0 +1,101 @@
+openapi: '3.1.0'
+info:
+  title: Dates Transform Tags
+  version: '1.0.0'
+paths:
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      parameters:
+        - name: after
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+    post:
+      operationId: createEvent
+      tags: [events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+  /reminders/{reminderId}:
+    get:
+      operationId: getReminder
+      tags: [reminders]
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+    put:
+      operationId: updateReminder
+      tags: [reminders]
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reminder'
+      responses:
+        '204':
+          description: No Content
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - name
+        - startsAt
+      properties:
+        name:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        day:
+          type: string
+          format: date
+    Reminder:
+      type: object
+      required:
+        - remindAt
+      properties:
+        remindAt:
+          type: string
+          format: date-time
+        event:
+          $ref: '#/components/schemas/Event'

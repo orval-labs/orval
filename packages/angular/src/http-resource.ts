@@ -25,6 +25,8 @@ import {
   getAngularObjectParamStrategies,
   getQueryParamsEncoding,
   getFileInfo,
+  getDateHelperNames,
+  getFormatTypeFunctionImports,
   getImportExtension,
   getFullRoute,
   GetterPropType,
@@ -62,8 +64,10 @@ import {
 } from './constants';
 import {
   buildAcceptHelpers,
+  type DateHelperNames,
   DEFER_IMPORT,
   generateHttpClientImplementation,
+  getDateHelpers,
   getAngularHttpResponseImport,
   getRequestBodySchema,
   withValueBodyImport,
@@ -643,6 +647,7 @@ const buildResourceRequest = (
   }: GeneratorVerbOptions,
   route: string,
   idleInputs: readonly IdleInput[],
+  { serializer }: DateHelperNames,
 ): ResourceRequest => {
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -679,10 +684,11 @@ const buildResourceRequest = (
   );
   const isBodyGuarded = idleInputs.some((input) => input.isBody);
 
+  const bodyRead = body.isOptional && !isBodyGuarded ? '?.()' : '()';
   const bodyAccess = body.definition
-    ? body.isOptional && !isBodyGuarded
-      ? `${body.implementation}?.()`
-      : `${body.implementation}()`
+    ? serializer
+      ? `${serializer.name}(${body.implementation}${bodyRead})`
+      : `${body.implementation}${bodyRead}`
     : undefined;
   const bodyValue = hasFormData
     ? 'formData'
@@ -923,6 +929,7 @@ const getParseExpression = (
   output: NormalizedOutputOptions,
   operationName: string,
   responseTypeOverride?: string,
+  deserializer?: DateHelperNames['deserializer'],
 ): string | undefined => {
   const resolved = resolveParseSchema(
     response,
@@ -930,19 +937,31 @@ const getParseExpression = (
     output,
     responseTypeOverride,
   );
+  const validate = (
+    schemaRef: string,
+    context: 'parse-fn' | 'clone-expression',
+    inputExpression?: string,
+  ) =>
+    emitResponseValidation({
+      schemaRef,
+      operationName,
+      strategy: output.override.angular.runtimeValidation.strategy,
+      context,
+      inputExpression,
+      standardSchema: resolveStandardSchema(
+        output,
+        output.override.angular.runtimeValidation,
+      ),
+    });
 
-  return resolved
-    ? emitResponseValidation({
-        schemaRef: resolved.schemaRef,
-        operationName,
-        strategy: output.override.angular.runtimeValidation.strategy,
-        context: 'parse-fn',
-        standardSchema: resolveStandardSchema(
-          output,
-          output.override.angular.runtimeValidation,
-        ),
-      })
-    : undefined;
+  // Dates are converted before the schema validates, since `zod.date()`
+  // rejects the wire string.
+  if (deserializer) {
+    const decoded = `${deserializer.name}(raw as ${response.definition.success})`;
+    return `(raw: unknown) => ${resolved ? validate(resolved.schemaRef, 'clone-expression', decoded) : decoded}`;
+  }
+
+  return resolved ? validate(resolved.schemaRef, 'parse-fn') : undefined;
 };
 
 /**
@@ -960,6 +979,7 @@ const buildHttpResourceOptionsLiteral = (
   factory: HttpResourceFactoryName,
   output: NormalizedOutputOptions,
   responseTypeOverride?: string,
+  deserializer?: DateHelperNames['deserializer'],
 ): { entries: string[]; hasDefaultValue: boolean } => {
   const override = getHttpResourceOverride(verbOption, output);
   const parseExpression = getParseExpression(
@@ -968,6 +988,7 @@ const buildHttpResourceOptionsLiteral = (
     output,
     verbOption.operationName,
     responseTypeOverride,
+    deserializer,
   );
 
   const defaultValueLiteral =
@@ -1113,11 +1134,15 @@ const buildHttpResourceFunction = (
   verbOption: GeneratorVerbOptions,
   route: string,
   output: NormalizedOutputOptions,
+  dateHelpers: DateHelperNames = {},
 ): { implementation: string; resourceAlias: string } => {
   const { typeName, response, props, params, mutator } = verbOption;
 
   const dataType = response.definition.success || 'unknown';
-  const omitParse = isZodSchemaOutput(output);
+  const isZodOutput = isZodSchemaOutput(output);
+  // The `parse` converting dates would replace the caller's, so the options
+  // type leaves it out, as it does for schema output.
+  const omitParse = isZodOutput || !!dateHelpers.deserializer;
   const responseSchemaImports = getHttpResourceResponseImports(response);
   const hasResponseSchemaImport = responseSchemaImports.some(
     (imp) => imp.name === dataType,
@@ -1132,7 +1157,7 @@ const buildHttpResourceFunction = (
   // `ResourceResult` alias) rather than the class-local method name (#4424).
   const resourceName = `${typeName}Resource`;
   const parsedDataType =
-    omitParse &&
+    isZodOutput &&
     output.override.angular.runtimeValidation.enabled &&
     !isPrimitiveType(dataType) &&
     (hasResponseSchemaImport || !!dataArraySchema)
@@ -1209,6 +1234,7 @@ const buildHttpResourceFunction = (
     verbOption,
     encodedRoute,
     idleInputs,
+    dateHelpers,
   );
 
   if (uniqueContentTypes.length > 1) {
@@ -1421,6 +1447,8 @@ export function ${resourceName}(
     verbOption,
     resourceFactory,
     output,
+    undefined,
+    dateHelpers.deserializer,
   );
   const rawType = getHttpResourceRawType(resourceFactory);
   const resourceValueType = resourceOptions.hasDefaultValue
@@ -1677,6 +1705,24 @@ export function ${TO_RESOURCE_STATE_FUNCTION_NAME}<T>(ref: HttpResourceRef<T>): 
 `;
 
 /**
+ * The date helpers `clientImplementation` declares for an operation. The
+ * header has no `ContextSpec` to build them with, so
+ * `generateHttpResourceClient` returns them as the operation's code.
+ */
+const getDeclaredDateHelpers = (
+  { operationName, props }: GeneratorVerbOptions,
+  clientImplementation: string,
+): DateHelperNames => {
+  const { deserializer, serializer } = getDateHelperNames(operationName, props);
+  const declared = (name: string) =>
+    clientImplementation.includes(`const ${name} = `) ? { name } : undefined;
+  return {
+    deserializer: declared(deserializer),
+    serializer: declared(serializer),
+  };
+};
+
+/**
  * Generates the header section for Angular `httpResource` output.
  *
  * @remarks
@@ -1695,6 +1741,7 @@ export const generateHttpResourceHeader = ({
   output,
   verbOptions,
   tag,
+  clientImplementation,
 }: Parameters<ClientHeaderBuilder>[0]): string => {
   // When the output is emitted per-tag (modes: `tags`, `tags-split`) each file
   // must only reference operations that belong to the current tag — otherwise
@@ -1721,7 +1768,12 @@ export const generateHttpResourceHeader = ({
       verbOption.operationName,
       verbOption.route,
     );
-    return buildHttpResourceFunction(verbOption, fullRoute, output);
+    return buildHttpResourceFunction(
+      verbOption,
+      fullRoute,
+      output,
+      getDeclaredDateHelpers(verbOption, clientImplementation),
+    );
   });
   const resources = builtResources.map((r) => r.implementation).join('\n');
   const resourceTypes = builtResources.map((r) => r.resourceAlias).join('\n');
@@ -1762,6 +1814,7 @@ export const generateHttpResourceHeader = ({
       const generatorOptions: HttpClientGeneratorContext = {
         route: fullRoute,
         context: { output },
+        dateHelpers: getDeclaredDateHelpers(verbOption, clientImplementation),
       };
 
       return generateHttpClientImplementation(verbOption, generatorOptions);
@@ -1859,10 +1912,17 @@ export const generateHttpResourceClient: ClientBuilder = (
   const validatedBody = isMutation
     ? getRequestBodySchema(verbOptions, options.context.output)
     : undefined;
+  const dateHelpers = getDateHelpers(verbOptions, options.context, {
+    parsesBody: !!validatedBody,
+  });
   const mutationImports = isMutation
     ? [
         getAngularHttpResponseImport(
-          narrowsResponseEvents(verbOptions, options.context.output),
+          narrowsResponseEvents(
+            verbOptions,
+            options.context.output,
+            dateHelpers,
+          ),
         ),
       ]
     : [];
@@ -1899,7 +1959,15 @@ export const generateHttpResourceClient: ClientBuilder = (
       : []),
   ];
 
-  return { implementation: '\n', imports, returnType };
+  // The header calls the date helpers declared here, see
+  // `getDeclaredDateHelpers`. They are not the operation, so they don't take
+  // its doc comment.
+  return {
+    implementation: dateHelpers.implementation || '\n',
+    docComment: '',
+    imports,
+    returnType,
+  };
 };
 
 const buildHttpResourceFile = (
@@ -1932,16 +2000,25 @@ const buildHttpResourceFile = (
       context.spec.servers,
       output.baseUrl,
     );
-    return buildHttpResourceFunction(verbOption, fullRoute, output);
+    const dateHelpers = getDateHelpers(verbOption, context, {
+      parsesBody: false,
+    });
+    return {
+      ...buildHttpResourceFunction(verbOption, fullRoute, output, dateHelpers),
+      dateHelpers: dateHelpers.implementation,
+    };
   });
   const resources = builtResources.map((r) => r.implementation).join('\n');
+  const dateHelperImplementations = builtResources
+    .map((r) => r.dateHelpers)
+    .join('');
   const resourceTypes = builtResources.map((r) => r.resourceAlias).join('\n');
   const utilities = buildResourceStateUtilities();
 
   // The `Accept` helpers are not declared here: the service sibling already
   // exports them, and the resource file imports them (see
   // `buildAcceptHelperImports`).
-  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${resources}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
+  return `${buildHttpResourceOptionsUtilities(isZodSchemaOutput(output))}${filterParamsHelper}${resources}${dateHelperImplementations}\n${resourceTypes ? `${resourceTypes}\n` : ''}${utilities}`;
 };
 
 /**
@@ -2118,9 +2195,13 @@ const buildHttpResourceExtraFile = (
       getClientOverride(verbOption),
     ),
   );
-  const verbImports = retrievals.flatMap((verbOption) =>
-    getHttpResourceVerbImports(verbOption, output),
-  );
+  const verbImports = [
+    ...retrievals.flatMap((verbOption) =>
+      getHttpResourceVerbImports(verbOption, output),
+    ),
+    // `useDatesTransform` calls these.
+    ...getFormatTypeFunctionImports(implementation, output.override),
+  ];
   // Type-only (no `values`): the helpers appear in parameter annotations
   // only. Extension handling mirrors the base-URL dependency below.
   const acceptHelperImports = buildAcceptHelperImports(retrievals);
@@ -2146,13 +2227,26 @@ const buildHttpResourceExtraFile = (
   // dependency alongside real model types. Route them through the standard
   // dependency merge instead, which resolves each import from its own path.
   const schemaVerbImports = verbImports.filter((imp) => !imp.importPath);
+  // A relative path, such as a `formatType` import's, is written for the
+  // target's directory, which a `tags-split` resource file sits below. The
+  // mode writers re-resolve it for their files the same way.
+  const targetDirname = getFileInfo(output.target).dirname;
   const externalVerbImports = mergeDependencies(
     verbImports
       .filter(
         (imp): imp is GeneratorImport & { importPath: string } =>
           !!imp.importPath,
       )
-      .map((imp) => ({ exports: [imp], dependency: imp.importPath })),
+      .map((imp) => ({
+        exports: [imp],
+        dependency: imp.importPath.startsWith('.')
+          ? upath.getRelativeImportPath(
+              outputPath,
+              upath.joinSafe(targetDirname, imp.importPath),
+              true,
+            )
+          : imp.importPath,
+      })),
   );
 
   const schemaImports = buildSchemaImportDependencies(

@@ -26,7 +26,12 @@ import {
   type GeneratorVerbOptions,
   getAngularObjectParamStrategies,
   getDefaultContentType,
+  type GeneratedDateDeserializer,
+  type GeneratedDateSerializer,
+  generateRequestDateSerializer,
+  generateResponseDateDeserializer,
   getEnumImplementation,
+  getFormatTypeFunctionImports,
   getIsBodyVerb,
   getQueryParamsEncoding,
   type GetterProp,
@@ -71,6 +76,14 @@ import {
 export interface HttpClientGeneratorContext {
   route: string;
   context: Pick<ContextSpec, 'output'>;
+  /** The `useDatesTransform` helpers the method calls, see `getDateHelpers`. */
+  dateHelpers?: DateHelperNames;
+}
+
+/** The `useDatesTransform` helpers generated code calls, by name. */
+export interface DateHelperNames {
+  deserializer?: Pick<GeneratedDateDeserializer, 'name'>;
+  serializer?: Pick<GeneratedDateSerializer, 'name'>;
 }
 
 const hasSchemaImport = (
@@ -251,6 +264,54 @@ export const getRequestBodySchema = (
   return {
     importName: schema.elementName ?? definition,
     schemaRef: schema.schemaRef,
+  };
+};
+
+/**
+ * The `useDatesTransform` helpers of an operation, and their declarations:
+ * `deserialize{Op}Response` for its JSON success body and
+ * `serialize{Op}Request` for its JSON request body, each only when there is
+ * something to convert. A Valibot or Effect schema converts the date strings
+ * itself and rejects a `Date`. A body parsed under
+ * `runtimeValidation.requestBodies` is sent as the schema returns it, and one
+ * typed through a mutator's `BodyType` need not have the schema's shape.
+ */
+export const getDateHelpers = (
+  verbOptions: GeneratorVerbOptions,
+  context: ContextSpec,
+  { parsesBody }: { parsesBody: boolean },
+): DateHelperNames & { implementation: string } => {
+  const { operationName, response, body, verb, props, mutator, override } =
+    verbOptions;
+  if (!override.useDatesTransform || getStandardSchemaLibrary(context.output)) {
+    return { implementation: '' };
+  }
+
+  const deserializer = generateResponseDateDeserializer({
+    operationName,
+    response,
+    context,
+    props,
+  });
+  const serializer =
+    getIsBodyVerb(verb) && !parsesBody && !mutator?.bodyTypeName
+      ? generateRequestDateSerializer({
+          operationName,
+          body,
+          context,
+          props,
+          // `HttpClient` sends a string body as it is, not as JSON.
+          wrapValueBody: true,
+        })
+      : undefined;
+
+  return {
+    deserializer,
+    serializer,
+    implementation: [deserializer, serializer]
+      .filter((helper) => helper !== undefined)
+      .map(({ implementation }) => `\n${implementation}`)
+      .join(''),
   };
 };
 
@@ -533,7 +594,7 @@ export const generateHttpClientImplementation = (
     paramsFilter,
     params,
   }: GeneratorVerbOptions,
-  { route: _route, context }: HttpClientGeneratorContext,
+  { route: _route, context, dateHelpers = {} }: HttpClientGeneratorContext,
 ) => {
   // Class-local spelling for Angular tag-scoped classes; see
   // GeneratorVerbOptions.methodName.
@@ -568,6 +629,10 @@ export const generateHttpClientImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
+  const { deserializer, serializer } = dateHelpers;
+  const serializedBody = serializer
+    ? { ...body, implementation: `${serializer.name}(${body.implementation})` }
+    : body;
 
   const dataType = response.definition.success || 'unknown';
   const isPrimitive = isPrimitiveType(dataType);
@@ -652,7 +717,7 @@ export const generateHttpClientImplementation = (
       : getQueryParamsEncoding(queryParams, 'params');
     const mutatorConfig = generateMutatorConfig({
       route,
-      body,
+      body: serializedBody,
       headers,
       queryParams,
       response,
@@ -711,11 +776,16 @@ export const generateHttpClientImplementation = (
     const implementationParams =
       allParams.length > 0 ? `${allParams.join(',\n    ')},` : '';
 
+    // An Angular mutator returns the `Observable` of the body.
+    const datesPipe = deserializer
+      ? `.pipe(map((data) => ${deserializer.name}(data as ${dataType}) as TData))`
+      : '';
+
     return ` ${operationName}<TData = ${dataType}>(\n    ${implementationParams}\n    ) {${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
-      ${requestOptions});
+      ${requestOptions})${datesPipe};
     }
   `;
   }
@@ -769,7 +839,7 @@ export const generateHttpClientImplementation = (
   }
   const sentBody = validatedBody
     ? { ...body, implementation: parsedBodyName }
-    : body;
+    : serializedBody;
   const withBodyValidation = (statements: string) =>
     validatedBody
       ? `return defer(() => {
@@ -1033,6 +1103,22 @@ export const generateHttpClientImplementation = (
   const overloads = contentTypeOverloads || observeOverloads;
 
   const observableDataType = hasTDataGeneric ? 'TData' : parsedDataType;
+  // Dates are converted before the validation pipes run, since `zod.date()`
+  // rejects the wire string. A validated call is typed as the schema output,
+  // which need not overlap the type the deserializer takes.
+  const decode =
+    deserializer &&
+    ((input: string) =>
+      shouldValidateResponse
+        ? `${deserializer.name}(${input} as unknown as ${dataType})`
+        : `${deserializer.name}(${input} as ${dataType}) as ${observableDataType}`);
+  const datesPipe = decode ? `.pipe(map(data => ${decode('data')}))` : '';
+  const responseDatesPipe = decode
+    ? `.pipe(map(response => response.clone({ body: ${decode('response.body')} })))`
+    : '';
+  const eventDatesPipe = decode
+    ? `.pipe(map(event => event instanceof AngularHttpResponse ? event.clone({ body: ${decode('event.body')} }) : event))`
+    : '';
   const singleImplementationReturnType = isRequestOptions
     ? `Observable<${observableDataType} | HttpEvent<${observableDataType}> | AngularHttpResponse<${observableDataType}>>`
     : `Observable<${observableDataType}>`;
@@ -1124,6 +1210,7 @@ export const generateHttpClientImplementation = (
   const httpCallExpr = (
     optionsArgument: string,
     observeKind: 'body' | 'events' | 'response',
+    pipes: string,
   ) => {
     if (hasInjectedResponseType(optionsArgument)) {
       const castType =
@@ -1132,22 +1219,24 @@ export const generateHttpClientImplementation = (
           : observeKind === 'response'
             ? `AngularHttpResponse<${observableDataType}>`
             : observableDataType;
-      return `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+      const call = `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+      // Parenthesized, the pipes apply to the call rather than to the type.
+      return pipes ? `(${call})${pipes}` : call;
     }
 
-    return `this.http.${verb}<${observableDataType}>(${optionsArgument})`;
+    return `this.http.${verb}<${observableDataType}>(${optionsArgument})${pipes}`;
   };
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
-      return ${httpCallExpr(observeOptions?.events ?? options, 'events')}${eventValidationPipe};
+      return ${httpCallExpr(observeOptions?.events ?? options, 'events', eventDatesPipe + eventValidationPipe)};
     }
 
     if (options?.observe === 'response') {
-      return ${httpCallExpr(observeOptions?.response ?? options, 'response')}${responseValidationPipe};
+      return ${httpCallExpr(observeOptions?.response ?? options, 'response', responseDatesPipe + responseValidationPipe)};
     }
 
-    return ${httpCallExpr(observeOptions?.body ?? options, 'body')}${validationPipe};`
-    : `return ${httpCallExpr(options, 'body')}${validationPipe};`;
+    return ${httpCallExpr(observeOptions?.body ?? options, 'body', datesPipe + validationPipe)};`
+    : `return ${httpCallExpr(options, 'body', datesPipe + validationPipe)};`;
 
   return ` ${overloads}
   ${functionName}(
@@ -1165,13 +1254,14 @@ const ANGULAR_HTTP_IMPORT_PATH = '@angular/common/http';
  * Whether the rendered HttpClient method narrows `HttpEvent`s with
  * `instanceof AngularHttpResponse`. Mirrors `generateHttpClientImplementation`:
  * the `observe` branches exist only with request options and a single content
- * type, and the narrowing is part of the runtime-validation pipe. Lets callers
- * decide the `HttpResponse` import without rendering the method, which would
- * also register its `ClientResult` alias ahead of the footer.
+ * type, and the narrowing is part of the runtime-validation and date pipes.
+ * Lets callers decide the `HttpResponse` import without rendering the method,
+ * which would also register its `ClientResult` alias ahead of the footer.
  */
 export const narrowsResponseEvents = (
   { response, override }: Pick<GeneratorVerbOptions, 'response' | 'override'>,
   output: NormalizedOutputOptions,
+  { deserializer }: DateHelperNames = {},
 ): boolean => {
   const dataType = response.definition.success || 'unknown';
   const hasMultipleContentTypes =
@@ -1179,11 +1269,12 @@ export const narrowsResponseEvents = (
   return (
     override.requestOptions !== false &&
     !hasMultipleContentTypes &&
-    override.angular.runtimeValidation.enabled &&
-    isZodSchemaOutput(output) &&
-    !isPrimitiveType(dataType) &&
-    (hasSchemaImport(response.imports, dataType) ||
-      !!getArrayResponseSchema(response.imports, dataType))
+    (!!deserializer ||
+      (override.angular.runtimeValidation.enabled &&
+        isZodSchemaOutput(output) &&
+        !isPrimitiveType(dataType) &&
+        (hasSchemaImport(response.imports, dataType) ||
+          !!getArrayResponseSchema(response.imports, dataType))))
   );
 };
 
@@ -1331,14 +1422,17 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     return result;
   })();
 
-  const implementation = generateHttpClientImplementation(
-    normalizedVerbOptions,
-    options,
-  );
-
   const validatedBody = getRequestBodySchema(
     verbOptions,
     options.context.output,
+  );
+  const dateHelpers = getDateHelpers(verbOptions, options.context, {
+    parsesBody: !!validatedBody,
+  });
+
+  const implementation = generateHttpClientImplementation(
+    normalizedVerbOptions,
+    { ...options, dateHelpers },
   );
   const verbImports = generateVerbImports(
     validatedBody
@@ -1352,7 +1446,15 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
     ...verbImports,
     ...getAngularHttpImports(
       implementation,
-      narrowsResponseEvents(normalizedVerbOptions, options.context.output),
+      narrowsResponseEvents(
+        normalizedVerbOptions,
+        options.context.output,
+        dateHelpers,
+      ),
+    ),
+    ...getFormatTypeFunctionImports(
+      dateHelpers.implementation,
+      options.context.output.override,
     ),
     ...(implementation.includes('.pipe(map(')
       ? [{ name: 'map', values: true, importPath: 'rxjs' }]
@@ -1383,8 +1485,11 @@ export const generateAngular: ClientBuilder = (verbOptions, options) => {
   return {
     implementation,
     imports,
+    // Module-level code can't sit inside the service class, so the date
+    // helpers travel to the footer with the `ClientResult` alias.
     returnType: () =>
-      buildClientResultAlias(normalizedVerbOptions, options.context.output),
+      buildClientResultAlias(normalizedVerbOptions, options.context.output) +
+      (dateHelpers.implementation && `\n${dateHelpers.implementation}`),
   };
 };
 

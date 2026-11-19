@@ -4998,7 +4998,21 @@ Wired clients:
 - the axios-based query clients — `react-query`, `vue-query`, `svelte-query`
   and `solid-query` with `httpClient: 'axios'`;
 - `client: 'fetch'`, plus `react-query`, `vue-query`, `svelte-query`,
-  `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`.
+  `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`;
+- `client: 'angular'`, both its `HttpClient` services and its `httpResource`
+  helpers.
+
+Under `angular`, a service method converts the body for every `observe` value,
+and so does the `Observable` a custom mutator returns. An `httpResource` helper
+converts it in its `parse` option, which its options type then leaves out. With
+`runtimeValidation`, dates are converted before the schema validates, since
+`zod.date()` rejects the wire string. A body parsed under
+`runtimeValidation.requestBodies` is sent as the schema returns it, and one
+typed through a mutator's `BodyType` is left to the mutator. A body that is
+itself a date is still sent as a JSON string, although `HttpClient` sends a
+string body unquoted. With `schemas.type: 'valibot'` or `'effect'`, no
+conversion is generated: the schema converts the date strings under
+`runtimeValidation`, and without it they stay strings.
 
 Under `fetch`, only the declared success status is converted — error bodies are
 returned untouched. The one exception is a custom mutator combined with
