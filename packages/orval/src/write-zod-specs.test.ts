@@ -2290,6 +2290,14 @@ describe('override.useBrandedTypes on zod component schemas (#4534)', () => {
         CharacterID: { type: 'string', maxLength: 64 },
         MessageID: { type: 'string', format: 'uuid' },
         Label: { type: 'string', default: 'none' },
+        NullableID: { type: ['string', 'null'] },
+        NullableAmount: { type: ['number', 'null'] },
+        ReferenceDefault: {
+          type: 'object',
+          properties: {
+            id: { $ref: '#/components/schemas/CharacterID', default: 'wire' },
+          },
+        },
         Record: {
           type: 'object',
           required: ['character', 'message'],
@@ -2346,7 +2354,7 @@ describe('override.useBrandedTypes on zod component schemas (#4534)', () => {
         options,
       );
       const files = await Promise.all(
-        ['CharacterID', 'MessageID', 'Label', 'Record'].map((name) =>
+        Object.keys(brandSpec.components.schemas).map((name) =>
           fs.promises.readFile(path.join(schemasPath, `${name}.ts`), 'utf8'),
         ),
       );
@@ -2374,6 +2382,40 @@ describe('override.useBrandedTypes on zod component schemas (#4534)', () => {
       );
     },
   );
+
+  it.each([3, 4] as const)(
+    'brands before nullable wrappers and preserves reference defaults in Zod %s',
+    async (version) => {
+      for (const reusable of [false, true]) {
+        const options = createBrandOptions({ reusable });
+        options.override.zod.version = version;
+        for (const content of [
+          generateZodSchemasInline(createBrandBuilder(), options),
+          await writeAll(options),
+        ]) {
+          for (const name of ['NullableID', 'NullableAmount']) {
+            const brand =
+              version === 4 ? `.brand("${name}")` : `.brand<"${name}">()`;
+            expect(content).toContain(`${brand}.nullable()`);
+          }
+          if (reusable) {
+            expect(content).toContain(
+              `CharacterID.${version === 4 ? 'prefault' : 'default'}(`,
+            );
+          }
+        }
+      }
+    },
+  );
+
+  it('preserves unbranded reusable reference defaults', () => {
+    const content = generateZodSchemasInline(
+      createBrandBuilder(),
+      createBrandOptions({ reusable: true, branded: false }),
+    );
+    expect(content).toContain('CharacterID.default(');
+    expect(content).not.toContain('.prefault(');
+  });
 
   it('keeps the reusable schema statement terminated after the brand', () => {
     expect(
