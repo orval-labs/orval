@@ -291,10 +291,15 @@ export const getDateHelpers = (
     context,
     props,
   });
-  const serializer =
+  const requestSerializer =
     getIsBodyVerb(verb) && !parsesBody
       ? generateRequestDateSerializer({ operationName, body, context, props })
       : undefined;
+  // `HttpClient` sends a string body as it is, not as JSON, so a body that is
+  // itself a date is left to its `toJSON`.
+  const serializer = requestSerializer?.returnsString
+    ? undefined
+    : requestSerializer;
 
   return {
     deserializer,

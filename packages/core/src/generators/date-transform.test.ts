@@ -5473,6 +5473,25 @@ const makeJsonBody = (
   }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
+  it('flags a body that is itself a date, which it returns as a string', () => {
+    const day = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody({ type: ['string', 'null'], format: 'date' }, 'Date'),
+      context: makeContext(),
+    });
+    const item = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+    });
+
+    expect(day?.returnsString).toBe(true);
+    expect(item?.returnsString).toBe(false);
+  });
+
   it('numbers the name past a parameter that would shadow it', () => {
     const result = generateRequestDateSerializer({
       operationName: 'putItem',

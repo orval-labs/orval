@@ -3759,6 +3759,26 @@ describe('useDatesTransform', () => {
     );
   });
 
+  it('leaves a body that is itself a date to its toJSON', async () => {
+    const verb = createPetVerb();
+    const { implementation, returnType } = await generate({
+      ...verb,
+      body: {
+        ...verb.body,
+        definition: 'Date',
+        imports: [],
+        originalSchema: {
+          content: {
+            'application/json': { schema: { type: 'string', format: 'date' } },
+          },
+        },
+      },
+    });
+
+    expect(implementation).toMatch(/`\/api\/pets`,\s*petBody,/);
+    expect(returnType?.()).not.toContain('serializeCreatePetRequest');
+  });
+
   it('numbers a helper past a parameter of the same name', async () => {
     const verb = createPetVerb();
     const param = 'serializeCreatePetRequest';

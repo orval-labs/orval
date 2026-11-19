@@ -1900,6 +1900,11 @@ export const getDateHelperNames = (
 export interface GeneratedDateSerializer {
   name: string;
   implementation: string;
+  /**
+   * The body is itself a date, so the serializer returns a string, which a
+   * client must still send as JSON.
+   */
+  returnsString: boolean;
 }
 
 /**
@@ -1959,12 +1964,13 @@ export const generateRequestDateSerializer = ({
     );
   }
 
+  const bodyContext = isInlineSchema(body.originalSchema)
+    ? getUnnamedValueContext(context)
+    : context;
   const statements = buildRequestDateSerializeStatements({
     schema,
     accessor: 'copy',
-    context: isInlineSchema(body.originalSchema)
-      ? getUnnamedValueContext(context)
-      : context,
+    context: bodyContext,
   });
   if (statements.length === 0) return undefined;
 
@@ -2007,7 +2013,14 @@ ${indent(statements).join('\n')}
 };
 `;
 
-  return { name, implementation };
+  return {
+    name,
+    implementation,
+    returnsString: requestMode.isLeaf(
+      normalizeSchema(schema, bodyContext).schema,
+      bodyContext,
+    ),
+  };
 };
 
 export interface GeneratedDateDeserializer {
