@@ -2969,3 +2969,78 @@ describe('getResReqTypes (formatType form values)', () => {
     ).not.toContain('toIso');
   });
 });
+
+describe('getResReqTypes ($ref outside components, #4556)', () => {
+  const articleSchema: OpenApiSchemaObject = {
+    type: 'object',
+    properties: { title: { type: 'string' } },
+  };
+  const ctx = extendContext({
+    spec: {
+      components: {
+        schemas: {},
+        responses: {
+          Article: {
+            description: 'OK',
+            content: { 'application/json': { schema: articleSchema } },
+          },
+        },
+      },
+      paths: {
+        '/articles': {
+          post: {
+            requestBody: {
+              required: true,
+              content: { 'application/json': { schema: articleSchema } },
+            },
+            responses: {},
+          },
+        },
+        '/articles/{id}': {
+          get: {
+            responses: {
+              '200': {
+                description: 'OK',
+                content: { 'application/json': { schema: articleSchema } },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  it('inlines a response that refs another operation instead of importing an undeclared type', () => {
+    const responses: [string, OpenApiReferenceObject][] = [
+      ['200', { $ref: '#/paths/~1articles~1%7Bid%7D/get/responses/200' }],
+    ];
+    const [type] = getResReqTypes(responses, 'GetArticleBySlug', ctx);
+
+    expect(type.value).toBe('GetArticleBySlug200');
+    expect(type.isRef).toBe(false);
+    expect(type.schemas.map(({ name }) => name)).toEqual([
+      'GetArticleBySlug200',
+    ]);
+  });
+
+  it('inlines a request body that refs another operation', () => {
+    const requestBodies: [string, OpenApiReferenceObject][] = [
+      ['requestBody', { $ref: '#/paths/~1articles/post/requestBody' }],
+    ];
+    const [type] = getResReqTypes(requestBodies, 'UpdateArticleBody', ctx);
+
+    expect(type.isRef).toBe(false);
+    expect(type.schemas.map(({ name }) => name)).toEqual([type.value]);
+  });
+
+  it('keeps importing a component response by name', () => {
+    const responses: [string, OpenApiReferenceObject][] = [
+      ['200', { $ref: '#/components/responses/Article' }],
+    ];
+    const [type] = getResReqTypes(responses, 'GetArticle', ctx);
+
+    expect(type.value).toBe('Article');
+    expect(type.isRef).toBe(true);
+    expect(type.schemas).toEqual([]);
+  });
+});

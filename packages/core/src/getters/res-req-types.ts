@@ -37,6 +37,7 @@ import { getNumberWord, jsStringLiteralEscape } from '../utils/string';
 import { getKey, getPropertyNameCollisionKeys } from './keys';
 import type { FormDataContext } from './object';
 import { getPropertyNamingConvention } from './property-renames';
+import { isComponentRef } from './ref';
 import {
   callFormatTypeFunction,
   findModelFormatType,
@@ -184,7 +185,16 @@ export function getResReqTypes(
   const operationName = name;
   const typesArray = responsesOrRequests
     .filter(([, res]) => Boolean(res))
-    .map(([key, res]) => {
+    .map(([key, entry]) => {
+      // Only refs to a named component slot get an `export type`; any other ref
+      // (e.g. bundler-emitted `#/paths/.../responses/200`) would import an
+      // undeclared name. Inline the resolved object instead, as #398 does for
+      // schemas.
+      const res =
+        isInlineSchema(entry) || isComponentRef(entry.$ref)
+          ? entry
+          : resolveResponseOrRequestRef(entry, context).schema;
+
       if (!isInlineSchema(res)) {
         const {
           schema: bodySchema,
