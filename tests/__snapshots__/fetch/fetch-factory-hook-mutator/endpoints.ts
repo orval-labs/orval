@@ -132,19 +132,34 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     data: OrderDetails,
   ): OrderDetails => {
     if (data == null) return data;
-    data.placedAt = new Date(data.placedAt);
+    data.placedAt =
+      typeof data.placedAt === 'string'
+        ? new Date(data.placedAt)
+        : data.placedAt;
     if (data.deliveredAt != null) {
-      data.deliveredAt = new Date(data.deliveredAt);
+      data.deliveredAt =
+        typeof data.deliveredAt === 'string'
+          ? new Date(data.deliveredAt)
+          : data.deliveredAt;
     }
     if (data.lastViewedAt != null) {
-      data.lastViewedAt = new Date(data.lastViewedAt);
+      data.lastViewedAt =
+        typeof data.lastViewedAt === 'string'
+          ? new Date(data.lastViewedAt)
+          : data.lastViewedAt;
     }
     if (data.events != null) {
       for (let i0 = 0; i0 < data.events.length; i0++) {
         const item0 = data.events[i0]!;
-        item0.createdAt = new Date(item0.createdAt);
+        item0.createdAt =
+          typeof item0.createdAt === 'string'
+            ? new Date(item0.createdAt)
+            : item0.createdAt;
         if (item0.resolvedAt != null) {
-          item0.resolvedAt = new Date(item0.resolvedAt);
+          item0.resolvedAt =
+            typeof item0.resolvedAt === 'string'
+              ? new Date(item0.resolvedAt)
+              : item0.resolvedAt;
         }
       }
     }
@@ -181,12 +196,18 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     if (data == null) return data;
     switch (data.petType) {
       case 'cat': {
-        data.vaccinatedAt = new Date(data.vaccinatedAt);
+        data.vaccinatedAt =
+          typeof data.vaccinatedAt === 'string'
+            ? new Date(data.vaccinatedAt)
+            : data.vaccinatedAt;
         break;
       }
       case 'dog': {
         if (data.adoptedAt != null) {
-          data.adoptedAt = new Date(data.adoptedAt);
+          data.adoptedAt =
+            typeof data.adoptedAt === 'string'
+              ? new Date(data.adoptedAt)
+              : data.adoptedAt;
         }
         break;
       }
@@ -226,10 +247,16 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     if (data == null) return data;
     (
       data as { -readonly [K in keyof typeof data]: (typeof data)[K] }
-    ).recordedAt = new Date(data.recordedAt);
+    ).recordedAt =
+      typeof data.recordedAt === 'string'
+        ? new Date(data.recordedAt)
+        : data.recordedAt;
     if (data.stamps != null) {
       for (let i0 = 0; i0 < data.stamps.length; i0++) {
-        data.stamps[i0] = new Date(data.stamps[i0]!);
+        data.stamps[i0] =
+          typeof data.stamps[i0]! === 'string'
+            ? new Date(data.stamps[i0]!)
+            : data.stamps[i0]!;
       }
     }
     if (data.entries != null) {
@@ -237,7 +264,10 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
         const item0 = data.entries[i0]!;
         (
           item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }
-        ).changedAt = new Date(item0.changedAt);
+        ).changedAt =
+          typeof item0.changedAt === 'string'
+            ? new Date(item0.changedAt)
+            : item0.changedAt;
       }
     }
     return data;
@@ -273,12 +303,18 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     if (data == null) return data;
     switch (data.petType) {
       case 'cat': {
-        data.vaccinatedAt = new Date(data.vaccinatedAt);
+        data.vaccinatedAt =
+          typeof data.vaccinatedAt === 'string'
+            ? new Date(data.vaccinatedAt)
+            : data.vaccinatedAt;
         break;
       }
       case 'dog': {
         if (data.adoptedAt != null) {
-          data.adoptedAt = new Date(data.adoptedAt);
+          data.adoptedAt =
+            typeof data.adoptedAt === 'string'
+              ? new Date(data.adoptedAt)
+              : data.adoptedAt;
         }
         break;
       }
@@ -318,7 +354,7 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     data: LastInspection,
   ): LastInspection => {
     if (data == null) return data;
-    data = new Date(data);
+    data = typeof data === 'string' ? new Date(data) : data;
     return data;
   };
 
@@ -375,15 +411,22 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     data: Appointment,
   ): Appointment => {
     if (data == null) return data;
-    data.day = new Date(data.day);
-    data.bookedAt = new Date(data.bookedAt);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
+    data.bookedAt =
+      typeof data.bookedAt === 'string'
+        ? new Date(data.bookedAt)
+        : data.bookedAt;
     if (data.reminderOn != null) {
-      data.reminderOn = new Date(data.reminderOn);
+      data.reminderOn =
+        typeof data.reminderOn === 'string'
+          ? new Date(data.reminderOn)
+          : data.reminderOn;
     }
     if (data.slots != null) {
       for (let i0 = 0; i0 < data.slots.length; i0++) {
         const item0 = data.slots[i0]!;
-        item0.start = new Date(item0.start);
+        item0.start =
+          typeof item0.start === 'string' ? new Date(item0.start) : item0.start;
       }
     }
     return data;
@@ -459,8 +502,8 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     data: AppointmentWithDuplicateDate,
   ): AppointmentWithDuplicateDate => {
     if (data == null) return data;
-    data.day = new Date(data.day);
-    data.day = new Date(data.day);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
     return data;
   };
 
@@ -521,15 +564,22 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
     data: Appointment,
   ): Appointment => {
     if (data == null) return data;
-    data.day = new Date(data.day);
-    data.bookedAt = new Date(data.bookedAt);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
+    data.bookedAt =
+      typeof data.bookedAt === 'string'
+        ? new Date(data.bookedAt)
+        : data.bookedAt;
     if (data.reminderOn != null) {
-      data.reminderOn = new Date(data.reminderOn);
+      data.reminderOn =
+        typeof data.reminderOn === 'string'
+          ? new Date(data.reminderOn)
+          : data.reminderOn;
     }
     if (data.slots != null) {
       for (let i0 = 0; i0 < data.slots.length; i0++) {
         const item0 = data.slots[i0]!;
-        item0.start = new Date(item0.start);
+        item0.start =
+          typeof item0.start === 'string' ? new Date(item0.start) : item0.start;
       }
     }
     return data;
@@ -595,11 +645,17 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
         const item0 = data.pets[key0]!;
         switch (item0.petType) {
           case 'cat': {
-            item0.arrivedOn = new Date(item0.arrivedOn);
+            item0.arrivedOn =
+              typeof item0.arrivedOn === 'string'
+                ? new Date(item0.arrivedOn)
+                : item0.arrivedOn;
             break;
           }
           case 'dog': {
-            item0.vaccinatedAt = new Date(item0.vaccinatedAt);
+            item0.vaccinatedAt =
+              typeof item0.vaccinatedAt === 'string'
+                ? new Date(item0.vaccinatedAt)
+                : item0.vaccinatedAt;
             break;
           }
         }
@@ -680,16 +736,25 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
       for (const key0 of Object.keys(data.records)) {
         const item0 = data.records[key0]!;
         if ('visitedOn' in item0 && item0.visitedOn != null) {
-          item0.visitedOn = new Date(item0.visitedOn);
+          item0.visitedOn =
+            typeof item0.visitedOn === 'string'
+              ? new Date(item0.visitedOn)
+              : item0.visitedOn;
         }
         if ('entries' in item0 && item0.entries != null) {
           for (let i1 = 0; i1 < item0.entries.length; i1++) {
             const item1 = item0.entries[i1]!;
-            item1.visitedOn = new Date(item1.visitedOn);
+            item1.visitedOn =
+              typeof item1.visitedOn === 'string'
+                ? new Date(item1.visitedOn)
+                : item1.visitedOn;
           }
         }
         if ('administeredAt' in item0 && item0.administeredAt != null) {
-          item0.administeredAt = new Date(item0.administeredAt);
+          item0.administeredAt =
+            typeof item0.administeredAt === 'string'
+              ? new Date(item0.administeredAt)
+              : item0.administeredAt;
         }
       }
     }
@@ -773,7 +838,10 @@ export const getDatesTransform = (fetchFn: typeof globalThis.fetch = fetch) => {
   ): AppointmentWindow => {
     if (data == null) return data;
     if ('closedAt' in data && data.closedAt != null) {
-      data.closedAt = new Date(data.closedAt);
+      data.closedAt =
+        typeof data.closedAt === 'string'
+          ? new Date(data.closedAt)
+          : data.closedAt;
     }
     return data;
   };
