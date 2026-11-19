@@ -7183,3 +7183,57 @@ describe('recursive schemas — review fixes', () => {
     warn.mockRestore();
   });
 });
+
+describe('recursive schemas — aliases spelled from others', () => {
+  const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+
+  it('declares the alias another refers to when its converter is dropped', () => {
+    // `B` is dropped (its union with a string can't be converted), but `A`'s
+    // alias was spelled from `B`'s while `B` was being built.
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const result = generateResponseDateDeserializer({
+      operationName: 'getReport',
+      response: makeResponse({
+        definition: { success: 'Report', errors: 'unknown' },
+        successTypes: [
+          {
+            originalSchema: {
+              type: 'object',
+              properties: { bad: ref('B'), good: ref('A') },
+            },
+          },
+        ],
+      }),
+      context: makeContext({
+        A: {
+          type: 'object',
+          required: ['at'],
+          properties: {
+            at: { type: 'string', format: 'date-time' },
+            children: { type: 'array', items: ref('A') },
+          },
+        },
+        B: {
+          type: 'object',
+          properties: {
+            a: ref('A'),
+            next: { anyOf: [ref('B'), { type: 'string' }] },
+          },
+        },
+      }),
+    });
+    warn.mockRestore();
+
+    const implementation = result?.implementation ?? '';
+    const aliases = [...implementation.matchAll(/^ {2}type (\w+) = /gm)].map(
+      ([, name]) => name,
+    );
+    const referenced = [...implementation.matchAll(/NonNullable<(\w+)>/g)].map(
+      ([, name]) => name,
+    );
+    expect(implementation).toContain('const convertA = ');
+    expect(
+      referenced.filter((name) => name !== 'Report' && !aliases.includes(name)),
+    ).toEqual([]);
+  });
+});

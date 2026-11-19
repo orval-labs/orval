@@ -2361,10 +2361,30 @@ const buildWithRecursion = (
         `operation \`${operationName}\`: \`useDatesTransform\` leaves the dates of recursive schema \`${schemaName}\` as strings`,
       );
     }
+    // An alias can be spelled from another's, whose converter may not be
+    // called, so the aliases the emitted ones refer to are emitted too.
+    const aliasRefs = new Map(
+      [...recursion.aliases.keys()].map((ref) => [
+        recursion.types.get(ref),
+        ref,
+      ]),
+    );
+    const aliased: string[] = [];
+    const addAlias = (ref: string) => {
+      const declaration = recursion.aliases.get(ref);
+      if (declaration === undefined || aliased.includes(ref)) return;
+      aliased.push(ref);
+      const typeExpression = declaration.replaceAll(/"(?:[^"\\]|\\.)*"/g, '');
+      for (const [name] of typeExpression.matchAll(/[A-Za-z_$][\w$]*/g)) {
+        const dependency = aliasRefs.get(name);
+        if (dependency !== undefined) addAlias(dependency);
+      }
+    };
+    for (const ref of called) addAlias(ref);
     return {
       result,
       declarations: [
-        ...called.flatMap((ref) => recursion.aliases.get(ref) ?? []),
+        ...aliased.flatMap((ref) => recursion.aliases.get(ref) ?? []),
         ...called.flatMap((ref) => {
           const converter = recursion.built.get(ref);
           return converter ? [converter.implementation] : [];
