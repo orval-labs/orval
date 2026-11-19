@@ -6,6 +6,7 @@ import {
   type SchemaExtension,
   type ZodVariantOption,
   getRefInfo,
+  isBrandablePrimitiveSchema,
   buildDynamicScope,
 } from '@orval/core';
 import {
@@ -183,6 +184,10 @@ export const generateReusableSchemaSet = (
       options.variant,
       options.exactOptional,
       options.hasZodXor,
+      context.output.override.useBrandedTypes &&
+        isBrandablePrimitiveSchema(schema)
+        ? name
+        : undefined,
     );
 
     entries.push({
