@@ -6518,7 +6518,7 @@ describe('formatType values', () => {
       "data[i0] = typeof data[i0]! === 'string' ? dayjs(data[i0]! as unknown as string) : data[i0]!;",
     );
     expect(serializer(unnamed)).toContain(
-      "value0 = typeof value0 === 'string' || value0 == null ? value0 : (toIso(value0) as unknown as typeof value0);",
+      "value0 = typeof value0 === 'string' ? value0 : (toIso(value0) as unknown as typeof value0);",
     );
     // An object, inline or not, and a `$ref` have named types.
     for (const named of [
@@ -6546,14 +6546,18 @@ describe('formatType values', () => {
     );
   });
 
-  it('leaves a missing request value out of encode', () => {
-    const encoded = (value: string) =>
-      `${value} = typeof ${value} === 'string' || ${value} == null ? ${value} : (toIso(${value}) as unknown as typeof ${value});`;
+  it('leaves a missing request value out of encode where nothing else checks it', () => {
+    const encoded = (value: string, checked = true) =>
+      `${value} = typeof ${value} === 'string'${checked ? ` || ${value} == null` : ''} ? ${value} : (toIso(${value}) as unknown as typeof ${value});`;
+    const nullableDateTime: OpenApiSchemaObject = {
+      anyOf: [dateTime, { type: 'null' }],
+    };
     const schema: OpenApiSchemaObject = {
       type: 'object',
       required: ['startsAt', 'days', 'byKey'],
       properties: {
         startsAt: dateTime,
+        endsAt: dateTime,
         days: { type: 'array', items: dateTime },
         byKey: { type: 'object', additionalProperties: dateTime },
       },
@@ -6562,6 +6566,9 @@ describe('formatType values', () => {
     expect(serialize(schema)).toBe(
       [
         encoded('copy.startsAt'),
+        'if (copy.endsAt != null) {',
+        `  ${encoded('copy.endsAt', false)}`,
+        '}',
         'if (copy.days != null) {',
         '  copy.days = copy.days.map((item0) => {',
         '    let value0 = item0;',
@@ -6579,7 +6586,39 @@ describe('formatType values', () => {
         '}',
       ].join('\n'),
     );
+    expect(serialize({ type: 'array', items: nullableDateTime })).toBe(
+      [
+        'copy = copy.map((item0) => {',
+        '  if (item0 == null) return item0;',
+        '  let value0 = item0;',
+        `  ${encoded('value0', false)}`,
+        '  return value0;',
+        '});',
+      ].join('\n'),
+    );
+    expect(
+      serialize({ type: 'object', additionalProperties: nullableDateTime }),
+    ).toBe(
+      [
+        'copy = { ...copy };',
+        'for (const key0 of Object.keys(copy)) {',
+        '  let value0 = copy[key0]!;',
+        '  if (value0 == null) continue;',
+        `  ${encoded('value0', false)}`,
+        '  copy[key0] = value0;',
+        '}',
+      ].join('\n'),
+    );
     expect(serialize(dateTime)).toBe(encoded('copy'));
+    expect(
+      generateRequestDateSerializer({
+        operationName: 'putStart',
+        body: makeJsonBody(dateTime),
+        context: dayjs,
+      })?.implementation,
+    ).toContain(
+      `  if (data == null) return data;\n  let copy = data;\n  ${encoded('copy', false)}`,
+    );
 
     const result = generateRequestDateSerializer({
       operationName: 'putEvent',
@@ -6655,7 +6694,7 @@ describe('query parameter formatType values', () => {
       [
         'const encodedParams = { ...params };',
         'if (encodedParams.after != null) {',
-        "  encodedParams.after = typeof encodedParams.after === 'string' || encodedParams.after == null ? encodedParams.after : (toIso(encodedParams.after) as unknown as typeof encodedParams.after);",
+        "  encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (toIso(encodedParams.after) as unknown as typeof encodedParams.after);",
         '}',
         'if (encodedParams.days != null) {',
         '  encodedParams.days = encodedParams.days.map((item0) => {',
@@ -6687,7 +6726,7 @@ describe('query parameter formatType values', () => {
         'params',
       ),
     ).toContain(
-      "encodedParams.after = typeof encodedParams.after === 'string' || encodedParams.after == null ? encodedParams.after : (String(encodedParams.after) as unknown as typeof encodedParams.after);",
+      "encodedParams.after = typeof encodedParams.after === 'string' ? encodedParams.after : (String(encodedParams.after) as unknown as typeof encodedParams.after);",
     );
     expect(warn).toHaveBeenCalledExactlyOnceWith(
       'override.formatType.date-time (Dayjs): operation `listEvents`, query parameter `after` has no `encode` and is sent through `String()`',
@@ -6718,7 +6757,7 @@ describe('query parameter formatType values', () => {
         'if (encodedParams.range != null) {',
         '  encodedParams.range = { ...encodedParams.range };',
         '  if (encodedParams.range.from != null) {',
-        "    (encodedParams.range as { -readonly [K in keyof typeof encodedParams.range]: (typeof encodedParams.range)[K] }).from = typeof encodedParams.range.from === 'string' || encodedParams.range.from == null ? encodedParams.range.from : (toIso(encodedParams.range.from) as unknown as typeof encodedParams.range.from);",
+        "    (encodedParams.range as { -readonly [K in keyof typeof encodedParams.range]: (typeof encodedParams.range)[K] }).from = typeof encodedParams.range.from === 'string' ? encodedParams.range.from : (toIso(encodedParams.range.from) as unknown as typeof encodedParams.range.from);",
         '  }',
         '}',
       ],

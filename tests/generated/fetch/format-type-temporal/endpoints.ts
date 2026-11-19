@@ -58,7 +58,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
   const encodedParams = { ...params };
   if (encodedParams.after != null) {
     encodedParams.after =
-      typeof encodedParams.after === 'string' || encodedParams.after == null
+      typeof encodedParams.after === 'string'
         ? encodedParams.after
         : (String(
             encodedParams.after,
@@ -66,7 +66,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
   }
   if (encodedParams.before != null) {
     encodedParams.before =
-      typeof encodedParams.before === 'string' || encodedParams.before == null
+      typeof encodedParams.before === 'string'
         ? encodedParams.before
         : (String(
             encodedParams.before,
@@ -226,19 +226,19 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
       : (String(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.date != null) {
     copy.date =
-      typeof copy.date === 'string' || copy.date == null
+      typeof copy.date === 'string'
         ? copy.date
         : (String(copy.date) as unknown as typeof copy.date);
   }
   if (copy.publishAt != null) {
     copy.publishAt =
-      typeof copy.publishAt === 'string' || copy.publishAt == null
+      typeof copy.publishAt === 'string'
         ? copy.publishAt
         : (String(copy.publishAt) as unknown as typeof copy.publishAt);
   }
   if (copy.endsAt != null) {
     copy.endsAt =
-      typeof copy.endsAt === 'string' || copy.endsAt == null
+      typeof copy.endsAt === 'string'
         ? copy.endsAt
         : (String(copy.endsAt) as unknown as typeof copy.endsAt);
   }

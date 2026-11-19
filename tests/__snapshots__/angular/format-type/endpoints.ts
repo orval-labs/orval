@@ -161,7 +161,7 @@ export class DateTypeTestService {
     const encodedParams = { ...params };
     if (encodedParams.after != null) {
       encodedParams.after =
-        typeof encodedParams.after === 'string' || encodedParams.after == null
+        typeof encodedParams.after === 'string'
           ? encodedParams.after
           : (((value) => value.toISOString())(
               encodedParams.after,
@@ -169,7 +169,7 @@ export class DateTypeTestService {
     }
     if (encodedParams.before != null) {
       encodedParams.before =
-        typeof encodedParams.before === 'string' || encodedParams.before == null
+        typeof encodedParams.before === 'string'
           ? encodedParams.before
           : (((value) => value.toISOString())(
               encodedParams.before,
