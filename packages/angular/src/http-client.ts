@@ -1210,6 +1210,7 @@ export const generateHttpClientImplementation = (
   const httpCallExpr = (
     optionsArgument: string,
     observeKind: 'body' | 'events' | 'response',
+    pipes: string,
   ) => {
     if (hasInjectedResponseType(optionsArgument)) {
       const castType =
@@ -1218,22 +1219,24 @@ export const generateHttpClientImplementation = (
           : observeKind === 'response'
             ? `AngularHttpResponse<${observableDataType}>`
             : observableDataType;
-      return `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+      const call = `this.http.${verb}(${optionsArgument}) as Observable<${castType}>`;
+      // Parenthesized, the pipes apply to the call rather than to the type.
+      return pipes ? `(${call})${pipes}` : call;
     }
 
-    return `this.http.${verb}<${observableDataType}>(${optionsArgument})`;
+    return `this.http.${verb}<${observableDataType}>(${optionsArgument})${pipes}`;
   };
   const observeImplementation = isRequestOptions
     ? `${paramsDeclaration}if (options?.observe === 'events') {
-      return ${httpCallExpr(observeOptions?.events ?? options, 'events')}${eventDatesPipe}${eventValidationPipe};
+      return ${httpCallExpr(observeOptions?.events ?? options, 'events', eventDatesPipe + eventValidationPipe)};
     }
 
     if (options?.observe === 'response') {
-      return ${httpCallExpr(observeOptions?.response ?? options, 'response')}${responseDatesPipe}${responseValidationPipe};
+      return ${httpCallExpr(observeOptions?.response ?? options, 'response', responseDatesPipe + responseValidationPipe)};
     }
 
-    return ${httpCallExpr(observeOptions?.body ?? options, 'body')}${datesPipe}${validationPipe};`
-    : `return ${httpCallExpr(options, 'body')}${datesPipe}${validationPipe};`;
+    return ${httpCallExpr(observeOptions?.body ?? options, 'body', datesPipe + validationPipe)};`
+    : `return ${httpCallExpr(options, 'body', datesPipe + validationPipe)};`;
 
   return ` ${overloads}
   ${functionName}(

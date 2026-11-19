@@ -3708,6 +3708,23 @@ describe('useDatesTransform', () => {
     );
   });
 
+  it('pipes a call asserted for an explicit responseType', async () => {
+    // The options carry `requestOptions` once there are query params.
+    const verb = datedVerb({ queryParams: createQueryParams() });
+    const { implementation } = await generate({
+      ...verb,
+      override: { ...verb.override, requestOptions: { responseType: 'json' } },
+    });
+
+    expect(implementation).toMatch(
+      /\(this\.http\.get\([^;]*\) as Observable<TData>\)\.pipe\(map\(data => deserializeGetPetByIdResponse/,
+    );
+    expect(implementation).toMatch(
+      /\) as Observable<HttpEvent<TData>>\)\.pipe\(map\(event =>/,
+    );
+    expect(implementation).not.toMatch(/as Observable<[^;]*>\.pipe/);
+  });
+
   it('pipes the body alone without request options', async () => {
     const verb = datedVerb();
     const { implementation } = await generate({
@@ -3923,6 +3940,26 @@ describe('useDatesTransform', () => {
       expect(implementation).toContain(
         '.pipe(map(response => response.clone({ body: deserializeGetPetByIdResponse(response.body as unknown as Pet) }))).pipe(map(response => response.clone({ body: Pet.parse(response.body) })))',
       );
+    });
+
+    it('pipes a call asserted for an explicit responseType', async () => {
+      const output = zodOutput();
+      const verb = datedVerb({ output, queryParams: createQueryParams() });
+      const { implementation } = await generate(
+        {
+          ...verb,
+          override: {
+            ...verb.override,
+            requestOptions: { responseType: 'json' },
+          },
+        },
+        output,
+      );
+
+      expect(implementation).toMatch(
+        /\) as Observable<PetOutput>\)\.pipe\(map\(data => deserializeGetPetByIdResponse\(data as unknown as Pet\)\)\)\.pipe\(map\(data => Pet\.parse\(data\)\)\)/,
+      );
+      expect(implementation).not.toMatch(/as Observable<[^;]*>\.pipe/);
     });
 
     it('sends a parsed request body as the schema returns it', async () => {
