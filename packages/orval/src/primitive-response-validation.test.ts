@@ -282,6 +282,51 @@ describe('primitive response runtime validation (#4138)', () => {
     });
   });
 
+  it('rejects a required date sent as null or a number instead of converting it', async () => {
+    await generate(
+      {
+        client: 'fetch',
+        override: {
+          useDatesTransform: true,
+          fetch: { runtimeValidation: true },
+        },
+      },
+      scalarSpec({
+        readEvent: {
+          type: 'object',
+          required: ['at'],
+          properties: { at: { type: 'string', format: 'date-time' } },
+        },
+      }),
+    );
+    expect(diagnostics()).toEqual([]);
+    const client = await dynamicImport<{ readEvent: () => Promise<unknown> }>(
+      './client.ts',
+      workspace,
+      false,
+    );
+    const respond = (at: unknown) =>
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify({ at }), {
+            headers: { 'content-type': 'application/json' },
+          }),
+        ),
+      );
+    const iso = '2026-01-01T00:00:00.000Z';
+    respond(iso);
+    await expect(client.readEvent()).resolves.toMatchObject({
+      data: { at: new Date(iso) },
+    });
+    for (const at of [null, 0]) {
+      respond(at);
+      await expect(client.readEvent()).rejects.toMatchObject({
+        name: 'ZodError',
+      });
+    }
+  });
+
   it('retains legacy nullability and the existing numeric Zod int64 mapping', async () => {
     const spec = scalarSpec({
       readValue: { type: 'integer', format: 'int64', nullable: true },
