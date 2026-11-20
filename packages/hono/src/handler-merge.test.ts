@@ -1057,3 +1057,188 @@ export const getStatsHandlers = factory.createHandlers(
     );
   });
 });
+
+describe('reconcileHandlerFile — source positions and syntax forms', () => {
+  const statsImports: DesiredImports = {
+    factory: factoryImport,
+    validator: { names: ['zValidator'], module: '../endpoints.validator' },
+    context: { names: ['GetStatsContext'], module: '../endpoints.context' },
+    zod: {
+      names: ['GetStatsQueryParams', 'GetStatsResponse'],
+      module: '../endpoints.zod',
+    },
+  };
+  const statsHandlers: DesiredHandler[] = [
+    {
+      handlerName: 'getStatsHandlers',
+      validators: [
+        { target: 'query', schema: 'GetStatsQueryParams' },
+        { target: 'response', schema: 'GetStatsResponse' },
+      ],
+      stub: '',
+    },
+  ];
+
+  it('edits at the right positions after multi-byte characters', async () => {
+    const source = `// 統計を返す 📊
+import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { GetStatsContext } from '../endpoints.context';
+import { GetStatsResponse } from '../endpoints.zod';
+
+const factory = createFactory();
+const label = '件数 🧮';
+
+export const getStatsHandlers = factory.createHandlers(
+  zValidator('response', GetStatsResponse),
+  async (c: GetStatsContext) => {
+    return c.json({ label, count: '🔢' });
+  },
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: statsImports,
+      handlers: statsHandlers,
+    });
+
+    expect(result).toContain(`  zValidator('response', GetStatsResponse),
+  zValidator('query', GetStatsQueryParams),
+  async (c: GetStatsContext) => {`);
+    expect(result).toContain(`import {
+  GetStatsQueryParams,
+  GetStatsResponse
+} from '../endpoints.zod';`);
+    expect(result).toContain("const label = '件数 🧮';");
+
+    const bodies = await extractHandlerBodies(source);
+    expect(bodies?.get('getStatsHandlers')).toBe(
+      "\n    return c.json({ label, count: '🔢' });\n  ",
+    );
+  });
+
+  it('renames a shorthand reference once and leaves member, key, and declaration names alone', async () => {
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { GetStatsContext } from '../endpoints.context';
+import { getStatsResponse } from '../endpoints.zod';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory.createHandlers(
+  zValidator('response', getStatsResponse),
+  async (c: GetStatsContext) => {
+    const schemas = { getStatsResponse };
+    const keyed = { getStatsResponse: 1 };
+    const member = schemas.getStatsResponse;
+    return c.json({ schemas, keyed, member });
+  },
+);
+
+function local(getStatsResponse: unknown) {
+  return getStatsResponse;
+}
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        ...statsImports,
+        zod: { names: ['GetStatsResponse'], module: '../endpoints.zod' },
+      },
+      handlers: [
+        {
+          handlerName: 'getStatsHandlers',
+          validators: [{ target: 'response', schema: 'GetStatsResponse' }],
+          stub: '',
+        },
+      ],
+    });
+
+    expect(result).toContain('const schemas = { GetStatsResponse };');
+    expect(result).toContain('const keyed = { getStatsResponse: 1 };');
+    expect(result).toContain('const member = schemas.getStatsResponse;');
+    expect(result).toContain('function local(getStatsResponse: unknown) {');
+  });
+
+  it('keeps a side-effect import of an orval module and adds the named import', async () => {
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { GetStatsContext } from '../endpoints.context';
+import '../endpoints.zod';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory.createHandlers(
+  zValidator('response', GetStatsResponse),
+  async (c: GetStatsContext) => c.json({}),
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        ...statsImports,
+        zod: { names: ['GetStatsResponse'], module: '../endpoints.zod' },
+      },
+      handlers: [
+        {
+          handlerName: 'getStatsHandlers',
+          validators: [{ target: 'response', schema: 'GetStatsResponse' }],
+          stub: '',
+        },
+      ],
+    });
+
+    expect(result).toContain("import '../endpoints.zod';");
+    expect(result).toContain(
+      "import { GetStatsResponse } from '../endpoints.zod';",
+    );
+  });
+
+  it('recognizes a validator target written as a template literal', async () => {
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { GetStatsContext } from '../endpoints.context';
+import { GetStatsQueryParams, GetStatsResponse } from '../endpoints.zod';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory.createHandlers(
+  zValidator(\`query\`, GetStatsQueryParams),
+  zValidator('response', GetStatsResponse),
+  async (c: GetStatsContext) => c.json({}),
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: statsImports,
+      handlers: statsHandlers,
+    });
+
+    expect(
+      result.match(/zValidator\(.query., GetStatsQueryParams\)/g),
+    ).toHaveLength(1);
+  });
+
+  it('finds handlers created through an optional call', async () => {
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import { GetStatsContext } from '../endpoints.context';
+import { GetStatsResponse } from '../endpoints.zod';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory?.createHandlers(
+  zValidator('response', GetStatsResponse),
+  async (c: GetStatsContext) => {
+    return c.json({});
+  },
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: statsImports,
+      handlers: statsHandlers,
+    });
+
+    expect(result).toContain("zValidator('query', GetStatsQueryParams),");
+    expect(result.match(/getStatsHandlers =/g)).toHaveLength(1);
+    expect((await extractHandlerBodies(source))?.get('getStatsHandlers')).toBe(
+      '\n    return c.json({});\n  ',
+    );
+  });
+});

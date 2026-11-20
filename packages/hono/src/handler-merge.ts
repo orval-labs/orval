@@ -1,4 +1,14 @@
-import type * as TS from 'typescript';
+import {
+  type ArrowFunctionExpression,
+  type CallExpression,
+  type Expression,
+  type Function as FunctionNode,
+  type ImportDeclaration,
+  type ModuleExportName,
+  type Node,
+  parseSync,
+  type Program,
+} from 'oxc-parser';
 
 /**
  * AST-based reconciliation of an existing hono handler file.
@@ -9,38 +19,12 @@ import type * as TS from 'typescript';
  * middleware passed to `factory.createHandlers(...)`, the `async (c) => { ... }`
  * body, and any top-level helpers, constants, types, or comments.
  *
- * We edit the original source text in place using node offsets from the
- * TypeScript compiler API, so formatting and comments of untouched regions are
- * preserved. On any parse failure we return the source unchanged — user code is
- * never destroyed by a parser hiccup.
+ * We edit the original source text in place using node offsets from
+ * oxc-parser (UTF-16 offsets into the JS string, like the TypeScript compiler
+ * API's), so formatting and comments of untouched regions are preserved. On any
+ * parse failure we return the source unchanged — user code is never destroyed by
+ * a parser hiccup.
  */
-
-/**
- * `typescript` is a regular dependency (pinned to a release that still ships the
- * JS compiler API, like `@orval/zod`), imported lazily so every non-hono or
- * `skip` code path never pays for loading it. It is not resolved from the
- * consumer's project: TypeScript 7 (the native port) no longer exposes
- * `createSourceFile`/`ScriptTarget` from its main entry. If the resolved module
- * still lacks the compiler API, `smart`/`full` fail generation.
- */
-let ts!: typeof TS;
-let typeScriptAvailable: boolean | undefined;
-
-export const ensureTypeScript = async (): Promise<boolean> => {
-  if (typeScriptAvailable === undefined) {
-    try {
-      const mod = await import('typescript');
-      ts = (mod as unknown as { default?: typeof TS }).default ?? mod;
-      const api = ts as Partial<typeof TS>;
-      typeScriptAvailable =
-        typeof api.createSourceFile === 'function' &&
-        api.ScriptTarget !== undefined;
-    } catch {
-      typeScriptAvailable = false;
-    }
-  }
-  return typeScriptAvailable;
-};
 
 type ValidatorTarget =
   | 'header'
@@ -97,58 +81,209 @@ interface Edit {
   text: string;
 }
 
-const parse = (source: string): TS.SourceFile | undefined => {
-  const sourceFile = ts.createSourceFile(
-    'handler.ts',
-    source,
-    ts.ScriptTarget.Latest,
-    /* setParentNodes */ true,
-    ts.ScriptKind.TS,
+const parse = (source: string): Program | undefined => {
+  const { program, errors } = parseSync('handler.ts', source, {
+    lang: 'ts',
+    sourceType: 'module',
+  });
+  if (errors.length > 0) return undefined;
+  return program;
+};
+
+/** `a?.b()` is wrapped in a `ChainExpression`; look through it. */
+const unwrapChain = (node: Expression): Expression =>
+  node.type === 'ChainExpression' ? node.expression : node;
+
+const asCall = (node: Node): CallExpression | undefined => {
+  const expression = unwrapChain(node as Expression);
+  return expression.type === 'CallExpression' ? expression : undefined;
+};
+
+/** The text of a string literal or a substitution-free template literal. */
+const stringValue = (node: Node | undefined): string | undefined => {
+  if (node?.type === 'Literal' && typeof node.value === 'string') {
+    return node.value;
+  }
+  if (node?.type === 'TemplateLiteral' && node.expressions.length === 0) {
+    return node.quasis[0]?.value.cooked ?? undefined;
+  }
+  return undefined;
+};
+
+/** The handler is the LAST function argument; earlier ones may be middleware. */
+const findHandlerFunction = (
+  call: CallExpression,
+): ArrowFunctionExpression | FunctionNode | undefined =>
+  call.arguments.findLast(
+    (arg): arg is ArrowFunctionExpression | FunctionNode =>
+      arg.type === 'ArrowFunctionExpression' ||
+      arg.type === 'FunctionExpression',
   );
-  const diagnostics = (
-    sourceFile as unknown as { parseDiagnostics?: TS.Diagnostic[] }
-  ).parseDiagnostics;
-  if (diagnostics && diagnostics.length > 0) return undefined;
-  return sourceFile;
+
+type AnyNode = Node & Record<string, unknown>;
+
+const isNode = (value: unknown): value is AnyNode =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { type?: unknown }).type === 'string';
+
+const childNodes = (node: AnyNode): AnyNode[] =>
+  Object.entries(node).flatMap(([key, value]) => {
+    if (key === 'type' || key === 'start' || key === 'end') return [];
+    if (Array.isArray(value)) return value.filter(isNode);
+    return isNode(value) ? [value] : [];
+  });
+
+/** Identifiers that a destructuring or plain binding pattern declares. */
+const collectBindingNames = (pattern: unknown, into: Set<Node>): void => {
+  if (!isNode(pattern)) return;
+  switch (pattern.type) {
+    case 'Identifier': {
+      into.add(pattern);
+      break;
+    }
+    case 'ObjectPattern': {
+      for (const property of pattern.properties as AnyNode[]) {
+        if (property.type === 'RestElement') {
+          collectBindingNames(property.argument, into);
+        } else {
+          // In shorthand `{ X }` the key is the binding too.
+          if (property.shorthand) collectBindingNames(property.key, into);
+          collectBindingNames(property.value, into);
+        }
+      }
+      break;
+    }
+    case 'ArrayPattern': {
+      for (const element of pattern.elements as unknown[]) {
+        collectBindingNames(element, into);
+      }
+      break;
+    }
+    case 'RestElement': {
+      collectBindingNames(pattern.argument, into);
+      break;
+    }
+    case 'AssignmentPattern': {
+      collectBindingNames(pattern.left, into);
+      break;
+    }
+    case 'TSParameterProperty': {
+      collectBindingNames(pattern.parameter, into);
+      break;
+    }
+  }
+};
+
+/**
+ * Identifiers that refer to a binding by name, for the schema rename. Skips
+ * names that only label something: `obj.name` members, declared names
+ * (variables, parameters, destructured bindings, `catch` parameters), keys in
+ * object literals, and property names in type literals or interfaces.
+ */
+interface IdentifierNode {
+  name: string;
+  start: number;
+  end: number;
+}
+
+const renamableIdentifiers = (program: Program): IdentifierNode[] => {
+  const excluded = new Set<Node>();
+  const identifiers: (AnyNode & IdentifierNode)[] = [];
+
+  const visit = (node: AnyNode): void => {
+    switch (node.type) {
+      case 'Identifier': {
+        identifiers.push(node as AnyNode & IdentifierNode);
+        break;
+      }
+      case 'MemberExpression': {
+        if (!node.computed) excluded.add(node.property as Node);
+        break;
+      }
+      case 'VariableDeclarator': {
+        collectBindingNames(node.id, excluded);
+        break;
+      }
+      case 'CatchClause': {
+        collectBindingNames(node.param, excluded);
+        break;
+      }
+      case 'Property': {
+        if (
+          node.kind === 'init' &&
+          !node.method &&
+          !node.shorthand &&
+          !node.computed
+        ) {
+          excluded.add(node.key as Node);
+        }
+        break;
+      }
+      case 'TSPropertySignature': {
+        if (!node.computed) excluded.add(node.key as Node);
+        break;
+      }
+    }
+    // Functions and function-like type signatures declare their parameters.
+    if (Array.isArray(node.params)) {
+      for (const param of node.params) collectBindingNames(param, excluded);
+    }
+    for (const child of childNodes(node)) visit(child);
+  };
+
+  visit(program as AnyNode);
+  return identifiers.filter((identifier) => !excluded.has(identifier));
 };
 
 interface ParsedHandler {
   name: string;
-  call: TS.CallExpression;
+  call: CallExpression;
 }
 
-const findHandlers = (sourceFile: TS.SourceFile): ParsedHandler[] => {
+const findHandlers = (program: Program): ParsedHandler[] => {
   const handlers: ParsedHandler[] = [];
-  for (const statement of sourceFile.statements) {
-    if (!ts.isVariableStatement(statement)) continue;
-    for (const declaration of statement.declarationList.declarations) {
-      if (!ts.isIdentifier(declaration.name)) continue;
-      const name = declaration.name.text;
+  for (const statement of program.body) {
+    // Handlers are emitted as `export const`; the declaration sits inside the
+    // export.
+    const variables =
+      statement.type === 'ExportNamedDeclaration'
+        ? statement.declaration
+        : statement;
+    if (variables?.type !== 'VariableDeclaration') continue;
+    for (const declaration of variables.declarations) {
+      if (declaration.id.type !== 'Identifier') continue;
+      const name = declaration.id.name;
       if (!name.endsWith('Handlers')) continue;
-      const init = declaration.initializer;
+      const call = declaration.init ? asCall(declaration.init) : undefined;
+      const callee = call ? unwrapChain(call.callee) : undefined;
       if (
-        init &&
-        ts.isCallExpression(init) &&
-        ts.isPropertyAccessExpression(init.expression) &&
-        init.expression.name.text === 'createHandlers'
+        call &&
+        callee?.type === 'MemberExpression' &&
+        !callee.computed &&
+        callee.property.type === 'Identifier' &&
+        callee.property.name === 'createHandlers'
       ) {
-        handlers.push({ name, call: init });
+        handlers.push({ name, call });
       }
     }
   }
   return handlers;
 };
 
-const importedNames = (declaration: TS.ImportDeclaration): string[] => {
-  const bindings = declaration.importClause?.namedBindings;
-  if (!bindings || !ts.isNamedImports(bindings)) return [];
-  return bindings.elements.map((element) => element.name.text);
-};
+const exportName = (name: ModuleExportName): string =>
+  name.type === 'Literal' ? name.value : name.name;
 
-const moduleText = (declaration: TS.ImportDeclaration): string =>
-  ts.isStringLiteral(declaration.moduleSpecifier)
-    ? declaration.moduleSpecifier.text
-    : '';
+const namedSpecifiers = (declaration: ImportDeclaration) =>
+  declaration.specifiers.filter(
+    (specifier) => specifier.type === 'ImportSpecifier',
+  );
+
+const importedNames = (declaration: ImportDeclaration): string[] =>
+  namedSpecifiers(declaration).map((specifier) => specifier.local.name);
+
+const moduleText = (declaration: ImportDeclaration): string =>
+  declaration.source.value;
 
 /**
  * A "plain" named import — no default binding, no namespace (`* as x`), and no
@@ -156,13 +291,26 @@ const moduleText = (declaration: TS.ImportDeclaration): string =>
  * default / namespace / aliased / mixed imports are user-authored and must be
  * left untouched.
  */
-const isPlainNamedImport = (declaration: TS.ImportDeclaration): boolean => {
-  const clause = declaration.importClause;
-  if (!clause || clause.name) return false;
-  const bindings = clause.namedBindings;
-  if (!bindings || !ts.isNamedImports(bindings)) return false;
-  return bindings.elements.every(
-    (element) => element.propertyName === undefined,
+const isPlainNamedImport = (
+  source: string,
+  declaration: ImportDeclaration,
+): boolean => {
+  const specifiers = declaration.specifiers;
+  if (specifiers.some((specifier) => specifier.type !== 'ImportSpecifier')) {
+    return false;
+  }
+  // `import {} from 'x'` and the side-effect `import 'x'` both have no
+  // specifiers; only the former has a named-import clause.
+  if (
+    specifiers.length === 0 &&
+    !source.slice(declaration.start, declaration.source.start).includes('{')
+  ) {
+    return false;
+  }
+  // `x as x` is still an alias: the imported and local names are separate
+  // tokens, whereas a plain `x` is a single token both refer to.
+  return namedSpecifiers(declaration).every(
+    (specifier) => specifier.imported.start === specifier.local.start,
   );
 };
 
@@ -181,17 +329,15 @@ const escapeRegExp = (value: string): string =>
  * its new validators are inserted under the same alias (never an unimported name).
  */
 const localNameFor = (
-  importDeclarations: TS.ImportDeclaration[],
+  importDeclarations: ImportDeclaration[],
   importedName: string,
   module: string,
 ): string | undefined => {
   for (const declaration of importDeclarations) {
     if (moduleText(declaration) !== module) continue;
-    const bindings = declaration.importClause?.namedBindings;
-    if (!bindings || !ts.isNamedImports(bindings)) continue;
-    for (const element of bindings.elements) {
-      if ((element.propertyName?.text ?? element.name.text) === importedName) {
-        return element.name.text;
+    for (const specifier of namedSpecifiers(declaration)) {
+      if (exportName(specifier.imported) === importedName) {
+        return specifier.local.name;
       }
     }
   }
@@ -220,22 +366,20 @@ export const reconcileHandlerFile = async (
   source: string,
   desired: { imports: DesiredImports; handlers: DesiredHandler[] },
 ): Promise<string> => {
-  if (!(await ensureTypeScript())) return source;
-
-  const sourceFile = parse(source);
-  if (!sourceFile) return source;
+  const program = parse(source);
+  if (!program) return source;
 
   const edits: Edit[] = [];
-  const importDeclarations = sourceFile.statements.filter(
-    (statement): statement is TS.ImportDeclaration =>
-      ts.isImportDeclaration(statement),
+  const importDeclarations = program.body.filter(
+    (statement): statement is ImportDeclaration =>
+      statement.type === 'ImportDeclaration',
   );
-  const handlers = findHandlers(sourceFile);
+  const handlers = findHandlers(program);
   const existingNames = new Set(handlers.map((handler) => handler.name));
   const pendingInsertions: string[] = [];
 
   // Locate an orval-owned import by its module specifier (authoritative).
-  const byModule = (module: string): TS.ImportDeclaration | undefined =>
+  const byModule = (module: string): ImportDeclaration | undefined =>
     module
       ? importDeclarations.find(
           (declaration) => moduleText(declaration) === module,
@@ -246,32 +390,33 @@ export const reconcileHandlerFile = async (
   // whose names are EXACTLY `signature` (case-sensitive). This relocates an
   // orval import without the case-folding hazard of fuzzy name matching, which
   // could otherwise clobber an unrelated user import (e.g. `listPetsResponse`).
-  const plainExact = (signature: string[]): TS.ImportDeclaration | undefined =>
+  const plainExact = (signature: string[]): ImportDeclaration | undefined =>
     signature.length === 0
       ? undefined
       : importDeclarations.find(
           (declaration) =>
-            isPlainNamedImport(declaration) &&
+            isPlainNamedImport(source, declaration) &&
             setEquals(importedNames(declaration), signature),
         );
 
-  const removeImportEdit = (declaration: TS.ImportDeclaration) => {
-    let end = declaration.getEnd();
+  const removeImportEdit = (declaration: ImportDeclaration) => {
+    let end = declaration.end;
     if (source.slice(end, end + 2) === '\r\n') end += 2;
     else if (source[end] === '\n') end += 1;
-    edits.push({ start: declaration.getStart(sourceFile), end, text: '' });
+    edits.push({ start: declaration.start, end, text: '' });
   };
 
   // Whether `name` is already bound as a bare identifier by some import (a named
   // import's local name, or a default import). Namespace imports do NOT bind
   // their members bare. Used to avoid duplicate imports when augmenting.
   const isImportedBare = (name: string): boolean =>
-    importDeclarations.some((declaration) => {
-      const clause = declaration.importClause;
-      if (!clause) return false;
-      if (clause.name?.text === name) return true;
-      return importedNames(declaration).includes(name);
-    });
+    importDeclarations.some((declaration) =>
+      declaration.specifiers.some(
+        (specifier) =>
+          specifier.type !== 'ImportNamespaceSpecifier' &&
+          specifier.local.name === name,
+      ),
+    );
 
   /**
    * Reconcile an orval-owned import to `names`. We only rewrite/remove a PLAIN
@@ -282,7 +427,7 @@ export const reconcileHandlerFile = async (
    * a newly appended handler's context, or a newly-inserted validator's schema.
    */
   const reconcileImport = (
-    existing: TS.ImportDeclaration | undefined,
+    existing: ImportDeclaration | undefined,
     names: string[],
     module: string,
     isOrvalName: (name: string) => boolean,
@@ -306,7 +451,7 @@ export const reconcileHandlerFile = async (
     }
 
     const isOurs =
-      isPlainNamedImport(existing) &&
+      isPlainNamedImport(source, existing) &&
       importedNames(existing).every((name) => isOrvalName(name));
     if (!isOurs) {
       if (augment) {
@@ -330,7 +475,7 @@ export const reconcileHandlerFile = async (
     if (
       setEquals(importedNames(existing), names) &&
       moduleText(existing) === module &&
-      (existing.importClause?.isTypeOnly ?? false) === Boolean(typeOnly)
+      (existing.importKind === 'type') === Boolean(typeOnly)
     ) {
       return;
     }
@@ -348,8 +493,8 @@ export const reconcileHandlerFile = async (
     }
 
     edits.push({
-      start: existing.getStart(sourceFile),
-      end: existing.getEnd(),
+      start: existing.start,
+      end: existing.end,
       text: renderImport({ names, module, typeOnly }),
     });
   };
@@ -374,7 +519,6 @@ export const reconcileHandlerFile = async (
     );
     if (parsed) {
       reconcileValidators(
-        sourceFile,
         source,
         parsed.call,
         desiredHandler.validators,
@@ -398,9 +542,7 @@ export const reconcileHandlerFile = async (
   // Source with import declarations blanked out, so an import's own text (e.g.
   // `import { ListPetsResponse as Resp }`) is never counted as a usage.
   let bodySource = source;
-  for (const declaration of importDeclarations) {
-    const start = declaration.getStart(sourceFile);
-    const end = declaration.getEnd();
+  for (const { start, end } of importDeclarations) {
     bodySource =
       bodySource.slice(0, start) +
       ' '.repeat(end - start) +
@@ -476,33 +618,28 @@ export const reconcileHandlerFile = async (
   if (schemaRenames.size > 0) {
     const inSkippedRange = (pos: number): boolean =>
       importDeclarations.some(
-        (declaration) =>
-          pos >= declaration.getStart(sourceFile) && pos < declaration.getEnd(),
+        (declaration) => pos >= declaration.start && pos < declaration.end,
       ) ||
       removedValidatorRanges.some(([start, end]) => pos >= start && pos < end);
 
-    const renameReferences = (node: TS.Node): void => {
-      if (ts.isIdentifier(node)) {
-        const replacement = schemaRenames.get(node.text);
-        if (replacement) {
-          const parent = node.parent;
-          const isMemberName =
-            ts.isPropertyAccessExpression(parent) && parent.name === node;
-          const isDeclarationName =
-            (ts.isVariableDeclaration(parent) && parent.name === node) ||
-            (ts.isParameter(parent) && parent.name === node) ||
-            (ts.isBindingElement(parent) && parent.name === node) ||
-            (ts.isPropertyAssignment(parent) && parent.name === node) ||
-            (ts.isPropertySignature(parent) && parent.name === node);
-          const start = node.getStart(sourceFile);
-          if (!isMemberName && !isDeclarationName && !inSkippedRange(start)) {
-            edits.push({ start, end: node.getEnd(), text: replacement });
-          }
-        }
+    const renamed = new Set<number>();
+    for (const identifier of renamableIdentifiers(program)) {
+      const replacement = schemaRenames.get(identifier.name);
+      // A shorthand `{ X }` yields its key and value as two identifiers over
+      // the same range; rename that range once.
+      if (
+        replacement &&
+        !inSkippedRange(identifier.start) &&
+        !renamed.has(identifier.start)
+      ) {
+        renamed.add(identifier.start);
+        edits.push({
+          start: identifier.start,
+          end: identifier.end,
+          text: replacement,
+        });
       }
-      ts.forEachChild(node, renameReferences);
-    };
-    renameReferences(sourceFile);
+    }
   }
 
   if (pendingInsertions.length > 0) {
@@ -511,7 +648,7 @@ export const reconcileHandlerFile = async (
     if (lastImport) {
       // Guard the EOF case: when the last import has no trailing newline,
       // indexOf returns -1 and `+ 1` would prepend to the top of the file.
-      const newline = source.indexOf('\n', lastImport.getEnd());
+      const newline = source.indexOf('\n', lastImport.end);
       insertPos = newline === -1 ? source.length : newline + 1;
     }
     edits.push({
@@ -533,30 +670,25 @@ export const reconcileHandlerFile = async (
 };
 
 const reconcileValidators = (
-  sourceFile: TS.SourceFile,
   source: string,
-  call: TS.CallExpression,
+  call: CallExpression,
   desiredValidators: DesiredValidator[],
   edits: Edit[],
   zValidatorName: string,
   requiredSchemas: Set<string>,
   removedRanges: [number, number][],
 ) => {
-  const existing: { target: string; arg: TS.CallExpression }[] = [];
+  const existing: { target: string; arg: Node }[] = [];
 
   for (const arg of call.arguments) {
+    const validator = asCall(arg);
     if (
-      ts.isCallExpression(arg) &&
-      ts.isIdentifier(arg.expression) &&
-      arg.expression.text === zValidatorName
+      validator?.callee.type === 'Identifier' &&
+      validator.callee.name === zValidatorName
     ) {
-      const target = arg.arguments[0];
-      if (
-        arg.arguments.length > 0 &&
-        ts.isStringLiteralLike(target) &&
-        VALIDATOR_TARGETS.has(target.text)
-      ) {
-        existing.push({ target: target.text, arg });
+      const target = stringValue(validator.arguments[0]);
+      if (target !== undefined && VALIDATOR_TARGETS.has(target)) {
+        existing.push({ target, arg });
       }
     }
   }
@@ -571,7 +703,7 @@ const reconcileValidators = (
   // zod-import rewrite, so every reference is migrated, not just the arg here.)
   for (const item of existing) {
     if (!desiredByTarget.has(item.target as ValidatorTarget)) {
-      const edit = removeArgumentEdit(sourceFile, source, item.arg);
+      const edit = removeArgumentEdit(source, item.arg);
       edits.push(edit);
       removedRanges.push([edit.start, edit.end]);
     }
@@ -581,7 +713,7 @@ const reconcileValidators = (
     (validator) => !existingByTarget.has(validator.target),
   );
   if (missing.length > 0) {
-    const insertPos = validatorInsertPos(sourceFile, source, call);
+    const insertPos = validatorInsertPos(source, call);
     const text = missing
       .map((validator) => {
         requiredSchemas.add(validator.schema);
@@ -593,39 +725,29 @@ const reconcileValidators = (
 };
 
 /** Position to insert new validators: the line start of the trailing handler. */
-const validatorInsertPos = (
-  sourceFile: TS.SourceFile,
-  source: string,
-  call: TS.CallExpression,
-): number => {
+const validatorInsertPos = (source: string, call: CallExpression): number => {
   // The handler is the LAST function argument; earlier function args may be
   // inline middleware, so search from the end.
-  const handler = call.arguments.findLast(
-    (arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg),
-  );
+  const handler = findHandlerFunction(call);
   if (handler) {
     // Insert at the handler's line start when it's on its own line; otherwise
     // (single-line `createHandlers(async (c) => {})`) insert right before it so
     // the validator isn't pushed to the start of the statement.
-    const start = handler.getStart(sourceFile);
+    const start = handler.start;
     return startsLine(source, start) ? lineStart(source, start) : start;
   }
   // No trailing handler found — insert just before the closing paren.
-  return call.getEnd() - 1;
+  return call.end - 1;
 };
 
-const removeArgumentEdit = (
-  sourceFile: TS.SourceFile,
-  source: string,
-  arg: TS.Node,
-): Edit => {
-  const argStart = arg.getStart(sourceFile);
+const removeArgumentEdit = (source: string, arg: Node): Edit => {
+  const argStart = arg.start;
   const start = startsLine(source, argStart)
     ? lineStart(source, argStart)
     : argStart;
 
-  const commaIdx = source.indexOf(',', arg.getEnd());
-  let end = commaIdx === -1 ? arg.getEnd() : commaIdx + 1;
+  const commaIdx = source.indexOf(',', arg.end);
+  let end = commaIdx === -1 ? arg.end : commaIdx + 1;
   while (source[end] === ' ' || source[end] === '\t') end += 1;
   if (source.slice(end, end + 2) === '\r\n') end += 2;
   else if (source[end] === '\n') end += 1;
@@ -645,28 +767,25 @@ const applyEdits = (source: string, edits: Edit[]): string => {
  * Extracts the inner body of each handler's `async (c) => { ... }` block, keyed
  * by handler name. Used by the `full` strategy to splice user bodies back into a
  * freshly-regenerated wrapper. Returns `undefined` when the source can't be
- * parsed (or typescript is unavailable) — distinct from an empty map (parsed, no
- * handlers) — so callers can preserve the file instead of dropping its bodies.
+ * parsed — distinct from an empty map (parsed, no handlers) — so callers can
+ * preserve the file instead of dropping its bodies.
  */
 export const extractHandlerBodies = async (
   source: string,
 ): Promise<Map<string, string> | undefined> => {
-  if (!(await ensureTypeScript())) return undefined;
-
-  const sourceFile = parse(source);
-  if (!sourceFile) return undefined;
+  const program = parse(source);
+  if (!program) return undefined;
 
   const bodies = new Map<string, string>();
-  for (const { name, call } of findHandlers(sourceFile)) {
+  for (const { name, call } of findHandlers(program)) {
     // The handler is the LAST function argument (earlier ones may be inline
     // middleware), so its body — not a middleware's — is what `full` splices.
-    const handler = call.arguments.findLast(
-      (arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg),
-    );
-    if (handler?.body && ts.isBlock(handler.body)) {
-      const bodyStart = handler.body.getStart(sourceFile) + 1;
-      const bodyEnd = handler.body.getEnd() - 1;
-      bodies.set(name, source.slice(bodyStart, bodyEnd));
+    const handler = findHandlerFunction(call);
+    if (handler?.body?.type === 'BlockStatement') {
+      bodies.set(
+        name,
+        source.slice(handler.body.start + 1, handler.body.end - 1),
+      );
     }
   }
 
