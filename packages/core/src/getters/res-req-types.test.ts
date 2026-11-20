@@ -1,9 +1,9 @@
 import { runInNewContext } from 'node:vm';
 
-import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec, type TestOverride } from '../test-utils';
+import { toScript } from '../test-utils/typescript';
 import type {
   ContextSpec,
   GetterResponse,
@@ -787,9 +787,8 @@ bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
       const variable = source.includes('new URLSearchParams')
         ? 'formUrlEncoded'
         : 'formData';
-      const { outputText } = ts.transpileModule(
+      const outputText = toScript(
         `(${bodyName}) => {\n${source}\nreturn ${variable};\n}`,
-        { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
       );
       // Share the host `Date` so `instanceof Date` holds inside the sandbox.
       const build = runInNewContext(outputText, {

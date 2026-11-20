@@ -13,10 +13,13 @@ import type {
 } from '@orval/core';
 import { Effect, Schema as S } from 'effect';
 import { Schema as S3 } from 'effect3';
-import ts from 'typescript';
 
 import { generateEffect } from '.';
 import { createTestContextSpec } from '../../core/src/test-utils';
+import {
+  toScript,
+  typeCheckDiagnostics,
+} from '../../core/src/test-utils/typescript';
 import { generateEffectComponents } from './reusable-schemas';
 
 export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
@@ -39,21 +42,18 @@ export interface Scenario {
 }
 
 // Generated TypeScript as a script `runInNewContext` can run: types removed,
-// exports dropped. Throws on a syntax error, which TypeScript would repair.
+// exports and imports dropped. Throws on a syntax error instead of running
+// repaired code.
 const scriptOf = (code: string): string => {
-  const { outputText, diagnostics = [] } = ts.transpileModule(code, {
-    reportDiagnostics: true,
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.Preserve,
-    },
-  });
-  if (diagnostics.length > 0) {
-    throw new Error(`Generated code has syntax errors:\n${code}`);
+  let script: string;
+  try {
+    script = toScript(code);
+  } catch (error) {
+    throw new Error(`Generated code has syntax errors:\n${code}`, {
+      cause: error,
+    });
   }
-  return outputText
-    .replaceAll(/^export /gm, '')
-    .replaceAll(/^import .*$/gm, '');
+  return script.replaceAll(/^import .*$/gm, '');
 };
 
 const contextOf = (scenario: Scenario, enabled: boolean) => {
@@ -165,11 +165,8 @@ export const evaluateV3 = (code: string, name: string): S3.Schema<unknown> => {
   return value;
 };
 
-// A file beside the sources, so `effect` resolves. TypeScript names files with
-// forward slashes.
-const PROBE_FILE = fileURLToPath(
-  new URL('probe.generated.ts', import.meta.url),
-).replaceAll('\\', '/');
+// Type-check beside the sources, so `effect` resolves.
+const SOURCE_DIR = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * Type errors of generated component code, which declares a type and an
@@ -190,29 +187,21 @@ export const declaredTypeErrors = (components: string): string[] => {
       `export const ${type}Accepts: Same<S.Codec.Encoded<typeof ${type}>, ${encoded}> = true;`,
     ]),
   ].join('\n');
-  const options: ts.CompilerOptions = {
-    strict: true,
-    noEmit: true,
-    skipLibCheck: true,
-    target: ts.ScriptTarget.ES2022,
-    module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.Bundler,
-    types: [],
-  };
-  const base = ts.createCompilerHost(options);
-  const host: ts.CompilerHost = {
-    ...base,
-    getSourceFile: (name, ...rest) =>
-      name === PROBE_FILE
-        ? ts.createSourceFile(name, source, ts.ScriptTarget.ES2022)
-        : base.getSourceFile(name, ...rest),
-    readFile: (name) => (name === PROBE_FILE ? source : base.readFile(name)),
-    fileExists: (name) => name === PROBE_FILE || base.fileExists(name),
-  };
-  const program = ts.createProgram([PROBE_FILE], options, host);
-  return ts.getPreEmitDiagnostics(program).map(({ messageText, start }) => {
-    const text = ts.flattenDiagnosticMessageText(messageText, '\n');
-    const line = source.slice(0, start ?? 0).split('\n').length;
-    return `${text} (line ${line}: ${source.split('\n')[line - 1]})`;
+  const diagnostics = typeCheckDiagnostics(
+    { 'probe.generated.ts': source },
+    {
+      tempParent: SOURCE_DIR,
+      compilerOptions: {
+        strict: true,
+        skipLibCheck: true,
+        target: 'ES2022',
+        module: 'ESNext',
+        moduleResolution: 'Bundler',
+        types: [],
+      },
+    },
+  );
+  return diagnostics.map(({ message, line = 1 }) => {
+    return `${message} (line ${line}: ${source.split('\n')[line - 1]})`;
   });
 };

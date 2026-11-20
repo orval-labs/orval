@@ -1,7 +1,7 @@
-import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec, type TestOverride } from '../test-utils';
+import { parseTypeScript } from '../test-utils/typescript';
 import type {
   ContextSpec,
   OpenApiPrimitiveSchemaType,
@@ -1793,16 +1793,14 @@ describe('combineSchemas — GHSA-6h9g-hcv4-66p6: type-literal injection via sch
   // the escaped payload legitimately still contains the text `export const`
   // *inside* a string literal, where it is inert.
   const expectSingleStatement = (value: string) => {
-    const source = ts.createSourceFile(
-      'evil.ts',
-      `export type Evil = ${value};`,
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const { program, errors } = parseTypeScript(`export type Evil = ${value};`);
+    expect(errors).toEqual([]);
+    expect(program.body).toHaveLength(1);
+    const [statement] = program.body;
     expect(
-      source.statements.map((statement) => statement.getText(source)),
-    ).toHaveLength(1);
-    expect(source.statements[0].kind).toBe(ts.SyntaxKind.TypeAliasDeclaration);
+      statement.type === 'ExportNamedDeclaration' &&
+        statement.declaration?.type,
+    ).toBe('TSTypeAliasDeclaration');
   };
 
   const contextWithEvilBase = createCombineContext({

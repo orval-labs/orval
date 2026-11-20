@@ -7,7 +7,6 @@ import type {
   OpenApiSchemaObject,
   OverrideOutputContentType,
 } from '@orval/core';
-import ts from 'typescript';
 import {
   afterEach,
   beforeEach,
@@ -17,6 +16,7 @@ import {
   vi,
 } from 'vite-plus/test';
 
+import { typeCheck } from '../../core/src/test-utils/typescript';
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils/options';
 
@@ -182,18 +182,20 @@ describe.each([false, true])(
     }
 
     function diagnostics() {
-      const program = ts.createProgram([path.join(workspace, 'consumer.ts')], {
-        strict: true,
-        noEmit: true,
-        skipLibCheck: true,
-        types: [],
-        module: ts.ModuleKind.ESNext,
-        moduleResolution: ts.ModuleResolutionKind.Bundler,
-        target: ts.ScriptTarget.ES2022,
-      });
-      return ts
-        .getPreEmitDiagnostics(program)
-        .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+      return typeCheck(
+        { 'consumer.ts': undefined },
+        {
+          cwd: workspace,
+          compilerOptions: {
+            strict: true,
+            skipLibCheck: true,
+            types: [],
+            module: 'ESNext',
+            moduleResolution: 'Bundler',
+            target: 'ES2022',
+          },
+        },
+      );
     }
 
     it('omits response metadata and status narrowing when disabled', async () => {
@@ -395,19 +397,19 @@ it('generates a compilable Fetch object response for a nested schema alias (#446
     await generateSpec(workspace, options);
 
     const entry = path.join(workspace, 'client.ts');
-    const program = ts.createProgram([entry], {
-      strict: true,
-      noEmit: true,
-      types: [],
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-    });
     expect(
-      ts
-        .getPreEmitDiagnostics(program)
-        .map((diagnostic) =>
-          ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-        ),
+      typeCheck(
+        { 'client.ts': undefined },
+        {
+          cwd: workspace,
+          compilerOptions: {
+            strict: true,
+            types: [],
+            module: 'ESNext',
+            moduleResolution: 'Bundler',
+          },
+        },
+      ),
     ).toEqual([]);
     const client = await readFile(entry, 'utf8');
     expect(client).toMatch(/getItemsResponse400 = \{\s*data: Error\b/);

@@ -1238,6 +1238,12 @@ TypeDoc is an optional peer dependency, so install it alongside the markdown plu
 npm install typedoc typedoc-plugin-markdown -D
 ```
 
+<Callout type="warn">
+  TypeDoc does not support TypeScript 7 yet, so this option requires
+  TypeScript 6. TypeDoc plans to add support with TypeScript 7.1; see
+  [TypeStrong/typedoc#3098](https://github.com/TypeStrong/typedoc/issues/3098).
+</Callout>
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
