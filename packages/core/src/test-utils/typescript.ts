@@ -50,7 +50,7 @@ const exportName = (name: ModuleExportName): string =>
  */
 export const toCommonJsScript = (source: string): string => {
   const javascript = stripTypeScriptTypes(source, { mode: 'transform' });
-  const { program, errors } = parseSync('module.js', javascript, {
+  const { program, comments, errors } = parseSync('module.js', javascript, {
     lang: 'js',
     sourceType: 'module',
   });
@@ -80,8 +80,23 @@ export const toCommonJsScript = (source: string): string => {
         }
         // `import 'x'` runs the module; an import left empty by removing its
         // type-only names is dropped, as the TypeScript compiler drops it.
-        const isSideEffectImport = !javascript
-          .slice(statement.start, statement.source.start)
+        // Only a `{` outside comments opens a named-import clause.
+        const clause = javascript.slice(
+          statement.start,
+          statement.source.start,
+        );
+        const isSideEffectImport = !comments
+          .filter(
+            ({ start, end }) =>
+              start >= statement.start && end <= statement.source.start,
+          )
+          .reduce(
+            (text, { start, end }) =>
+              text.slice(0, start - statement.start) +
+              ' '.repeat(end - start) +
+              text.slice(end - statement.start),
+            clause,
+          )
           .includes('{');
         if (statement.specifiers.length === 0 && isSideEffectImport) {
           lines.push(`${required};`);

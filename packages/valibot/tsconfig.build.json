@@ -4,7 +4,8 @@
     "__tests__",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "**/test-helpers.ts"
+    "**/test-helpers.ts",
+    "**/script-helpers.ts"
   ],
   "include": ["src/**/*.ts"],
   "compilerOptions": {
