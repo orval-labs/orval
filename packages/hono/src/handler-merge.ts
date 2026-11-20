@@ -81,13 +81,26 @@ interface Edit {
   text: string;
 }
 
-const parse = (source: string): Program | undefined => {
-  const { program, errors } = parseSync('handler.ts', source, {
+interface Parsed {
+  program: Program;
+  /** Text with every comment blanked out, at the same offsets. */
+  code: string;
+}
+
+const parse = (source: string): Parsed | undefined => {
+  const { program, comments, errors } = parseSync('handler.ts', source, {
     lang: 'ts',
     sourceType: 'module',
   });
   if (errors.length > 0) return undefined;
-  return program;
+  let code = source;
+  for (const { start, end } of comments) {
+    code =
+      code.slice(0, start) +
+      source.slice(start, end).replaceAll(/[^\n]/g, ' ') +
+      code.slice(end);
+  }
+  return { program, code };
 };
 
 /** `a?.b()` is wrapped in a `ChainExpression`; look through it. */
@@ -185,10 +198,13 @@ interface IdentifierNode {
   name: string;
   start: number;
   end: number;
+  /** The value of a shorthand property, whose name is also the key. */
+  shorthand: boolean;
 }
 
 const renamableIdentifiers = (program: Program): IdentifierNode[] => {
   const excluded = new Set<Node>();
+  const shorthandValues = new Set<Node>();
   const identifiers: (AnyNode & IdentifierNode)[] = [];
 
   const visit = (node: AnyNode): void => {
@@ -210,12 +226,16 @@ const renamableIdentifiers = (program: Program): IdentifierNode[] => {
         break;
       }
       case 'Property': {
-        if (
-          node.kind === 'init' &&
-          !node.method &&
-          !node.shorthand &&
-          !node.computed
-        ) {
+        if (node.shorthand) {
+          // `{ X }` (or `{ X = d }` in a pattern) names the key and the value
+          // with one token; the key is renamed with the value, by expanding
+          // the shorthand.
+          excluded.add(node.key as Node);
+          const value = node.value as AnyNode;
+          shorthandValues.add(
+            value.type === 'AssignmentPattern' ? (value.left as Node) : value,
+          );
+        } else if (node.kind === 'init' && !node.method && !node.computed) {
           excluded.add(node.key as Node);
         }
         break;
@@ -233,7 +253,14 @@ const renamableIdentifiers = (program: Program): IdentifierNode[] => {
   };
 
   visit(program as AnyNode);
-  return identifiers.filter((identifier) => !excluded.has(identifier));
+  return identifiers
+    .filter((identifier) => !excluded.has(identifier))
+    .map(({ name, start, end }, index, all) => ({
+      name,
+      start,
+      end,
+      shorthand: shorthandValues.has(all[index]),
+    }));
 };
 
 interface ParsedHandler {
@@ -292,7 +319,7 @@ const moduleText = (declaration: ImportDeclaration): string =>
  * left untouched.
  */
 const isPlainNamedImport = (
-  source: string,
+  code: string,
   declaration: ImportDeclaration,
 ): boolean => {
   const specifiers = declaration.specifiers;
@@ -300,10 +327,11 @@ const isPlainNamedImport = (
     return false;
   }
   // `import {} from 'x'` and the side-effect `import 'x'` both have no
-  // specifiers; only the former has a named-import clause.
+  // specifiers; only the former has a named-import clause. `code` has its
+  // comments blanked, so a `{` inside a comment does not count.
   if (
     specifiers.length === 0 &&
-    !source.slice(declaration.start, declaration.source.start).includes('{')
+    !code.slice(declaration.start, declaration.source.start).includes('{')
   ) {
     return false;
   }
@@ -366,8 +394,9 @@ export const reconcileHandlerFile = async (
   source: string,
   desired: { imports: DesiredImports; handlers: DesiredHandler[] },
 ): Promise<string> => {
-  const program = parse(source);
-  if (!program) return source;
+  const parsed = parse(source);
+  if (!parsed) return source;
+  const { program, code } = parsed;
 
   const edits: Edit[] = [];
   const importDeclarations = program.body.filter(
@@ -395,7 +424,7 @@ export const reconcileHandlerFile = async (
       ? undefined
       : importDeclarations.find(
           (declaration) =>
-            isPlainNamedImport(source, declaration) &&
+            isPlainNamedImport(code, declaration) &&
             setEquals(importedNames(declaration), signature),
         );
 
@@ -451,7 +480,7 @@ export const reconcileHandlerFile = async (
     }
 
     const isOurs =
-      isPlainNamedImport(source, existing) &&
+      isPlainNamedImport(code, existing) &&
       importedNames(existing).every((name) => isOrvalName(name));
     if (!isOurs) {
       if (augment) {
@@ -636,7 +665,10 @@ export const reconcileHandlerFile = async (
         edits.push({
           start: identifier.start,
           end: identifier.end,
-          text: replacement,
+          // Keep a shorthand property's key: `{ old }` → `{ old: New }`.
+          text: identifier.shorthand
+            ? `${identifier.name}: ${replacement}`
+            : replacement,
         });
       }
     }
@@ -773,7 +805,7 @@ const applyEdits = (source: string, edits: Edit[]): string => {
 export const extractHandlerBodies = async (
   source: string,
 ): Promise<Map<string, string> | undefined> => {
-  const program = parse(source);
+  const program = parse(source)?.program;
   if (!program) return undefined;
 
   const bodies = new Map<string, string>();

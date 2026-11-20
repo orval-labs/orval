@@ -1116,7 +1116,7 @@ export const getStatsHandlers = factory.createHandlers(
     );
   });
 
-  it('renames a shorthand reference once and leaves member, key, and declaration names alone', async () => {
+  it('renames a shorthand reference but keeps its key, and leaves member, key, and declaration names alone', async () => {
     const source = `import { createFactory } from 'hono/factory';
 import { zValidator } from '../endpoints.validator';
 import { GetStatsContext } from '../endpoints.context';
@@ -1152,7 +1152,10 @@ function local(getStatsResponse: unknown) {
       ],
     });
 
-    expect(result).toContain('const schemas = { GetStatsResponse };');
+    // The key stays, so `schemas.getStatsResponse` still finds the schema.
+    expect(result).toContain(
+      'const schemas = { getStatsResponse: GetStatsResponse };',
+    );
     expect(result).toContain('const keyed = { getStatsResponse: 1 };');
     expect(result).toContain('const member = schemas.getStatsResponse;');
     expect(result).toContain('function local(getStatsResponse: unknown) {');
@@ -1189,6 +1192,38 @@ export const getStatsHandlers = factory.createHandlers(
     expect(result).toContain(
       "import { GetStatsResponse } from '../endpoints.zod';",
     );
+  });
+
+  it('keeps a side-effect import whose comment contains a brace', async () => {
+    // With no typed handler, no context name is needed; were this import read
+    // as an empty named import, it would count as orval's and be removed.
+    const source = `import { createFactory } from 'hono/factory';
+import { zValidator } from '../endpoints.validator';
+import /* { initialization } */ '../endpoints.context';
+import { GetStatsResponse } from '../endpoints.zod';
+
+const factory = createFactory();
+
+export const getStatsHandlers = factory.createHandlers(
+  zValidator('response', GetStatsResponse),
+  async (c) => c.json({}),
+);
+`;
+    const result = await reconcileHandlerFile(source, {
+      imports: {
+        ...statsImports,
+        zod: { names: ['GetStatsResponse'], module: '../endpoints.zod' },
+      },
+      handlers: [
+        {
+          handlerName: 'getStatsHandlers',
+          validators: [{ target: 'response', schema: 'GetStatsResponse' }],
+          stub: '',
+        },
+      ],
+    });
+
+    expect(result).toBe(source);
   });
 
   it('recognizes a validator target written as a template literal', async () => {
