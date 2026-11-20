@@ -1116,7 +1116,7 @@ export const getStatsHandlers = factory.createHandlers(
     );
   });
 
-  it('renames a shorthand reference but keeps its key, and leaves member, key, and declaration names alone', async () => {
+  it('renames references to the schema only, keeping keys, member names, and shadowed bindings', async () => {
     const source = `import { createFactory } from 'hono/factory';
 import { zValidator } from '../endpoints.validator';
 import { GetStatsContext } from '../endpoints.context';
@@ -1130,12 +1130,45 @@ export const getStatsHandlers = factory.createHandlers(
     const schemas = { getStatsResponse };
     const keyed = { getStatsResponse: 1 };
     const member = schemas.getStatsResponse;
-    return c.json({ schemas, keyed, member });
+    const helpers = {
+      getStatsResponse() {
+        return 1;
+      },
+      get getStatsResponseValue() {
+        return getStatsResponse;
+      },
+    };
+    return c.json({ schemas, keyed, member, helpers });
   },
 );
 
+class Stats {
+  getStatsResponse() {
+    return getStatsResponse;
+  }
+}
+
 function local(getStatsResponse: unknown) {
   return getStatsResponse;
+}
+
+function blockScoped() {
+  {
+    const getStatsResponse = 1;
+    use(getStatsResponse);
+  }
+  return getStatsResponse;
+}
+
+function hoisted() {
+  use(getStatsResponse);
+  if (Math.random()) {
+    var getStatsResponse = 1;
+  }
+}
+
+function typed(value: z.infer<typeof getStatsResponse>) {
+  return value;
 }
 `;
     const result = await reconcileHandlerFile(source, {
@@ -1158,7 +1191,25 @@ function local(getStatsResponse: unknown) {
     );
     expect(result).toContain('const keyed = { getStatsResponse: 1 };');
     expect(result).toContain('const member = schemas.getStatsResponse;');
-    expect(result).toContain('function local(getStatsResponse: unknown) {');
+    // Method, accessor, and class member names are keys, not references.
+    expect(result).toContain('    getStatsResponse() {\n        return 1;');
+    expect(result).toContain(
+      '    get getStatsResponseValue() {\n        return GetStatsResponse;',
+    );
+    expect(result).toContain(
+      '  getStatsResponse() {\n    return GetStatsResponse;',
+    );
+    // A local binding of the same name shadows the import.
+    expect(result).toContain(
+      'function local(getStatsResponse: unknown) {\n  return getStatsResponse;',
+    );
+    expect(result).toContain(
+      '    const getStatsResponse = 1;\n    use(getStatsResponse);\n  }\n  return GetStatsResponse;',
+    );
+    expect(result).toContain('function hoisted() {\n  use(getStatsResponse);');
+    expect(result).toContain(
+      'function typed(value: z.infer<typeof GetStatsResponse>) {',
+    );
   });
 
   it('keeps a side-effect import of an orval module and adds the named import', async () => {

@@ -188,12 +188,6 @@ const collectBindingNames = (pattern: unknown, into: Set<Node>): void => {
   }
 };
 
-/**
- * Identifiers that refer to a binding by name, for the schema rename. Skips
- * names that only label something: `obj.name` members, declared names
- * (variables, parameters, destructured bindings, `catch` parameters), keys in
- * object literals, and property names in type literals or interfaces.
- */
 interface IdentifierNode {
   name: string;
   start: number;
@@ -202,15 +196,140 @@ interface IdentifierNode {
   shorthand: boolean;
 }
 
-const renamableIdentifiers = (program: Program): IdentifierNode[] => {
+const FUNCTION_TYPES = new Set([
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+]);
+
+/** Nodes whose non-computed `key` is a property name, not a reference. */
+const KEYED_MEMBER_TYPES = new Set([
+  'Property',
+  'MethodDefinition',
+  'PropertyDefinition',
+  'AccessorProperty',
+  'TSAbstractMethodDefinition',
+  'TSAbstractPropertyDefinition',
+  'TSAbstractAccessorProperty',
+  'TSPropertySignature',
+  'TSMethodSignature',
+]);
+
+const namesOf = (pattern: unknown): string[] => {
+  const nodes = new Set<Node>();
+  collectBindingNames(pattern, nodes);
+  return [...nodes].map((node) => (node as AnyNode & { name: string }).name);
+};
+
+/** `var` names declared in a function body, outside nested functions. */
+const hoistedVarNames = (node: AnyNode, into: string[]): void => {
+  for (const child of childNodes(node)) {
+    if (FUNCTION_TYPES.has(child.type)) continue;
+    if (child.type === 'VariableDeclaration' && child.kind === 'var') {
+      for (const declarator of child.declarations as AnyNode[]) {
+        into.push(...namesOf(declarator.id));
+      }
+    }
+    hoistedVarNames(child, into);
+  }
+};
+
+/** Block-scoped names declared directly in a list of statements. */
+const lexicalNames = (statements: AnyNode[], into: string[]): void => {
+  for (const statement of statements) {
+    if (statement.type === 'VariableDeclaration' && statement.kind !== 'var') {
+      for (const declarator of statement.declarations as AnyNode[]) {
+        into.push(...namesOf(declarator.id));
+      }
+    } else if (
+      statement.type === 'FunctionDeclaration' ||
+      statement.type === 'ClassDeclaration' ||
+      statement.type === 'TSEnumDeclaration'
+    ) {
+      into.push(...namesOf(statement.id));
+    }
+  }
+};
+
+/**
+ * The names a node declares for its own scope, or `undefined` when the node
+ * opens no scope. The module scope is not tracked: it holds the imports being
+ * renamed.
+ */
+const scopeNames = (node: AnyNode): string[] | undefined => {
+  const names: string[] = [];
+  if (FUNCTION_TYPES.has(node.type)) {
+    for (const param of node.params as unknown[]) names.push(...namesOf(param));
+    if (node.type === 'FunctionExpression') names.push(...namesOf(node.id));
+    if (node.body) hoistedVarNames(node.body as AnyNode, names);
+    return names;
+  }
+  switch (node.type) {
+    case 'BlockStatement':
+    case 'StaticBlock': {
+      lexicalNames(node.body as AnyNode[], names);
+      return names;
+    }
+    case 'SwitchStatement': {
+      for (const switchCase of node.cases as AnyNode[]) {
+        lexicalNames(switchCase.consequent as AnyNode[], names);
+      }
+      return names;
+    }
+    case 'ForStatement': {
+      if (node.init) lexicalNames([node.init as AnyNode], names);
+      return names;
+    }
+    case 'ForInStatement':
+    case 'ForOfStatement': {
+      lexicalNames([node.left as AnyNode], names);
+      return names;
+    }
+    case 'CatchClause': {
+      names.push(...namesOf(node.param));
+      return names;
+    }
+    case 'ClassExpression': {
+      names.push(...namesOf(node.id));
+      return names;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Identifiers that refer to a module-level binding by name, for the schema
+ * rename. Skips names that only label something — `obj.name` members, the
+ * non-computed keys of properties, methods, accessors and type members, and
+ * declared names — and references a local declaration of the same name
+ * shadows.
+ */
+const renamableIdentifiers = (
+  program: Program,
+  names: ReadonlySet<string>,
+): IdentifierNode[] => {
   const excluded = new Set<Node>();
   const shorthandValues = new Set<Node>();
-  const identifiers: (AnyNode & IdentifierNode)[] = [];
+  const identifiers: IdentifierNode[] = [];
+  const scopes: ReadonlySet<string>[] = [];
 
   const visit = (node: AnyNode): void => {
     switch (node.type) {
       case 'Identifier': {
-        identifiers.push(node as AnyNode & IdentifierNode);
+        const { name, start, end } = node as AnyNode & IdentifierNode;
+        if (
+          names.has(name) &&
+          !excluded.has(node) &&
+          !scopes.some((scope) => scope.has(name))
+        ) {
+          identifiers.push({
+            name,
+            start,
+            end,
+            shorthand: shorthandValues.has(node),
+          });
+        }
+        // A parameter's type annotation hangs off its identifier.
         break;
       }
       case 'MemberExpression': {
@@ -225,42 +344,34 @@ const renamableIdentifiers = (program: Program): IdentifierNode[] => {
         collectBindingNames(node.param, excluded);
         break;
       }
-      case 'Property': {
-        if (node.shorthand) {
-          // `{ X }` (or `{ X = d }` in a pattern) names the key and the value
-          // with one token; the key is renamed with the value, by expanding
-          // the shorthand.
-          excluded.add(node.key as Node);
-          const value = node.value as AnyNode;
-          shorthandValues.add(
-            value.type === 'AssignmentPattern' ? (value.left as Node) : value,
-          );
-        } else if (node.kind === 'init' && !node.method && !node.computed) {
-          excluded.add(node.key as Node);
-        }
-        break;
-      }
-      case 'TSPropertySignature': {
-        if (!node.computed) excluded.add(node.key as Node);
-        break;
+    }
+    if (KEYED_MEMBER_TYPES.has(node.type)) {
+      if (node.shorthand) {
+        // `{ X }` (or `{ X = d }` in a pattern) names the key and the value
+        // with one token; the key is renamed with the value, by expanding the
+        // shorthand.
+        excluded.add(node.key as Node);
+        const value = node.value as AnyNode;
+        shorthandValues.add(
+          value.type === 'AssignmentPattern' ? (value.left as Node) : value,
+        );
+      } else if (!node.computed) {
+        excluded.add(node.key as Node);
       }
     }
     // Functions and function-like type signatures declare their parameters.
     if (Array.isArray(node.params)) {
       for (const param of node.params) collectBindingNames(param, excluded);
     }
+
+    const declared = scopeNames(node)?.filter((name) => names.has(name));
+    if (declared?.length) scopes.push(new Set(declared));
     for (const child of childNodes(node)) visit(child);
+    if (declared?.length) scopes.pop();
   };
 
   visit(program as AnyNode);
-  return identifiers
-    .filter((identifier) => !excluded.has(identifier))
-    .map(({ name, start, end }, index, all) => ({
-      name,
-      start,
-      end,
-      shorthand: shorthandValues.has(all[index]),
-    }));
+  return identifiers;
 };
 
 interface ParsedHandler {
@@ -652,7 +763,10 @@ export const reconcileHandlerFile = async (
       removedValidatorRanges.some(([start, end]) => pos >= start && pos < end);
 
     const renamed = new Set<number>();
-    for (const identifier of renamableIdentifiers(program)) {
+    for (const identifier of renamableIdentifiers(
+      program,
+      new Set(schemaRenames.keys()),
+    )) {
       const replacement = schemaRenames.get(identifier.name);
       // A shorthand `{ X }` yields its key and value as two identifiers over
       // the same range; rename that range once.
