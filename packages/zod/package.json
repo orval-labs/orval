@@ -24,9 +24,10 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
+    "acorn": "^8.15.0",
+    "eslint-scope": "^9.1.2",
     "globals": "^17.0.0",
-    "jsesc": "^3.0.0",
-    "typescript": "catalog:"
+    "jsesc": "^3.0.0"
   },
   "devDependencies": {
     "@types/jsesc": "^3.0.3",

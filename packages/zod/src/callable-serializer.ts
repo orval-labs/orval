@@ -1,36 +1,69 @@
 import type { BoundRefinement } from '@orval/core';
+import { type Node, Parser, type Program } from 'acorn';
+import { analyze } from 'eslint-scope';
 import globals from 'globals';
-import * as ts from 'typescript';
 
 /**
- * Globals that exist in a generated JavaScript module. Because parsing is done
- * without a TypeScript lib, these are treated as known external names.
- * Project-specific globals must instead be supplied as explicit bindings.
+ * Globals that exist in a generated JavaScript module. These are treated as
+ * known external names; project-specific globals must instead be supplied as
+ * explicit bindings.
  */
 const JAVASCRIPT_GLOBALS = new Set(Object.keys(globals.builtin));
 
 /**
- * An identifier is a reference unless it occupies a purely syntactic position
- * such as the name in `object.property`, `{ property: value }`, or a label.
- * Shorthand properties (`{ property }`) are references and handled separately.
+ * `fn.toString()` is always JavaScript (whatever transpiled the config, the
+ * engine only sees JS), and the function may be sloppy-mode code.
  */
-const isReferenceIdentifier = (node: ts.Identifier): boolean => {
-  const parent = node.parent;
-  if (
-    (ts.isPropertyAccessExpression(parent) && parent.name === node) ||
-    (ts.isPropertyAssignment(parent) && parent.name === node) ||
-    (ts.isBindingElement(parent) && parent.propertyName === node) ||
-    (ts.isMethodDeclaration(parent) && parent.name === node) ||
-    (ts.isPropertyDeclaration(parent) && parent.name === node) ||
-    (ts.isGetAccessorDeclaration(parent) && parent.name === node) ||
-    (ts.isSetAccessorDeclaration(parent) && parent.name === node) ||
-    (ts.isLabeledStatement(parent) && parent.label === node) ||
-    ((ts.isBreakStatement(parent) || ts.isContinueStatement(parent)) &&
-      parent.label === node)
-  ) {
+const parse = (text: string): Program =>
+  Parser.parse(text, {
+    ecmaVersion: 'latest',
+    sourceType: 'script',
+    // eslint-scope reads `range` on the nodes it analyzes.
+    ranges: true,
+  });
+
+/**
+ * A method (`name() {}`) or accessor (`get name() {}`) stringifies without the
+ * `function` keyword, so it is not a valid expression on its own. Recognize it
+ * as an object member to report the unsupported callable kind rather than a
+ * syntax error.
+ */
+const isObjectMember = (source: string): boolean => {
+  try {
+    parse(`({${source}});`);
+    return true;
+  } catch {
     return false;
   }
-  return true;
+};
+
+/**
+ * Reject constructs whose meaning depends on how the callable is invoked, so
+ * they cannot be reproduced by re-emitting the source in another module.
+ */
+const assertNoReceiverReferences = (node: unknown): void => {
+  if (Array.isArray(node)) {
+    for (const child of node) assertNoReceiverReferences(child);
+    return;
+  }
+  if (typeof node !== 'object' || node === null || !('type' in node)) return;
+
+  const { type } = node as Node;
+  if (type === 'ThisExpression' || type === 'Super') {
+    throw new TypeError('Cannot serialize callable containing this or super');
+  }
+  if (
+    type === 'MetaProperty' &&
+    (node as Node & { meta: { name: string } }).meta.name === 'new'
+  ) {
+    throw new TypeError('Cannot serialize callable containing new.target');
+  }
+
+  for (const [key, child] of Object.entries(node)) {
+    if (key !== 'range' && typeof child === 'object') {
+      assertNoReceiverReferences(child);
+    }
+  }
 };
 
 /**
@@ -39,79 +72,55 @@ const isReferenceIdentifier = (node: ts.Identifier): boolean => {
 const freeIdentifierCache = new Map<string, string[]>();
 
 /**
- * Find true free identifiers using the TS binder's lexical resolution rather
- * than regular expressions. This handles shadowing, destructuring, nested
- * functions, `catch`, property shorthand, and computed property names.
+ * Find true free identifiers using lexical scope analysis rather than regular
+ * expressions. This handles shadowing, destructuring, nested functions,
+ * `catch`, property shorthand, and computed property names.
  */
 const findFreeIdentifiers = (source: string): string[] => {
   const cached = freeIdentifierCache.get(source);
   if (cached) return cached;
 
-  const fileName = '/__orval_serialized_callable__.ts';
-  const text = `(${source});`;
-  const options: ts.CompilerOptions = {
-    noLib: true,
-    target: ts.ScriptTarget.ES2022,
-  };
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    text,
-    ts.ScriptTarget.ES2022,
-    true,
-  );
-  const expression = (sourceFile.statements[0] as ts.ExpressionStatement)
-    .expression;
-  const callableNode = ts.isParenthesizedExpression(expression)
-    ? expression.expression
-    : expression;
+  let program: Program;
+  try {
+    program = parse(`(${source});`);
+  } catch {
+    if (isObjectMember(source)) {
+      throw new TypeError(
+        'Cannot serialize callable: expected an arrow function or function expression',
+      );
+    }
+    throw new SyntaxError('Cannot serialize callable: invalid function source');
+  }
+
+  const [statement] = program.body;
+  const callableNode =
+    program.body.length === 1 && statement.type === 'ExpressionStatement'
+      ? statement.expression
+      : undefined;
 
   if (
-    !ts.isArrowFunction(callableNode) &&
-    !ts.isFunctionExpression(callableNode)
+    callableNode?.type !== 'ArrowFunctionExpression' &&
+    callableNode?.type !== 'FunctionExpression'
   ) {
     throw new TypeError(
       'Cannot serialize callable: expected an arrow function or function expression',
     );
   }
 
-  // No disk reads or TypeScript standard library are needed to analyze the
-  // one in-memory function expression. No user code is executed here.
-  const host = ts.createCompilerHost(options);
-  host.getSourceFile = (name) => (name === fileName ? sourceFile : undefined);
-  host.fileExists = (name) => name === fileName;
-  host.readFile = (name) => (name === fileName ? text : undefined);
-  const program = ts.createProgram([fileName], options, host);
-  if (program.getSyntacticDiagnostics(sourceFile).length > 0) {
-    throw new SyntaxError('Cannot serialize callable: invalid function source');
+  assertNoReceiverReferences(callableNode);
+
+  // References that no scope inside the program resolves reach the global
+  // scope unresolved; those are the callable's free identifiers. Like the
+  // engine, the analysis binds `arguments` inside non-arrow functions only.
+  const scopeManager = analyze(
+    program as unknown as Parameters<typeof analyze>[0],
+    { ecmaVersion: 2022, sourceType: 'script' },
+  );
+  const free = new Set<string>();
+  for (const reference of scopeManager.globalScope?.through ?? []) {
+    free.add(reference.identifier.name);
   }
 
-  const checker = program.getTypeChecker();
-  const free = new Set<string>();
-  const visit = (node: ts.Node): void => {
-    if (
-      node.kind === ts.SyntaxKind.ThisKeyword ||
-      node.kind === ts.SyntaxKind.SuperKeyword
-    ) {
-      throw new TypeError('Cannot serialize callable containing this or super');
-    }
-    if (
-      ts.isMetaProperty(node) &&
-      node.keywordToken === ts.SyntaxKind.NewKeyword
-    ) {
-      throw new TypeError('Cannot serialize callable containing new.target');
-    }
-    if (ts.isIdentifier(node) && isReferenceIdentifier(node)) {
-      if (ts.isShorthandPropertyAssignment(node.parent)) {
-        if (!checker.getShorthandAssignmentValueSymbol(node.parent)) {
-          free.add(node.text);
-        }
-      } else if (!checker.getSymbolAtLocation(node)) {
-        free.add(node.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(callableNode);
   const result = [...free];
   freeIdentifierCache.set(source, result);
   return result;
