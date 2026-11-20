@@ -17,7 +17,6 @@ import {
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
-import ts from 'typescript';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
@@ -25,6 +24,7 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
+import { toCommonJsScript } from '../../core/src/test-utils/typescript';
 import { FACTORY_EXECUTE_OPTIONS } from './http-client-injection-factory';
 import {
   generateFetchFooter,
@@ -422,12 +422,7 @@ describe('generateSharedRequestFunction', () => {
   });
 
   it('joins delimited arrays with percent-encoded separators at runtime', () => {
-    const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2022,
-        module: ts.ModuleKind.CommonJS,
-      },
-    });
+    const outputText = toCommonJsScript(RUNTIME_TEMPLATE);
     const exports: { serializeQuery?: SerializeQuery } = {};
     runInNewContext(outputText, { exports, URLSearchParams, Date });
 
@@ -468,12 +463,7 @@ describe('generateSharedRequestFunction', () => {
   });
 
   it('serializes form-style object params like the inline builder at runtime', () => {
-    const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2022,
-        module: ts.ModuleKind.CommonJS,
-      },
-    });
+    const outputText = toCommonJsScript(RUNTIME_TEMPLATE);
     const exports: { serializeQuery?: SerializeQuery } = {};
     runInNewContext(outputText, { exports, URLSearchParams, Date });
     const meta = { flattenObject: ['page'], commaObject: ['range', 'empty'] };
@@ -1143,12 +1133,7 @@ describe('shared runtime options', () => {
       config?: { mutator: (...args: unknown[]) => Promise<unknown> },
     ) => Promise<unknown>;
     const execute: Execute = (args, config) => {
-      const { outputText } = ts.transpileModule(RUNTIME_TEMPLATE, {
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2022,
-          module: ts.ModuleKind.CommonJS,
-        },
-      });
+      const outputText = toCommonJsScript(RUNTIME_TEMPLATE);
       const exports: { execute: Execute } = {
         execute: () => Promise.reject(new Error('runtime not loaded')),
       };
@@ -1807,12 +1792,7 @@ export const customFetch = async <T>(
         source: string,
         dependencies: Partial<Record<string, Record<string, unknown>>> = {},
       ) => {
-        const { outputText } = ts.transpileModule(source, {
-          compilerOptions: {
-            target: ts.ScriptTarget.ES2022,
-            module: ts.ModuleKind.CommonJS,
-          },
-        });
+        const outputText = toCommonJsScript(source);
         const exports: Record<string, unknown> = {};
         runInNewContext(outputText, {
           exports,
@@ -2279,15 +2259,8 @@ void response; void overridden; void url; void sameUrl;
     const options = factoryOptions();
     const client = generateSharedClient(verbOptions(), options);
     const source = assemble(options, client.implementation);
-    const program = ts.transpileModule(
-      `${RUNTIME_TEMPLATE}\n${source}\nexport { getPetstore };`,
-      {
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2022,
-        },
-      },
-    ).outputText;
+    // The assembled client already exports `getPetstore`.
+    const program = toCommonJsScript(`${RUNTIME_TEMPLATE}\n${source}`);
     const exports: Record<string, unknown> = {};
     runInNewContext(program, {
       exports,

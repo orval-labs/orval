@@ -1,8 +1,11 @@
 import { runInNewContext } from 'node:vm';
 
-import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
+import {
+  toScript,
+  typeCheck as typeCheckFiles,
+} from '../test-utils/typescript';
 import {
   type GeneratorMutator,
   type GeneratorSchema,
@@ -40,15 +43,9 @@ const evaluateGeneratedUrl = (
       };
     },
   };
-  const transpiled = ts.transpileModule(
+  const transpiled = toScript(
     `const axios = client;\n${source.replaceAll('export ', '')}`,
-    {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-      },
-    },
-  ).outputText;
+  );
 
   return runInNewContext(`${transpiled}; ${functionName}`, {
     client,
@@ -892,26 +889,18 @@ function filterParams(
   // `type` aliases into `interface`s. Interfaces have no implicit index
   // signature, so the helper must accept them, not only `Record<string, unknown>`.
   describe('filterParams accepts interface-typed params (issue #4478)', () => {
-    const typeCheck = (source: string): string[] => {
-      const fileName = 'filter-params-4478.ts';
-      const options: ts.CompilerOptions = {
-        strict: true,
-        noEmit: true,
-        target: ts.ScriptTarget.ES2020,
-        lib: ['lib.es2020.d.ts'],
-        types: [],
-      };
-      const host = ts.createCompilerHost(options);
-      const getSourceFile = host.getSourceFile.bind(host);
-      host.getSourceFile = (name, languageVersion, ...rest) =>
-        name === fileName
-          ? ts.createSourceFile(name, source, languageVersion)
-          : getSourceFile(name, languageVersion, ...rest);
-      const program = ts.createProgram([fileName], options, host);
-      return ts
-        .getPreEmitDiagnostics(program)
-        .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
-    };
+    const typeCheck = (source: string): string[] =>
+      typeCheckFiles(
+        { 'filter-params-4478.ts': source },
+        {
+          compilerOptions: {
+            strict: true,
+            target: 'ES2020',
+            lib: ['es2020'],
+            types: [],
+          },
+        },
+      );
 
     const usage = `
 interface ListPetsParams {
@@ -1102,12 +1091,7 @@ export const c = filterParams(params, new Set<string>([]), false, new Set<string
       passthroughKeys?: ReadonlySet<string>,
       objectParamStrategies?: Record<string, string>,
     ) => Record<string, unknown>) => {
-      const { outputText } = ts.transpileModule(body, {
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2020,
-        },
-      });
+      const outputText = toScript(body);
       const moduleObject: { exports: unknown } = { exports: {} };
       // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func
       const factory = new Function(

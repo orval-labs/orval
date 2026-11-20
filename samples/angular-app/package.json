@@ -10,7 +10,6 @@
     "test": "ng test --no-watch && vp test run --config vitest.node.ts",
     "test:snapshots": "vp test run --config vitest.snapshots.ts",
     "test:snapshots:update": "vp run test:snapshots --update",
-    "lint": "ng lint",
     "generate-api": "vp exec orval",
     "clean": "rimraf .turbo dist .angular src/api",
     "nuke": "rimraf .turbo dist .angular src/api node_modules"
@@ -28,20 +27,16 @@
     "zod": "catalog:zod4"
   },
   "devDependencies": {
-    "@angular-eslint/builder": "22.0.0",
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "catalog:tooling",
-    "angular-eslint": "22.0.0",
-    "eslint": "catalog:",
     "jsdom": "catalog:",
     "msw": "catalog:tooling",
     "orval": "workspace:*",
     "prettier": "catalog:",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "typescript-eslint": "catalog:",
+    "typescript": "catalog:ts6",
     "vite-plus": "catalog:",
     "vitest": "4.1.11"
   },

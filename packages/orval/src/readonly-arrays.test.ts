@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
@@ -6,7 +6,6 @@ import type {
   OpenApiSchemaObject,
   OutputOptions,
 } from '@orval/core';
-import ts from 'typescript';
 import {
   afterEach,
   beforeEach,
@@ -16,6 +15,7 @@ import {
   vi,
 } from 'vite-plus/test';
 
+import { typeCheck } from '../../core/src/test-utils/typescript';
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils/options';
 
@@ -165,24 +165,22 @@ describe('readonly schema arrays in generated clients', () => {
   }
 
   async function diagnostics(consumer: string) {
-    const entry = path.join(workspace, 'consumer.ts');
-    await writeFile(entry, consumer);
-    const program = ts.createProgram([entry], {
-      strict: true,
-      exactOptionalPropertyTypes: true,
-      noUncheckedIndexedAccess: true,
-      noEmit: true,
-      skipLibCheck: true,
-      types: [],
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-      target: ts.ScriptTarget.ES2022,
-    });
-    return ts
-      .getPreEmitDiagnostics(program)
-      .map((diagnostic) =>
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-      );
+    return typeCheck(
+      { 'consumer.ts': consumer },
+      {
+        cwd: workspace,
+        compilerOptions: {
+          strict: true,
+          exactOptionalPropertyTypes: true,
+          noUncheckedIndexedAccess: true,
+          skipLibCheck: true,
+          types: [],
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          target: 'ES2022',
+        },
+      },
+    );
   }
 
   it('keeps default output identical to false and rejects immutable arrays', async () => {

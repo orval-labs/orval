@@ -957,6 +957,12 @@ TypeDoc 是可选的 peer 依赖，因此在启用该选项前，请先安装它
 npm install typedoc typedoc-plugin-markdown -D
 ```
 
+<Callout type="warn">
+  TypeDoc 目前还不支持 TypeScript 7，因此该选项需要 TypeScript 6。TypeDoc
+  计划在 TypeScript 7.1 时提供支持，详见
+  [TypeStrong/typedoc#3098](https://github.com/TypeStrong/typedoc/issues/3098)。
+</Callout>
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
