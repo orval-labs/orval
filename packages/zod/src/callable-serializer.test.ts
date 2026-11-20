@@ -241,6 +241,19 @@ describe('serializeCallable', () => {
     expect(() => serializeCallable({ callable, bindings: null })).not.toThrow();
   });
 
+  it('captures references in the options argument of a dynamic import', () => {
+    const callable = runInNewContext(
+      '(async () => { await import("./rules.json", importOptions); return true; })',
+    ) as () => boolean;
+    const importOptions = { with: { type: 'json' } };
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'unresolved external reference(s): importOptions',
+    );
+    expect(
+      serializeCallable({ callable, bindings: { importOptions } }),
+    ).toContain('const importOptions = {');
+  });
+
   it.each([
     ['this', '(function (value) { return this === value; })'],
     [

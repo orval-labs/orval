@@ -114,7 +114,13 @@ const findFreeIdentifiers = (source: string): string[] => {
   // engine, the analysis binds `arguments` inside non-arrow functions only.
   const scopeManager = analyze(
     program as unknown as Parameters<typeof analyze>[0],
-    { ecmaVersion: 2022, sourceType: 'script' },
+    {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      // eslint-scope's default keys predate import attributes and skip the
+      // second `import()` argument, which acorn stores as `options`.
+      childVisitorKeys: { ImportExpression: ['source', 'options'] },
+    },
   );
   const free = new Set<string>();
   for (const reference of scopeManager.globalScope?.through ?? []) {
