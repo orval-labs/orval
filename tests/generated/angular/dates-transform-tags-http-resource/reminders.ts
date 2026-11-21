@@ -250,7 +250,10 @@ const deserializeGetReminderResponse = (data: Reminder): Reminder => {
         ? dayjs(data.event.startsAt as unknown as string)
         : data.event.startsAt;
     if (data.event.day != null) {
-      data.event.day = new Date(data.event.day);
+      data.event.day =
+        typeof data.event.day === 'string'
+          ? new Date(data.event.day)
+          : data.event.day;
     }
   }
   return data;

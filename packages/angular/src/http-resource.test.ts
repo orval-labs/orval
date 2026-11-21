@@ -5393,7 +5393,7 @@ describe('useDatesTransform', () => {
       'const deserializeGetPetByIdResponse = (data: Pet): Pet => {',
     );
     expect(clients[0].implementation).toContain(
-      'data.bornAt = new Date(data.bornAt);',
+      "data.bornAt = typeof data.bornAt === 'string' ? new Date(data.bornAt) : data.bornAt;",
     );
     expect(clients[0].docComment).toBe('');
   });

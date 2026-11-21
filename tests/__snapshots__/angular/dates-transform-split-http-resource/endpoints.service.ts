@@ -433,7 +433,8 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
         ? dayjs(item0.startsAt as unknown as string)
         : item0.startsAt;
     if (item0.day != null) {
-      item0.day = new Date(item0.day);
+      item0.day =
+        typeof item0.day === 'string' ? new Date(item0.day) : item0.day;
     }
   }
   return data;
@@ -446,7 +447,7 @@ const deserializeCreateEventResponse = (data: Event): Event => {
       ? dayjs(data.startsAt as unknown as string)
       : data.startsAt;
   if (data.day != null) {
-    data.day = new Date(data.day);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
   }
   return data;
 };
@@ -455,7 +456,7 @@ const serializeCreateEventRequest = (data: Event): Event => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (encodeDayjs(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.day != null) {
@@ -479,7 +480,10 @@ const deserializeGetReminderResponse = (data: Reminder): Reminder => {
         ? dayjs(data.event.startsAt as unknown as string)
         : data.event.startsAt;
     if (data.event.day != null) {
-      data.event.day = new Date(data.event.day);
+      data.event.day =
+        typeof data.event.day === 'string'
+          ? new Date(data.event.day)
+          : data.event.day;
     }
   }
   return data;
@@ -489,13 +493,13 @@ const serializeUpdateReminderRequest = (data: Reminder): Reminder => {
   if (data == null) return data;
   const copy = { ...data };
   copy.remindAt =
-    typeof copy.remindAt === 'string'
+    typeof copy.remindAt === 'string' || copy.remindAt == null
       ? copy.remindAt
       : (encodeDayjs(copy.remindAt) as unknown as typeof copy.remindAt);
   if (copy.event != null) {
     copy.event = { ...copy.event };
     copy.event.startsAt =
-      typeof copy.event.startsAt === 'string'
+      typeof copy.event.startsAt === 'string' || copy.event.startsAt == null
         ? copy.event.startsAt
         : (encodeDayjs(
             copy.event.startsAt,

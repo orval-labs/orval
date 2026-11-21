@@ -285,20 +285,21 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
   if (data == null) return data;
   for (let i0 = 0; i0 < data.length; i0++) {
     const item0 = data[i0]!;
-    item0.date = new Date(item0.date);
+    item0.date =
+      typeof item0.date === 'string' ? new Date(item0.date) : item0.date;
   }
   return data;
 };
 
 const deserializeGetEventAtResponse = (data: Event): Event => {
   if (data == null) return data;
-  data.date = new Date(data.date);
+  data.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
   return data;
 };
 
 const deserializeGetEventUntilResponse = (data: Event): Event => {
   if (data == null) return data;
-  data.date = new Date(data.date);
+  data.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
   return data;
 };
 

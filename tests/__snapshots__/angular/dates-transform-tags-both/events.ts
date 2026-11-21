@@ -296,7 +296,8 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
         ? dayjs(item0.startsAt as unknown as string)
         : item0.startsAt;
     if (item0.day != null) {
-      item0.day = new Date(item0.day);
+      item0.day =
+        typeof item0.day === 'string' ? new Date(item0.day) : item0.day;
     }
   }
   return data;
@@ -311,7 +312,7 @@ const deserializeCreateEventResponse = (data: Event): Event => {
       ? dayjs(data.startsAt as unknown as string)
       : data.startsAt;
   if (data.day != null) {
-    data.day = new Date(data.day);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
   }
   return data;
 };
@@ -320,7 +321,7 @@ const serializeCreateEventRequest = (data: Event): Event => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (encodeDayjs(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.day != null) {

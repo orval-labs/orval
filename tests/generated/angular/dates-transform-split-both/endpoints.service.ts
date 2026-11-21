@@ -413,7 +413,8 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
         ? dayjs(item0.startsAt as unknown as string)
         : item0.startsAt;
     if (item0.day != null) {
-      item0.day = new Date(item0.day);
+      item0.day =
+        typeof item0.day === 'string' ? new Date(item0.day) : item0.day;
     }
   }
   return data;
@@ -428,7 +429,7 @@ const deserializeCreateEventResponse = (data: Event): Event => {
       ? dayjs(data.startsAt as unknown as string)
       : data.startsAt;
   if (data.day != null) {
-    data.day = new Date(data.day);
+    data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;
   }
   return data;
 };
@@ -463,7 +464,10 @@ const deserializeGetReminderResponse = (data: Reminder): Reminder => {
         ? dayjs(data.event.startsAt as unknown as string)
         : data.event.startsAt;
     if (data.event.day != null) {
-      data.event.day = new Date(data.event.day);
+      data.event.day =
+        typeof data.event.day === 'string'
+          ? new Date(data.event.day)
+          : data.event.day;
     }
   }
   return data;

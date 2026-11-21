@@ -471,7 +471,8 @@ const deserializeListEventsResponse = (data: Event[]): Event[] => {
       typeof item0.startsAt === 'string'
         ? Temporal.Instant.from(item0.startsAt as unknown as string)
         : item0.startsAt;
-    item0.date = new Date(item0.date);
+    item0.date =
+      typeof item0.date === 'string' ? new Date(item0.date) : item0.date;
     if (item0.endsAt != null) {
       item0.endsAt =
         typeof item0.endsAt === 'string'
@@ -488,7 +489,7 @@ const deserializeCreateEventResponse = (data: Event): Event => {
     typeof data.startsAt === 'string'
       ? Temporal.Instant.from(data.startsAt as unknown as string)
       : data.startsAt;
-  data.date = new Date(data.date);
+  data.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
   if (data.endsAt != null) {
     data.endsAt =
       typeof data.endsAt === 'string'
@@ -502,7 +503,7 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (String(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.date != null) {
@@ -532,7 +533,7 @@ const deserializeGetEventAtResponse = (data: Event): Event => {
     typeof data.startsAt === 'string'
       ? Temporal.Instant.from(data.startsAt as unknown as string)
       : data.startsAt;
-  data.date = new Date(data.date);
+  data.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
   if (data.endsAt != null) {
     data.endsAt =
       typeof data.endsAt === 'string'
@@ -548,7 +549,7 @@ const deserializeGetEventUntilResponse = (data: Event): Event => {
     typeof data.startsAt === 'string'
       ? Temporal.Instant.from(data.startsAt as unknown as string)
       : data.startsAt;
-  data.date = new Date(data.date);
+  data.date = typeof data.date === 'string' ? new Date(data.date) : data.date;
   if (data.endsAt != null) {
     data.endsAt =
       typeof data.endsAt === 'string'

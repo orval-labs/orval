@@ -3693,8 +3693,12 @@ describe('useDatesTransform', () => {
       /^export type GetPetByIdClientResult = NonNullable<Pet>\n\nconst deserializeGetPetByIdResponse = \(data: Pet\): Pet => \{/,
     );
     // A nested array of a referenced schema is converted too.
-    expect(footer).toContain('data.bornAt = new Date(data.bornAt);');
-    expect(footer).toContain('item0.day = new Date(item0.day);');
+    expect(footer).toContain(
+      "data.bornAt = typeof data.bornAt === 'string' ? new Date(data.bornAt) : data.bornAt;",
+    );
+    expect(footer).toContain(
+      "item0.day = typeof item0.day === 'string' ? new Date(item0.day) : item0.day;",
+    );
   });
 
   it('imports HttpResponse as a value for the event narrowing', async () => {
@@ -3858,7 +3862,7 @@ describe('useDatesTransform', () => {
         "data.bornAt = typeof data.bornAt === 'string' ? dayjs(data.bornAt as unknown as string) : data.bornAt;",
       );
       expect(footer).toContain(
-        "copy.bornAt = typeof copy.bornAt === 'string' ? copy.bornAt : (toIsoString(copy.bornAt) as unknown as typeof copy.bornAt);",
+        "copy.bornAt = typeof copy.bornAt === 'string' || copy.bornAt == null ? copy.bornAt : (toIsoString(copy.bornAt) as unknown as typeof copy.bornAt);",
       );
       expect(imports).toContainEqual(
         expect.objectContaining({ name: 'dayjs', importPath: 'dayjs' }),
