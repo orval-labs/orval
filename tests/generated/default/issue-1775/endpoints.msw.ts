@@ -11,7 +11,10 @@ import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { PutApiOrderLimit200Item } from './model';
 
-export const getPutApiOrderLimitResponseMock = (): PutApiOrderLimit200Item[] =>
+export const getPutApiOrderLimitResponseMock = (
+  overrideResponse?: PutApiOrderLimit200Item[],
+): PutApiOrderLimit200Item[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

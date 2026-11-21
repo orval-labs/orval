@@ -9,7 +9,10 @@ import { faker } from '@faker-js/faker';
 import { InventoryStatus } from '../model';
 import type { InventoryItem } from '../model';
 
-export const getListInventoryResponseMock = (): InventoryItem[] =>
+export const getListInventoryResponseMock = (
+  overrideResponse?: InventoryItem[],
+): InventoryItem[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

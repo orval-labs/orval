@@ -1,6 +1,7 @@
 import {
   camelPathParamName,
   type ClientMockGeneratorBuilder,
+  type ContextSpec,
   escapeRegExp,
   generateDependencyImports,
   type GenerateMockImports,
@@ -13,11 +14,15 @@ import {
   isMswMock,
   isObject,
   jsStringLiteralEscape,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
   parseRoutePath,
   pascal,
+  resolveRef,
   type ResReqTypesValue,
   type StrictMockSchemaKind,
   isOctetStreamContentType,
+  toObjectSchema,
 } from '@orval/core';
 
 import { getDelay } from '../delay';
@@ -147,6 +152,27 @@ function getMSWTypeArguments(pathRoute: string, bodyType: string): string {
   }
 
   return paramsType ? `<${paramsType}>` : '';
+}
+
+/**
+ * Whether a success response body is a plain (non-nullable) array schema,
+ * directly or through a `$ref`. Only those get a full-array `overrideResponse`.
+ */
+function isTopLevelArrayResponse(
+  response: ResReqTypesValue | undefined,
+  context: ContextSpec,
+): boolean {
+  const schema = response?.originalSchema;
+  if (!schema || typeof schema !== 'object') {
+    return false;
+  }
+
+  const resolved = toObjectSchema(
+    resolveRef<OpenApiSchemaObject>(schema as OpenApiReferenceObject, context)
+      .schema,
+  );
+
+  return resolved.type === 'array';
 }
 
 function generateDefinition(
@@ -345,7 +371,24 @@ function generateDefinition(
   let mockFactoryReturnType = nonVoidMockReturnType;
   let mockFactoryReturnCast = '';
 
-  if (isResponseOverridable) {
+  // A top-level array response has no object to spread an override into, so
+  // the factory accepts a full replacement array instead and falls back to the
+  // generated one when it is omitted. Eligibility comes from the schema, not
+  // from `isResponseOverridable`, which only scans the generated text and would
+  // be tripped by an example that happens to contain "overrideResponse".
+  const isArrayResponseOverridable =
+    !mockData &&
+    definitions.length === 1 &&
+    responses.length === 1 &&
+    isTopLevelArrayResponse(responses[0], context);
+
+  if (isArrayResponseOverridable) {
+    mockFactoryReturnType = strictMock
+      ? strictMockReturnType
+      : nonVoidMockReturnType;
+    mockFactoryParam = `overrideResponse?: ${mockFactoryReturnType}`;
+    value = `overrideResponse ?? ${value}`;
+  } else if (isResponseOverridable) {
     if (strictMock && simpleSchemaReturnType) {
       const signature = getMockFactorySignatureParts(
         simpleSchemaReturnType,

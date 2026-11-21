@@ -65,7 +65,10 @@ export const getCreatePetResponseMock = <
     ...overrideResponse,
   }) as MockWithNullableOverrides<Pet, O, PetMock>;
 
-export const getListPetsResponseMock = (): PetMock[] =>
+export const getListPetsResponseMock = (
+  overrideResponse?: PetMock[],
+): PetMock[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

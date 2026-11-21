@@ -12,6 +12,7 @@ import {
   createTestGeneratorVerbOptions,
   createTestResReqTypesValue,
 } from '../../../core/src/test-utils';
+import { generateFaker } from '../faker';
 import { generateMSW } from './index';
 
 describe('generateMSW', () => {
@@ -2036,6 +2037,222 @@ describe('arrayItems option', () => {
     expect(result.implementation.function).not.toContain(
       'export const getTenantResponseModelDtoMock',
     );
+  });
+});
+
+describe('top-level array response override (#4573)', () => {
+  const petArraySchema: OpenApiSchemaObject = {
+    type: 'array',
+    items: { $ref: '#/components/schemas/Pet' },
+  };
+
+  const createContext = (mock: Record<string, unknown> = {}) =>
+    createTestContextSpec({
+      target: 'test',
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              required: ['id'],
+              properties: { id: { type: 'integer' } },
+            },
+            Pets: petArraySchema,
+          },
+        },
+      },
+      override: { mock },
+    });
+
+  const createVerbOptions = ({
+    value,
+    originalSchema,
+    imports,
+    isRef = false,
+    example,
+  }: {
+    value: string;
+    originalSchema: Record<string, unknown>;
+    imports: { name: string; values?: boolean }[];
+    isRef?: boolean;
+    example?: unknown;
+  }) =>
+    createTestGeneratorVerbOptions({
+      operationId: 'listPets',
+      operationName: 'listPets',
+      typeName: 'listPets',
+      verb: 'get',
+      tags: [],
+      response: {
+        imports,
+        definition: { success: value },
+        types: {
+          success: [
+            createTestResReqTypesValue({
+              key: '200',
+              value,
+              contentType: 'application/json',
+              originalSchema,
+              imports,
+              schemas: [],
+              type: 'array',
+              isEnum: false,
+              isRef,
+              hasReadonlyProps: false,
+              example,
+            }),
+          ],
+        },
+        contentTypes: ['application/json'],
+      },
+    });
+
+  const createOptions = (
+    context: ReturnType<typeof createContext>,
+    mockOptions: { useExamples?: boolean } = {},
+  ) =>
+    createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+      output: 'test',
+      override: context.output.override,
+      context,
+      mock: { type: OutputMockType.MSW, delay: false, ...mockOptions },
+    });
+
+  it('accepts a full replacement array for an inline array of $ref items', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'Pet[]',
+        originalSchema: petArraySchema,
+        imports: [{ name: 'Pet', values: false }],
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      'export const getListPetsResponseMock = (overrideResponse?: Pet[]): Pet[] => (overrideResponse ?? Array.from(',
+    );
+  });
+
+  it('accepts a full replacement array when the response $refs an array schema', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'Pets',
+        originalSchema: { $ref: '#/components/schemas/Pets' },
+        imports: [{ name: 'Pets', values: false }],
+        isRef: true,
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      'export const getListPetsResponseMock = (overrideResponse?: Pets): Pets => (overrideResponse ?? Array.from(',
+    );
+  });
+
+  it('accepts a full replacement array for primitive array responses', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'string[]',
+        originalSchema: { type: 'array', items: { type: 'string' } },
+        imports: [],
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      'export const getListPetsResponseMock = (overrideResponse?: string[]): string[] => (overrideResponse ??',
+    );
+  });
+
+  it('types the override with the strict mock alias when strict mocks are on', () => {
+    const context = createContext({ required: true, nonNullable: true });
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'Pet[]',
+        originalSchema: petArraySchema,
+        imports: [{ name: 'Pet', values: false }],
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      'export const getListPetsResponseMock = (overrideResponse?: PetMock[]): PetMock[] => (overrideResponse ?? Array.from(',
+    );
+  });
+
+  it('still accepts an override when an example mentions overrideResponse', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'string[]',
+        originalSchema: { type: 'array', items: { type: 'string' } },
+        imports: [],
+        example: ['overrideResponse'],
+      }),
+      createOptions(context, { useExamples: true }),
+    );
+
+    // `??` keeps an explicitly passed empty array and only falls back to the
+    // example when the argument is omitted.
+    expect(result.implementation.function).toContain(
+      '(overrideResponse?: string[]): string[] => (overrideResponse ?? ["overrideResponse"])',
+    );
+  });
+
+  it('leaves the MSW handler calling the factory without an argument', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'Pet[]',
+        originalSchema: petArraySchema,
+        imports: [{ name: 'Pet', values: false }],
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.handler).toContain(
+      ': getListPetsResponseMock()',
+    );
+  });
+
+  it('is emitted by the faker-only generator too', () => {
+    const context = createContext();
+    const result = generateFaker(
+      createVerbOptions({
+        value: 'Pet[]',
+        originalSchema: petArraySchema,
+        imports: [{ name: 'Pet', values: false }],
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      '(overrideResponse?: Pet[]): Pet[] => (overrideResponse ?? Array.from(',
+    );
+    expect(result.implementation.handler).toBe('');
+  });
+
+  it('keeps the object spread override for object responses', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'Pet',
+        originalSchema: { $ref: '#/components/schemas/Pet' },
+        imports: [{ name: 'Pet', values: false }],
+        isRef: true,
+      }),
+      createOptions(context),
+    );
+
+    expect(result.implementation.function).toContain(
+      'overrideResponse: Partial<Extract<Pet, object>> = {}',
+    );
+    expect(result.implementation.function).not.toContain('overrideResponse ??');
   });
 });
 

@@ -60,7 +60,8 @@ export const getListPetsResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getListPetsResponseMock = (): Pets =>
+export const getListPetsResponseMock = (overrideResponse?: Pets): Pets =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 5, max: 15 }) },
     (_, i) => i + 1,

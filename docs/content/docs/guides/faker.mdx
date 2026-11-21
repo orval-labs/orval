@@ -67,6 +67,19 @@ const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
 // => { id: 7272122785202176, name: "Buddy", tag: "..." }
 ```
 
+When the response is a top-level array, there is no object to spread overrides into, so the factory accepts a full replacement array instead and falls back to the generated one when it is omitted:
+
+```ts
+export const getListPetsResponseMock = (overrideResponse?: Pet[]): Pet[] =>
+  overrideResponse ??
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({ ...getPetMock() }));
+
+const pets = getListPetsResponseMock([{ id: 1, name: 'Buddy' }]);
+```
+
 ### Schema Factories
 
 Set `schemas: true` to emit a `get<SchemaName>Mock()` factory per entry under `components/schemas`. Factories are written to a single consolidated file at `<schemas-dir>/index.faker.ts` so they can be imported uniformly and reference each other directly:

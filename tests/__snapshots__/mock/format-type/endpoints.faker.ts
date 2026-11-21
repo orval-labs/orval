@@ -11,7 +11,10 @@ import type { Event } from './model';
 
 import dayjs from 'dayjs';
 
-export const getListEventsResponseMock = (): Event[] =>
+export const getListEventsResponseMock = (
+  overrideResponse?: Event[],
+): Event[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
