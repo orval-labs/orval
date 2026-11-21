@@ -290,7 +290,7 @@ export default defineConfig({
             {
               // Constraint restricting what property type this validator factory applies to
               type: 'string',
-              // Constraint restricting the property format. If set to "", will apply to all properties of the specified type
+              // Constraint restricting the property format. If set to "", will apply to all properties of the specified type without a format
               format: 'decimal',
               // Validator factory. Receives the entire OpenAPI Object for the property as an argument
               validatorsGenerator: (openapi_object: DecimalSchemaObject) => {
