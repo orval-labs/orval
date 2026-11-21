@@ -10,6 +10,7 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
+import { GetterPropType } from '../types';
 import { logger } from '../utils';
 import {
   buildDateTransformStatements,
@@ -65,9 +66,9 @@ describe('buildDateTransformStatements', () => {
 
     expect(statements.join('\n')).toBe(
       [
-        'data.startTime = new Date(data.startTime);',
+        "data.startTime = typeof data.startTime === 'string' ? new Date(data.startTime) : data.startTime;",
         'if (data.endTime != null) {',
-        '  data.endTime = new Date(data.endTime);',
+        "  data.endTime = typeof data.endTime === 'string' ? new Date(data.endTime) : data.endTime;",
         '}',
       ].join('\n'),
     );
@@ -88,7 +89,7 @@ describe('buildDateTransformStatements', () => {
     expect(statements.join('\n')).toBe(
       [
         'for (let i0 = 0; i0 < data.length; i0++) {',
-        '  data[i0] = new Date(data[i0]!);',
+        "  data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
         '}',
       ].join('\n'),
     );
@@ -116,7 +117,7 @@ describe('buildDateTransformStatements', () => {
         'for (let i0 = 0; i0 < data.length; i0++) {',
         '  const item0 = data[i0]!;',
         '  if (item0.resolvedAt != null) {',
-        '    item0.resolvedAt = new Date(item0.resolvedAt);',
+        "    item0.resolvedAt = typeof item0.resolvedAt === 'string' ? new Date(item0.resolvedAt) : item0.resolvedAt;",
         '  }',
         '}',
       ].join('\n'),
@@ -160,7 +161,7 @@ describe('buildDateTransformStatements', () => {
         'if (data.log != null) {',
         '  for (let i0 = 0; i0 < data.log.length; i0++) {',
         '    const item0 = data.log[i0]!;',
-        '    item0.createdAt = new Date(item0.createdAt);',
+        "    item0.createdAt = typeof item0.createdAt === 'string' ? new Date(item0.createdAt) : item0.createdAt;",
         '  }',
         '}',
       ].join('\n'),
@@ -182,7 +183,7 @@ describe('buildDateTransformStatements', () => {
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
       '  if (data[i0] != null) {',
-      '    data[i0] = new Date(data[i0]!);',
+      "    data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
       '  }',
       '}',
     ]);
@@ -209,7 +210,7 @@ describe('buildDateTransformStatements', () => {
       'for (let i0 = 0; i0 < data.length; i0++) {',
       '  const item0 = data[i0]!;',
       '  if (item0 != null) {',
-      '    item0.createdAt = new Date(item0.createdAt);',
+      "    item0.createdAt = typeof item0.createdAt === 'string' ? new Date(item0.createdAt) : item0.createdAt;",
       '  }',
       '}',
     ]);
@@ -229,7 +230,7 @@ describe('buildDateTransformStatements', () => {
     });
 
     expect(statements).toEqual([
-      'data["created-at"] = new Date(data["created-at"]);',
+      'data["created-at"] = typeof data["created-at"] === \'string\' ? new Date(data["created-at"]) : data["created-at"];',
     ]);
   });
 
@@ -254,10 +255,10 @@ describe('buildDateTransformStatements', () => {
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
       'if (data.createdBy != null) {',
-      '  data.createdBy.at = new Date(data.createdBy.at);',
+      "  data.createdBy.at = typeof data.createdBy.at === 'string' ? new Date(data.createdBy.at) : data.createdBy.at;",
       '}',
       'if (data.updatedBy != null) {',
-      '  data.updatedBy.at = new Date(data.updatedBy.at);',
+      "  data.updatedBy.at = typeof data.updatedBy.at === 'string' ? new Date(data.updatedBy.at) : data.updatedBy.at;",
       '}',
     ]);
   });
@@ -279,8 +280,8 @@ describe('buildDateTransformStatements', () => {
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
-      'data.updatedAt = new Date(data.updatedAt);',
-      'data.createdAt = new Date(data.createdAt);',
+      "data.updatedAt = typeof data.updatedAt === 'string' ? new Date(data.updatedAt) : data.updatedAt;",
+      "data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;",
     ]);
   });
 
@@ -330,7 +331,7 @@ describe('buildDateTransformStatements', () => {
       }),
     ).toEqual([
       'if ("at" in data && data.at != null) {',
-      '  data.at = new Date(data.at);',
+      "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
       '}',
     ]);
   });
@@ -380,12 +381,12 @@ describe('buildDateTransformStatements — discriminated unions', () => {
       [
         'switch (data.petType) {',
         '  case "cat": {',
-        '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+        "    data.vaccinatedAt = typeof data.vaccinatedAt === 'string' ? new Date(data.vaccinatedAt) : data.vaccinatedAt;",
         '    break;',
         '  }',
         '  case "dog": {',
         '    if (data.adoptedAt != null) {',
-        '      data.adoptedAt = new Date(data.adoptedAt);',
+        "      data.adoptedAt = typeof data.adoptedAt === 'string' ? new Date(data.adoptedAt) : data.adoptedAt;",
         '    }',
         '    break;',
         '  }',
@@ -418,13 +419,13 @@ describe('buildDateTransformStatements — discriminated unions', () => {
         'switch (data.petType) {',
         '  case "dog": {',
         '    if (data.adoptedAt != null) {',
-        '      data.adoptedAt = new Date(data.adoptedAt);',
+        "      data.adoptedAt = typeof data.adoptedAt === 'string' ? new Date(data.adoptedAt) : data.adoptedAt;",
         '    }',
         '    break;',
         '  }',
         '  case "puppy": {',
         '    if (data.adoptedAt != null) {',
-        '      data.adoptedAt = new Date(data.adoptedAt);',
+        "      data.adoptedAt = typeof data.adoptedAt === 'string' ? new Date(data.adoptedAt) : data.adoptedAt;",
         '    }',
         '    break;',
         '  }',
@@ -471,7 +472,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
       [
         'switch (data.petType) {',
         '  case "cat": {',
-        '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+        "    data.vaccinatedAt = typeof data.vaccinatedAt === 'string' ? new Date(data.vaccinatedAt) : data.vaccinatedAt;",
         '    break;',
         '  }',
         '}',
@@ -525,7 +526,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     ).toBe(
       [
         'if ("vaccinatedAt" in data && data.vaccinatedAt != null) {',
-        '  data.vaccinatedAt = new Date(data.vaccinatedAt);',
+        "  data.vaccinatedAt = typeof data.vaccinatedAt === 'string' ? new Date(data.vaccinatedAt) : data.vaccinatedAt;",
         '}',
       ].join('\n'),
     );
@@ -563,12 +564,12 @@ describe('buildDateTransformStatements — discriminated unions', () => {
         'if (data.details != null) {',
         '  switch (data.details.petType) {',
         '    case "cat": {',
-        '      data.details.vaccinatedAt = new Date(data.details.vaccinatedAt);',
+        "      data.details.vaccinatedAt = typeof data.details.vaccinatedAt === 'string' ? new Date(data.details.vaccinatedAt) : data.details.vaccinatedAt;",
         '      break;',
         '    }',
         '    case "dog": {',
         '      if (data.details.adoptedAt != null) {',
-        '        data.details.adoptedAt = new Date(data.details.adoptedAt);',
+        "        data.details.adoptedAt = typeof data.details.adoptedAt === 'string' ? new Date(data.details.adoptedAt) : data.details.adoptedAt;",
         '      }',
         '      break;',
         '    }',
@@ -609,12 +610,12 @@ describe('buildDateTransformStatements — discriminated unions', () => {
         '  const item0 = data[i0]!;',
         '  switch (item0.petType) {',
         '    case "cat": {',
-        '      item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+        "      item0.vaccinatedAt = typeof item0.vaccinatedAt === 'string' ? new Date(item0.vaccinatedAt) : item0.vaccinatedAt;",
         '      break;',
         '    }',
         '    case "dog": {',
         '      if (item0.adoptedAt != null) {',
-        '        item0.adoptedAt = new Date(item0.adoptedAt);',
+        "        item0.adoptedAt = typeof item0.adoptedAt === 'string' ? new Date(item0.adoptedAt) : item0.adoptedAt;",
         '      }',
         '      break;',
         '    }',
@@ -664,7 +665,7 @@ describe('buildDateTransformStatements — discriminated unions', () => {
     ).toEqual([
       'switch (data.kind) {',
       '  case "cat": {',
-      '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+      "    data.vaccinatedAt = typeof data.vaccinatedAt === 'string' ? new Date(data.vaccinatedAt) : data.vaccinatedAt;",
       '    break;',
       '  }',
       '}',
@@ -753,7 +754,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'if ("visitedOn" in data && data.visitedOn != null) {',
-        '  data.visitedOn = new Date(data.visitedOn);',
+        "  data.visitedOn = typeof data.visitedOn === 'string' ? new Date(data.visitedOn) : data.visitedOn;",
         '}',
       ].join('\n'),
     );
@@ -775,10 +776,10 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'if ("visitedOn" in data && data.visitedOn != null) {',
-        '  data.visitedOn = new Date(data.visitedOn);',
+        "  data.visitedOn = typeof data.visitedOn === 'string' ? new Date(data.visitedOn) : data.visitedOn;",
         '}',
         'if ("administeredAt" in data && data.administeredAt != null) {',
-        '  data.administeredAt = new Date(data.administeredAt);',
+        "  data.administeredAt = typeof data.administeredAt === 'string' ? new Date(data.administeredAt) : data.administeredAt;",
         '}',
       ].join('\n'),
     );
@@ -800,7 +801,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'if ("closedAt" in data && data.closedAt != null) {',
-        '  data.closedAt = new Date(data.closedAt);',
+        "  data.closedAt = typeof data.closedAt === 'string' ? new Date(data.closedAt) : data.closedAt;",
         '}',
       ].join('\n'),
     );
@@ -827,7 +828,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'if ("closedAt" in data && data.closedAt != null) {',
-        '  data.closedAt = new Date(data.closedAt);',
+        "  data.closedAt = typeof data.closedAt === 'string' ? new Date(data.closedAt) : data.closedAt;",
         '}',
       ].join('\n'),
     );
@@ -851,7 +852,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
         'if ("entries" in data && data.entries != null) {',
         '  for (let i0 = 0; i0 < data.entries.length; i0++) {',
         '    const item0 = data.entries[i0]!;',
-        '    item0.visitedOn = new Date(item0.visitedOn);',
+        "    item0.visitedOn = typeof item0.visitedOn === 'string' ? new Date(item0.visitedOn) : item0.visitedOn;",
         '  }',
         '}',
       ].join('\n'),
@@ -906,7 +907,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
         'for (const key0 of Object.keys(data)) {',
         '  const item0 = data[key0]!;',
         '  if ("visitedOn" in item0 && item0.visitedOn != null) {',
-        '    item0.visitedOn = new Date(item0.visitedOn);',
+        "    item0.visitedOn = typeof item0.visitedOn === 'string' ? new Date(item0.visitedOn) : item0.visitedOn;",
         '  }',
         '}',
       ].join('\n'),
@@ -1047,15 +1048,15 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(statements.join('\n')).toBe(
       [
         'if ("vaccinatedOn" in data && data.vaccinatedOn != null) {',
-        '  data.vaccinatedOn = new Date(data.vaccinatedOn);',
+        "  data.vaccinatedOn = typeof data.vaccinatedOn === 'string' ? new Date(data.vaccinatedOn) : data.vaccinatedOn;",
         '}',
         'if ("pal" in data && data.pal != null) {',
         '  if (data.pal.adoptedOn != null) {',
-        '    data.pal.adoptedOn = new Date(data.pal.adoptedOn);',
+        "    data.pal.adoptedOn = typeof data.pal.adoptedOn === 'string' ? new Date(data.pal.adoptedOn) : data.pal.adoptedOn;",
         '  }',
         '}',
         'if ("adoptedOn" in data && data.adoptedOn != null) {',
-        '  data.adoptedOn = new Date(data.adoptedOn);',
+        "  data.adoptedOn = typeof data.adoptedOn === 'string' ? new Date(data.adoptedOn) : data.adoptedOn;",
         '}',
       ].join('\n'),
     );
@@ -1477,21 +1478,21 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   const mappedAcyclicNodeOutput = [
     'if (data.at != null) {',
-    '  data.at = new Date(data.at);',
+    "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
     '}',
     'if (data.child != null) {',
     '  switch (data.child.kind) {',
     '    case "wrapper": {',
     '      if (data.child.back != null) {',
     '        if (data.child.back.seenAt != null) {',
-    '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+    "          data.child.back.seenAt = typeof data.child.back.seenAt === 'string' ? new Date(data.child.back.seenAt) : data.child.back.seenAt;",
     '        }',
     '      }',
     '      break;',
     '    }',
     '    case "plain": {',
     '      if (data.child.seenAt != null) {',
-    '        data.child.seenAt = new Date(data.child.seenAt);',
+    "        data.child.seenAt = typeof data.child.seenAt === 'string' ? new Date(data.child.seenAt) : data.child.seenAt;",
     '      }',
     '      break;',
     '    }',
@@ -1692,14 +1693,14 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(nodeStatements(acyclicMappedContext).join('\n')).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "wrapper": {',
         '      if (data.child.back != null) {',
         '        if (data.child.back.seenAt != null) {',
-        '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+        "          data.child.back.seenAt = typeof data.child.back.seenAt === 'string' ? new Date(data.child.back.seenAt) : data.child.back.seenAt;",
         '        }',
         '      }',
         '      break;',
@@ -1844,25 +1845,25 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     expect(outerStatements(acyclicMappedContext).join('\n')).toBe(
       [
         'if (data.oat != null) {',
-        '  data.oat = new Date(data.oat);',
+        "  data.oat = typeof data.oat === 'string' ? new Date(data.oat) : data.oat;",
         '}',
         'if (data.node != null) {',
         '  if (data.node.at != null) {',
-        '    data.node.at = new Date(data.node.at);',
+        "    data.node.at = typeof data.node.at === 'string' ? new Date(data.node.at) : data.node.at;",
         '  }',
         '  if (data.node.child != null) {',
         '    switch (data.node.child.kind) {',
         '      case "wrapper": {',
         '        if (data.node.child.back != null) {',
         '          if (data.node.child.back.seenAt != null) {',
-        '            data.node.child.back.seenAt = new Date(data.node.child.back.seenAt);',
+        "            data.node.child.back.seenAt = typeof data.node.child.back.seenAt === 'string' ? new Date(data.node.child.back.seenAt) : data.node.child.back.seenAt;",
         '          }',
         '        }',
         '        break;',
         '      }',
         '      case "plain": {',
         '        if (data.node.child.seenAt != null) {',
-        '          data.node.child.seenAt = new Date(data.node.child.seenAt);',
+        "          data.node.child.seenAt = typeof data.node.child.seenAt === 'string' ? new Date(data.node.child.seenAt) : data.node.child.seenAt;",
         '        }',
         '        break;',
         '      }',
@@ -1945,14 +1946,14 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     ).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "hybrid": {',
         '      if (data.child.back != null) {',
         '        if (data.child.back.seenAt != null) {',
-        '          data.child.back.seenAt = new Date(data.child.back.seenAt);',
+        "          data.child.back.seenAt = typeof data.child.back.seenAt === 'string' ? new Date(data.child.back.seenAt) : data.child.back.seenAt;",
         '        }',
         '      }',
         '      break;',
@@ -2032,9 +2033,11 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
         ]),
       ).join('\n'),
     ).toBe(
-      ['if (data.at != null) {', '  data.at = new Date(data.at);', '}'].join(
-        '\n',
-      ),
+      [
+        'if (data.at != null) {',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
+        '}',
+      ].join('\n'),
     );
 
     // The identical schema with `child` spelled as a mapped union: the array
@@ -2089,13 +2092,13 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     ).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "obj": {',
         '      if (data.child.seenAt != null) {',
-        '        data.child.seenAt = new Date(data.child.seenAt);',
+        "        data.child.seenAt = typeof data.child.seenAt === 'string' ? new Date(data.child.seenAt) : data.child.seenAt;",
         '      }',
         '      break;',
         '    }',
@@ -2104,7 +2107,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
         '        const item0 = data.child[i0]!;',
         '        if (item0.back != null) {',
         '          if (item0.back.pickedAt != null) {',
-        '            item0.back.pickedAt = new Date(item0.back.pickedAt);',
+        "            item0.back.pickedAt = typeof item0.back.pickedAt === 'string' ? new Date(item0.back.pickedAt) : item0.back.pickedAt;",
         '          }',
         '        }',
         '      }',
@@ -2187,11 +2190,11 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   const convertsNodeAndVariantProperty = [
     'if (data.at != null) {',
-    '  data.at = new Date(data.at);',
+    "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
     '}',
     'if (data.child != null) {',
     '  if ("p" in data.child && data.child.p != null) {',
-    '    data.child.p = new Date(data.child.p);',
+    "    data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
     '  }',
     '}',
   ].join('\n');
@@ -2234,22 +2237,22 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     ).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "v1": {',
         '      if (data.child.inherited != null) {',
-        '        data.child.inherited = new Date(data.child.inherited);',
+        "        data.child.inherited = typeof data.child.inherited === 'string' ? new Date(data.child.inherited) : data.child.inherited;",
         '      }',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
         '    case "v2": {',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
@@ -2306,22 +2309,22 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     ).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "v1": {',
         '      if ("inherited" in data.child && data.child.inherited != null) {',
-        '        data.child.inherited = new Date(data.child.inherited);',
+        "        data.child.inherited = typeof data.child.inherited === 'string' ? new Date(data.child.inherited) : data.child.inherited;",
         '      }',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
         '    case "v2": {',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
@@ -2366,19 +2369,19 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
     ).toBe(
       [
         'if (data.at != null) {',
-        '  data.at = new Date(data.at);',
+        "  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
         '}',
         'if (data.child != null) {',
         '  switch (data.child.kind) {',
         '    case "v1": {',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
         '    case "v2": {',
         '      if (data.child.p != null) {',
-        '        data.child.p = new Date(data.child.p);',
+        "        data.child.p = typeof data.child.p === 'string' ? new Date(data.child.p) : data.child.p;",
         '      }',
         '      break;',
         '    }',
@@ -2425,7 +2428,7 @@ describe('buildDateTransformStatements — undiscriminated unions', () => {
 
   const convertsRegisteredOn = [
     'if ("registeredOn" in data && data.registeredOn != null) {',
-    '  data.registeredOn = new Date(data.registeredOn);',
+    "  data.registeredOn = typeof data.registeredOn === 'string' ? new Date(data.registeredOn) : data.registeredOn;",
     '}',
   ].join('\n');
 
@@ -2572,7 +2575,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
         context: makeContext(),
       }),
     ).toEqual([
-      '(data as { -readonly [K in keyof typeof data]: (typeof data)[K] }).createdAt = new Date(data.createdAt);',
+      "(data as { -readonly [K in keyof typeof data]: (typeof data)[K] }).createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;",
     ]);
   });
 
@@ -2597,7 +2600,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
       '  const item0 = data[i0]!;',
-      '  (item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }).createdAt = new Date(item0.createdAt);',
+      "  (item0 as { -readonly [K in keyof typeof item0]: (typeof item0)[K] }).createdAt = typeof item0.createdAt === 'string' ? new Date(item0.createdAt) : item0.createdAt;",
       '}',
     ]);
   });
@@ -2618,7 +2621,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]!);',
+      "  data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
       '}',
     ]);
   });
@@ -2644,7 +2647,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
     ).toEqual([
       'switch (data.petType) {',
       '  case "cat": {',
-      '    data.vaccinatedAt = new Date(data.vaccinatedAt);',
+      "    data.vaccinatedAt = typeof data.vaccinatedAt === 'string' ? new Date(data.vaccinatedAt) : data.vaccinatedAt;",
       '    break;',
       '  }',
       '}',
@@ -2708,7 +2711,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       'switch (data.kind) {',
       '  case "b": {',
       '    if (data.shared != null) {',
-      '      data.shared.updatedAt = new Date(data.shared.updatedAt);',
+      "      data.shared.updatedAt = typeof data.shared.updatedAt === 'string' ? new Date(data.shared.updatedAt) : data.shared.updatedAt;",
       '    }',
       '    break;',
       '  }',
@@ -2794,7 +2797,9 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
-    ).toEqual(['data.generatedAt = new Date(data.generatedAt);']);
+    ).toEqual([
+      "data.generatedAt = typeof data.generatedAt === 'string' ? new Date(data.generatedAt) : data.generatedAt;",
+    ]);
   });
 
   it('emits nothing for mutually recursive schemas', () => {
@@ -2842,7 +2847,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       }),
     ).toEqual([
       'if (data.deletedAt != null) {',
-      '  data.deletedAt = new Date(data.deletedAt);',
+      "  data.deletedAt = typeof data.deletedAt === 'string' ? new Date(data.deletedAt) : data.deletedAt;",
       '}',
     ]);
   });
@@ -2869,7 +2874,7 @@ describe('buildDateTransformStatements — schema shapes from real-world specs',
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
       'if (data.audit != null) {',
-      '  data.audit.updatedAt = new Date(data.audit.updatedAt);',
+      "  data.audit.updatedAt = typeof data.audit.updatedAt === 'string' ? new Date(data.audit.updatedAt) : data.audit.updatedAt;",
       '}',
     ]);
   });
@@ -2921,7 +2926,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.days != null) {',
       '  for (const key0 of Object.keys(data.days)) {',
-      '    data.days[key0] = new Date(data.days[key0]!);',
+      "    data.days[key0] = typeof data.days[key0]! === 'string' ? new Date(data.days[key0]!) : data.days[key0]!;",
       '  }',
       '}',
     ]);
@@ -2955,7 +2960,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       'if (data.fills != null) {',
       '  for (const key0 of Object.keys(data.fills)) {',
       '    const item0 = data.fills[key0]!;',
-      '    item0.recordedOn = new Date(item0.recordedOn);',
+      "    item0.recordedOn = typeof item0.recordedOn === 'string' ? new Date(item0.recordedOn) : item0.recordedOn;",
       '  }',
       '}',
     ]);
@@ -3006,12 +3011,12 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '    const item0 = data.pets[key0]!;',
       '    switch (item0.petType) {',
       '      case "cat": {',
-      '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+      "        item0.vaccinatedAt = typeof item0.vaccinatedAt === 'string' ? new Date(item0.vaccinatedAt) : item0.vaccinatedAt;",
       '        break;',
       '      }',
       '      case "dog": {',
       '        if (item0.adoptedAt != null) {',
-      '          item0.adoptedAt = new Date(item0.adoptedAt);',
+      "          item0.adoptedAt = typeof item0.adoptedAt === 'string' ? new Date(item0.adoptedAt) : item0.adoptedAt;",
       '        }',
       '        break;',
       '      }',
@@ -3059,10 +3064,10 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '  for (const key0 of Object.keys(data.pets)) {',
       '    const item0 = data.pets[key0]!;',
       '    if ("at" in item0 && item0.at != null) {',
-      '      item0.at = new Date(item0.at);',
+      "      item0.at = typeof item0.at === 'string' ? new Date(item0.at) : item0.at;",
       '    }',
       '    if ("on" in item0 && item0.on != null) {',
-      '      item0.on = new Date(item0.on);',
+      "      item0.on = typeof item0.on === 'string' ? new Date(item0.on) : item0.on;",
       '    }',
       '  }',
       '}',
@@ -3099,7 +3104,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'switch (data.type) {',
       '  case "a": {',
-      '    data.at = new Date(data.at);',
+      "    data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
       '    break;',
       '  }',
       '}',
@@ -3129,7 +3134,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'switch (data.type) {',
       '  case "a": {',
-      '    data.at = new Date(data.at);',
+      "    data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;",
       '    break;',
       '  }',
       '}',
@@ -3168,7 +3173,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '  case "cat": {',
       '    if (data.fills != null) {',
       '      for (const key0 of Object.keys(data.fills)) {',
-      '        data.fills[key0] = new Date(data.fills[key0]!);',
+      "        data.fills[key0] = typeof data.fills[key0]! === 'string' ? new Date(data.fills[key0]!) : data.fills[key0]!;",
       '      }',
       '    }',
       '    break;',
@@ -3205,7 +3210,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.labels != null) {',
       '  for (const key0 of Object.keys(data.labels)) {',
-      '    data.labels[key0] = new Date(data.labels[key0]!);',
+      "    data.labels[key0] = typeof data.labels[key0]! === 'string' ? new Date(data.labels[key0]!) : data.labels[key0]!;",
       '  }',
       '}',
     ]);
@@ -3225,7 +3230,9 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
         accessor: 'data',
         context: makeContext(),
       }),
-    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+    ).toEqual([
+      "data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;",
+    ]);
   });
 
   it('emits nothing for additionalProperties: true or additionalProperties: false (Rule 2)', () => {
@@ -3269,7 +3276,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       'if (data.labels != null) {',
       '  for (const key0 of Object.keys(data.labels)) {',
       '    if (data.labels[key0] != null) {',
-      '      data.labels[key0] = new Date(data.labels[key0]!);',
+      "      data.labels[key0] = typeof data.labels[key0]! === 'string' ? new Date(data.labels[key0]!) : data.labels[key0]!;",
       '    }',
       '  }',
       '}',
@@ -3324,7 +3331,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '    for (let i1 = 0; i1 < item0.length; i1++) {',
       '      const item1 = item0[i1]!;',
       '      for (const key2 of Object.keys(item1)) {',
-      '        item1[key2] = new Date(item1[key2]!);',
+      "        item1[key2] = typeof item1[key2]! === 'string' ? new Date(item1[key2]!) : item1[key2]!;",
       '      }',
       '    }',
       '  }',
@@ -3366,7 +3373,9 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
-    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+    ).toEqual([
+      "data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;",
+    ]);
   });
 
   it('suppresses the map when additionalProperties sits beside an allOf whose branch declares properties', () => {
@@ -3390,7 +3399,9 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
 
     expect(
       buildDateTransformStatements({ schema, accessor: 'data', context }),
-    ).toEqual(['data.createdAt = new Date(data.createdAt);']);
+    ).toEqual([
+      "data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;",
+    ]);
   });
 
   it('still walks the map when allOf branches declare no properties of their own', () => {
@@ -3409,7 +3420,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       buildDateTransformStatements({ schema, accessor: 'data', context }),
     ).toEqual([
       'for (const key0 of Object.keys(data)) {',
-      '  data[key0] = new Date(data[key0]!);',
+      "  data[key0] = typeof data[key0]! === 'string' ? new Date(data[key0]!) : data[key0]!;",
       '}',
     ]);
   });
@@ -3499,7 +3510,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.ids != null) {',
       '  for (const key0 of Object.keys(data.ids)) {',
-      '    data.ids[key0] = new Date(data.ids[key0]!);',
+      "    data.ids[key0] = typeof data.ids[key0]! === 'string' ? new Date(data.ids[key0]!) : data.ids[key0]!;",
       '  }',
       '}',
     ]);
@@ -3527,7 +3538,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.headers != null) {',
       '  for (const key0 of Object.keys(data.headers)) {',
-      '    data.headers[key0] = new Date(data.headers[key0]!);',
+      "    data.headers[key0] = typeof data.headers[key0]! === 'string' ? new Date(data.headers[key0]!) : data.headers[key0]!;",
       '  }',
       '}',
     ]);
@@ -3593,7 +3604,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       '    const item0 = data.pets[key0]!;',
       '    switch (item0.petType) {',
       '      case "dog": {',
-      '        item0.vaccinatedAt = new Date(item0.vaccinatedAt);',
+      "        item0.vaccinatedAt = typeof item0.vaccinatedAt === 'string' ? new Date(item0.vaccinatedAt) : item0.vaccinatedAt;",
       '        break;',
       '      }',
       '    }',
@@ -3622,7 +3633,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]!);',
+      "  data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
       '}',
     ]);
   });
@@ -3648,7 +3659,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]!);',
+      "  data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
       '}',
     ]);
   });
@@ -3729,7 +3740,7 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
     ).toEqual([
       'if (data.pets != null) {',
       '  for (const key0 of Object.keys(data.pets)) {',
-      '    data.pets[key0] = new Date(data.pets[key0]!);',
+      "    data.pets[key0] = typeof data.pets[key0]! === 'string' ? new Date(data.pets[key0]!) : data.pets[key0]!;",
       '  }',
       '}',
     ]);
@@ -3778,6 +3789,15 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
   });
 });
 
+const shadowingParam = (name: string) => ({
+  name,
+  definition: `${name}: string`,
+  implementation: `${name}: string`,
+  default: false,
+  required: true,
+  type: GetterPropType.PARAM,
+});
+
 describe('generateResponseDateDeserializer', () => {
   const datedSchema: OpenApiSchemaObject = {
     type: 'object',
@@ -3798,10 +3818,26 @@ describe('generateResponseDateDeserializer', () => {
     expect(result?.implementation).toBe(
       `const deserializeGetPetResponse = (data: Pet): Pet => {
   if (data == null) return data;
-  data.createdAt = new Date(data.createdAt);
+  data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;
   return data;
 };
 `,
+    );
+  });
+
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateResponseDateDeserializer({
+      operationName: 'getPet',
+      response: makeResponse({
+        successTypes: [{ originalSchema: datedSchema }],
+      }),
+      context: makeContext(),
+      props: [shadowingParam('deserializeGetPetResponse')],
+    });
+
+    expect(result?.name).toBe('deserializeGetPetResponse2');
+    expect(result?.implementation).toMatch(
+      /^const deserializeGetPetResponse2 = /,
     );
   });
 
@@ -3923,6 +3959,58 @@ describe('generateResponseDateDeserializer', () => {
       }),
     ).toBeUndefined();
   });
+});
+
+describe('generateResponseDateDeserializer — values that are not strings', () => {
+  const dateTime: OpenApiSchemaObject = { type: 'string', format: 'date-time' };
+  const iso = '2026-01-01T00:00:00.000Z';
+  const deserialize = (schema: OpenApiSchemaObject, data: unknown) => {
+    const result = generateResponseDateDeserializer({
+      operationName: 'getEvent',
+      response: makeResponse({
+        successTypes: [{ originalSchema: schema, isRef: false }],
+      }),
+      context: makeContext(),
+    });
+    const fn = vm.runInThisContext(
+      // oxlint-disable-next-line typescript/no-non-null-assertion
+      `(() => {\n${toRunnableJs(result!.implementation)}\nreturn ${result!.name};\n})()`,
+    ) as (data: unknown) => unknown;
+    return fn(data);
+  };
+
+  it.each([null, 0])(
+    'leaves %s as it is at every position and converts a string',
+    (value) => {
+      expect(
+        deserialize(
+          {
+            type: 'object',
+            required: ['at', 'list', 'byKey'],
+            properties: {
+              at: dateTime,
+              optionalAt: dateTime,
+              list: { type: 'array', items: dateTime },
+              byKey: { type: 'object', additionalProperties: dateTime },
+            },
+          },
+          {
+            at: value,
+            optionalAt: value,
+            list: [value, iso],
+            byKey: { a: value, b: iso },
+          },
+        ),
+      ).toEqual({
+        at: value,
+        optionalAt: value,
+        list: [value, new Date(iso)],
+        byKey: { a: value, b: new Date(iso) },
+      });
+      expect(deserialize(dateTime, value)).toBe(value);
+      expect(deserialize(dateTime, iso)).toEqual(new Date(iso));
+    },
+  );
 });
 
 describe('buildRequestDateSerializeStatements', () => {
@@ -4207,7 +4295,9 @@ describe('buildRequestDateSerializeStatements', () => {
         accessor: 'data',
         context: makeContext(),
       }).join('\n'),
-    ).toBe('data.day = new Date(data.day);');
+    ).toBe(
+      "data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;",
+    );
   });
 
   it('skips a readOnly date-only property, converting only the writable sibling', () => {
@@ -4474,10 +4564,10 @@ describe('buildRequestDateSerializeStatements', () => {
       }),
     ).toEqual([
       'for (let i0 = 0; i0 < data.length; i0++) {',
-      '  data[i0] = new Date(data[i0]!);',
+      "  data[i0] = typeof data[i0]! === 'string' ? new Date(data[i0]!) : data[i0]!;",
       '}',
       'if (data.count != null) {',
-      '  data.count = new Date(data.count);',
+      "  data.count = typeof data.count === 'string' ? new Date(data.count) : data.count;",
       '}',
     ]);
   });
@@ -5447,6 +5537,96 @@ const makeJsonBody = (
   }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
+  it('wraps a body that is itself a date when asked, so it stays a JSON string', () => {
+    const day = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody({ type: ['string', 'null'], format: 'date' }, 'Date'),
+      context: makeContext(),
+      wrapValueBody: true,
+    });
+    const item = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+      wrapValueBody: true,
+    });
+
+    expect(day?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Date;',
+    );
+    expect(item?.implementation).toContain('return copy;');
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = day!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
+  it('wraps a date body reached through allOf', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody(
+        { allOf: [{ $ref: '#/components/schemas/Day' }] },
+        'Day',
+      ),
+      context: makeContext({ Day: { type: 'string', format: 'date' } }),
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Day;',
+    );
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = result!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
+  it('encodes and wraps a body that is itself a formatType value', () => {
+    const context = makeContext();
+    context.output.override.formatType = {
+      money: { type: 'Money', encode: 'formatMoney' },
+    };
+    const result = generateRequestDateSerializer({
+      operationName: 'putPrice',
+      body: makeJsonBody({ type: 'string', format: 'money' }, 'Money'),
+      context,
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      "copy = typeof copy === 'string' ? copy : (formatMoney(copy) as unknown as typeof copy);",
+    );
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Money;',
+    );
+  });
+
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+      props: [
+        shadowingParam('serializePutItemRequest'),
+        shadowingParam('serializePutItemRequest2'),
+      ],
+    });
+
+    expect(result?.name).toBe('serializePutItemRequest3');
+  });
+
   it('generates a copying serializer for a date-only body field', () => {
     const result = generateRequestDateSerializer({
       operationName: 'putItem',
@@ -5833,9 +6013,9 @@ describe('review comment fixes — allOf array/object conflicts and required con
       [
         'if (data.x != null) {',
         '  for (let i0 = 0; i0 < data.x.length; i0++) {',
-        '    data.x[i0] = new Date(data.x[i0]!);',
+        "    data.x[i0] = typeof data.x[i0]! === 'string' ? new Date(data.x[i0]!) : data.x[i0]!;",
         '  }',
-        '  data.x.d = new Date(data.x.d);',
+        "  data.x.d = typeof data.x.d === 'string' ? new Date(data.x.d) : data.x.d;",
         '}',
       ].join('\n'),
     );
@@ -5964,7 +6144,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
       }),
     ).toEqual([
       'if (data.nested != null) {',
-      '  data.nested.day = new Date(data.nested.day);',
+      "  data.nested.day = typeof data.nested.day === 'string' ? new Date(data.nested.day) : data.nested.day;",
       '}',
     ]);
 
@@ -5985,7 +6165,7 @@ describe('review comment fixes — allOf array/object conflicts and required con
     ).toEqual([
       'if (data.days != null) {',
       '  for (let i0 = 0; i0 < data.days.length; i0++) {',
-      '    data.days[i0] = new Date(data.days[i0]!);',
+      "    data.days[i0] = typeof data.days[i0]! === 'string' ? new Date(data.days[i0]!) : data.days[i0]!;",
       '  }',
       '}',
     ]);
@@ -6115,7 +6295,7 @@ describe('additionalProperties maps beside an empty `properties: {}`', () => {
     ).toEqual([
       'if (data.m != null) {',
       '  for (const key0 of Object.keys(data.m)) {',
-      '    data.m[key0] = new Date(data.m[key0]!);',
+      "    data.m[key0] = typeof data.m[key0]! === 'string' ? new Date(data.m[key0]!) : data.m[key0]!;",
       '  }',
       '}',
     ]);
@@ -6170,7 +6350,7 @@ describe('response direction — required container guards', () => {
   // a TypeError inside the generated deserializer, before the caller could
   // handle it. Containers are now guarded the same as the request
   // direction; a required *date leaf* stays unguarded either way, since
-  // `new Date(undefined)` degrades to `Invalid Date` instead of throwing.
+  // it converts only a string and leaves `undefined` as it is.
   it('guards a response-side required object property containing a date', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -6192,7 +6372,7 @@ describe('response direction — required container guards', () => {
       }),
     ).toEqual([
       'if (data.a != null) {',
-      '  data.a.day = new Date(data.a.day);',
+      "  data.a.day = typeof data.a.day === 'string' ? new Date(data.a.day) : data.a.day;",
       '}',
     ]);
   });
@@ -6223,7 +6403,7 @@ describe('response direction — required container guards', () => {
       'if (data.slots != null) {',
       '  for (let i0 = 0; i0 < data.slots.length; i0++) {',
       '    const item0 = data.slots[i0]!;',
-      '    item0.start = new Date(item0.start);',
+      "    item0.start = typeof item0.start === 'string' ? new Date(item0.start) : item0.start;",
       '  }',
       '}',
     ]);
@@ -6276,12 +6456,12 @@ describe('response direction — required container guards', () => {
         'if (data.pet != null) {',
         '  switch (data.pet.petType) {',
         '    case "cat": {',
-        '      data.pet.vaccinatedAt = new Date(data.pet.vaccinatedAt);',
+        "      data.pet.vaccinatedAt = typeof data.pet.vaccinatedAt === 'string' ? new Date(data.pet.vaccinatedAt) : data.pet.vaccinatedAt;",
         '      break;',
         '    }',
         '    case "dog": {',
         '      if (data.pet.adoptedAt != null) {',
-        '        data.pet.adoptedAt = new Date(data.pet.adoptedAt);',
+        "        data.pet.adoptedAt = typeof data.pet.adoptedAt === 'string' ? new Date(data.pet.adoptedAt) : data.pet.adoptedAt;",
         '      }',
         '      break;',
         '    }',
@@ -6304,7 +6484,9 @@ describe('response direction — required container guards', () => {
         accessor: 'data',
         context: makeContext(),
       }),
-    ).toEqual(['data.day = new Date(data.day);']);
+    ).toEqual([
+      "data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;",
+    ]);
   });
 
   it('executes the guarded deserializer at runtime without throwing when required containers are omitted', () => {
@@ -6370,7 +6552,9 @@ describe('buildDateTransformStatements — property guards are unchanged', () =>
       context,
     });
 
-    expect(statements.join('\n')).toBe('data.seenOn = new Date(data.seenOn);');
+    expect(statements.join('\n')).toBe(
+      "data.seenOn = typeof data.seenOn === 'string' ? new Date(data.seenOn) : data.seenOn;",
+    );
   });
 
   it('guards an optional date leaf on null only', () => {
@@ -6387,7 +6571,7 @@ describe('buildDateTransformStatements — property guards are unchanged', () =>
     expect(statements.join('\n')).toBe(
       [
         'if (data.seenOn != null) {',
-        '  data.seenOn = new Date(data.seenOn);',
+        "  data.seenOn = typeof data.seenOn === 'string' ? new Date(data.seenOn) : data.seenOn;",
         '}',
       ].join('\n'),
     );
@@ -6446,7 +6630,7 @@ describe('formatType values', () => {
   it('converts a `Date` mapping like useDates and leaves enums alone', () => {
     expect(
       deserialize(dateTime, contextWith({ 'date-time': { type: 'Date' } })),
-    ).toBe('data = new Date(data);');
+    ).toBe("data = typeof data === 'string' ? new Date(data) : data;");
     expect(deserialize({ ...dateTime, enum: ['2025-01-01T00:00:00Z'] })).toBe(
       '',
     );
@@ -6477,7 +6661,9 @@ describe('formatType values', () => {
         day: { type: 'string', format: 'date' },
       },
     };
-    expect(deserialize(schema, context)).toBe('data.day = new Date(data.day);');
+    expect(deserialize(schema, context)).toBe(
+      "data.day = typeof data.day === 'string' ? new Date(data.day) : data.day;",
+    );
     expect(serialize(schema, context)).toBe(
       'copy.day = copy.day instanceof Date ? (copy.day.toISOString().slice(0, 10) as unknown as Date) : copy.day;',
     );
@@ -6820,8 +7006,8 @@ describe('recursive schemas', () => {
   if (data == null) return data;
   type Node = NonNullable<NonNullable<Report>["root"]>;
   const convertNode = (data: Node): Node => {
-    data.createdAt = new Date(data.createdAt);
-    data.createdOn = new Date(data.createdOn);
+    data.createdAt = typeof data.createdAt === 'string' ? new Date(data.createdAt) : data.createdAt;
+    data.createdOn = typeof data.createdOn === 'string' ? new Date(data.createdOn) : data.createdOn;
     if (data.children != null) {
       for (let i0 = 0; i0 < data.children.length; i0++) {
         const item0 = data.children[i0]!;
@@ -6830,7 +7016,7 @@ describe('recursive schemas', () => {
     }
     return data;
   };
-  data.at = new Date(data.at);
+  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;
   if (data.root != null) {
     convertNode(data.root);
   }
@@ -6962,7 +7148,7 @@ describe('recursive schemas', () => {
   };
   const convertOwner = (data: Owner): Owner => {
     if (data.since != null) {
-      data.since = new Date(data.since);
+      data.since = typeof data.since === 'string' ? new Date(data.since) : data.since;
     }
     if (data.home != null) {
       convertFolder(data.home);
@@ -7022,7 +7208,7 @@ describe('recursive schemas', () => {
     expect(generate()?.implementation).toBe(
       `const deserializeGetReportResponse = (data: Report): Report => {
   if (data == null) return data;
-  data.at = new Date(data.at);
+  data.at = typeof data.at === 'string' ? new Date(data.at) : data.at;
   return data;
 };
 `,

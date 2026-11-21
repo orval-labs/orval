@@ -1,5 +1,44 @@
 import { defineConfig } from 'orval';
 
+// `useDatesTransform` in a mode that splits the output across files. The
+// `encode` import path is written for the target's directory.
+const datesTransformMode = (
+  mode: 'split' | 'tags' | 'tags-split',
+  retrievalClient: 'httpResource' | 'both',
+) => {
+  const name = `dates-transform-${mode}-${retrievalClient === 'both' ? 'both' : 'http-resource'}`;
+  return {
+    output: {
+      mode,
+      target: `../generated/angular/${name}/endpoints.ts`,
+      schemas: `../generated/angular/${name}/model`,
+      client: 'angular' as const,
+      override: {
+        angular: { retrievalClient },
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+            decode: 'dayjs',
+            decodeImport: { name: 'dayjs', importPath: 'dayjs', default: true },
+            encode: 'encodeDayjs',
+            encodeImport: {
+              name: 'encodeDayjs',
+              importPath: '../../../mutators/dayjs-encode',
+            },
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier' as const,
+    },
+    input: {
+      target: '../specifications/angular-dates-transform-tags.yaml',
+    },
+  };
+};
+
 export default defineConfig({
   logLevel: 'error',
   petstore: {
@@ -39,6 +78,89 @@ export default defineConfig({
       target: '../specifications/date-type.yaml',
     },
   },
+  // `date` converts to `Date`, the mapped `date-time` through `formatType`.
+  datesTransform: {
+    output: {
+      target: '../generated/angular/dates-transform/endpoints.ts',
+      schemas: '../generated/angular/dates-transform/model',
+      client: 'angular',
+      override: {
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  datesTransformHttpResource: {
+    output: {
+      target: '../generated/angular/dates-transform-http-resource/endpoints.ts',
+      schemas: '../generated/angular/dates-transform-http-resource/model',
+      client: 'angular',
+      override: {
+        angular: { retrievalClient: 'httpResource' },
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  // The Zod schemas decode the mapped `date-time` themselves; `date` converts
+  // to `Date` before `zod.date()` validates it.
+  datesTransformZod: {
+    output: {
+      target: '../generated/angular/dates-transform-zod/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/dates-transform-zod/model',
+      },
+      client: 'angular',
+      override: {
+        angular: { retrievalClient: 'both', runtimeValidation: true },
+        useDatesTransform: true,
+        formatType: {
+          'date-time': {
+            type: 'Temporal.Instant',
+            decode: 'Temporal.Instant.from',
+            encode: 'String',
+          },
+        },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/date-type.yaml',
+    },
+  },
+  datesTransformSplitHttpResource: datesTransformMode('split', 'httpResource'),
+  datesTransformSplitBoth: datesTransformMode('split', 'both'),
+  datesTransformTagsHttpResource: datesTransformMode('tags', 'httpResource'),
+  datesTransformTagsBoth: datesTransformMode('tags', 'both'),
+  datesTransformTagsSplitHttpResource: datesTransformMode(
+    'tags-split',
+    'httpResource',
+  ),
+  datesTransformTagsSplitBoth: datesTransformMode('tags-split', 'both'),
   formatTypeZodCodec: {
     output: {
       target: '../generated/angular/format-type-zod-codec/endpoints.ts',

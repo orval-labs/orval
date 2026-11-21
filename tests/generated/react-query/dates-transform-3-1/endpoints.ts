@@ -53,12 +53,21 @@ const deserializeGetSubscriptionResponse = (
   data: Subscription,
 ): Subscription => {
   if (data == null) return data;
-  data.startedAt = new Date(data.startedAt);
+  data.startedAt =
+    typeof data.startedAt === 'string'
+      ? new Date(data.startedAt)
+      : data.startedAt;
   if (data.cancelledAt != null) {
-    data.cancelledAt = new Date(data.cancelledAt);
+    data.cancelledAt =
+      typeof data.cancelledAt === 'string'
+        ? new Date(data.cancelledAt)
+        : data.cancelledAt;
   }
   if (data.audit != null) {
-    data.audit.updatedAt = new Date(data.audit.updatedAt);
+    data.audit.updatedAt =
+      typeof data.audit.updatedAt === 'string'
+        ? new Date(data.audit.updatedAt)
+        : data.audit.updatedAt;
   }
   return data;
 };

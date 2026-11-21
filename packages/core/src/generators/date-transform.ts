@@ -17,6 +17,7 @@ import type {
   ContextSpec,
   GetterBody,
   GetterParameters,
+  GetterProps,
   GetterQueryParam,
   GetterResponse,
   OpenApiNonBooleanSchemaObject,
@@ -24,7 +25,13 @@ import type {
   OpenApiRequestBodyObject,
   OpenApiSchemaObject,
 } from '../types';
-import { isInlineSchema, logger, pascal, toObjectSchema } from '../utils';
+import {
+  getUniqueName,
+  isInlineSchema,
+  logger,
+  pascal,
+  toObjectSchema,
+} from '../utils';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
@@ -842,17 +849,16 @@ const buildResolvedStatements = ({
  * such elements must be written back through the array or map slot (a
  * hoisted `const` would make the generated assignment reassign a const); and
  * the shared property builder (both directions), where it distinguishes a
- * required date leaf (unguarded — a response's `new Date(undefined)` degrades
- * to `Invalid Date` rather than throwing, and a request's
- * `instanceof Date` or `formatType` encode passes it through) from a required
- * container (object copy or shallow mutation, array `.map` or in-place loop,
- * map copy or key loop, or union dispatch), which must be null-guarded in
- * both directions so an omitted container isn't turned into `{}`, thrown on,
- * or dereferenced before the caller can handle it. Every use asks the same
- * question — "does this write straight to the accessor, or into something
- * reached through it?" — regardless of which formats a given direction
- * converts, so it checks the format directly rather than taking a `mode`
- * parameter.
+ * required date leaf (unguarded — a response's `typeof x === 'string'` check
+ * leaves `undefined` as it is, and a request's `instanceof Date` or
+ * `formatType` encode passes it through) from a required container (object
+ * copy or shallow mutation, array `.map` or in-place loop, map copy or key
+ * loop, or union dispatch), which must be null-guarded in both directions so
+ * an omitted container isn't turned into `{}`, thrown on, or dereferenced
+ * before the caller can handle it. Every use asks the same question — "does
+ * this write straight to the accessor, or into something reached through
+ * it?" — regardless of which formats a given direction converts, so it
+ * checks the format directly rather than taking a `mode` parameter.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
@@ -1147,9 +1153,16 @@ const responseMode: DateTransformMode = {
   isLeaf: (schema, context) =>
     isDateTypedSchema(schema, context) ||
     getModelFormatType(schema, context) !== undefined,
+  // Only a string is converted. Anything else is left as it is: a value
+  // converted already (an accessor reached twice, see
+  // `serializeLeafStatement`), and a `null` or number the schema doesn't
+  // allow, which `new Date()` would turn into a valid `Date` that hides it
+  // from validation.
   leafStatement: (read, write, schema, context) => {
     const formatType = getModelFormatType(schema, context);
-    if (!formatType) return `${write} = new Date(${read});`;
+    if (!formatType) {
+      return `${write} = typeof ${read} === 'string' ? new Date(${read}) : ${read};`;
+    }
     if (!formatType.decode) {
       throw getFormatTypeError(
         (schema as OpenApiNonBooleanSchemaObject).format,
@@ -1157,9 +1170,7 @@ const responseMode: DateTransformMode = {
         '`useDatesTransform` needs `decode`',
       );
     }
-    // The value is typed as the mapped type already, hence the cast. The check
-    // leaves one decoded already (an accessor reached twice, see
-    // `serializeLeafStatement`) as it is.
+    // The value is typed as the mapped type already, hence the cast.
     return `${write} = typeof ${read} === 'string' ? ${callFormatTypeFunction(formatType.decode, `${read} as unknown as string`)} : ${read};`;
   },
   objectPrelude: () => [],
@@ -1925,10 +1936,10 @@ const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
  * Guarded on `instanceof Date`: the same accessor can be reached twice (an
  * `allOf` branch re-declaring a property its base already declares, or a
  * discriminated-union variant re-declaring one its parent schema's own
- * `properties` also converts), and unlike the response leaf's `new Date(...)`
- * — a clone, harmless to repeat — this conversion produces a string. Running
+ * `properties` also converts), and this conversion produces a string. Running
  * it twice without the guard would call `.toISOString()` on that string and
- * throw at runtime. The guard makes a second pass a no-op instead.
+ * throw at runtime. The guard makes a second pass a no-op instead, like the
+ * response leaf's `typeof` check.
  */
 const serializeLeafStatement = (read: string, write: string): string =>
   `${write} = ${read} instanceof Date ? (${read}.toISOString().slice(0, 10) as unknown as Date) : ${read};`;
@@ -2458,6 +2469,28 @@ const resolveJsonBodySchema = (
   return jsonEntries[0][1].schema;
 };
 
+/**
+ * The names of an operation's date helpers. A parameter of the operation
+ * function would shadow a helper of the same name where the function calls
+ * it, so such a name is numbered past the parameters in `props`.
+ */
+export const getDateHelperNames = (
+  operationName: string,
+  props: GetterProps = [],
+) => {
+  const parameterNames = new Set(props.map(({ name }) => name));
+  return {
+    deserializer: getUniqueName(
+      `deserialize${pascal(operationName)}Response`,
+      parameterNames,
+    ),
+    serializer: getUniqueName(
+      `serialize${pascal(operationName)}Request`,
+      parameterNames,
+    ),
+  };
+};
+
 export interface GeneratedDateSerializer {
   name: string;
   implementation: string;
@@ -2482,10 +2515,21 @@ export const generateRequestDateSerializer = ({
   operationName,
   body,
   context,
+  props,
+  wrapValueBody = false,
 }: {
   operationName: string;
   body: GetterBody;
   context: ContextSpec;
+  /** See {@link getDateHelperNames}. */
+  props?: GetterProps;
+  /**
+   * For a client that sends a string body as it is rather than as JSON, such
+   * as Angular's `HttpClient`: a body that is itself a converted value is
+   * returned in an object whose `toJSON` gives the value, so the client still
+   * sends it as a JSON string.
+   */
+  wrapValueBody?: boolean;
 }): GeneratedDateSerializer | undefined => {
   if (body.isBlob || !body.definition || !body.implementation) return undefined;
 
@@ -2517,6 +2561,10 @@ export const generateRequestDateSerializer = ({
     );
   }
 
+  const bodyContext = isInlineSchema(body.originalSchema)
+    ? getUnnamedValueContext(context)
+    : context;
+
   const dataType = body.definition;
 
   // A body type carrying any readOnly property is emitted as `NonReadonly<T>`,
@@ -2528,7 +2576,15 @@ export const generateRequestDateSerializer = ({
   // `NonReadonly` dropped.
   const modelType = /^NonReadonly<(.+)>$/s.exec(dataType)?.[1];
   const workingType = modelType ? ` as unknown as ${modelType}` : '';
-  const returnValue = modelType ? `copy as unknown as ${dataType}` : 'copy';
+  const isObjectShaped = needsObjectCopy(schema, context);
+  // A root that is neither object- nor array-shaped is a value the walk
+  // converted, directly or through an `allOf` branch.
+  const returnValue =
+    wrapValueBody && !isObjectShaped && !isArrayShaped(schema, context)
+      ? `{ toJSON: () => copy } as unknown as ${dataType}`
+      : modelType
+        ? `copy as unknown as ${dataType}`
+        : 'copy';
 
   const { result, declarations } = buildWithRecursion(
     requestMode,
@@ -2542,9 +2598,7 @@ export const generateRequestDateSerializer = ({
       buildStatements({
         schema,
         accessor: 'copy',
-        context: isInlineSchema(body.originalSchema)
-          ? getUnnamedValueContext(context)
-          : context,
+        context: bodyContext,
         visitedRefs: new Set(),
         depth: 0,
         mode,
@@ -2559,7 +2613,7 @@ export const generateRequestDateSerializer = ({
   // value themselves, and spreading any of them would be wrong.
   const declaration = copyDeclaration(schema, context, result, workingType);
 
-  const name = `serialize${pascal(operationName)}Request`;
+  const name = getDateHelperNames(operationName, props).serializer;
 
   // An operation prop generated from a `requestBody` that isn't `required: true`
   // (the OpenAPI default) is typed `T | undefined` at the call site
@@ -2595,10 +2649,13 @@ export const generateResponseDateDeserializer = ({
   operationName,
   response,
   context,
+  props,
 }: {
   operationName: string;
   response: GetterResponse;
   context: ContextSpec;
+  /** See {@link getDateHelperNames}. */
+  props?: GetterProps;
 }): GeneratedDateDeserializer | undefined => {
   if (response.isBlob) return undefined;
 
@@ -2641,7 +2698,7 @@ export const generateResponseDateDeserializer = ({
   );
   if (result.statements.length === 0) return undefined;
 
-  const name = `deserialize${pascal(operationName)}Response`;
+  const name = getDateHelperNames(operationName, props).deserializer;
   const implementation = `const ${name} = (data: ${dataType}): ${dataType} => {
   if (data == null) return data;
 ${indent([...declarations.flatMap((it) => it.split('\n')), ...result.statements]).join('\n')}
