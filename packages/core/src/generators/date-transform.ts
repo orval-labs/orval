@@ -530,17 +530,16 @@ const buildResolvedStatements = ({
  * such elements must be written back through the array or map slot (a
  * hoisted `const` would make the generated assignment reassign a const); and
  * the shared property builder (both directions), where it distinguishes a
- * required date leaf (unguarded — a response's `new Date(undefined)` degrades
- * to `Invalid Date` rather than throwing, and a request's
- * `instanceof Date` or `formatType` encode passes it through) from a required
- * container (object copy or shallow mutation, array `.map` or in-place loop,
- * map copy or key loop, or union dispatch), which must be null-guarded in
- * both directions so an omitted container isn't turned into `{}`, thrown on,
- * or dereferenced before the caller can handle it. Every use asks the same
- * question — "does this write straight to the accessor, or into something
- * reached through it?" — regardless of which formats a given direction
- * converts, so it checks the format directly rather than taking a `mode`
- * parameter.
+ * required date leaf (unguarded — a response's `typeof x === 'string'` check
+ * leaves `undefined` as it is, and a request's `instanceof Date` or
+ * `formatType` encode passes it through) from a required container (object
+ * copy or shallow mutation, array `.map` or in-place loop, map copy or key
+ * loop, or union dispatch), which must be null-guarded in both directions so
+ * an omitted container isn't turned into `{}`, thrown on, or dereferenced
+ * before the caller can handle it. Every use asks the same question — "does
+ * this write straight to the accessor, or into something reached through
+ * it?" — regardless of which formats a given direction converts, so it
+ * checks the format directly rather than taking a `mode` parameter.
  */
 const writesToAccessorItself = (
   schemaOrRef: SchemaOrRef,
@@ -798,9 +797,16 @@ const responseMode: DateTransformMode = {
   isLeaf: (schema, context) =>
     isDateTypedSchema(schema, context) ||
     getModelFormatType(schema, context) !== undefined,
+  // Only a string is converted. Anything else is left as it is: a value
+  // converted already (an accessor reached twice, see
+  // `serializeLeafStatement`), and a `null` or number the schema doesn't
+  // allow, which `new Date()` would turn into a valid `Date` that hides it
+  // from validation.
   leafStatement: (read, write, schema, context) => {
     const formatType = getModelFormatType(schema, context);
-    if (!formatType) return `${write} = new Date(${read});`;
+    if (!formatType) {
+      return `${write} = typeof ${read} === 'string' ? new Date(${read}) : ${read};`;
+    }
     if (!formatType.decode) {
       throw getFormatTypeError(
         (schema as OpenApiNonBooleanSchemaObject).format,
@@ -808,9 +814,7 @@ const responseMode: DateTransformMode = {
         '`useDatesTransform` needs `decode`',
       );
     }
-    // The value is typed as the mapped type already, hence the cast. The check
-    // leaves one decoded already (an accessor reached twice, see
-    // `serializeLeafStatement`) as it is.
+    // The value is typed as the mapped type already, hence the cast.
     return `${write} = typeof ${read} === 'string' ? ${callFormatTypeFunction(formatType.decode, `${read} as unknown as string`)} : ${read};`;
   },
   objectPrelude: () => [],
@@ -1543,10 +1547,10 @@ const isDateOnlySchema = (schema: OpenApiSchemaObject): boolean =>
  * Guarded on `instanceof Date`: the same accessor can be reached twice (an
  * `allOf` branch re-declaring a property its base already declares, or a
  * discriminated-union variant re-declaring one its parent schema's own
- * `properties` also converts), and unlike the response leaf's `new Date(...)`
- * — a clone, harmless to repeat — this conversion produces a string. Running
+ * `properties` also converts), and this conversion produces a string. Running
  * it twice without the guard would call `.toISOString()` on that string and
- * throw at runtime. The guard makes a second pass a no-op instead.
+ * throw at runtime. The guard makes a second pass a no-op instead, like the
+ * response leaf's `typeof` check.
  */
 const serializeLeafStatement = (read: string, write: string): string =>
   `${write} = ${read} instanceof Date ? (${read}.toISOString().slice(0, 10) as unknown as Date) : ${read};`;
