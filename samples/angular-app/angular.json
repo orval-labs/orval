@@ -3,8 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "bun",
-    "analytics": false,
-    "schematicCollections": ["angular-eslint"]
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -101,12 +100,6 @@
             "runner": "vitest",
             "buildTarget": "::development",
             "setupFiles": ["vitest.setup.ts"]
-          }
-        },
-        "lint": {
-          "builder": "@angular-eslint/builder:lint",
-          "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }

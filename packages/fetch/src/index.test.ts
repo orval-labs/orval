@@ -20,7 +20,6 @@ import {
   PropertySortOrder,
   Verbs,
 } from '@orval/core';
-import ts from 'typescript';
 import { describe, expect, it, vi } from 'vite-plus/test';
 
 import {
@@ -28,6 +27,11 @@ import {
   createTestGeneratorOptions,
   createTestGeneratorVerbOptions,
 } from '../../core/src/test-utils';
+import {
+  parseTypeScript,
+  toCommonJsScript,
+  toScript,
+} from '../../core/src/test-utils/typescript';
 import {
   generateClient,
   generateFetchFooter,
@@ -431,10 +435,7 @@ describe('generateRequestFunction — form-style object query parameters', () =>
       implementation,
     )?.[0];
     expect(urlHelper).toBeDefined();
-    const { outputText } = ts.transpileModule(
-      (urlHelper ?? '').replace('export ', ''),
-      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
-    );
+    const outputText = toScript((urlHelper ?? '').replace('export ', ''));
     // Share the host `Date` so `instanceof Date` holds inside the sandbox.
     const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
       URLSearchParams,
@@ -1033,9 +1034,7 @@ ${generateRequestFunction(verb, makeOptions(context))}
         requests.push(options);
         return Promise.resolve(new Response(null, { status: 204 }));
       };
-      const { outputText } = ts.transpileModule(source, {
-        compilerOptions: { module: ts.ModuleKind.CommonJS },
-      });
+      const outputText = toCommonJsScript(source);
       const listPets = runInNewContext(
         `${outputText}; ${transport === 'hook' ? 'useListPetsHook()' : 'listPets'}`,
         {
@@ -1382,12 +1381,7 @@ describe('generateRequestFunction — getHeaders helper (#4034)', () => {
       verbOptions,
       makeOptions(context),
     );
-    const { outputText } = ts.transpileModule(implementation, {
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2022,
-        module: ts.ModuleKind.CommonJS,
-      },
-    });
+    const outputText = toCommonJsScript(implementation);
     const fetch = vi.fn((_url: string, _init: RequestInit) =>
       Promise.resolve(new Response('[]')),
     );
@@ -1966,12 +1960,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     });
     options.mutator = { ...MUTATOR, inferred: true };
     const implementation = generate(options);
-    const { outputText } = ts.transpileModule(implementation, {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-      },
-    });
+    const outputText = toCommonJsScript(implementation);
     const exports: Record<string, unknown> = {};
     const customFetch = vi.fn((_url: string, _options: RequestInit) =>
       Promise.resolve('result'),
@@ -2011,11 +2000,7 @@ describe('generateRequestFunction — useDatesTransform', () => {
     const implementation = generate(options);
     expect(implementation).toContain('useUpdateAppointmentHook = () => {');
     expect(implementation).toContain('return async (');
-    const { diagnostics } = ts.transpileModule(implementation, {
-      reportDiagnostics: true,
-      compilerOptions: { target: ts.ScriptTarget.ES2022 },
-    });
-    expect(diagnostics).toEqual([]);
+    expect(parseTypeScript(implementation).errors).toEqual([]);
   });
 
   describe('with a formatType value in the response', () => {
@@ -2218,10 +2203,7 @@ describe('generateRequestFunction — pipeDelimited and spaceDelimited query arr
       implementation,
     )?.[0];
     expect(urlHelper).toBeDefined();
-    const { outputText } = ts.transpileModule(
-      (urlHelper ?? '').replace('export ', ''),
-      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
-    );
+    const outputText = toScript((urlHelper ?? '').replace('export ', ''));
     const getListPetsUrl = runInNewContext(`${outputText}; getListPetsUrl`, {
       URLSearchParams,
       Map,

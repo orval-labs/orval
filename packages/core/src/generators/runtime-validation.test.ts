@@ -1,6 +1,6 @@
-import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
+import { parseTypeScript } from '../test-utils/typescript';
 import type { OpenApiSchemaObject } from '../types';
 import { mergeDeep } from '../utils/merge-deep';
 import {
@@ -813,13 +813,7 @@ describe('standard schema helper source', () => {
   const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
 
   it('parses as .tsx, where arrow generics do not', () => {
-    const { diagnostics } = ts.transpileModule(helper, {
-      fileName: 'helper.tsx',
-      reportDiagnostics: true,
-      compilerOptions: { jsx: ts.JsxEmit.Preserve },
-    });
-
-    expect(diagnostics).toEqual([]);
+    expect(parseTypeScript(helper, { jsx: true }).errors).toEqual([]);
   });
 
   it('handles the rejection of an unsupported async result', () => {

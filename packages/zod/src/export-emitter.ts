@@ -103,12 +103,15 @@ const renderArrayWithBounds = (
   }`;
 };
 
-const renderBrand = (block: ZodExportBlock) => {
-  if (!block.brand) return '';
-  return block.brand.isZodV4
-    ? `.brand("${block.name}")`
-    : `.brand<"${block.name}">()`;
-};
+/**
+ * The `.brand(...)` call that brands a schema with `name`, in the zod v4
+ * (`.brand("X")`) or v3 (`.brand<"X">()`) syntax.
+ */
+export const renderZodBrand = (name: string, isZodV4: boolean) =>
+  isZodV4 ? `.brand("${name}")` : `.brand<"${name}">()`;
+
+const renderBrand = (block: ZodExportBlock) =>
+  block.brand ? renderZodBrand(block.name, block.brand.isZodV4) : '';
 
 /**
  * Renders one generated Zod export block: the `export const`, its optional

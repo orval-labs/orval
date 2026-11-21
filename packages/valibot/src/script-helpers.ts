@@ -1,22 +1,14 @@
-import ts from 'typescript';
+import { toScript } from '../../core/src/test-utils/typescript';
 
 // Generated TypeScript as a script `runInNewContext` can run: types removed,
-// exports dropped. Throws on a syntax error, which TypeScript would repair.
+// exports dropped. Throws on a syntax error instead of running repaired code.
 export const scriptOf = (code: string) => {
-  const { outputText, diagnostics = [] } = ts.transpileModule(code, {
-    reportDiagnostics: true,
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.Preserve,
-    },
-  });
-  if (diagnostics.length > 0) {
-    const messages = diagnostics.map((diagnostic) =>
-      ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-    );
+  try {
+    return toScript(code);
+  } catch (error) {
     throw new Error(
-      `Generated code has syntax errors, so it can't run: ${messages.join('; ')}\n${code}`,
+      `Generated code has syntax errors, so it can't run: ${(error as Error).message}\n${code}`,
+      { cause: error },
     );
   }
-  return outputText.replaceAll(/^export /gm, '');
 };

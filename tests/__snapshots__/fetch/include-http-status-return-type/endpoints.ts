@@ -185,7 +185,9 @@ export const healthCheck = async (options?: RequestInit): Promise<string> => {
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return data;
 };
 

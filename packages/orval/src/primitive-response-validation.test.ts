@@ -8,7 +8,6 @@ import {
   type OutputOptions,
   type ZodOptions,
 } from '@orval/core';
-import ts from 'typescript';
 import {
   afterEach,
   beforeEach,
@@ -18,6 +17,7 @@ import {
   vi,
 } from 'vite-plus/test';
 
+import { typeCheck } from '../../core/src/test-utils/typescript';
 import { generateSpec } from './generate-spec';
 import { normalizeOptions } from './utils/options';
 
@@ -137,21 +137,21 @@ describe('primitive response runtime validation (#4138)', () => {
   }
 
   function diagnostics() {
-    const program = ts.createProgram([path.join(workspace, 'client.ts')], {
-      strict: true,
-      noEmit: true,
-      skipLibCheck: true,
-      types: [],
-      module: ts.ModuleKind.ESNext,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-      target: ts.ScriptTarget.ES2022,
-      experimentalDecorators: true,
-    });
-    return ts
-      .getPreEmitDiagnostics(program)
-      .map((diagnostic) =>
-        ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'),
-      );
+    return typeCheck(
+      { 'client.ts': undefined },
+      {
+        cwd: workspace,
+        compilerOptions: {
+          strict: true,
+          skipLibCheck: true,
+          types: [],
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          target: 'ES2022',
+          experimentalDecorators: true,
+        },
+      },
+    );
   }
 
   it.each(clients)('wires and typechecks %s output', async (_name, output) => {

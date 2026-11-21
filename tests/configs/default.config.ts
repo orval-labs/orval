@@ -824,6 +824,19 @@ export default defineConfig({
       target: '../specifications/issue-398-encoded-path-ref.yaml',
     },
   },
+  'issue-4556-response-request-path-ref': {
+    output: {
+      target:
+        '../generated/default/issue-4556-response-request-path-ref/endpoints.ts',
+      schemas:
+        '../generated/default/issue-4556-response-request-path-ref/model',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4556-response-request-path-ref.yaml',
+    },
+  },
   'issue-1107-cross-file-ref': {
     output: {
       target: '../generated/default/issue-1107-cross-file-ref/endpoints.ts',

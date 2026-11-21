@@ -812,6 +812,51 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  // `useBrandedTypes` brands named primitive zod component schemas (#4534).
+  zodSchemaBrandedTypes: {
+    output: {
+      target: '../generated/react-query/zod-schema-branded-types/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-branded-types/model',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      mock: true,
+      override: {
+        useBrandedTypes: true,
+        fetch: { runtimeValidation: true },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
+  zodSchemaBrandedTypesReusable: {
+    output: {
+      target:
+        '../generated/react-query/zod-schema-branded-types-reusable/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-branded-types-reusable/model',
+      },
+      client: 'react-query',
+      httpClient: 'fetch',
+      mock: true,
+      override: {
+        useBrandedTypes: true,
+        zod: { generateReusableSchemas: true },
+        fetch: { runtimeValidation: true },
+      },
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/branded-types.yaml',
+    },
+  },
   // A custom mutator owns the request, so the generated `Schema.parse()` never
   // runs — `includeZodSchemaInArguments` passes the schema to the mutator
   // instead, which means it has to be imported as a value (#4058).

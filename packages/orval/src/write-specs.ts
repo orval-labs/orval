@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { styleText } from 'node:util';
 
@@ -29,6 +30,7 @@ import {
   OutputMode,
   pascal,
   readGeneratedFile,
+  resolveInstalledVersion,
   splitSchemasByType,
   SupportedFormatter,
   stripFileExtension,
@@ -118,6 +120,38 @@ export async function runFormatter(
 const DOCS_MARKDOWN_PLUGIN = 'typedoc-plugin-markdown';
 const DOCS_MARKDOWN_THEME = 'markdown';
 
+const TYPEDOC_TYPESCRIPT_7_ISSUE =
+  'https://github.com/TypeStrong/typedoc/issues/3098';
+
+/**
+ * The message for a failed TypeDoc import. TypeDoc does not support
+ * TypeScript 7 yet, which ships without the compiler API TypeDoc loads, so
+ * that case gets its own message instead of the install hint.
+ *
+ * @param typescriptVersion The `typescript` version TypeDoc resolves, if any.
+ */
+export function getTypedocImportErrorMessage(
+  typescriptVersion: string | undefined,
+): string {
+  const major = Number(typescriptVersion?.split('.')[0]);
+  if (major >= 7) {
+    return `The \`docs\` output option uses TypeDoc, which does not support TypeScript 7 yet (found typescript@${typescriptVersion}). Use TypeScript 6 to generate docs. See ${TYPEDOC_TYPESCRIPT_7_ISSUE}`;
+  }
+  return `Install \`typedoc\` and \`${DOCS_MARKDOWN_PLUGIN}\` to use the \`docs\` output option.`;
+}
+
+/** The `typescript` version TypeDoc resolves, when TypeDoc is installed. */
+function getTypedocTypeScriptVersion(): string | undefined {
+  try {
+    const typedocDir = path.dirname(
+      createRequire(import.meta.url).resolve('typedoc/package.json'),
+    );
+    return resolveInstalledVersion('typescript', typedocDir);
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * `typedoc` and `typedoc-plugin-markdown` are optional peer dependencies: only
  * `output.docs` needs them, so projects that never generate docs don't have to
@@ -128,7 +162,7 @@ async function importTypedoc(): Promise<typeof import('typedoc')> {
     return await import('typedoc');
   } catch (error) {
     throw new Error(
-      `Install \`typedoc\` and \`${DOCS_MARKDOWN_PLUGIN}\` to use the \`docs\` output option.`,
+      getTypedocImportErrorMessage(getTypedocTypeScriptVersion()),
       { cause: error },
     );
   }

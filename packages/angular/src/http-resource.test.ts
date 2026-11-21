@@ -1823,6 +1823,37 @@ describe('angular httpResource generator', () => {
       expect(header).toContain('httpResource.blob<Blob>');
     });
 
+    it('uses httpResource.blob for binary text content types', () => {
+      const verbOption = createVerbOption({
+        response: baseResponse({
+          definition: { success: 'Blob', errors: 'Error' },
+          types: {
+            success: [createSuccessType('Blob', 'text/csv')],
+            errors: [],
+          },
+          contentTypes: ['text/csv'],
+          isBlob: true,
+        }),
+      });
+      routeRegistry.set('getPetById', '/api/pets/${petId}');
+
+      const header = generateHttpResourceHeader({
+        title: 'PetService',
+        isRequestOptions: true,
+        isMutator: false,
+        isGlobalMutator: false,
+        provideIn: 'root',
+        hasAwaitedType: false,
+        output: createOutput(),
+        verbOptions: { getPetById: verbOption },
+        clientImplementation: '',
+      } as never);
+
+      expect(header).toContain('httpResource.blob<Blob>');
+      expect(header).toContain('HttpResourceOptions<Blob, Blob');
+      expect(header).not.toContain('httpResource.text');
+    });
+
     it('uses httpResource.arrayBuffer for octet-stream content', () => {
       const verbOption = createVerbOption({
         response: baseResponse({

@@ -1002,7 +1002,9 @@ export interface OverrideOutput {
   useBigInt?: boolean;
   /**
    * Emit `components/schemas` entries that resolve to a primitive as branded
-   * aliases (`string & { readonly __orvalBrand: 'UserId' }`). @default false
+   * aliases (`string & { readonly __orvalBrand: 'UserId' }`). With
+   * `schemas.type: 'zod'`, those component schemas get a Zod `.brand('UserId')`
+   * instead. @default false
    */
   useBrandedTypes?: boolean;
   useNamedParameters?: boolean;
