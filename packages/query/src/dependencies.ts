@@ -360,6 +360,33 @@ const getSolidQueryImports = (
   ];
 };
 
+const ANGULAR_QUERY_PACKAGE = '@tanstack/angular-query';
+const ANGULAR_QUERY_EXPERIMENTAL_PACKAGE =
+  '@tanstack/angular-query-experimental';
+
+type AngularQueryPackageName =
+  | typeof ANGULAR_QUERY_PACKAGE
+  | typeof ANGULAR_QUERY_EXPERIMENTAL_PACKAGE;
+
+/**
+ * The package the `angular-query` client imports from. TanStack Query moved
+ * the Angular adapter out of experimental as `@tanstack/angular-query`
+ * (5.108.0) and deprecated `@tanstack/angular-query-experimental`; the APIs
+ * the generated code uses are the same in both. The stable package is used
+ * when the project depends on it, and the experimental one otherwise, so a
+ * project that has not migrated keeps the imports it resolves. A declaration
+ * counts whatever its range, including `""`, which npm reads as `*`.
+ */
+export const getAngularQueryPackageName = (
+  packageJson: PackageJson | undefined,
+): AngularQueryPackageName =>
+  (packageJson?.resolvedVersions?.[ANGULAR_QUERY_PACKAGE] ??
+    packageJson?.dependencies?.[ANGULAR_QUERY_PACKAGE] ??
+    packageJson?.devDependencies?.[ANGULAR_QUERY_PACKAGE] ??
+    packageJson?.peerDependencies?.[ANGULAR_QUERY_PACKAGE]) === undefined
+    ? ANGULAR_QUERY_EXPERIMENTAL_PACKAGE
+    : ANGULAR_QUERY_PACKAGE;
+
 /**
  * Angular Query imports.
  *
@@ -379,17 +406,17 @@ const getSolidQueryImports = (
  * the file.
  *
  * @param injectsQueryClient - Whether this file emits `inject(QueryClient)`.
+ * @param packageName - See {@link getAngularQueryPackageName}.
  */
 const getAngularQueryImports = (
   injectsQueryClient: boolean,
+  packageName: AngularQueryPackageName,
 ): GeneratorDependency[] => [
   {
     exports: [
       { name: 'injectQuery', values: true },
       { name: 'injectInfiniteQuery', values: true },
       { name: 'injectMutation', values: true },
-      { name: 'InjectQueryOptions' },
-      { name: 'InjectMutationOptions' },
       { name: 'CreateQueryOptions' },
       { name: 'CreateInfiniteQueryOptions' },
       { name: 'CreateMutationOptions' },
@@ -406,7 +433,7 @@ const getAngularQueryImports = (
       { name: 'InvalidateOptions' },
       { name: 'matchQuery', values: true },
     ],
-    dependency: '@tanstack/angular-query-experimental',
+    dependency: packageName,
   },
   {
     exports: [
@@ -489,6 +516,7 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...getAngularQueryImports(
       implementation?.includes(QUERY_CLIENT_INJECTION) ?? false,
+      getAngularQueryPackageName(packageJson),
     ),
   ];
 };
@@ -767,7 +795,7 @@ export const getPackageByQueryClient = (
       );
     }
     case 'angular-query': {
-      const pkgName = '@tanstack/angular-query-experimental';
+      const pkgName = getAngularQueryPackageName(packageJson);
       return (
         packageJson?.resolvedVersions?.[pkgName] ??
         packageJson?.dependencies?.[pkgName] ??

@@ -12,7 +12,7 @@ import {
   injectInfiniteQuery,
   injectMutation,
   injectQuery,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 import type {
   CreateInfiniteQueryOptions,
   CreateInfiniteQueryResult,
@@ -24,7 +24,7 @@ import type {
   MutationFunction,
   QueryFunction,
   QueryKey,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 

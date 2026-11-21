@@ -5,7 +5,7 @@ import { App } from './app';
 import {
   provideTanStackQuery,
   QueryClient,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { waitFor } from '@testing-library/angular';
 
@@ -16,7 +16,7 @@ describe('App', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        provideTanStackQuery(new QueryClient()),
+        provideTanStackQuery(() => new QueryClient()),
       ],
     }).compileComponents();
   });

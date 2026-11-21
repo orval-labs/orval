@@ -55,7 +55,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: npx envinfo --system --npmPackages orval,zod,axios,msw,swr,@tanstack/react-query,@tanstack/vue-query,@tanstack/solid-query,@tanstack/angular-query-experimental,react,vue,solid-js,@solidjs/router,@angular/core,@angular/common
+      description: npx envinfo --system --npmPackages orval,zod,axios,msw,swr,@tanstack/react-query,@tanstack/vue-query,@tanstack/solid-query,@tanstack/angular-query,@tanstack/angular-query-experimental,react,vue,solid-js,@solidjs/router,@angular/core,@angular/common
       value: |
         Run the command above and paste the output here.
     validations:

@@ -8,10 +8,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { inject } from '@angular/core';
 
-import {
-  injectMutation,
-  injectQuery,
-} from '@tanstack/angular-query-experimental';
+import { injectMutation, injectQuery } from '@tanstack/angular-query';
 import type {
   CreateMutationOptions,
   CreateMutationResult,
@@ -19,7 +16,7 @@ import type {
   CreateQueryResult,
   MutationFunction,
   QueryFunction,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { Schema as effectSchema } from 'effect';
 

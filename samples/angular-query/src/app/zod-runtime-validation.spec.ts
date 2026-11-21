@@ -8,7 +8,7 @@ import {
 import {
   provideTanStackQuery,
   QueryClient,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 import { z } from 'zod';
 
 import {
@@ -35,7 +35,7 @@ describe('Angular Query Zod Runtime Validation', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideTanStackQuery(queryClient),
+        provideTanStackQuery(() => queryClient),
       ],
     });
 
