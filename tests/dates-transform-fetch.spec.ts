@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vite-plus/test';
 import {
   getShelterLastInspection as fetchGetShelterLastInspection,
   updateAppointment as fetchUpdateAppointment,
+  updateFolder as fetchUpdateFolder,
   updateShelterIntake as fetchUpdateShelterIntake,
 } from './generated/fetch/dates-transform/endpoints';
 import { updateAppointment as validatedUpdateAppointment } from './generated/runtime-validation/fetch-dates-transform/endpoints';
@@ -216,5 +217,63 @@ test('serializes and deserializes format: date values inside an additionalProper
   expect(data.pets.rex.vaccinatedAt).toBeInstanceOf(Date);
   expect(data.pets.rex.vaccinatedAt.toISOString()).toBe(
     '2026-07-01T09:30:00.000Z',
+  );
+});
+
+test('converts every level of a recursive schema in both directions', async () => {
+  // Folder holds Folders and a FolderOwner, which holds a Folder again. A
+  // recursive schema used to be skipped whole, leaving every date in it a
+  // string typed `Date`.
+  const fetchMock = respondWith(200, {
+    name: 'root',
+    createdOn: '2026-07-01',
+    subfolders: [
+      {
+        name: 'child',
+        createdOn: '2026-07-02',
+        subfolders: [],
+        owner: {
+          since: '2026-07-03',
+          homeFolder: { name: 'home', createdOn: '2026-07-04', subfolders: [] },
+        },
+      },
+    ],
+  });
+
+  const response = await fetchUpdateFolder('root', {
+    name: 'root',
+    createdOn: new Date('2026-07-01'),
+    subfolders: [
+      {
+        name: 'child',
+        createdOn: new Date('2026-07-02'),
+        subfolders: [],
+        owner: {
+          since: new Date('2026-07-03'),
+          homeFolder: {
+            name: 'home',
+            createdOn: new Date('2026-07-04'),
+            subfolders: [],
+          },
+        },
+      },
+    ],
+  });
+
+  const sent = readSentBody<{
+    subfolders: {
+      createdOn: string;
+      owner: { since: string; homeFolder: { createdOn: string } };
+    }[];
+  }>(fetchMock);
+  expect(sent.subfolders[0].createdOn).toBe('2026-07-02');
+  expect(sent.subfolders[0].owner.since).toBe('2026-07-03');
+  expect(sent.subfolders[0].owner.homeFolder.createdOn).toBe('2026-07-04');
+
+  const [child] = response.data.subfolders;
+  expect(child.createdOn).toBeInstanceOf(Date);
+  expect(child.owner?.since).toBeInstanceOf(Date);
+  expect(child.owner?.homeFolder?.createdOn.toISOString()).toBe(
+    '2026-07-04T00:00:00.000Z',
   );
 });

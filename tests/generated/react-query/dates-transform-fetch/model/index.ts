@@ -18,6 +18,8 @@ export * from './cat';
 export * from './catPetType';
 export * from './dog';
 export * from './dogPetType';
+export * from './folder';
+export * from './folderOwner';
 export * from './intakeCat';
 export * from './intakeCatPetType';
 export * from './intakeDog';

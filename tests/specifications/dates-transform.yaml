@@ -250,8 +250,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppointmentWindow'
+  # A recursive request and response shared by two operations: one converter
+  # per schema and direction in the file, calling itself and FolderOwner.
+  /folders/{folderId}:
+    get:
+      operationId: getFolder
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+    put:
+      operationId: updateFolder
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Folder'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
 components:
   schemas:
+    Folder:
+      type: object
+      required: [name, createdOn, subfolders]
+      properties:
+        name: { type: string }
+        createdOn: { type: string, format: date }
+        modifiedAt: { type: string, format: date-time }
+        subfolders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Folder'
+        owner:
+          $ref: '#/components/schemas/FolderOwner'
+    # Mutually recursive with Folder.
+    FolderOwner:
+      type: object
+      required: [since]
+      properties:
+        since: { type: string, format: date }
+        homeFolder:
+          $ref: '#/components/schemas/Folder'
     Cat:
       type: object
       required: [petType, vaccinatedAt]
@@ -305,7 +363,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuditEntry'
-        # recursive: emits nothing rather than converting only the first level
+        # recursive: converted at every level by a converter that calls itself
         tree:
           $ref: '#/components/schemas/AuditNode'
     AuditEntry:
