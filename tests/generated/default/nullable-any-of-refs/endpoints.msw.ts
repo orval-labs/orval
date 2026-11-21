@@ -17,7 +17,8 @@ import type {
   Pets,
 } from './model';
 
-export const getGetPetsResponseMock = (): Pets[] =>
+export const getGetPetsResponseMock = (overrideResponse?: Pets[]): Pets[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -35,7 +36,10 @@ export const getGetPetsResponseMock = (): Pets[] =>
     ]),
   }));
 
-export const getGetAnimalsResponseMock = (): Animals[] =>
+export const getGetAnimalsResponseMock = (
+  overrideResponse?: Animals[],
+): Animals[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -65,7 +69,10 @@ export const getGetAnimalsResponseMock = (): Animals[] =>
     ]),
   }));
 
-export const getGetNestedAnimalsResponseMock = (): NestedAnimals[] =>
+export const getGetNestedAnimalsResponseMock = (
+  overrideResponse?: NestedAnimals[],
+): NestedAnimals[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -100,7 +107,10 @@ export const getGetNestedAnimalsResponseMock = (): NestedAnimals[] =>
     ]),
   }));
 
-export const getGetMixedNullableResponseMock = (): MixedNullable[] =>
+export const getGetMixedNullableResponseMock = (
+  overrideResponse?: MixedNullable[],
+): MixedNullable[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -119,7 +129,10 @@ export const getGetMixedNullableResponseMock = (): MixedNullable[] =>
     ]),
   }));
 
-export const getGetMixedTypesResponseMock = (): MixedTypes[] =>
+export const getGetMixedTypesResponseMock = (
+  overrideResponse?: MixedTypes[],
+): MixedTypes[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

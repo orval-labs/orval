@@ -34,7 +34,10 @@ export type OwnerMock = {
   >;
 };
 
-export const getGetPetsResponseMock = (): PetMock[] =>
+export const getGetPetsResponseMock = (
+  overrideResponse?: PetMock[],
+): PetMock[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

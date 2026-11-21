@@ -11,13 +11,14 @@ import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
 import type { Pet } from './model';
 
-export const getListPetsResponseMock = (): Pet[] => [
-  {
-    id: 1,
-    createdAt: new Date('2023-12-31T06:46:39.477Z'),
-    birthDate: new Date('2023-12-31'),
-  },
-];
+export const getListPetsResponseMock = (overrideResponse?: Pet[]): Pet[] =>
+  overrideResponse ?? [
+    {
+      id: 1,
+      createdAt: new Date('2023-12-31T06:46:39.477Z'),
+      birthDate: new Date('2023-12-31'),
+    },
+  ];
 
 export const getGetPetResponseMock = (
   overrideResponse: Partial<Extract<Pet, object>> = {},

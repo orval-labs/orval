@@ -20,8 +20,10 @@ import type {
   RequiredSiamese,
 } from './model';
 
-export const getGetApiCatResponseMock = (): DogGroup[] =>
-  faker.helpers.arrayElements([1, 2, 3] as DogGroup[]);
+export const getGetApiCatResponseMock = (
+  overrideResponse?: DogGroup[],
+): DogGroup[] =>
+  overrideResponse ?? faker.helpers.arrayElements([1, 2, 3] as DogGroup[]);
 
 export const getGetApiRequiredCatResponseMock = (
   overrideResponse: Partial<Extract<RequiredCat, object>> = {},

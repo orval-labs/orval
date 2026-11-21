@@ -8,7 +8,10 @@ import { faker } from '@faker-js/faker';
 
 import type { PetsArray, PetsNestedArray } from '../model';
 
-export const getListPetsResponseMock = (): PetsArray =>
+export const getListPetsResponseMock = (
+  overrideResponse?: PetsArray,
+): PetsArray =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 20 }) },
     (_, i) => i + 1,

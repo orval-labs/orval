@@ -12,7 +12,10 @@ import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 import { CountryCode } from './model';
 import type { Pets } from './model';
 
-export const getListPetsByCountryResponseMock = (): Pets =>
+export const getListPetsByCountryResponseMock = (
+  overrideResponse?: Pets,
+): Pets =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -34,7 +37,8 @@ export const getListPetsByCountryResponseMock = (): Pets =>
     ]),
   }));
 
-export const getListPetsByAgeResponseMock = (): Pets =>
+export const getListPetsByAgeResponseMock = (overrideResponse?: Pets): Pets =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
