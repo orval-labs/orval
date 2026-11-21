@@ -2,6 +2,7 @@ import {
   allocateDerivedNames,
   type ContextSpec,
   getComponentNames as getSharedComponentNames,
+  getExportNames as getSharedExportNames,
   nodesOnCycles,
   type OpenApiSchemaObject,
   orderByDependencies,
@@ -27,6 +28,15 @@ export const getComponentNames = (
   context: ContextSpec,
 ): ReadonlyMap<string, string> =>
   getSharedComponentNames(context, {
+    library: 'valibot',
+    reserved: RESERVED_NAMES,
+  });
+
+/** The names clients import each constant by, keyed by constant name. */
+export const getExportNames = (
+  context: ContextSpec,
+): ReadonlyMap<string, string> =>
+  getSharedExportNames(context, {
     library: 'valibot',
     reserved: RESERVED_NAMES,
   });

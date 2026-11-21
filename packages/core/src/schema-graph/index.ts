@@ -8,6 +8,7 @@ export {
   allocateDerivedNames,
   type ComponentNameOptions,
   getComponentNames,
+  getExportNames,
   resolveComponentName,
 } from './component-names';
 export { createImportCheck, withInlineImports } from './inline-module';

@@ -77,6 +77,22 @@ export const getComponentNames = (
   return names;
 };
 
+/**
+ * The name clients import each component by, keyed by the name of its
+ * constant. The two differ only when the constant's own name would shadow
+ * what generated code relies on.
+ */
+export const getExportNames = (
+  context: ContextSpec,
+  options: ComponentNameOptions,
+): ReadonlyMap<string, string> =>
+  new Map(
+    [...getComponentNames(context, options)].map(([key, constName]) => [
+      constName,
+      getRefInfo(toComponentRef(key), context).name,
+    ]),
+  );
+
 const withSuffix = (baseName: string, attempt: number): string => {
   if (attempt === 0) return baseName;
   return attempt === 1

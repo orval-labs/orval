@@ -1,6 +1,7 @@
 import {
   type ContextSpec,
   getComponentNames as getSharedComponentNames,
+  getExportNames as getSharedExportNames,
   getRef,
   getSchemaLibrary,
   isObject,
@@ -77,6 +78,16 @@ export const getComponentNames = (
   context: ContextSpec,
 ): ReadonlyMap<string, string> =>
   getSharedComponentNames(context, {
+    library: 'effect',
+    reserved: getReservedNames(context),
+    option: reusableSchemasOption(context),
+  });
+
+/** The names clients import each constant by, keyed by constant name. */
+export const getExportNames = (
+  context: ContextSpec,
+): ReadonlyMap<string, string> =>
+  getSharedExportNames(context, {
     library: 'effect',
     reserved: getReservedNames(context),
     option: reusableSchemasOption(context),
