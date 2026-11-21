@@ -2069,11 +2069,13 @@ describe('top-level array response override (#4573)', () => {
     originalSchema,
     imports,
     isRef = false,
+    example,
   }: {
     value: string;
     originalSchema: Record<string, unknown>;
     imports: { name: string; values?: boolean }[];
     isRef?: boolean;
+    example?: unknown;
   }) =>
     createTestGeneratorVerbOptions({
       operationId: 'listPets',
@@ -2097,6 +2099,7 @@ describe('top-level array response override (#4573)', () => {
               isEnum: false,
               isRef,
               hasReadonlyProps: false,
+              example,
             }),
           ],
         },
@@ -2104,14 +2107,17 @@ describe('top-level array response override (#4573)', () => {
       },
     });
 
-  const createOptions = (context: ReturnType<typeof createContext>) =>
+  const createOptions = (
+    context: ReturnType<typeof createContext>,
+    mockOptions: { useExamples?: boolean } = {},
+  ) =>
     createTestGeneratorOptions({
       route: '/pets',
       pathRoute: '/pets',
       output: 'test',
       override: context.output.override,
       context,
-      mock: { type: OutputMockType.MSW, delay: false },
+      mock: { type: OutputMockType.MSW, delay: false, ...mockOptions },
     });
 
   it('accepts a full replacement array for an inline array of $ref items', () => {
@@ -2176,6 +2182,25 @@ describe('top-level array response override (#4573)', () => {
 
     expect(result.implementation.function).toContain(
       'export const getListPetsResponseMock = (overrideResponse?: PetMock[]): PetMock[] => (overrideResponse ?? Array.from(',
+    );
+  });
+
+  it('still accepts an override when an example mentions overrideResponse', () => {
+    const context = createContext();
+    const result = generateMSW(
+      createVerbOptions({
+        value: 'string[]',
+        originalSchema: { type: 'array', items: { type: 'string' } },
+        imports: [],
+        example: ['overrideResponse'],
+      }),
+      createOptions(context, { useExamples: true }),
+    );
+
+    // `??` keeps an explicitly passed empty array and only falls back to the
+    // example when the argument is omitted.
+    expect(result.implementation.function).toContain(
+      '(overrideResponse?: string[]): string[] => (overrideResponse ?? ["overrideResponse"])',
     );
   });
 

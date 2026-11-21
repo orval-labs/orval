@@ -373,9 +373,10 @@ function generateDefinition(
 
   // A top-level array response has no object to spread an override into, so
   // the factory accepts a full replacement array instead and falls back to the
-  // generated one when it is omitted.
+  // generated one when it is omitted. Eligibility comes from the schema, not
+  // from `isResponseOverridable`, which only scans the generated text and would
+  // be tripped by an example that happens to contain "overrideResponse".
   const isArrayResponseOverridable =
-    !isResponseOverridable &&
     !mockData &&
     definitions.length === 1 &&
     responses.length === 1 &&
