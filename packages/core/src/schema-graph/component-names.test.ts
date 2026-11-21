@@ -5,6 +5,7 @@ import {
   allocateConstName,
   allocateDerivedNames,
   getComponentNames,
+  getExportNames,
 } from './component-names';
 
 const contextOf = (keys: string[]) =>
@@ -17,6 +18,16 @@ const contextOf = (keys: string[]) =>
   });
 
 const options = { library: 'effect', reserved: new Set(['File']) };
+
+describe('getExportNames', () => {
+  it('maps a constant to the name its model has', () => {
+    const names = getExportNames(contextOf(['pet-store', 'File']), options);
+    expect([...names]).toEqual([
+      ['PetStore', 'PetStore'],
+      ['FileSchema', 'File'],
+    ]);
+  });
+});
 
 describe('getComponentNames', () => {
   it('suffixes a reserved name', () => {

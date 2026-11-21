@@ -7,15 +7,13 @@ import {
   type GeneratorSchema,
   type GeneratorVerbOptions,
   getImportedNames,
-  getRefInfo,
   type NormalizedOutputOptions,
   resolveIsEffectV4,
-  toComponentRef,
 } from '@orval/core';
 
 import { parseEffectValidationSchemaDefinition } from '.';
 import { startRun } from './logger';
-import { collectRefNames, getComponentNames } from './refs';
+import { collectRefNames, getExportNames } from './refs';
 import {
   type EffectComponentConst,
   generateEffectComponentConsts,
@@ -152,12 +150,7 @@ export const generateEffectSchemasModule = (
 
   // A constant is declared under another name only when its own would shadow
   // what generated code relies on; clients still import it by its own name.
-  const exportNames = new Map(
-    [...getComponentNames(context)].map(([key, constName]) => [
-      constName,
-      getRefInfo(toComponentRef(key), context).name,
-    ]),
-  );
+  const exportNames = getExportNames(context);
   // A component is reserved under the name clients import and under the name
   // its constant is declared as, which differ for names such as `Date`.
   const components = new Set([...exportNames].flat());

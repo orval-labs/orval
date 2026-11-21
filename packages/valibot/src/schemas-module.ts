@@ -5,10 +5,8 @@ import {
   collectOperationSchemas,
   type GeneratorSchema,
   type GeneratorVerbOptions,
-  getRefInfo,
   type NormalizedOutputOptions,
   type SchemaParsers,
-  toComponentRef,
 } from '@orval/core';
 
 import { startRun, warnOnce } from './logger';
@@ -21,7 +19,7 @@ import {
 import { renderValibot } from './render';
 import {
   generateValibotComponentConsts,
-  getComponentNames,
+  getExportNames,
 } from './reusable-schemas';
 
 const VALIBOT_IMPORT = "import * as v from 'valibot';";
@@ -111,12 +109,7 @@ export const generateValibotSchemasModule = (
 
   // A constant is declared under another name only when its own would shadow
   // what generated code relies on; clients still import it by its own name.
-  const contractNames = new Map(
-    [...getComponentNames(context)].map(([key, constName]) => [
-      constName,
-      getRefInfo(toComponentRef(key), context).name,
-    ]),
-  );
+  const contractNames = getExportNames(context);
   // The module names each schema's input type like its constant and its
   // output type `<Name>Output`, so a recursive getter is typed the same way.
   const entries: SchemaEntry[] = generateValibotComponentConsts(
