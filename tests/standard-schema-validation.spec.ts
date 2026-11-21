@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import path from 'node:path';
 import vm from 'node:vm';
 
 import { getStandardSchemaHelper } from '@orval/core';
-import ts from 'typescript';
 import * as v from 'valibot';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import * as zod from 'zod';
@@ -34,9 +34,8 @@ const isHelpers = (value: unknown): value is StandardSchemaHelpers =>
   typeof value.orvalSafeParseStandardSchema === 'function';
 
 const loadHelpers = (): StandardSchemaHelpers => {
-  const { outputText } = ts.transpileModule(
+  const outputText = stripTypeScriptTypes(
     getStandardSchemaHelper('orvalParseStandardSchema(Schema, value)'),
-    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
   );
   // Wrapped in an IIFE so the declarations stay local instead of becoming
   // globals of the test worker.

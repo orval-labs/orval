@@ -54,19 +54,20 @@
   "catalog": {
     "@scalar/openapi-types": "0.9.8",
     "@types/node": "22.20.5",
-    "eslint": "10.1.0",
     "globals": "17.4.0",
     "jsdom": "29.1.1",
     "npm-run-all2": "8.0.4",
     "prettier": "3.8.1",
     "rimraf": "6.1.2",
     "tslib": "2.8.1",
-    "typescript-eslint": "8.57.2",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite-plus": "1.0.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
   },
   "catalogs": {
+    "ts6": {
+      "typescript": "6.0.3"
+    },
     "angular": {
       "@angular/core": "22.0.2",
       "@angular/common": "22.0.2",

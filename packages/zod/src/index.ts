@@ -31,6 +31,7 @@ import {
   getUnionMemberContext,
   getRequiredKeys,
   isBindingIdentifier,
+  isBrandablePrimitiveSchema,
   isBoolean,
   isDateFormatType,
   isDynamicReference,
@@ -88,6 +89,7 @@ import {
   assertZodMethodName,
   PURE_COMMENT,
   renderZodExport,
+  renderZodBrand,
   renderZodRefine,
   appendZodRefinements,
   zodMiniCall,
@@ -140,6 +142,8 @@ export const predefinedZodFormats = new Set([
   'uri',
   'hostname',
   'uuid',
+  'ipv4',
+  'ipv6',
 ]);
 
 type ResolvedZodType =
@@ -1099,9 +1103,22 @@ export const generateZodValidationSchemaDefinition = (
       const suffix = counter ? pascal(getNumberWord(counter)) : '';
       const defaultVarName = `${name}Default${suffix}`;
       const defaultLiteral = stringify(siblingSchema.default);
-      // A wire default of a schema with mapped formats, see `isWireDefault`.
+      const namedRef = functions.find(([fn]) => fn === 'namedRef')?.[1] as
+        | { sourceRef: string }
+        | undefined;
+      const brandedTarget =
+        context.output.override.useBrandedTypes &&
+        namedRef &&
+        isBrandablePrimitiveSchema(
+          context.spec.components?.schemas?.[
+            getRefInfo(namedRef.sourceRef, context).originalName
+          ],
+        );
+      // Zod 4 defaults take output values; wire values must pass through
+      // transforms and acquire the reusable component's output brand.
       const defaultFn =
-        isZodV4 && findCustomFormatType(siblingSchema, context)
+        isZodV4 &&
+        (findCustomFormatType(siblingSchema, context) || brandedTarget)
           ? 'prefault'
           : 'default';
       if (defaultLiteral !== undefined) {
@@ -2204,6 +2221,24 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
+        if (schema.format === 'ipv4' || schema.format === 'ipv6') {
+          // A fixed value is stricter than the format check. Zod 3 already
+          // emitted the literal above, and a literal has no `.ip()` method.
+          if ('const' in schema) {
+            if (isZodV4) {
+              functions.push(['literal', JSON.stringify(String(schema.const))]);
+            }
+            break;
+          }
+          if (isZodV4) {
+            functions.push([schema.format, undefined]);
+          } else {
+            const version = schema.format === 'ipv4' ? 'v4' : 'v6';
+            functions.push(['ip', `{ version: '${version}' }`]);
+          }
+          break;
+        }
+
         break;
       }
       case 'never': {
@@ -2730,6 +2765,8 @@ const PARAMS_MERGE_INTO_OPTIONS_VALIDATORS = new Set([
   'time',
   'iso.datetime',
   'iso.time',
+  // Zod v3 `.ip({ version })`
+  'ip',
 ]);
 
 export interface ZodMetaArgs {
@@ -2775,9 +2812,22 @@ export const parseZodValidationSchemaDefinition = (
   // Whether the installed Zod has `zod.xor` (`supportsZodXor`). Resolved once
   // by the caller next to `isZodV4` rather than per parse.
   hasZodXor = false,
+  componentBrand?: string,
 ): { zod: string; consts: string; usedRefs: Set<string> } => {
   if (input.functions.length === 0) {
     return { zod: '', consts: '', usedRefs: new Set() };
+  }
+
+  if (componentBrand) {
+    const functions = [...input.functions];
+    const wrapperIndex = functions.findIndex(([fn]) =>
+      ['nullable', 'nullish', 'optional', 'meta', 'describe'].includes(fn),
+    );
+    functions.splice(wrapperIndex < 0 ? functions.length : wrapperIndex, 0, [
+      'componentBrand',
+      componentBrand,
+    ]);
+    input = { ...input, functions };
   }
 
   let consts = '';
@@ -3020,6 +3070,13 @@ ${Object.entries(objectArgs)
 
     for (let index = 0; index < definition.functions.length; index++) {
       const [fn, args = ''] = definition.functions[index];
+
+      if (fn === 'componentBrand') {
+        current = {
+          expr: (current?.expr ?? '') + renderZodBrand(args as string, isZodV4),
+        };
+        continue;
+      }
 
       if (fn === 'namedRef') {
         const refArgs = args as { name: string; sourceRef: string };
@@ -3454,6 +3511,10 @@ ${Object.entries(mergedProperties)
     isBase = false,
   ): string => {
     const [fn, args = ''] = property;
+
+    if (fn === 'componentBrand') {
+      return renderZodBrand(args as string, isZodV4);
+    }
 
     if (fn === 'namedRef') {
       const refArgs = args as { name: string; sourceRef: string };
@@ -4969,6 +5030,10 @@ export {
   resolveIsZodV4,
   supportsZodXor,
 } from './compatible-v4';
-export { renderZodExport, type ZodExportBlock } from './export-emitter';
+export {
+  renderZodBrand,
+  renderZodExport,
+  type ZodExportBlock,
+} from './export-emitter';
 
 export default builder;

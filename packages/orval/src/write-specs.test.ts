@@ -44,6 +44,7 @@ import {
   createMarkdownPluginReader,
   getDocsOutputName,
   getDocsTypedocOptions,
+  getTypedocImportErrorMessage,
   runFormatter,
   writeSpecs,
 } from './write-specs';
@@ -102,6 +103,29 @@ describe('runFormatter', () => {
       }),
     );
   });
+});
+
+describe('getTypedocImportErrorMessage', () => {
+  it.each([undefined, '5.9.3', '6.0.3'])(
+    'asks to install TypeDoc when typescript is %s',
+    (version) => {
+      expect(getTypedocImportErrorMessage(version)).toBe(
+        'Install `typedoc` and `typedoc-plugin-markdown` to use the `docs` output option.',
+      );
+    },
+  );
+
+  it.each(['7.0.2', '7.1.0-beta'])(
+    'explains that TypeDoc does not support typescript %s',
+    (version) => {
+      const message = getTypedocImportErrorMessage(version);
+      expect(message).toContain('does not support TypeScript 7');
+      expect(message).toContain(`typescript@${version}`);
+      expect(message).toContain(
+        'https://github.com/TypeStrong/typedoc/issues/3098',
+      );
+    },
+  );
 });
 
 describe('getDocsTypedocOptions', () => {

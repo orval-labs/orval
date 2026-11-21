@@ -318,6 +318,12 @@ interface BuildParams {
    * sitting beside a properties-declaring sibling is.
    */
   mapSuppressed?: boolean;
+  /**
+   * True when the caller already skips a `null` or `undefined` value at
+   * `accessor` (an optional property's `if (x != null)`, a nullable element's
+   * early return), so a leaf there needs no check of its own.
+   */
+  nullGuarded?: boolean;
 }
 
 const buildStatements = ({
@@ -329,6 +335,7 @@ const buildStatements = ({
   writeAccessor,
   mode,
   mapSuppressed,
+  nullGuarded,
 }: BuildParams): BuildResult => {
   const { schema, ref } = normalizeSchema(schemaOrRef, context);
   if (ref) {
@@ -353,6 +360,7 @@ const buildStatements = ({
       writeAccessor,
       mode,
       mapSuppressed,
+      nullGuarded,
     });
   } finally {
     if (ref) visitedRefs.delete(ref);
@@ -369,6 +377,7 @@ const buildResolvedStatements = ({
   writeAccessor,
   mode,
   mapSuppressed,
+  nullGuarded = false,
 }: {
   schema: OpenApiSchemaObject;
   ref?: string;
@@ -379,6 +388,7 @@ const buildResolvedStatements = ({
   writeAccessor?: string;
   mode: DateTransformMode;
   mapSuppressed?: boolean;
+  nullGuarded?: boolean;
 }): BuildResult => {
   if (isBooleanJsonSchema(schema)) return emptyResult();
 
@@ -406,6 +416,7 @@ const buildResolvedStatements = ({
           writeAccessor ?? accessor,
           schema,
           context,
+          nullGuarded,
         ),
       ],
       cyclicRefs: new Set(),
@@ -446,6 +457,7 @@ const buildResolvedStatements = ({
         writeAccessor,
         mode,
         mapSuppressed: mapSuppressedHere,
+        nullGuarded,
       }),
     );
 
@@ -527,7 +539,7 @@ const buildResolvedStatements = ({
  * the shared property builder (both directions), where it distinguishes a
  * required date leaf (unguarded — a response's `new Date(undefined)` degrades
  * to `Invalid Date` rather than throwing, and a request's
- * `x instanceof Date ? … : x` already tolerates `undefined`) from a required
+ * `instanceof Date` or `formatType` encode passes it through) from a required
  * container (object copy or shallow mutation, array `.map` or in-place loop,
  * map copy or key loop, or union dispatch), which must be null-guarded in
  * both directions so an omitted container isn't turned into `{}`, thrown on,
@@ -567,12 +579,16 @@ const writesToAccessorItself = (
 interface DateTransformMode {
   /** Schemas this direction converts. */
   isLeaf: (schema: OpenApiSchemaObject, context: ContextSpec) => boolean;
-  /** Conversion statement. `write` differs from `read` only for readOnly props. */
+  /**
+   * Conversion statement. `write` differs from `read` only for readOnly props.
+   * `nullGuarded` is the `BuildParams` flag of the same name.
+   */
   leafStatement: (
     read: string,
     write: string,
     schema: OpenApiSchemaObject,
     context: ContextSpec,
+    nullGuarded: boolean,
   ) => string;
   /**
    * Statements emitted once per property whose subtree produced statements,
@@ -851,6 +867,17 @@ const buildPropertiesStatements = ({
       );
       if (mode.skipProperty(propertySchema)) return emptyResult();
 
+      // Under an undiscriminated union the accessor's type is the whole
+      // union, so a property only some variants declare cannot be read
+      // without narrowing first. `'key' in accessor` is what narrows it,
+      // and it is needed even for a required, non-nullable leaf — required
+      // in one variant says nothing about the others.
+      const needsGuard =
+        presenceGuarded ||
+        !requiredSet.has(key) ||
+        nullable ||
+        !writesToAccessorItself(property, context);
+
       const inner = buildStatements({
         schema: property,
         accessor: target,
@@ -863,6 +890,7 @@ const buildPropertiesStatements = ({
           propertySchema,
         ),
         mode,
+        nullGuarded: needsGuard,
       });
       if (inner.statements.length === 0) return inner;
 
@@ -871,16 +899,6 @@ const buildPropertiesStatements = ({
         ...inner.statements,
       ];
 
-      // Under an undiscriminated union the accessor's type is the whole
-      // union, so a property only some variants declare cannot be read
-      // without narrowing first. `'key' in accessor` is what narrows it,
-      // and it is needed even for a required, non-nullable leaf — required
-      // in one variant says nothing about the others.
-      const needsGuard =
-        presenceGuarded ||
-        !requiredSet.has(key) ||
-        nullable ||
-        !writesToAccessorItself(property, context);
       if (!needsGuard) return { ...inner, statements };
 
       const condition = presenceGuarded
@@ -1633,6 +1651,7 @@ const buildCopyingItemsStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    nullGuarded: nullable,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -1696,6 +1715,7 @@ const buildCopyingMapStatements = ({
     visitedRefs,
     depth: depth + 1,
     mode,
+    nullGuarded: nullable,
   });
   if (inner.statements.length === 0) return inner;
 
@@ -1720,9 +1740,19 @@ const buildCopyingMapStatements = ({
   };
 };
 
-/** A request statement encoding a value that is not a string already. */
-const encodeLeafStatement = (read: string, write: string, encode: string) =>
-  `${write} = typeof ${read} === 'string' ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
+/**
+ * A request statement encoding a value that is not a string already. A
+ * missing value is left as it is, for `JSON.stringify` to drop, like the
+ * `instanceof Date` check of `serializeLeafStatement` does, unless the caller
+ * has already ruled it out.
+ */
+const encodeLeafStatement = (
+  read: string,
+  write: string,
+  encode: string,
+  nullGuarded: boolean,
+) =>
+  `${write} = typeof ${read} === 'string'${nullGuarded ? '' : ` || ${read} == null`} ? ${read} : (${callFormatTypeFunction(encode, read)} as unknown as typeof ${read});`;
 
 const requestMode: DateTransformMode = {
   isLeaf: (schema, context) =>
@@ -1730,10 +1760,10 @@ const requestMode: DateTransformMode = {
     getModelFormatType(schema, context)?.encode !== undefined,
   // A `formatType` value without `encode` is left to its `toJSON`. A string
   // is encoded already, see `serializeLeafStatement`.
-  leafStatement: (read, write, schema, context) => {
+  leafStatement: (read, write, schema, context, nullGuarded) => {
     const encode = getModelFormatType(schema, context)?.encode;
     return encode
-      ? encodeLeafStatement(read, write, encode)
+      ? encodeLeafStatement(read, write, encode, nullGuarded)
       : serializeLeafStatement(read, write);
   },
   objectPrelude: (accessor, schema, context) =>
@@ -1759,6 +1789,8 @@ export interface BuildRequestDateSerializeParams {
   context: ContextSpec;
   visitedRefs?: Set<string>;
   depth?: number;
+  /** True when the caller already returns early on a `null` or `undefined` accessor. */
+  nullGuarded?: boolean;
 }
 
 export const buildRequestDateSerializeStatements = ({
@@ -1767,6 +1799,7 @@ export const buildRequestDateSerializeStatements = ({
   context,
   visitedRefs = new Set(),
   depth = 0,
+  nullGuarded,
 }: BuildRequestDateSerializeParams): string[] =>
   buildStatements({
     schema,
@@ -1775,6 +1808,7 @@ export const buildRequestDateSerializeStatements = ({
     visitedRefs,
     depth,
     mode: requestMode,
+    nullGuarded,
   }).statements;
 
 /**
@@ -1803,7 +1837,7 @@ export const getQueryParamsFormatTypeEncoding = ({
       skipProperty: () => false,
       isLeaf: (schema, context) =>
         getModelFormatType(schema, context) !== undefined,
-      leafStatement: (read, write, schema, context) => {
+      leafStatement: (read, write, schema, context, nullGuarded) => {
         const formatType = getModelFormatType(schema, context);
         if (formatType && !formatType.encode) {
           warnings.push(
@@ -1814,7 +1848,12 @@ export const getQueryParamsFormatTypeEncoding = ({
             ).message,
           );
         }
-        return encodeLeafStatement(read, write, formatType?.encode ?? 'String');
+        return encodeLeafStatement(
+          read,
+          write,
+          formatType?.encode ?? 'String',
+          nullGuarded,
+        );
       },
     };
     return buildStatements({
@@ -1974,6 +2013,7 @@ export const generateRequestDateSerializer = ({
     schema,
     accessor: 'copy',
     context: bodyContext,
+    nullGuarded: true,
   });
   if (statements.length === 0) return undefined;
 

@@ -254,7 +254,9 @@ export const findPetsByStatus = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -340,7 +342,9 @@ export const findPetsByTags = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -415,7 +419,9 @@ export const getPetById = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -500,7 +506,9 @@ export const updatePetWithForm = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -678,7 +686,9 @@ export const getOrderById = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -821,7 +831,9 @@ export const loginUser = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,
@@ -943,7 +955,9 @@ export const getUserByName = async (
     ? contentType.includes('json')
       ? JSON.parse(body)
       : body
-    : {};
+    : body !== null && contentType && !contentType.includes('json')
+      ? body
+      : {};
   return {
     data,
     status: res.status,

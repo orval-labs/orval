@@ -289,6 +289,7 @@ export const generateEffectComponentConsts = (
         lazyRefs,
         declaredTypes,
         bases,
+        name,
       );
     } catch (error) {
       return cannotGenerate(name, error, context);

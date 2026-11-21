@@ -957,6 +957,12 @@ TypeDoc 是可选的 peer 依赖，因此在启用该选项前，请先安装它
 npm install typedoc typedoc-plugin-markdown -D
 ```
 
+<Callout type="warn">
+  TypeDoc 目前还不支持 TypeScript 7，因此该选项需要 TypeScript 6。TypeDoc
+  计划在 TypeScript 7.1 时提供支持，详见
+  [TypeStrong/typedoc#3098](https://github.com/TypeStrong/typedoc/issues/3098)。
+</Callout>
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
@@ -2514,13 +2520,9 @@ export default defineConfig({
 
 控制你重新运行 orval 时，如何处理**已经存在**的 handler 文件。不存在的文件始终会直接全新生成。
 
-- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。需要 TypeScript compiler API；如果无法加载，生成会失败，现有 handler 文件保持不变。
+- `smart`（默认）：以非破坏方式只协调 orval 自己负责的部分，比如它自己的 imports（名称、模块路径、大小写）、`zValidator(...)` 参数，以及为新增 operation 追加 handlers。你的自定义 imports、middleware、handler body 和顶层 helpers 都会被保留。无法解析的 handler 文件会保持不变。
 - `skip`：对已存在的 handler 文件保持逐字节不变。新增 operation 仍然会生成新文件（在 `split` 模式下）。
 - `full`：根据 spec 重建文件头、imports 和 validator chain，只把每个 handler body 再拼接回去。**这是破坏性的。** 自定义 imports、middleware 和顶层 helpers 都会丢失。只有当你刻意保持 handlers 很轻，并希望它们和 spec 最大程度同步时才建议使用。
-
-<Callout type="info">
-  `smart` 和 `full` 会使用 TypeScript compiler API 来解析现有 handler 文件。`@orval/hono` 自带 `typescript` 依赖来完成这项工作，因此无论你的项目使用哪个 TypeScript 版本都可以正常工作（包括 TypeScript 7，它的包已不再提供 JS compiler API）。
-</Callout>
 
 <Callout type="warn">
   如果启用了 `output.clean`，且 handlers 目录位于 output target 目录内部，那么在生成开始前 handler 文件就会被删除，这会让 `smart` / `skip` 的保留机制失效。依赖 handler 保留时，请关闭 `clean`，或者把它限制在更小范围内。
@@ -4063,6 +4065,7 @@ getUser(user.id); // OK
 
 - 只有解析为 `string`、`number`、`boolean`、`bigint` 或 `Date` 的 schema 会被标记。object、enum、组合（`allOf` / `oneOf` / `anyOf`）schema 以及带 `default` 的 schema 保持不变。
 - 与 Zod 的 [`useBrandedTypes`](#usebrandedtypes) 选项相互独立，后者使用 `.brand()`，生成的类型并不相同。
+- 使用 `schemas: { type: 'zod' }` 时，同样的具名原始类型组件 schema 会改为带上 Zod brand（`export const UserId = zod.uuid().brand('UserId')`）。Zod 只为 schema 的输出添加 brand，因此 `UserIdOutput` 和解析后的响应带 brand，而 `UserId` 输入类型仍是普通的 `string`。
 
 ### requestOptions
 

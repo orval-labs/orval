@@ -58,7 +58,6 @@ function successResponseJsonSchema(
 import {
   type DesiredImports,
   type DesiredValidator,
-  ensureTypeScript,
   extractHandlerBodies,
   reconcileHandlerFile,
 } from './handler-merge';
@@ -565,16 +564,6 @@ export const generateHandlerFile = async ({
 
   if (strategy === 'skip') {
     return source;
-  }
-
-  // `smart` and `full` parse the existing file with the TypeScript compiler API.
-  // If the compiler API cannot be loaded we cannot safely reconcile or splice.
-  // Fail instead of silently keeping a stale file: the regenerated router would
-  // reference handlers that file does not export. Nothing is written on failure.
-  if (!(await ensureTypeScript())) {
-    throw new Error(
-      `hono handlerGenerationStrategy '${strategy}' requires the TypeScript compiler API, which could not be loaded. Reinstall dependencies, or set handlerGenerationStrategy to 'skip' to leave existing handler files unchanged.`,
-    );
   }
 
   if (strategy === 'full') {

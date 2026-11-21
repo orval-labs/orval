@@ -373,7 +373,7 @@ const serializeCreateEventRequest = (data: Event): Event => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (encodeDayjs(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.day != null) {

@@ -23,7 +23,7 @@
     "svelte": "catalog:svelte",
     "svelte-check": "catalog:svelte",
     "tslib": "catalog:",
-    "typescript": "catalog:",
+    "typescript": "catalog:ts6",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

@@ -502,7 +502,7 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (String(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.date != null) {

@@ -207,13 +207,13 @@ const serializeUpdateReminderRequest = (data: Reminder): Reminder => {
   if (data == null) return data;
   const copy = { ...data };
   copy.remindAt =
-    typeof copy.remindAt === 'string'
+    typeof copy.remindAt === 'string' || copy.remindAt == null
       ? copy.remindAt
       : (encodeDayjs(copy.remindAt) as unknown as typeof copy.remindAt);
   if (copy.event != null) {
     copy.event = { ...copy.event };
     copy.event.startsAt =
-      typeof copy.event.startsAt === 'string'
+      typeof copy.event.startsAt === 'string' || copy.event.startsAt == null
         ? copy.event.startsAt
         : (encodeDayjs(
             copy.event.startsAt,

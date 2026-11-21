@@ -366,8 +366,8 @@ const getHttpResourceFactory = (
   contentType: string | undefined,
   dataType: string,
 ): HttpResourceFactoryName => {
-  if (isResponseText(contentType, dataType)) return 'httpResource.text';
   if (isResponseBlob(contentType, response.isBlob)) return 'httpResource.blob';
+  if (isResponseText(contentType, dataType)) return 'httpResource.text';
   if (isResponseArrayBuffer(contentType)) return 'httpResource.arrayBuffer';
   return 'httpResource';
 };

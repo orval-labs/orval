@@ -37,6 +37,7 @@
     "@modelcontextprotocol/server": "catalog:mcp",
     "@types/esutils": "^2.0.2",
     "@types/jsesc": "^3.0.3",
+    "oxc-parser": "^0.159.0",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"

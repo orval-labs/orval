@@ -857,6 +857,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `errorBody ? JSON.parse(errorBody${reviver}) : {}`
       : `errorBody !== null ? errorBody : {}`;
 
+  // An empty body declared as non-JSON (e.g. text/plain) is a string.
+  const emptyMixedBodyExpression = `body !== null && contentType && !contentType.includes('json') ? body : {}`;
+
   const throwOnErrorBodyExpression = hasMixedErrorContentTypes
     ? `body ? (errorContentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}`
     : errorAlwaysJson
@@ -934,12 +937,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? hasMixedSuccessContentTypes || successAlwaysJson
-        ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : {}${convertParsedBody('parsedBody', { checkContentType: true })}
+        ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${hasMixedSuccessContentTypes ? emptyMixedBodyExpression : '{}'}${convertParsedBody('parsedBody', { checkContentType: true })}
   const data = ${validatesPrimitiveResponse ? 'res.ok && ' : ''}contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes
-        ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: true })}`
+        ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${isVoidResponse ? 'undefined' : emptyMixedBodyExpression}${convertParsedBody('data', { checkContentType: true })}`
         : successAlwaysJson
           ? `${parsedBodyBinding} data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : ${isVoidResponse ? 'undefined' : '{}'}${convertParsedBody('data', { checkContentType: false })}`
           : `const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body !== null ? body : ${isVoidResponse ? 'undefined' : "''"}`

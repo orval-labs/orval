@@ -14,6 +14,7 @@ import {
   getImportExtension,
   getRefInfo,
   hasSchemaDefinition,
+  isBrandablePrimitiveSchema,
   isComponentRef,
   kebab,
   type NamingConvention,
@@ -127,6 +128,7 @@ interface WriteZodOutputOptions {
   tsconfig?: Tsconfig;
   override: {
     useNamedParameters?: boolean;
+    useBrandedTypes?: boolean;
     formatType?: NormalizedFormatTypeMap;
     zod: {
       variant: ZodVariantOption;
@@ -362,20 +364,20 @@ function renderReusableSchemaEntry(
   zodVariant: ZodVariantOption,
 ): RenderedReusableSchemaEntry {
   const consts = entry.consts ? `${entry.consts}\n\n` : '';
+  // Resolve the lookup key through `getRefInfo` (the same util every other
+  // ref consumer uses) rather than slicing the prefix off `entry.ref` by
+  // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
+  // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
+  // `components.schemas`. `originalName` is the decoded final segment, which
+  // matches the raw `components.schemas` key.
+  const rawName = isComponentRef(entry.ref)
+    ? getRefInfo(entry.ref, context).originalName
+    : undefined;
+  const schema = rawName
+    ? context.spec.components?.schemas?.[rawName]
+    : undefined;
 
   if (entry.isRecursive) {
-    // Resolve the lookup key through `getRefInfo` (the same util every other
-    // ref consumer uses) rather than slicing the prefix off `entry.ref` by
-    // hand: it guards the `#/components/schemas/` prefix via `isComponentRef`
-    // and decodes JSON Pointer escapes (`~1`→`/`, `~0`→`~`) before indexing
-    // `components.schemas`. `originalName` is the decoded final segment, which
-    // matches the raw `components.schemas` key.
-    const rawName = isComponentRef(entry.ref)
-      ? getRefInfo(entry.ref, context).originalName
-      : undefined;
-    const schema = rawName
-      ? context.spec.components?.schemas?.[rawName]
-      : undefined;
     // The zod generator maps every integer to `zod.int()` regardless of
     // `useBigInt`, so the pinned TS type must also say `number` or
     // `zod.ZodType<X>` rejects the schema (#4390).
@@ -467,7 +469,7 @@ function renderReusableSchemaEntry(
         // for the emitter to add) to preserve this call site's pre-existing
         // output byte-for-byte; the schema-file entry above passes its
         // expression bare and emits none. See the module-drift note on
-        // `renderReusableSchemaEntry`.
+        // `renderReusableSchemaEntry`. The brand goes before that `;`.
         expression: `${entry.zod};`,
         variant: zodVariant,
         companionTypes: true,
@@ -873,6 +875,10 @@ export function generateZodSchemasInline(
       output.override.zod.variant,
       output.override.zod.exactOptional,
       hasZodXor,
+      output.override.useBrandedTypes &&
+        isBrandablePrimitiveSchema(schemaObject)
+        ? name
+        : undefined,
     );
 
     schemas.push({
@@ -1076,6 +1082,10 @@ export async function writeZodSchemas(
       output.override.zod.variant,
       output.override.zod.exactOptional,
       hasZodXor,
+      output.override.useBrandedTypes &&
+        isBrandablePrimitiveSchema(schemaObject)
+        ? name
+        : undefined,
     );
 
     schemasToWrite.push({

@@ -76,7 +76,7 @@ export const getListEventsUrl = (params?: ListEventsParams) => {
     encodedParams.days = encodedParams.days.map((item0) => {
       let value0 = item0;
       value0 =
-        typeof value0 === 'string'
+        typeof value0 === 'string' || value0 == null
           ? value0
           : (String(value0) as unknown as typeof value0);
       return value0;
@@ -221,7 +221,7 @@ const serializeCreateEventRequest = (data: CreateEvent): CreateEvent => {
   if (data == null) return data;
   const copy = { ...data };
   copy.startsAt =
-    typeof copy.startsAt === 'string'
+    typeof copy.startsAt === 'string' || copy.startsAt == null
       ? copy.startsAt
       : (String(copy.startsAt) as unknown as typeof copy.startsAt);
   if (copy.date != null) {
