@@ -374,17 +374,18 @@ type AngularQueryPackageName =
  * (5.108.0) and deprecated `@tanstack/angular-query-experimental`; the APIs
  * the generated code uses are the same in both. The stable package is used
  * when the project depends on it, and the experimental one otherwise, so a
- * project that has not migrated keeps the imports it resolves.
+ * project that has not migrated keeps the imports it resolves. A declaration
+ * counts whatever its range, including `""`, which npm reads as `*`.
  */
 export const getAngularQueryPackageName = (
   packageJson: PackageJson | undefined,
 ): AngularQueryPackageName =>
   (packageJson?.resolvedVersions?.[ANGULAR_QUERY_PACKAGE] ??
-  packageJson?.dependencies?.[ANGULAR_QUERY_PACKAGE] ??
-  packageJson?.devDependencies?.[ANGULAR_QUERY_PACKAGE] ??
-  packageJson?.peerDependencies?.[ANGULAR_QUERY_PACKAGE])
-    ? ANGULAR_QUERY_PACKAGE
-    : ANGULAR_QUERY_EXPERIMENTAL_PACKAGE;
+    packageJson?.dependencies?.[ANGULAR_QUERY_PACKAGE] ??
+    packageJson?.devDependencies?.[ANGULAR_QUERY_PACKAGE] ??
+    packageJson?.peerDependencies?.[ANGULAR_QUERY_PACKAGE]) === undefined
+    ? ANGULAR_QUERY_EXPERIMENTAL_PACKAGE
+    : ANGULAR_QUERY_PACKAGE;
 
 /**
  * Angular Query imports.

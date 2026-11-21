@@ -389,6 +389,16 @@ describe('getAngularQueryPackageName', () => {
     },
   );
 
+  it('uses the stable package when it is declared with an empty range', () => {
+    // npm reads `""` as `*`, so the package is declared even though the
+    // range is falsy.
+    expect(
+      getAngularQueryPackageName({
+        dependencies: { '@tanstack/angular-query': '' },
+      }),
+    ).toBe('@tanstack/angular-query');
+  });
+
   it('prefers the stable package while both are installed', () => {
     expect(
       getAngularQueryPackageName({
