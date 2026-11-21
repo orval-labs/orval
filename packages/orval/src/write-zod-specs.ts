@@ -160,44 +160,94 @@ export function addFormatTypeImports(
   override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
   precedingContent = '',
 ): string {
-  const isImported = (name: string) =>
-    [
-      ...`${precedingContent}\n${content}`.matchAll(
-        /^import\s+(?:type\s+)?([^;]*?)\s+from\s+/gm,
-      ),
-    ].some(([, clause]) => {
-      const defaultBinding = clause.match(/^([\w$]+)(?:\s*,|$)/)?.[1];
-      const namespaceBinding = clause.match(/\*\s+as\s+([\w$]+)/)?.[1];
-      const namedBindings = clause.match(/\{([^}]*)\}/)?.[1];
-      return (
-        defaultBinding === name ||
-        namespaceBinding === name ||
-        (namedBindings?.split(',').some((specifier) => {
-          const binding = /^(?:type\s+)?([\w$]+)(?:\s+as\s+([\w$]+))?$/.exec(
-            specifier.trim(),
-          );
-          return (binding?.[2] ?? binding?.[1]) === name;
-        }) ??
-          false)
+  const importedBindings: {
+    localName: string;
+    importedName: string;
+    importPath: string | undefined;
+    typeOnly: boolean;
+  }[] = [];
+  for (const match of `${precedingContent}\n${content}`.matchAll(
+    /^import\s+(type\s+)?([^;]*?)\s+from\s+(['"])([^'"]+)\3/gm,
+  )) {
+    const typeImport = match[1];
+    const clause = match[2];
+    const importPath = match[4];
+    if (!clause || !importPath) continue;
+    const defaultBinding = clause.match(/^([\w$]+)(?:\s*,|$)/)?.[1];
+    if (defaultBinding) {
+      importedBindings.push({
+        localName: defaultBinding,
+        importedName: 'default',
+        importPath,
+        typeOnly: !!typeImport,
+      });
+    }
+    const namespaceBinding = clause.match(/\*\s+as\s+([\w$]+)/)?.[1];
+    if (namespaceBinding) {
+      importedBindings.push({
+        localName: namespaceBinding,
+        importedName: '*',
+        importPath,
+        typeOnly: !!typeImport,
+      });
+    }
+    for (const specifier of (clause.match(/\{([^}]*)\}/)?.[1] ?? '').split(
+      ',',
+    )) {
+      const binding = /^(type\s+)?([\w$]+)(?:\s+as\s+([\w$]+))?$/.exec(
+        specifier.trim(),
       );
-    });
-  const valueImports = getFormatTypeZodImports(content, override);
+      const importedName = binding?.[2];
+      if (!importedName) continue;
+      importedBindings.push({
+        localName: binding[3] || importedName,
+        importedName,
+        importPath,
+        typeOnly: !!typeImport || !!binding[1],
+      });
+    }
+  }
+
+  const isImported = (imp: GeneratorImport): boolean => {
+    const localName = imp.alias ?? imp.name;
+    const importedName = imp.namespaceImport
+      ? '*'
+      : imp.default
+        ? 'default'
+        : imp.name;
+    let found = false;
+    for (const existing of importedBindings) {
+      if (existing.localName !== localName) continue;
+      if (
+        existing.importPath !== imp.importPath ||
+        existing.importedName !== importedName ||
+        (existing.typeOnly && imp.values !== false)
+      ) {
+        throw new Error(
+          `Format-type import "${imp.name}" from "${imp.importPath}" conflicts on local name "${localName}" with import "${existing.importedName}" from "${existing.importPath}". Use a distinct import alias${existing.typeOnly ? ' or change the existing type-only import to a value import' : ''}.`,
+        );
+      }
+      found = true;
+    }
+    if (!found) {
+      importedBindings.push({
+        localName,
+        importedName,
+        importPath: imp.importPath,
+        typeOnly: imp.values === false,
+      });
+    }
+    return found;
+  };
+
   const imports = [
-    ...valueImports,
-    // The TypeScript type a recursive schema is pinned to names them. A value
-    // import of the same binding, such as a `decodeImport`, covers the type.
+    ...getFormatTypeZodImports(content, override),
+    // A value import of the same local binding, module, and export also covers
+    // a type reference. isImported deduplicates that case below.
     ...getReferencedFormatTypeImports(content, override, (config) => [
       config.import,
-    ])
-      .filter(
-        (imp) =>
-          !valueImports.some(
-            (value) =>
-              value.name === imp.name && value.importPath === imp.importPath,
-          ),
-      )
-      .map((imp) => ({ ...imp, values: false })),
-  ].filter(({ name }) => !isImported(name));
+    ]).map((imp) => ({ ...imp, values: false })),
+  ].filter((imp) => !isImported(imp));
   if (imports.length === 0) return content;
   const statements = generateImports({ imports });
   const zodImport = getZodSchemaImportStatement(override.zod.variant);

@@ -2295,17 +2295,53 @@ describe('formatType imports', () => {
     }
   });
 
-  it('suppresses dayjs when an existing import declares that local binding', () => {
+  it('deduplicates an identical default import in preceding or generated content', () => {
+    const existingImport = "import dayjs from 'dayjs';";
+    expect(addFormatTypeImports(schema, override, `${existingImport}\n`)).toBe(
+      schema,
+    );
+    expect(addFormatTypeImports(`${existingImport}\n${schema}`, override)).toBe(
+      `${existingImport}\n${schema}`,
+    );
+  });
+
+  it('rejects the same local name imported from a different module', () => {
+    expect(() =>
+      addFormatTypeImports(
+        schema,
+        override,
+        "import dayjs from './date-utils';\n",
+      ),
+    ).toThrow(
+      /Format-type import "dayjs" from "dayjs".*local name "dayjs".*"\.\/date-utils".*distinct import alias/,
+    );
+  });
+
+  it('rejects a different exported binding using the same local name', () => {
     for (const existingImport of [
-      "import dayjs from 'dayjs';",
       "import * as dayjs from 'dayjs';",
-      "import { customDayjs as dayjs } from './date-utils';",
+      "import { dayjs } from 'dayjs';",
+      "import { customDayjs as dayjs } from 'dayjs';",
       "import { other, customDayjs as dayjs } from './date-utils';",
     ]) {
-      expect(
+      expect(() =>
         addFormatTypeImports(schema, override, `${existingImport}\n`),
-      ).toBe(schema);
+      ).toThrow(
+        /Format-type import "dayjs".*local name "dayjs".*distinct import alias/,
+      );
     }
+  });
+
+  it('does not treat a type-only import as an existing runtime binding', () => {
+    expect(() =>
+      addFormatTypeImports(
+        schema,
+        override,
+        "import type dayjs from 'dayjs';\n",
+      ),
+    ).toThrow(
+      /local name "dayjs".*distinct import alias.*type-only import to a value import/,
+    );
   });
 
   it('imports the mapped type a recursive schema is pinned to', () => {
@@ -2325,6 +2361,55 @@ describe('formatType imports', () => {
     );
   });
 
+  it('deduplicates matching type imports and accepts a matching value import', () => {
+    const typed = {
+      ...override,
+      formatType: {
+        'date-time': {
+          type: 'Dayjs',
+          import: { name: 'Dayjs', importPath: 'dayjs' },
+        },
+      },
+    };
+    const pinned =
+      'export type Node = { at: Dayjs; children?: Node[] };\n\nexport const Node: zod.ZodType<Node> = zod.object({})\n';
+
+    for (const existingImport of [
+      "import type { Dayjs } from 'dayjs';",
+      "import { type Dayjs } from 'dayjs';",
+      "import { Dayjs } from 'dayjs';",
+    ]) {
+      expect(addFormatTypeImports(pinned, typed, `${existingImport}\n`)).toBe(
+        pinned,
+      );
+    }
+  });
+
+  it('rejects incompatible type imports with the same local binding', () => {
+    const typed = {
+      ...override,
+      formatType: {
+        'date-time': {
+          type: 'Dayjs',
+          import: { name: 'Dayjs', importPath: 'dayjs' },
+        },
+      },
+    };
+    const pinned =
+      'export type Node = { at: Dayjs; children?: Node[] };\n\nexport const Node: zod.ZodType<Node> = zod.object({})\n';
+
+    for (const existingImport of [
+      "import type { Dayjs } from './date-utils';",
+      "import { OtherDayjs as Dayjs } from 'dayjs';",
+    ]) {
+      expect(() =>
+        addFormatTypeImports(pinned, typed, `${existingImport}\n`),
+      ).toThrow(
+        /Format-type import "Dayjs".*local name "Dayjs".*distinct import alias/,
+      );
+    }
+  });
+
   it('imports a type its decode also imports as a value once', () => {
     const temporal = { name: 'Temporal', importPath: 'temporal-polyfill' };
     const typed = {
@@ -2342,6 +2427,29 @@ describe('formatType imports', () => {
       'export const Event = zod.object({ "day": zod.iso.date().transform((value) => Temporal.PlainDate.from(value)) })\n';
     expect(addFormatTypeImports(content, typed)).toBe(
       `import { Temporal } from 'temporal-polyfill';\n\n${content}`,
+    );
+  });
+
+  it('rejects incompatible value and type imports generated for one binding', () => {
+    const typed = {
+      ...override,
+      formatType: {
+        date: {
+          type: 'Temporal.PlainDate',
+          import: { name: 'Temporal', importPath: './temporal-types' },
+          decode: 'Temporal.PlainDate.from',
+          decodeImport: {
+            name: 'Temporal',
+            importPath: 'temporal-polyfill',
+          },
+        },
+      },
+    };
+    const content =
+      'export const Event = zod.object({ "day": zod.iso.date().transform((value) => Temporal.PlainDate.from(value)) })\n';
+
+    expect(() => addFormatTypeImports(content, typed)).toThrow(
+      /Format-type import "Temporal".*"\.\/temporal-types".*local name "Temporal".*"temporal-polyfill".*distinct import alias/,
     );
   });
 
