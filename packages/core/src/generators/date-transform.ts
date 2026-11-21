@@ -2168,7 +2168,7 @@ const copyDeclaration = (
   }
   // An `allOf` branch's converter replaces the copy.
   const reassigned = body.statements.some((statement) =>
-    statement.startsWith('copy = '),
+    statement.trimStart().startsWith('copy = '),
   );
   return `${reassigned ? 'let' : 'const'} copy = { ...data }${workingType};`;
 };
