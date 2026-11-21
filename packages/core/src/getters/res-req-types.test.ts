@@ -2728,6 +2728,108 @@ describe('getResReqTypes (JSON form-data parts, issue #4560)', () => {
     expect(formUrlEncoded).not.toContain('new Blob');
     expect(formUrlEncoded).toContain('JSON.stringify(bodyRequestBody.dto)');
   });
+
+  it.each([
+    ['a +json type of another top-level type', 'model/gltf+json'],
+    [
+      'a quoted parameter holding a comma',
+      'application/json; profile="urn:example:a,b"',
+    ],
+  ])('sends a JSON Blob for %s', (_, contentType) => {
+    const formData = formDataFor({ dto }, { dto: { contentType } });
+
+    expect(formData).toContain(
+      `formData.append(\`dto\`, new Blob([JSON.stringify(bodyRequestBody.dto)]`,
+    );
+  });
+
+  it.each(['text/json', 'application/jsonp', 'application/json-seq'])(
+    'does not read %s as JSON',
+    (contentType) => {
+      expect(formDataFor({ dto }, { dto: { contentType } })).not.toContain(
+        'new Blob',
+      );
+    },
+  );
+
+  it('sends a nullable array part with a JSON encoding as one Blob', () => {
+    const formData = formDataFor(
+      { tags: { type: ['array', 'null'], items: { type: 'string' } } },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain('if(bodyRequestBody.tags !== null) {');
+    expect(formData).toContain(
+      "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  describe('oneOf variant keys', () => {
+    const formDataForVariants = (mediaType = 'multipart/form-data') => {
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              [mediaType]: {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        dto,
+                        file: { type: 'string', format: 'binary' },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      properties: { note: { type: 'string' } },
+                    },
+                  ],
+                },
+                encoding: {
+                  dto: { contentType: 'application/json' },
+                  file: { contentType: 'application/json' },
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+      const result = getResReqTypes(reqBody, 'Body', ctxWithDevice)[0];
+      return mediaType === 'multipart/form-data'
+        ? result.formData
+        : result.formUrlEncoded;
+    };
+
+    it('sends a JSON-encoded variant key as one Blob at runtime', async () => {
+      const formData = formDataForVariants() ?? '';
+      // The loop is plain JavaScript, so it can run as it is.
+      const build = runInNewContext(
+        `(bodyRequestBody) => {\n${formData}\nreturn formData;\n}`,
+        { FormData, Blob, File, Buffer },
+      ) as (body: unknown) => FormData;
+      const file = new Blob(['bytes'], { type: 'image/png' });
+
+      const result = build({ dto: { name: 'probe' }, file, note: 'n' });
+
+      const dtoPart = result.get('dto');
+      expect(dtoPart).toBeInstanceOf(Blob);
+      expect((dtoPart as Blob).type).toBe('application/json');
+      expect(await (dtoPart as Blob).text()).toBe('{"name":"probe"}');
+      // A file value keeps its own type, whatever its encoding says.
+      expect((result.get('file') as Blob).type).toBe('image/png');
+      expect(result.get('note')).toBe('n');
+    });
+
+    it('leaves url-encoded variant keys alone', () => {
+      expect(
+        formDataForVariants('application/x-www-form-urlencoded'),
+      ).not.toContain('new Blob');
+    });
+  });
 });
 
 describe('allOf resolution helpers (isEffectivelyObjectSchema / collectPropertiesThroughAllOf / collectRequiredThroughAllOf)', () => {
