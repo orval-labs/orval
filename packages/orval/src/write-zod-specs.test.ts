@@ -80,6 +80,60 @@ const createOptionsWithSchemaExtension = (): Parameters<
   return options;
 };
 
+/** External symbols remain referenced by name in emitted refinement functions. */
+const validateImportedValue = (value: unknown): boolean =>
+  typeof value === 'string';
+const importedValidatorNamespace = {
+  check: (value: unknown): boolean => value !== undefined,
+};
+const importedDefaultValidator = (value: unknown): boolean => value !== null;
+
+const createOptionsWithImportBindings = (): Parameters<
+  typeof writeZodSchemas
+>[4] => {
+  const options = createOutputOptions();
+  options.override.zod.schemaExtension = [
+    {
+      type: 'string',
+      format: '',
+      validatorsGenerator: () => ({
+        callable: (value: unknown) => validateImportedValue(value),
+        bindings: {
+          $imports: ["import { validateImportedValue } from './validators';"],
+        },
+      }),
+    },
+  ];
+  return options;
+};
+
+const createImportBindingsBuilder = (): Parameters<
+  typeof writeZodSchemas
+>[0] => {
+  const schema = {
+    type: 'object' as const,
+    properties: {
+      name: { type: 'string' as const },
+      nickname: { type: 'string' as const },
+    },
+    required: ['name', 'nickname'],
+  };
+  return {
+    spec: {
+      openapi: '3.1.0',
+      info: { title: 'test', version: '1.0.0' },
+      components: { schemas: { UserSchema: schema } },
+    },
+    target: '',
+    schemas: [{ name: 'UserSchema', schema }],
+  };
+};
+
+const matchingValidatorImports = (content: string): string[] =>
+  content.match(
+    /import\s*\{\s*validateImportedValue\s*\}\s*from\s*['"]\.\/validators['"]/g,
+  ) ?? [];
+
 describe('write-zod-specs regressions', () => {
   it('does not rewrite unchanged direct zod output', async () => {
     const root = await fs.promises.mkdtemp(
@@ -2441,6 +2495,327 @@ describe('override.useBrandedTypes on zod component schemas (#4534)', () => {
       expect(
         generateZodSchemasInline(createBrandBuilder(), options),
       ).not.toContain('.brand(');
+    }
+  });
+});
+
+describe('write-zod-specs refinement import bindings', () => {
+  it.each([false, true])(
+    'emits and deduplicates imports for inline and standalone component schemas (reusable: %s)',
+    async (reusable) => {
+      const root = await fs.promises.mkdtemp(
+        path.join(tmpdir(), 'orval-zod-refinement-imports-'),
+      );
+      try {
+        const output = createOptionsWithImportBindings();
+        output.override.zod.generateReusableSchemas = reusable;
+        const builder = createImportBindingsBuilder();
+
+        const inline = generateZodSchemasInline(builder, output);
+        expect(matchingValidatorImports(inline)).toHaveLength(1);
+        expect(inline.indexOf('import { validateImportedValue }')).toBeLessThan(
+          inline.indexOf('export const UserSchema ='),
+        );
+        expect(inline).toContain('validateImportedValue(value)');
+
+        const schemasPath = path.join(root, 'schemas');
+        await writeZodSchemas(builder, schemasPath, '.ts', '', output);
+        const content = await fs.promises.readFile(
+          path.join(schemasPath, 'UserSchema.ts'),
+          'utf8',
+        );
+        expect(matchingValidatorImports(content)).toHaveLength(1);
+        expect(content).toContain('validateImportedValue(value)');
+        expect(
+          content.indexOf('import { validateImportedValue }'),
+        ).toBeLessThan(content.indexOf('export const UserSchema ='));
+      } finally {
+        await fs.promises.rm(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it('emits refinement imports only in the reusable schema file that needs them', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-reusable-imports-'),
+    );
+    try {
+      const options = createOptionsWithImportBindings();
+      options.override.zod.generateReusableSchemas = true;
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'test', version: '1.0.0' },
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object' as const,
+              properties: { owner: { $ref: '#/components/schemas/Owner' } },
+              required: ['owner'],
+            },
+            Owner: { type: 'string' as const },
+          },
+        },
+      };
+      const builder: Parameters<typeof writeZodSchemas>[0] = {
+        spec,
+        target: '',
+        schemas: [
+          { name: 'Pet', schema: spec.components.schemas.Pet },
+          { name: 'Owner', schema: spec.components.schemas.Owner },
+        ],
+      };
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemas(builder, schemasPath, '.ts', '', options);
+      const pet = await fs.promises.readFile(
+        path.join(schemasPath, 'Pet.ts'),
+        'utf8',
+      );
+      const owner = await fs.promises.readFile(
+        path.join(schemasPath, 'Owner.ts'),
+        'utf8',
+      );
+      expect(matchingValidatorImports(pet)).toHaveLength(0);
+      expect(matchingValidatorImports(owner)).toHaveLength(1);
+      expect(pet).toMatch(/import\s*\{\s*Owner\s*\}\s*from/);
+      expect(owner).toContain('validateImportedValue(value)');
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('renders namespace and default refinement imports at module scope', () => {
+    const builder = createImportBindingsBuilder();
+    const options = createOutputOptions();
+    options.override.zod.schemaExtension = [
+      {
+        type: 'string',
+        format: '',
+        validatorsGenerator: () => [
+          {
+            callable: (value: unknown) =>
+              importedValidatorNamespace.check(value),
+            bindings: {
+              $imports: [
+                "import * as importedValidatorNamespace from './checks';",
+              ],
+            },
+          },
+          {
+            callable: (value: unknown) => importedDefaultValidator(value),
+            bindings: {
+              $imports: [
+                "import importedDefaultValidator from './default-validator';",
+              ],
+            },
+          },
+        ],
+      },
+    ];
+    const content = generateZodSchemasInline(builder, options);
+    expect(content).toMatch(
+      /import \* as importedValidatorNamespace from ['"]\.\/checks['"]/,
+    );
+    expect(content).toMatch(
+      /import importedDefaultValidator from ['"]\.\/default-validator['"]/,
+    );
+    expect(content).toContain('importedValidatorNamespace.check(value)');
+    expect(content).toContain('importedDefaultValidator(value)');
+  });
+
+  it('writes refinement imports for operation query and body schemas', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-operation-imports-'),
+    );
+    try {
+      const options = createOptionsWithImportBindings();
+      const spec = createImportBindingsBuilder().spec;
+      const context: MinimalVerbsContext = {
+        output: {
+          override: {
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec,
+        target: '',
+        workspace: root,
+      };
+      const verbs = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [
+              {
+                name: 'search',
+                in: 'query' as const,
+                required: true,
+                schema: { type: 'string' as const },
+              },
+            ],
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object' as const,
+                    properties: { label: { type: 'string' as const } },
+                  },
+                },
+              },
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[0];
+      const schemasPath = path.join(root, 'schemas');
+      await writeZodSchemasFromVerbs(
+        verbs,
+        schemasPath,
+        '.ts',
+        '',
+        options,
+        context,
+      );
+      for (const name of ['SubmitParams', 'SubmitBody']) {
+        const content = await fs.promises.readFile(
+          path.join(schemasPath, `${name}.ts`),
+          'utf8',
+        );
+        expect(matchingValidatorImports(content)).toHaveLength(1);
+        expect(content).toContain('validateImportedValue(value)');
+      }
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('deduplicates imports across components and operations in single-file mode', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-single-imports-'),
+    );
+    try {
+      const options = createOptionsWithImportBindings();
+      options.override.zod.generateReusableSchemas = true;
+      const builder = createImportBindingsBuilder();
+      const context: MinimalVerbsContext = {
+        output: {
+          override: {
+            zod: { dateTimeOptions: {}, timeOptions: {} },
+          },
+        },
+        spec: builder.spec,
+        target: '',
+        workspace: root,
+      };
+      const verbs = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [],
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { type: 'string' as const },
+                },
+              },
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasSingle>[1];
+      const filePath = path.join(root, 'schemas.ts');
+      await writeZodSchemasSingle(
+        builder,
+        verbs,
+        filePath,
+        '.ts',
+        '',
+        options,
+        context,
+      );
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      expect(matchingValidatorImports(content)).toHaveLength(1);
+      expect(content).toContain('export const UserSchema =');
+      expect(content).toContain('export const SubmitBody =');
+      expect(content.indexOf('import { validateImportedValue }')).toBeLessThan(
+        content.indexOf('export const UserSchema ='),
+      );
+      expect(content.indexOf('import { validateImportedValue }')).toBeLessThan(
+        content.indexOf('export const SubmitBody ='),
+      );
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects conflicting imports across components and operations before writing', async () => {
+    const root = await fs.promises.mkdtemp(
+      path.join(tmpdir(), 'orval-zod-import-conflict-'),
+    );
+    try {
+      const options = createOptionsWithImportBindings();
+      const builder = createImportBindingsBuilder();
+      const context: MinimalVerbsContext = {
+        output: {
+          override: { zod: { dateTimeOptions: {}, timeOptions: {} } },
+        },
+        spec: builder.spec,
+        target: '',
+        workspace: root,
+      };
+      const verbs = {
+        submit: {
+          operationName: 'submit',
+          typeName: 'submit',
+          originalOperation: {
+            parameters: [],
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: { type: 'string' as const },
+                },
+              },
+            },
+          },
+          override: {
+            zod: {
+              generate: options.override.zod.generate,
+              schemaExtension: [
+                {
+                  type: 'string' as const,
+                  format: '',
+                  validatorsGenerator: () => ({
+                    callable: (value: unknown) => validateImportedValue(value),
+                    bindings: {
+                      $imports: [
+                        "import { validateImportedValue } from './other-validators';",
+                      ],
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+          response: { types: { success: [], errors: [] } },
+        },
+      } satisfies Parameters<typeof writeZodSchemasSingle>[1];
+      const filePath = path.join(root, 'schemas.ts');
+      await expect(
+        writeZodSchemasSingle(
+          builder,
+          verbs,
+          filePath,
+          '.ts',
+          '',
+          options,
+          context,
+        ),
+      ).rejects.toThrow(
+        /Conflicting callable imports for validateImportedValue/,
+      );
+      expect(fs.existsSync(filePath)).toBe(false);
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
     }
   });
 });

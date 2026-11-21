@@ -1,4 +1,4 @@
-import type { BoundRefinement } from '@orval/core';
+import type { BoundRefinement, GeneratorImport } from '@orval/core';
 import { type Node, Parser, type Program } from 'acorn';
 import { analyze } from 'eslint-scope';
 import globals from 'globals';
@@ -133,6 +133,110 @@ const findFreeIdentifiers = (source: string): string[] => {
 };
 
 /**
+ * Interpret `$imports` as module-level imports, never as serializable capture
+ * values. Each declaration must define at least one local runtime identifier.
+ * Import syntax is parsed (not searched with a regex) so aliases, defaults,
+ * and namespace imports resolve the correct free identifier.
+ *
+ * Module resolution remains the generated file writer's responsibility:
+ * relative import paths are relative to the generated file, not orval.config.
+ */
+export const getRefinementImports = (
+  descriptor: Pick<BoundRefinement, 'bindings'>,
+): GeneratorImport[] => {
+  const imports = descriptor.bindings?.$imports;
+  if (imports === undefined) return [];
+  if (
+    !Array.isArray(imports) ||
+    imports.some((item) => typeof item !== 'string')
+  ) {
+    throw new TypeError(
+      'Callable $imports must be an array of import statements',
+    );
+  }
+
+  const result: GeneratorImport[] = [];
+  const localNames = new Set<string>();
+  for (const source of imports) {
+    let program: Program;
+    try {
+      program = Parser.parse(source, {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ranges: true,
+      });
+    } catch {
+      throw new SyntaxError(`Invalid callable import statement: ${source}`);
+    }
+
+    const [statement] = program.body;
+    if (program.body.length !== 1 || statement.type !== 'ImportDeclaration') {
+      throw new TypeError(
+        'Callable $imports entries must be static import declarations',
+      );
+    }
+    if (statement.specifiers.length === 0) {
+      throw new TypeError(
+        'Side-effect-only callable imports are not supported',
+      );
+    }
+    const importPath = statement.source.value;
+    if (typeof importPath !== 'string') {
+      throw new TypeError('Callable import source must be a string');
+    }
+
+    for (const specifier of statement.specifiers) {
+      const localName = specifier.local.name;
+      if (localName === 'zod') {
+        throw new TypeError('Callable imports cannot shadow the Zod namespace');
+      }
+      if (localNames.has(localName)) {
+        throw new TypeError(
+          `Duplicate imported callable identifier: ${localName}`,
+        );
+      }
+      localNames.add(localName);
+
+      if (specifier.type === 'ImportDefaultSpecifier') {
+        result.push({
+          name: localName,
+          importPath,
+          default: true,
+          values: true,
+        });
+      } else if (specifier.type === 'ImportNamespaceSpecifier') {
+        result.push({
+          name: localName,
+          importPath,
+          namespaceImport: true,
+          values: true,
+        });
+      } else {
+        const importedName =
+          specifier.imported.type === 'Identifier'
+            ? specifier.imported.name
+            : specifier.imported.value;
+        if (
+          typeof importedName !== 'string' ||
+          !/^[$A-Z_a-z][$\w]*$/.test(importedName)
+        ) {
+          throw new TypeError(
+            'Callable imports require identifier-named exports',
+          );
+        }
+        result.push({
+          name: importedName,
+          ...(localName === importedName ? {} : { alias: localName }),
+          importPath,
+          values: true,
+        });
+      }
+    }
+  }
+  return result;
+};
+
+/**
  * Serialize JSON-like capture values without evaluating accessors/toJSON or
  * silently dropping unsupported values. Supports extra JS literals that JSON
  * cannot represent (undefined, bigint, NaN, infinities, RegExp and Date).
@@ -257,6 +361,8 @@ export interface SerializedCallableParts {
   predicate: string;
   options?: string;
   declarations: string[];
+  /** Runtime imports to be added to the generated file's import list. */
+  imports?: GeneratorImport[];
 }
 
 export const serializeCallableParts = (
@@ -287,30 +393,46 @@ export const serializeCallableParts = (
       : serializeCaptureValue(options, new Set<object>(), serializeFunction);
 
   const resolvedBindings = bindings ?? {};
+  const imports = getRefinementImports(descriptor);
+  const importedNames = new Set(imports.map((item) => item.alias ?? item.name));
   const declarations: string[] = [];
   const used = new Set<string>();
+  const usedImports = new Set<string>();
   const unresolved: string[] = [];
   for (const name of free) {
     if (name === 'arguments' || name === 'eval') {
       throw new TypeError(`Cannot serialize a closure over ${name}`);
     }
-    if (Object.hasOwn(resolvedBindings, name)) {
+    if (Object.hasOwn(resolvedBindings, name) && name !== '$imports') {
+      if (importedNames.has(name)) {
+        throw new TypeError(`Callable binding conflicts with import: ${name}`);
+      }
       used.add(name);
       declarations.push(
         `  const ${name} = ${serializeCaptureValue(resolvedBindings[name])};`,
       );
+    } else if (importedNames.has(name)) {
+      usedImports.add(name);
     } else if (!JAVASCRIPT_GLOBALS.has(name)) {
       unresolved.push(name);
     }
   }
   if (unresolved.length > 0) {
     throw new ReferenceError(
-      `Cannot serialize callable: unresolved external reference(s): ${unresolved.join(', ')}. Supply bindings for them.`,
+      `Cannot serialize callable: unresolved external reference(s): ${unresolved.join(', ')}. Supply bindings or $imports for them.`,
     );
   }
   for (const name of Object.keys(resolvedBindings)) {
-    if (!used.has(name)) {
+    if (name !== '$imports' && !used.has(name)) {
       throw new TypeError(`Unused callable binding: ${name}`);
+    }
+  }
+  for (const name of importedNames) {
+    if (Object.hasOwn(resolvedBindings, name) && name !== '$imports') {
+      throw new TypeError(`Callable binding conflicts with import: ${name}`);
+    }
+    if (!usedImports.has(name)) {
+      throw new TypeError(`Unused callable import: ${name}`);
     }
   }
 
@@ -318,6 +440,7 @@ export const serializeCallableParts = (
     predicate: predicateSource,
     options: optionsSource,
     declarations,
+    ...(imports.length > 0 ? { imports } : {}),
   };
 };
 

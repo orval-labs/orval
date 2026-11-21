@@ -1431,6 +1431,16 @@ export type ZodRefinementOptions<
     : Zod3RefinementOptions<TValue> | Zod4RefinementOptions;
 
 /**
+ * Values captured from a refinement's lexical environment. `$imports` contains
+ * static ES import declarations to emit in the generated module, rather than
+ * values to serialize into a closure. Import names are checked against free
+ * identifiers in the callable and callbacks nested inside `options`.
+ */
+export type RefinementBindings = Readonly<Record<string, unknown>> & {
+  readonly $imports?: readonly string[];
+};
+
+/**
  * A refinement plus its optional Zod `.refine()` second argument. Both the
  * validator and any functions nested inside `options` can capture values from
  * `bindings`. If no bindings are needed, null is an acceptable value.
@@ -1441,7 +1451,7 @@ export type BoundRefinement<
 > = {
   callable: RefinementFunction<TValue>;
   options?: ZodRefinementOptions<TValue, TVersion>;
-  bindings: Readonly<Record<string, unknown>> | null;
+  bindings: RefinementBindings | null;
 };
 
 /** An internal evaluator that automatically assigns a type to the BoundRefinement given a known OpenAPI type. */

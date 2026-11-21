@@ -260,6 +260,130 @@ if (result.success) {
 }
 ```
 
+## Custom Validators
+
+Sometimes, it may be valuable to add additional validation to properties with
+application-specific constraints. The output/override/zod parameter accepts an argument
+`schemaExtension` that allows for declaration of factory methods that produce such validators.
+Using `schemaExtension`, it is possible to append conditional custom validation to zod schema
+properties for specific property types and formats.
+
+For example, an application can define an arbitrary "decimal" format for string types,
+containing an "x-max-precision" that limits value precision. By using a `schemaExtension`
+argument, we can declare a factory method that receives the OpenAPI object for each property
+matching the specified type and format. A list of validators is then returned, defining the
+additional refinement functions to apply to the property in the Zod schema.
+
+```ts title="orval.config.ts"
+import { type OpenApiSchemaObject } from 'orval';
+
+type DecimalSchemaObject = Exclude<OpenApiSchemaObject, boolean> & {
+  'x-max-precision'?: number;
+};
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          schemaExtension: [
+            {
+              // Constraint restricting what property type this validator factory applies to
+              type: 'string',
+              // Constraint restricting the property format. If set to "", will apply to all properties of the specified type
+              format: 'decimal',
+              // Validator factory. Receives the entire OpenAPI Object for the property as an argument
+              validatorsGenerator: (openapi_object: DecimalSchemaObject) => {
+                const maxPrecision = openapi_object['x-max-precision'];
+                if (maxPrecision !== undefined) {
+                  // Validator that is actually appended
+                  return {
+                    callable: (value: unknown) => {
+                      if (
+                        typeof value !== 'string' ||
+                        !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
+                      ) {
+                        return false;
+                      }
+
+                      const precision = value.split('.')[1]?.length ?? 0;
+
+                      return precision === 0 || precision <= maxPrecision;
+                    },
+
+                    options: {
+                      error: (issue: { input: unknown }) =>
+                        `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
+                      abort: true,
+                      params: { maxPrecision, format: 'decimal' },
+                    },
+                    // References to any values declared outside of these functions' namespaces require a binding.
+                    // This allows for the value to be serialized alongside the validator.
+                    bindings: { maxPrecision },
+                  };
+                }
+                return null;
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+The refinement is appended to each matching property in the generated schema. In this example,
+`bindings.maxPrecision` makes the value available to both the `callable` and the
+`options.error` callback after serialization.
+
+| Property              | Purpose                                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `type`                | OpenAPI property type to match, such as `'string'`.                                                                          |
+| `format`              | Exact format to match. Use `''` for properties **without a format**, not as a wildcard.                                      |
+| `validatorsGenerator` | Factory that receives the matching OpenAPI schema and returns a descriptor, an array of descriptors, `null`, or `undefined`. |
+| `callable`            | Predicate appended as a Zod refinement.                                                                                      |
+| `options`             | Optional Zod refinement options; their available fields depend on the configured Zod version.                                |
+| `bindings`            | Values referenced outside the predicate or its options callbacks that must be available in the generated code.               |
+
+See `samples/zod/zod-with-schema-extension` for a complete sample.
+
+### Imports
+
+You can reuse existing functions instead of embedding their implementation in the refinement. Add static import statements to **`bindings.$imports`**; Orval emits them at the top level of the generated schema file.
+
+```ts title="orval.config.ts"
+bindings: {
+  maxPrecision,
+  $imports: [
+    "import { isDecimalWithPrecision as validateDecimal } from '../decimal-validator';",
+  ],
+},
+```
+
+Due to how imports are serialized, it is often wise to create an alias for the import inside of
+the callable, and then use that alias instead of the direct import.
+
+```ts title="orval.config.ts"
+if (maxPrecision !== undefined) {
+  // This provides a concrete reference to the import whose direct representation may change
+  const validateDecimal = isDecimalWithPrecision;
+
+  return {
+    callable: (value: unknown) =>
+      typeof value === "string" &&
+      validateDecimal(value, maxPrecision),
+
+    bindings: ...
+  };
+}
+```
+
+**Import paths are relative to the generated file**, not `orval.config.ts`. If your generated
+schemas are in another directory, adjust the path in `$imports` accordingly.
+
+Captured values such as `maxPrecision` still belong in `bindings` alongside `$imports`.
+
 ## Combining with HTTP Clients
 
 See the [Client with Zod](/docs/guides/client-with-zod) guide for using Zod schemas with React Query, SWR, or other HTTP clients.

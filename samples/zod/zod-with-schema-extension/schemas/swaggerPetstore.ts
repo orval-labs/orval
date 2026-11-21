@@ -6,6 +6,8 @@
  */
 import * as zod from 'zod/mini';
 
+import { isDecimalWithPrecision as validateDecimal } from '../decimal-validator';
+
 /**
  * @summary List all pets
  */
@@ -32,28 +34,14 @@ export const ListPetsResponseItem = /*#__PURE__*/ zod.object({
   tag: /*#__PURE__*/ zod.optional(
     (() => {
       const maxPrecision = 3;
-      return /*#__PURE__*/ zod.string().check(
-        /*#__PURE__*/ zod.refine(
-          (value) => {
-            if (
-              typeof value !== 'string' ||
-              !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
-            ) {
-              return false;
-            }
-
-            const precision = value.split('.')[1]?.length ?? 0;
-
-            return precision === 0 || precision <= maxPrecision;
-          },
-          {
-            error: (issue) =>
-              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
-            abort: true,
-            params: { maxPrecision: 3, format: 'decimal' },
-          },
-        ),
-      );
+      return /*#__PURE__*/ zod
+        .string()
+        .check(
+          /*#__PURE__*/ zod.refine(
+            (value) =>
+              typeof value === 'string' && validateDecimal(value, maxPrecision),
+          ),
+        );
     })(),
   ),
   status: /*#__PURE__*/ zod.optional(
@@ -70,28 +58,14 @@ export const CreatePetsBody = /*#__PURE__*/ zod.object({
   name: /*#__PURE__*/ zod.string(),
   tag: (() => {
     const maxPrecision = 3;
-    return /*#__PURE__*/ zod.string().check(
-      /*#__PURE__*/ zod.refine(
-        (value) => {
-          if (
-            typeof value !== 'string' ||
-            !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
-          ) {
-            return false;
-          }
-
-          const precision = value.split('.')[1]?.length ?? 0;
-
-          return precision === 0 || precision <= maxPrecision;
-        },
-        {
-          error: (issue) =>
-            `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
-          abort: true,
-          params: { maxPrecision: 3, format: 'decimal' },
-        },
-      ),
-    );
+    return /*#__PURE__*/ zod
+      .string()
+      .check(
+        /*#__PURE__*/ zod.refine(
+          (value) =>
+            typeof value === 'string' && validateDecimal(value, maxPrecision),
+        ),
+      );
   })(),
 });
 
@@ -101,28 +75,14 @@ export const CreatePetsResponse = /*#__PURE__*/ zod.object({
   tag: /*#__PURE__*/ zod.optional(
     (() => {
       const maxPrecision = 3;
-      return /*#__PURE__*/ zod.string().check(
-        /*#__PURE__*/ zod.refine(
-          (value) => {
-            if (
-              typeof value !== 'string' ||
-              !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
-            ) {
-              return false;
-            }
-
-            const precision = value.split('.')[1]?.length ?? 0;
-
-            return precision === 0 || precision <= maxPrecision;
-          },
-          {
-            error: (issue) =>
-              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
-            abort: true,
-            params: { maxPrecision: 3, format: 'decimal' },
-          },
-        ),
-      );
+      return /*#__PURE__*/ zod
+        .string()
+        .check(
+          /*#__PURE__*/ zod.refine(
+            (value) =>
+              typeof value === 'string' && validateDecimal(value, maxPrecision),
+          ),
+        );
     })(),
   ),
   status: /*#__PURE__*/ zod.optional(
@@ -146,28 +106,14 @@ export const ShowPetByIdResponse = /*#__PURE__*/ zod.object({
   tag: /*#__PURE__*/ zod.optional(
     (() => {
       const maxPrecision = 3;
-      return /*#__PURE__*/ zod.string().check(
-        /*#__PURE__*/ zod.refine(
-          (value) => {
-            if (
-              typeof value !== 'string' ||
-              !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
-            ) {
-              return false;
-            }
-
-            const precision = value.split('.')[1]?.length ?? 0;
-
-            return precision === 0 || precision <= maxPrecision;
-          },
-          {
-            error: (issue) =>
-              `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
-            abort: true,
-            params: { maxPrecision: 3, format: 'decimal' },
-          },
-        ),
-      );
+      return /*#__PURE__*/ zod
+        .string()
+        .check(
+          /*#__PURE__*/ zod.refine(
+            (value) =>
+              typeof value === 'string' && validateDecimal(value, maxPrecision),
+          ),
+        );
     })(),
   ),
   status: /*#__PURE__*/ zod.optional(
