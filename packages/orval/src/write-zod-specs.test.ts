@@ -2629,7 +2629,7 @@ describe('write-zod-specs refinement import bindings', () => {
     try {
       const options = createOptionsWithImportBindings();
       const spec = createImportBindingsBuilder().spec;
-      const context: MinimalVerbsContext = {
+      const context = {
         output: {
           override: {
             zod: { dateTimeOptions: {}, timeOptions: {} },
@@ -2638,7 +2638,7 @@ describe('write-zod-specs refinement import bindings', () => {
         spec,
         target: '',
         workspace: root,
-      };
+      } satisfies Parameters<typeof writeZodSchemasFromVerbs>[5];
       const verbs = {
         submit: {
           operationName: 'submit',
@@ -2696,7 +2696,7 @@ describe('write-zod-specs refinement import bindings', () => {
       const options = createOptionsWithImportBindings();
       options.override.zod.generateReusableSchemas = true;
       const builder = createImportBindingsBuilder();
-      const context: MinimalVerbsContext = {
+      const context = {
         output: {
           override: {
             zod: { dateTimeOptions: {}, timeOptions: {} },
@@ -2705,7 +2705,7 @@ describe('write-zod-specs refinement import bindings', () => {
         spec: builder.spec,
         target: '',
         workspace: root,
-      };
+      } satisfies Parameters<typeof writeZodSchemasSingle>[6];
       const verbs = {
         submit: {
           operationName: 'submit',
@@ -2755,14 +2755,14 @@ describe('write-zod-specs refinement import bindings', () => {
     try {
       const options = createOptionsWithImportBindings();
       const builder = createImportBindingsBuilder();
-      const context: MinimalVerbsContext = {
+      const context = {
         output: {
           override: { zod: { dateTimeOptions: {}, timeOptions: {} } },
         },
         spec: builder.spec,
         target: '',
         workspace: root,
-      };
+      } satisfies Parameters<typeof writeZodSchemasSingle>[6];
       const verbs = {
         submit: {
           operationName: 'submit',

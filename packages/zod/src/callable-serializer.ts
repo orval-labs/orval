@@ -148,7 +148,7 @@ export const getRefinementImports = (
   if (imports === undefined) return [];
   if (
     !Array.isArray(imports) ||
-    imports.some((item) => typeof item !== 'string')
+    !imports.every((item: unknown): item is string => typeof item === 'string')
   ) {
     throw new TypeError(
       'Callable $imports must be an array of import statements',
