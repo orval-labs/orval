@@ -125,6 +125,12 @@ for (const folder of folders) {
 const exactOptionalFolders = [
   'base-url-token-both',
   'base-url-token-http-resource',
+  'dates-transform-split-both',
+  'dates-transform-split-http-resource',
+  'dates-transform-tags-both',
+  'dates-transform-tags-http-resource',
+  'dates-transform-tags-split-both',
+  'dates-transform-tags-split-http-resource',
   'http-resource-both-tags-split',
   'http-resource-headers',
   'http-resource-multi-content',

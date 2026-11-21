@@ -10,6 +10,7 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiSchemaObject,
 } from '../types';
+import { GetterPropType } from '../types';
 import { logger } from '../utils';
 import {
   buildDateTransformStatements,
@@ -3788,6 +3789,15 @@ describe('buildDateTransformStatements — additionalProperties maps', () => {
   });
 });
 
+const shadowingParam = (name: string) => ({
+  name,
+  definition: `${name}: string`,
+  implementation: `${name}: string`,
+  default: false,
+  required: true,
+  type: GetterPropType.PARAM,
+});
+
 describe('generateResponseDateDeserializer', () => {
   const datedSchema: OpenApiSchemaObject = {
     type: 'object',
@@ -3812,6 +3822,22 @@ describe('generateResponseDateDeserializer', () => {
   return data;
 };
 `,
+    );
+  });
+
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateResponseDateDeserializer({
+      operationName: 'getPet',
+      response: makeResponse({
+        successTypes: [{ originalSchema: datedSchema }],
+      }),
+      context: makeContext(),
+      props: [shadowingParam('deserializeGetPetResponse')],
+    });
+
+    expect(result?.name).toBe('deserializeGetPetResponse2');
+    expect(result?.implementation).toMatch(
+      /^const deserializeGetPetResponse2 = /,
     );
   });
 
@@ -5511,6 +5537,96 @@ const makeJsonBody = (
   }) satisfies GetterBody;
 
 describe('generateRequestDateSerializer', () => {
+  it('wraps a body that is itself a date when asked, so it stays a JSON string', () => {
+    const day = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody({ type: ['string', 'null'], format: 'date' }, 'Date'),
+      context: makeContext(),
+      wrapValueBody: true,
+    });
+    const item = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+      wrapValueBody: true,
+    });
+
+    expect(day?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Date;',
+    );
+    expect(item?.implementation).toContain('return copy;');
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = day!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
+  it('wraps a date body reached through allOf', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putDay',
+      body: makeJsonBody(
+        { allOf: [{ $ref: '#/components/schemas/Day' }] },
+        'Day',
+      ),
+      context: makeContext({ Day: { type: 'string', format: 'date' } }),
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Day;',
+    );
+
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const { name, implementation } = result!;
+    const fn = vm.runInThisContext(
+      `(() => {\n${toRunnableJs(implementation)}\nreturn ${name};\n})()`,
+    ) as (data: Date) => unknown;
+    expect(JSON.stringify(fn(new Date('2026-07-01')))).toBe('"2026-07-01"');
+  });
+
+  it('encodes and wraps a body that is itself a formatType value', () => {
+    const context = makeContext();
+    context.output.override.formatType = {
+      money: { type: 'Money', encode: 'formatMoney' },
+    };
+    const result = generateRequestDateSerializer({
+      operationName: 'putPrice',
+      body: makeJsonBody({ type: 'string', format: 'money' }, 'Money'),
+      context,
+      wrapValueBody: true,
+    });
+
+    expect(result?.implementation).toContain(
+      "copy = typeof copy === 'string' ? copy : (formatMoney(copy) as unknown as typeof copy);",
+    );
+    expect(result?.implementation).toContain(
+      'return { toJSON: () => copy } as unknown as Money;',
+    );
+  });
+
+  it('numbers the name past a parameter that would shadow it', () => {
+    const result = generateRequestDateSerializer({
+      operationName: 'putItem',
+      body: makeJsonBody({
+        type: 'object',
+        properties: { day: { type: 'string', format: 'date' } },
+      }),
+      context: makeContext(),
+      props: [
+        shadowingParam('serializePutItemRequest'),
+        shadowingParam('serializePutItemRequest2'),
+      ],
+    });
+
+    expect(result?.name).toBe('serializePutItemRequest3');
+  });
+
   it('generates a copying serializer for a date-only body field', () => {
     const result = generateRequestDateSerializer({
       operationName: 'putItem',
