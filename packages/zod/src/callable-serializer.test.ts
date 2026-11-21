@@ -597,11 +597,11 @@ describe('callable import bindings', () => {
       },
     });
     expect(parts.imports).toHaveLength(2);
-    expect(parts.imports[0]).toMatchObject({
+    expect(parts.imports?.at(0)).toMatchObject({
       namespaceImport: true,
       name: 'Validator',
     });
-    expect(parts.imports[1]).toMatchObject({ name: 'formatError' });
+    expect(parts.imports?.at(1)).toMatchObject({ name: 'formatError' });
   });
 
   it('supports default imports', () => {
