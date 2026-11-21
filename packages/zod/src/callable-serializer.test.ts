@@ -1,7 +1,7 @@
+import { stripTypeScriptTypes } from 'node:module';
 import { runInNewContext } from 'node:vm';
 
 import type { BoundRefinement } from '@orval/core';
-import * as ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { serializeCallable } from './callable-serializer';
@@ -27,9 +27,7 @@ const evaluate = (source: string): ((value: unknown) => boolean) => {
 
 /** Evaluate both emitted arguments, including the `as const` tuple emitted for shared captures. */
 const evaluateRefinementArgs = (source: string): [unknown, unknown] => {
-  const javascript = ts.transpileModule(`const args = [${source}]; args;`, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
-  }).outputText;
+  const javascript = stripTypeScriptTypes(`const args = [${source}]; args;`);
   const result: unknown = runInNewContext(javascript);
   if (!Array.isArray(result) || result.length !== 2) {
     throw new TypeError('Expected two serialized refinement arguments');
@@ -226,6 +224,80 @@ describe('serializeCallable', () => {
         bindings: { arguments: [1] },
       }),
     ).toThrow('Cannot serialize a closure over arguments');
+  });
+
+  it('allows a function expression to read its own arguments', () => {
+    const callable = runInNewContext(
+      '(function (value) { return arguments.length === 1 && value > 0; })',
+    ) as (value: number) => boolean;
+    const source = serializeCallable({ callable, bindings: null });
+    expect(evaluate(source)(1)).toBe(true);
+  });
+
+  it('does not treat labels as references', () => {
+    const callable = runInNewContext(
+      '((values) => { outer: for (const v of values) { for (const w of values) { if (w) continue outer; break outer; } } return true; })',
+    ) as (values: unknown[]) => boolean;
+    expect(() => serializeCallable({ callable, bindings: null })).not.toThrow();
+  });
+
+  it('captures references in the options argument of a dynamic import', () => {
+    const callable = runInNewContext(
+      '(async () => { await import("./rules.json", importOptions); return true; })',
+    ) as () => boolean;
+    const importOptions = { with: { type: 'json' } };
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'unresolved external reference(s): importOptions',
+    );
+    expect(
+      serializeCallable({ callable, bindings: { importOptions } }),
+    ).toContain('const importOptions = {');
+  });
+
+  it.each([
+    ['this', '(function (value) { return this === value; })'],
+    [
+      'this in a nested function',
+      '(() => { function inner() { return this; } return inner() === undefined; })',
+    ],
+    ['super', '(() => ({ m() { return super.toString(); } }).m() !== "")'],
+  ])('rejects callables containing %s', (_, source) => {
+    const callable = runInNewContext(source) as () => boolean;
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'Cannot serialize callable containing this or super',
+    );
+  });
+
+  it('rejects callables containing new.target', () => {
+    const callable = runInNewContext(
+      '(function (value) { return new.target === undefined && value; })',
+    ) as (value: boolean) => boolean;
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'Cannot serialize callable containing new.target',
+    );
+  });
+
+  it.each([
+    ['a method', '({ check(value) { return value > 0; } }).check'],
+    [
+      'an accessor',
+      'Object.getOwnPropertyDescriptor({ get check() { return true; } }, "check").get',
+    ],
+    ['a class', '(class Validator {})'],
+  ])('rejects %s', (_, source) => {
+    const callable = runInNewContext(source) as () => boolean;
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'expected an arrow function or function expression',
+    );
+  });
+
+  it('rejects a callable whose source does not parse', () => {
+    const callable = Object.assign(() => true, {
+      toString: () => '(value) => {',
+    });
+    expect(() => serializeCallable({ callable, bindings: null })).toThrow(
+      'Cannot serialize callable: invalid function source',
+    );
   });
 
   it('quotes captured strings rather than interpolating them as source', () => {

@@ -1238,6 +1238,12 @@ TypeDoc is an optional peer dependency, so install it alongside the markdown plu
 npm install typedoc typedoc-plugin-markdown -D
 ```
 
+<Callout type="warn">
+  TypeDoc does not support TypeScript 7 yet, so this option requires
+  TypeScript 6. TypeDoc plans to add support with TypeScript 7.1; see
+  [TypeStrong/typedoc#3098](https://github.com/TypeStrong/typedoc/issues/3098).
+</Callout>
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
@@ -3116,22 +3122,14 @@ file that does not exist yet is always generated fresh.
 - `smart` (default) — non-destructively reconcile only the parts orval owns: its
   own imports (names, module paths, casing) and the `zValidator(...)` arguments,
   and append handlers for new operations. Your custom imports, middleware,
-  handler bodies, and top-level helpers are preserved. Requires the TypeScript
-  compiler API (see note below); if it cannot be loaded, generation fails and
-  existing handler files are left unchanged.
+  handler bodies, and top-level helpers are preserved. A handler file that
+  cannot be parsed is left unchanged.
 - `skip` — leave an existing handler file byte-for-byte unchanged. New operations
   still get fresh files (in `split` mode).
 - `full` — rebuild the file header, imports, and validator chain from the spec,
   splicing back only each handler body. **Destructive:** custom imports,
   middleware, and top-level helpers are dropped. Use only if you keep handlers
   minimal and want maximal sync with the spec.
-
-<Callout type="info">
-  `smart` and `full` use the TypeScript compiler API to parse existing handler
-  files. `@orval/hono` ships its own `typescript` dependency for this, so it
-  works regardless of the TypeScript version your project uses (including
-  TypeScript 7, whose package no longer exposes the JS compiler API).
-</Callout>
 
 <Callout type="warn">
   If `output.clean` is enabled and the handlers directory lives under the output
@@ -5186,6 +5184,7 @@ getUser(user.id); // OK
 
 - Only schemas that resolve to `string`, `number`, `boolean`, `bigint` or `Date` are branded. Object, enum and composed (`allOf` / `oneOf` / `anyOf`) schemas, and schemas with a `default`, are unchanged.
 - Independent of the Zod [`useBrandedTypes`](#usebrandedtypes) option, which uses `.brand()` and produces a different type.
+- With `schemas: { type: 'zod' }`, the same named primitive component schemas get a Zod brand instead (`export const UserId = zod.uuid().brand('UserId')`). Zod brands the schema's output, so `UserIdOutput` and parsed responses are branded, while the `UserId` input type stays a plain `string`.
 
 ### requestOptions
 

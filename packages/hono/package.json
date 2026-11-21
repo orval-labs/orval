@@ -25,7 +25,7 @@
   "dependencies": {
     "@orval/core": "workspace:*",
     "@orval/zod": "workspace:*",
-    "typescript": "catalog:"
+    "oxc-parser": "^0.159.0"
   },
   "devDependencies": {
     "@hono/zod-validator": "catalog:hono",

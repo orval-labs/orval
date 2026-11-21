@@ -108,6 +108,7 @@ export const ListPetsResponse = S.Array(ListPetsResponseItem);
 
 - 使用 `client: 'effect'` 时，`generateReusableSchemas` 不能与 `output.schemas` 同时设置：生成时会报错。要把 schema 写入单独的模块，请在 HTTP client 上把 [`schemas.type`](#校验-http-client-响应) 设为 `effect`。
 - 在常量行为不一致的位置，`$ref` 仍会被内联，例如表单 body、参数、`allOf` 成员、数组 body 或响应（按其 items 生成，items 保持引用）、带 `default` 的 schema，以及带有 `properties`、`type` 或 `required` 等同级关键字的 `oneOf` 或 `anyOf` 的成员。Effect 按字段合并 `allOf` 成员，因此由引用组成的 `allOf` 会保持内联。
+- 当 `allOf` 成员以不同的定义声明同一个键时，只校验最后一个定义（Effect 4，以及把 `schemas.type` 设为 `effect` 的 Effect 3）。生成时会警告，并指出该键以及 schema 或操作；内联该 schema 的每个操作各警告一次。完全相同的定义，以及用不可为 null 的字符串 enum 或 literal 替换普通且无约束的字符串（可选性相同）的情况，不会警告。
 - 对本身为 `readOnly` 或 `writeOnly` 的 schema 的 `$ref` 始终会被内联；对带有此类属性的 schema 的 `$ref`，在请求 body 中也会被内联。
 - `exactOptional` 与输出级设置不同的位置会内联其 schema。
 - 只会生成生成后的操作用到的组件，以及这些组件所读取的组件；只被错误响应（未开启 `generateEachHttpStatus` 时）或不支持的媒体类型读取的组件不会生成。其中无法生成的组件（例如 schema 与自身的 `allOf`）会让生成报错，并指出该组件。

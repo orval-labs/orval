@@ -15,6 +15,7 @@ export default defineConfig({
             'handler-preservation.spec.ts',
             'query-key-mutator.spec.ts',
             'serialize-response-headers.spec.ts',
+            'mixed-content-responses-runtime.spec.ts',
             'axios-url-runtime.spec.ts',
             'angular-zod-array-validation.spec.ts',
             'fetch-zod-array-validation.spec.ts',

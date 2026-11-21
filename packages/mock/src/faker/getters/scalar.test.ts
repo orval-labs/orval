@@ -1,9 +1,9 @@
 import type { ContextSpec, OpenApiPrimitiveSchemaType } from '@orval/core';
 import { EnumGeneration, getKey } from '@orval/core';
-import ts from 'typescript';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../../../core/src/test-utils';
+import { parseTypeScript } from '../../../../core/src/test-utils/typescript';
 import type { MockSchemaObject } from '../../types';
 import { getMockScalar } from './scalar';
 
@@ -1818,22 +1818,18 @@ describe('getMockScalar (enum type-cast name injection)', () => {
    * introduced siblings — which is the whole exploit.
    */
   function propertyCount(key: string, value: string): number {
-    const source = ts.createSourceFile(
-      'mock.ts',
+    const { program, errors } = parseTypeScript(
       `const m = { ${getKey(key)}: ${value} };`,
-      ts.ScriptTarget.Latest,
-      true,
     );
-    let count = -1;
-    const visit = (node: ts.Node) => {
-      if (ts.isObjectLiteralExpression(node) && count === -1) {
-        count = node.properties.length;
-        return;
-      }
-      ts.forEachChild(node, visit);
-    };
-    ts.forEachChild(source, visit);
-    return count;
+    // A payload that breaks out of the literal either fails to parse or
+    // leaves extra statements or properties behind.
+    if (errors.length > 0 || program.body.length !== 1) return -1;
+    const [statement] = program.body;
+    const init =
+      statement.type === 'VariableDeclaration'
+        ? statement.declarations[0]?.init
+        : undefined;
+    return init?.type === 'ObjectExpression' ? init.properties.length : -1;
   }
 
   // Regression for GHSA-w68h-2r38-4cqq. Under `enumGenerationType: 'enum'` the
