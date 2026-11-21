@@ -959,6 +959,15 @@ export function isEffectivelyObjectSchema(
 }
 
 /**
+ * True for a single JSON media type, `application/json` or a `+json` suffix
+ * type, with or without parameters. A comma-separated list of types is not a
+ * single type to label a part with.
+ */
+const isJsonMediaType = (contentType: string): boolean =>
+  !contentType.includes(',') &&
+  /^application\/(?:[\w.-]+\+)?json\s*(?:;|$)/i.test(contentType.trim());
+
+/**
  * Array counterpart of {@link isEffectivelyObjectSchema}: `type: array`
  * either on the schema itself or behind its `allOf` members.
  */
@@ -1348,6 +1357,21 @@ function resolveSchemaPropertiesToFormData({
       // Text file: value is Blob | string, check at runtime
       formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${jsStringLiteralEscape(
         effectiveContentType ?? '',
+      )}' }));\n`;
+    } else if (
+      !isUrlEncoded &&
+      partContentType !== undefined &&
+      isJsonMediaType(partContentType) &&
+      (isEffectivelyObjectSchema(valueSchema, context) ||
+        isEffectivelyArraySchema(valueSchema, context))
+    ) {
+      // An object or array part whose `encoding.contentType` is JSON is sent
+      // as one part carrying that type, as a server binding the part by its
+      // media type (e.g. Spring's `@RequestPart`) needs. A plain string part
+      // has no content type. Only an explicit encoding opts in: a Blob part
+      // is also sent with a filename, which some servers read as a file.
+      formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${jsStringLiteralEscape(
+        partContentType,
       )}' }));\n`;
     } else if (isEffectivelyObjectSchema(valueSchema, context)) {
       // `style: deepObject` + `explode: true` encodes each property as a

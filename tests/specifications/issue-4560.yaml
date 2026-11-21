@@ -1,0 +1,47 @@
+openapi: 3.0.1
+info:
+  title: Multipart JSON part encoding (issue 4560)
+  version: 1.0.0
+paths:
+  /device/v2:
+    post:
+      operationId: createDeviceWithAct
+      requestBody:
+        content:
+          multipart/form-data:
+            encoding:
+              dto:
+                contentType: application/json
+              tags:
+                contentType: application/json
+            schema:
+              type: object
+              properties:
+                dto:
+                  $ref: '#/components/schemas/DeviceCreateRequest'
+                tags:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DeviceTag'
+                note:
+                  $ref: '#/components/schemas/DeviceCreateRequest'
+                file:
+                  type: string
+                  format: binary
+              required:
+                - dto
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    DeviceCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+    DeviceTag:
+      type: object
+      properties:
+        label:
+          type: string

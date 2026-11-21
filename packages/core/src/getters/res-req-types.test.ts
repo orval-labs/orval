@@ -419,7 +419,8 @@ describe('getResReqTypes (content type handling)', () => {
                     contentMediaType: 'image/png',
                     contentEncoding: 'base64',
                   },
-                  // Object field with nested contentMediaType (should be ignored - JSON)
+                  // Object field with nested contentMediaType (should be ignored - JSON).
+                  // Its `application/json` encoding sends it as a JSON Blob (#4560).
                   metadata: {
                     type: 'object',
                     properties: {
@@ -520,7 +521,7 @@ formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyReque
 formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
 formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
 formData.append(\`base64Field\`, bodyRequestBody.base64Field);
-formData.append(\`metadata\`, JSON.stringify(bodyRequestBody.metadata));
+formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
 formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile instanceof Blob ? bodyRequestBody.wildcardFile : new Blob([bodyRequestBody.wildcardFile], { type: '*/*' }));
 bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
 `);
@@ -2579,6 +2580,153 @@ describe('getResReqTypes (form-data part content type escaping)', () => {
       String.raw`new Blob([bodyRequestBody.note], { type: 'text/plain\', evil: \'injected' })`,
     );
     expect(result.formData).not.toContain("evil: 'injected'");
+  });
+});
+
+describe('getResReqTypes (JSON form-data parts, issue #4560)', () => {
+  const ctxWithDevice = extendContext({
+    spec: {
+      components: {
+        schemas: {
+          DeviceCreateRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    },
+  });
+
+  const formDataFor = (
+    properties: Record<string, OpenApiSchemaObject | OpenApiReferenceObject>,
+    encoding: Record<string, { contentType?: string; style?: 'deepObject' }>,
+    {
+      mediaType = 'multipart/form-data',
+      required = Object.keys(properties),
+      ctx = ctxWithDevice,
+    }: {
+      mediaType?: string;
+      required?: string[];
+      ctx?: ContextSpec;
+    } = {},
+  ) => {
+    const reqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            [mediaType]: {
+              schema: { type: 'object', properties, required },
+              encoding,
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+    const result = getResReqTypes(reqBody, 'Body', ctx)[0];
+    return mediaType === 'multipart/form-data'
+      ? result.formData
+      : result.formUrlEncoded;
+  };
+
+  const dto = { $ref: '#/components/schemas/DeviceCreateRequest' };
+
+  it('sends an object part with a JSON encoding as a Blob of that type', () => {
+    const formData = formDataFor(
+      { dto, file: { type: 'string', format: 'binary' } },
+      { dto: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dto`, new Blob([JSON.stringify(bodyRequestBody.dto)], { type: 'application/json' }));",
+    );
+    expect(formData).toContain(
+      'formData.append(`file`, bodyRequestBody.file);',
+    );
+  });
+
+  it('sends an array part with a JSON encoding as one Blob', () => {
+    const formData = formDataFor(
+      { dtos: { type: 'array', items: dto } },
+      { dtos: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dtos`, new Blob([JSON.stringify(bodyRequestBody.dtos)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  it('keeps a +json type and its parameters on the part', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/vnd.device+json; charset=utf-8' } },
+    );
+
+    expect(formData).toContain(
+      "{ type: 'application/vnd.device+json; charset=utf-8' }",
+    );
+  });
+
+  it('keeps the guard of an optional JSON part', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      { required: [] },
+    );
+
+    expect(formData).toContain('if(bodyRequestBody.dto !== undefined) {');
+    expect(formData).toContain(
+      'new Blob([JSON.stringify(bodyRequestBody.dto)]',
+    );
+  });
+
+  it('sends a JSON part as one Blob under exploded array handling', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      {
+        ctx: extendContext({
+          spec: ctxWithDevice.spec,
+          override: {
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        }),
+      },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dto`, new Blob([JSON.stringify(bodyRequestBody.dto)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('`dto.name`');
+  });
+
+  it.each([
+    ['no encoding', {}],
+    ['a non-JSON encoding', { dto: { contentType: 'text/plain' } }],
+    [
+      'a list of types',
+      { dto: { contentType: 'application/json, application/xml' } },
+    ],
+  ])('stringifies an object part as before with %s', (_, encoding) => {
+    const formData = formDataFor({ dto }, encoding);
+
+    expect(formData).toContain(
+      'formData.append(`dto`, JSON.stringify(bodyRequestBody.dto));',
+    );
+    expect(formData).not.toContain('new Blob');
+  });
+
+  it('leaves url-encoded bodies alone', () => {
+    const formUrlEncoded = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      { mediaType: 'application/x-www-form-urlencoded' },
+    );
+
+    expect(formUrlEncoded).not.toContain('new Blob');
+    expect(formUrlEncoded).toContain('JSON.stringify(bodyRequestBody.dto)');
   });
 });
 
