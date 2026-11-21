@@ -2282,6 +2282,32 @@ describe('formatType imports', () => {
     ).toBe(`import dayjs from 'dayjs';\n\n${schema}`);
   });
 
+  it('does not suppress dayjs when an existing import uses a different local name', () => {
+    for (const existingImport of [
+      "import { dayjs as customDayjs } from 'dayjs';",
+      "import customDayjs from 'dayjs';",
+      "import * as customDayjs from 'dayjs';",
+      "import { other, dayjs as customDayjs } from './date-utils';",
+    ]) {
+      expect(
+        addFormatTypeImports(schema, override, `${existingImport}\n`),
+      ).toBe(`import dayjs from 'dayjs';\n\n${schema}`);
+    }
+  });
+
+  it('suppresses dayjs when an existing import declares that local binding', () => {
+    for (const existingImport of [
+      "import dayjs from 'dayjs';",
+      "import * as dayjs from 'dayjs';",
+      "import { customDayjs as dayjs } from './date-utils';",
+      "import { other, customDayjs as dayjs } from './date-utils';",
+    ]) {
+      expect(
+        addFormatTypeImports(schema, override, `${existingImport}\n`),
+      ).toBe(schema);
+    }
+  });
+
   it('imports the mapped type a recursive schema is pinned to', () => {
     const typed = {
       ...override,

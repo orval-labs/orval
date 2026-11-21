@@ -161,10 +161,26 @@ export function addFormatTypeImports(
   precedingContent = '',
 ): string {
   const isImported = (name: string) =>
-    new RegExp(
-      String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
-      'm',
-    ).test(`${precedingContent}\n${content}`);
+    [
+      ...`${precedingContent}\n${content}`.matchAll(
+        /^import\s+(?:type\s+)?([^;]*?)\s+from\s+/gm,
+      ),
+    ].some(([, clause]) => {
+      const defaultBinding = clause.match(/^([\w$]+)(?:\s*,|$)/)?.[1];
+      const namespaceBinding = clause.match(/\*\s+as\s+([\w$]+)/)?.[1];
+      const namedBindings = clause.match(/\{([^}]*)\}/)?.[1];
+      return (
+        defaultBinding === name ||
+        namespaceBinding === name ||
+        (namedBindings?.split(',').some((specifier) => {
+          const binding = /^(?:type\s+)?([\w$]+)(?:\s+as\s+([\w$]+))?$/.exec(
+            specifier.trim(),
+          );
+          return (binding?.[2] ?? binding?.[1]) === name;
+        }) ??
+          false)
+      );
+    });
   const valueImports = getFormatTypeZodImports(content, override);
   const imports = [
     ...valueImports,
