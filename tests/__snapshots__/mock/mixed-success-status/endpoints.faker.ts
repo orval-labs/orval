@@ -9,7 +9,10 @@ import { faker } from '@faker-js/faker';
 
 import type { Resource } from './model';
 
-export const getListResourcesResponseMock = (): Resource[] =>
+export const getListResourcesResponseMock = (
+  overrideResponse?: Resource[],
+): Resource[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

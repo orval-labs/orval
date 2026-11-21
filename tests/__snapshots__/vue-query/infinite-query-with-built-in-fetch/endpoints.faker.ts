@@ -6,7 +6,10 @@
  */
 import { faker } from '@faker-js/faker';
 
-export const getGetUsersUserIdOrdersResponseMock = (): string[] =>
+export const getGetUsersUserIdOrdersResponseMock = (
+  overrideResponse?: string[],
+): string[] =>
+  overrideResponse ??
   Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, () =>
     faker.word.sample(),
   );

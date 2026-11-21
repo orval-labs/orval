@@ -50,7 +50,10 @@ export const getUploadAvatarWithBlobResponseMock = (
   ...overrideResponse,
 });
 
-export const getListProfilesResponseMock = (): Profile[] =>
+export const getListProfilesResponseMock = (
+  overrideResponse?: Profile[],
+): Profile[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

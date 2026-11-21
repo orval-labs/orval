@@ -16,7 +16,8 @@ import type {
   NestedItem,
 } from './model';
 
-export const getGetItemsResponseMock = (): Item1[] =>
+export const getGetItemsResponseMock = (overrideResponse?: Item1[]): Item1[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -28,7 +29,10 @@ export const getGetItemsResponseMock = (): Item1[] =>
     ]),
   }));
 
-export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
+export const getGetItemsWithMultiplePropsResponseMock = (
+  overrideResponse?: Item3[],
+): Item3[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -50,7 +54,10 @@ export const getGetItemsWithMultiplePropsResponseMock = (): Item3[] =>
     ]),
   }));
 
-export const getGetNestedItemsResponseMock = (): NestedItem[] =>
+export const getGetNestedItemsResponseMock = (
+  overrideResponse?: NestedItem[],
+): NestedItem[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -72,7 +79,10 @@ export const getGetNestedItemsResponseMock = (): NestedItem[] =>
     ]),
   }));
 
-export const getGetMixedEnumItemsResponseMock = (): MixedEnumItem[] =>
+export const getGetMixedEnumItemsResponseMock = (
+  overrideResponse?: MixedEnumItem[],
+): MixedEnumItem[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -85,7 +95,10 @@ export const getGetMixedEnumItemsResponseMock = (): MixedEnumItem[] =>
     ]),
   }));
 
-export const getGetMixedTypeEnumsResponseMock = (): MixedTypeEnums[] =>
+export const getGetMixedTypeEnumsResponseMock = (
+  overrideResponse?: MixedTypeEnums[],
+): MixedTypeEnums[] =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,

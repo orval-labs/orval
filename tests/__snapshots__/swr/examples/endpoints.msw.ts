@@ -7,29 +7,21 @@
 import { HttpResponse, http } from 'msw';
 import type { HttpResponseResolver, RequestHandlerOptions } from 'msw';
 
-export const getGetUsersResponseMock = (): string[] => [
-  'userD',
-  'userE',
-  'userF',
-];
+export const getGetUsersResponseMock = (
+  overrideResponse?: string[],
+): string[] => overrideResponse ?? ['userD', 'userE', 'userF'];
 
-export const getGetUsersResponseMock200 = (): string[] => [
-  'userD',
-  'userE',
-  'userF',
-];
+export const getGetUsersResponseMock200 = (
+  overrideResponse?: string[],
+): string[] => overrideResponse ?? ['userD', 'userE', 'userF'];
 
-export const getGetUsers2ResponseMock = (): string[] => [
-  'userA',
-  'userB',
-  'userC',
-];
+export const getGetUsers2ResponseMock = (
+  overrideResponse?: string[],
+): string[] => overrideResponse ?? ['userA', 'userB', 'userC'];
 
-export const getGetUsers2ResponseMock200 = (): string[] => [
-  'userA',
-  'userB',
-  'userC',
-];
+export const getGetUsers2ResponseMock200 = (
+  overrideResponse?: string[],
+): string[] => overrideResponse ?? ['userA', 'userB', 'userC'];
 
 export const getGetUsersMockHandler = (
   overrideResponse?:

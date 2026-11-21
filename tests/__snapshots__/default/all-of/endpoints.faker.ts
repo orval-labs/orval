@@ -53,17 +53,19 @@ export const getGetNestedRefInAllOfPetsResponseMock = (): Pet & PetDetail => ({
   ...{ tag: faker.string.alpha({ length: { min: 10, max: 20 } }) },
 });
 
-export const getGetItemsWithNullableRequiredResponseMock =
-  (): ItemWithNullableRequired[] =>
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      ...{ id: faker.string.alpha({ length: { min: 10, max: 20 } }) },
-      ...{
-        category: faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          null,
-        ]),
-      },
-    }));
+export const getGetItemsWithNullableRequiredResponseMock = (
+  overrideResponse?: ItemWithNullableRequired[],
+): ItemWithNullableRequired[] =>
+  overrideResponse ??
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    ...{ id: faker.string.alpha({ length: { min: 10, max: 20 } }) },
+    ...{
+      category: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+    },
+  }));

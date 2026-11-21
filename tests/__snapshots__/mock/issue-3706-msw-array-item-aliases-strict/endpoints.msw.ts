@@ -81,7 +81,10 @@ export const getGetCatalogItemsResponseCatalogItemsItemMock = <
     ...overrideResponse,
   }) as MockWithNullableOverrides<CatalogItemsItem, O, CatalogItemsItemMock>;
 
-export const getGetCatalogItemsResponseMock = (): CatalogItemsMock =>
+export const getGetCatalogItemsResponseMock = (
+  overrideResponse?: CatalogItemsMock,
+): CatalogItemsMock =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -109,14 +112,16 @@ export const getGetCatalogItemsInlineResponseGetCatalogItemsInline200ItemItemMoc
       GetCatalogItemsInline200ItemMock
     >;
 
-export const getGetCatalogItemsInlineResponseMock =
-  (): GetCatalogItemsInline200ItemMock[] =>
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      ...(getGetCatalogItemsInlineResponseGetCatalogItemsInline200ItemItemMock() as GetCatalogItemsInline200ItemMock),
-    }));
+export const getGetCatalogItemsInlineResponseMock = (
+  overrideResponse?: GetCatalogItemsInline200ItemMock[],
+): GetCatalogItemsInline200ItemMock[] =>
+  overrideResponse ??
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    ...(getGetCatalogItemsInlineResponseGetCatalogItemsInline200ItemItemMock() as GetCatalogItemsInline200ItemMock),
+  }));
 
 export const getGetCatalogItemsShortResponseItemsItemMock = <
   O extends Partial<ItemsItem> = {},
@@ -128,7 +133,10 @@ export const getGetCatalogItemsShortResponseItemsItemMock = <
     ...overrideResponse,
   }) as MockWithNullableOverrides<ItemsItem, O, ItemsItemMock>;
 
-export const getGetCatalogItemsShortResponseMock = (): ItemsMock =>
+export const getGetCatalogItemsShortResponseMock = (
+  overrideResponse?: ItemsMock,
+): ItemsMock =>
+  overrideResponse ??
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
