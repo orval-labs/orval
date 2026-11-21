@@ -8,8 +8,8 @@ import { TestBed } from '@angular/core/testing';
 import {
   provideTanStackQuery,
   QueryClient,
-} from '@tanstack/angular-query-experimental';
-import type { MutationFunctionContext } from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
+import type { MutationFunctionContext } from '@tanstack/angular-query';
 
 import {
   getCreatePetsMutationOptions,
@@ -43,7 +43,7 @@ describe('mutationInvalidates feature', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideTanStackQuery(queryClient),
+        provideTanStackQuery(() => queryClient),
       ],
     });
 

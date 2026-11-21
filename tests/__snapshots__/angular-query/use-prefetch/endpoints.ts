@@ -8,10 +8,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { inject } from '@angular/core';
 
-import {
-  injectMutation,
-  injectQuery,
-} from '@tanstack/angular-query-experimental';
+import { injectMutation, injectQuery } from '@tanstack/angular-query';
 import type {
   CreateMutationOptions,
   CreateMutationResult,
@@ -20,7 +17,7 @@ import type {
   MutationFunction,
   QueryClient,
   QueryFunction,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 
@@ -231,7 +228,7 @@ export const prefetchListPetsQuery = async <
     return queryClient;
   }
 
-  await queryClient.prefetchQuery(queryOptions);
+  await queryClient.query(queryOptions).catch(() => {});
 
   return queryClient;
 };
@@ -448,7 +445,7 @@ export const prefetchShowPetByIdQuery = async <
     return queryClient;
   }
 
-  await queryClient.prefetchQuery(queryOptions);
+  await queryClient.query(queryOptions).catch(() => {});
 
   return queryClient;
 };
@@ -653,7 +650,7 @@ export const prefetchHealthCheckQuery = async <
     return queryClient;
   }
 
-  await queryClient.prefetchQuery(queryOptions);
+  await queryClient.query(queryOptions).catch(() => {});
 
   return queryClient;
 };
@@ -786,7 +783,7 @@ export const prefetchShowPetWithOwnerQuery = async <
     return queryClient;
   }
 
-  await queryClient.prefetchQuery(queryOptions);
+  await queryClient.query(queryOptions).catch(() => {});
 
   return queryClient;
 };

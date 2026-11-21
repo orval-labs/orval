@@ -19,7 +19,7 @@
     "@angular/forms": "catalog:angular",
     "@angular/platform-browser": "catalog:angular",
     "@angular/router": "catalog:angular",
-    "@tanstack/angular-query-experimental": "catalog:angular",
+    "@tanstack/angular-query": "catalog:angular",
     "rxjs": "catalog:angular",
     "tslib": "catalog:",
     "zod": "catalog:zod4"

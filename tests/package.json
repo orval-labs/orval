@@ -46,7 +46,7 @@
     "@modelcontextprotocol/server": "catalog:mcp",
     "@orval/core": "workspace:*",
     "@solidjs/router": "catalog:solid",
-    "@tanstack/angular-query-experimental": "catalog:angular",
+    "@tanstack/angular-query": "catalog:angular",
     "@tanstack/react-query": "catalog:react",
     "@tanstack/solid-query": "catalog:solid",
     "@tanstack/svelte-query": "catalog:svelte",

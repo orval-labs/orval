@@ -13,7 +13,7 @@ import {
   injectMutation,
   injectQuery,
   matchQuery,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 import type {
   CreateMutationOptions,
   CreateMutationResult,
@@ -23,7 +23,7 @@ import type {
   MutationFunction,
   MutationFunctionContext,
   QueryFunction,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 

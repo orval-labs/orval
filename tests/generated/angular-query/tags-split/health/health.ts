@@ -8,12 +8,12 @@ import { HttpClient } from '@angular/common/http';
 
 import { inject } from '@angular/core';
 
-import { injectQuery } from '@tanstack/angular-query-experimental';
+import { injectQuery } from '@tanstack/angular-query';
 import type {
   CreateQueryOptions,
   CreateQueryResult,
   QueryFunction,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import { fromEvent, lastValueFrom } from 'rxjs';
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import {
   getAngularQueryDependencies,
+  getAngularQueryPackageName,
   getVueQueryDependencies,
   isQueryV5,
   isQueryV5WithDataTagError,
@@ -174,6 +175,7 @@ describe('isQueryV5WithQueryMethod', () => {
     ['vue-query', '@tanstack/vue-query', '5.102.0'],
     ['solid-query', '@tanstack/solid-query', '5.102.0'],
     ['angular-query', '@tanstack/angular-query-experimental', '5.102.0'],
+    ['angular-query', '@tanstack/angular-query', '5.108.0'],
     ['svelte-query', '@tanstack/svelte-query', '6.1.39'],
   ] as const)(
     'returns true from the first %s release on query-core 5.102.0',
@@ -357,5 +359,82 @@ describe('getAngularQueryDependencies', () => {
     expect(result).toContain('QueryClient');
     expect(result).toContain('import {');
     expect(result).not.toContain('import type {');
+  });
+});
+
+describe('getAngularQueryPackageName', () => {
+  it.each([
+    [
+      'resolvedVersions',
+      { resolvedVersions: { '@tanstack/angular-query': '5.108.2' } },
+    ],
+    [
+      'dependencies',
+      { dependencies: { '@tanstack/angular-query': '^5.108.0' } },
+    ],
+    [
+      'devDependencies',
+      { devDependencies: { '@tanstack/angular-query': '^5.108.0' } },
+    ],
+    [
+      'peerDependencies',
+      { peerDependencies: { '@tanstack/angular-query': '>=5.108.0' } },
+    ],
+  ] satisfies [string, PackageJson][])(
+    'uses the stable package when it is in %s',
+    (_, packageJson) => {
+      expect(getAngularQueryPackageName(packageJson)).toBe(
+        '@tanstack/angular-query',
+      );
+    },
+  );
+
+  it('prefers the stable package while both are installed', () => {
+    expect(
+      getAngularQueryPackageName({
+        dependencies: {
+          '@tanstack/angular-query': '^5.108.0',
+          '@tanstack/angular-query-experimental': '5.90.25',
+        },
+      }),
+    ).toBe('@tanstack/angular-query');
+  });
+
+  it.each([
+    [
+      'the experimental package is installed',
+      { dependencies: { '@tanstack/angular-query-experimental': '5.90.25' } },
+    ],
+    ['neither package is declared', {}],
+    ['there is no package.json', undefined],
+  ] satisfies [string, PackageJson | undefined][])(
+    'keeps the experimental package when %s',
+    (_, packageJson) => {
+      expect(getAngularQueryPackageName(packageJson)).toBe(
+        '@tanstack/angular-query-experimental',
+      );
+    },
+  );
+
+  it('imports from the stable package when the project depends on it', () => {
+    const implementation = 'const query = injectQuery(() => options);';
+    const imports = generateDependencyImports(
+      implementation,
+      getAngularQueryDependencies(
+        false,
+        false,
+        { dependencies: { '@tanstack/angular-query': '^5.108.0' } },
+        undefined,
+        false,
+        undefined,
+        implementation,
+      ),
+      undefined,
+      false,
+      false,
+    );
+
+    expect(imports).toContain("from '@tanstack/angular-query'");
+    expect(imports).not.toContain('angular-query-experimental');
   });
 });

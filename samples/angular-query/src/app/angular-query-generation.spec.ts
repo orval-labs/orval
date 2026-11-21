@@ -8,7 +8,7 @@ import {
 import {
   provideTanStackQuery,
   QueryClient,
-} from '@tanstack/angular-query-experimental';
+} from '@tanstack/angular-query';
 
 import {
   listPets,
@@ -48,7 +48,7 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        provideTanStackQuery(queryClient),
+        provideTanStackQuery(() => queryClient),
       ],
     });
 
@@ -110,7 +110,7 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideTanStackQuery(queryClient),
+        provideTanStackQuery(() => queryClient),
       ],
     });
 
