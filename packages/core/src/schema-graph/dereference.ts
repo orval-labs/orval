@@ -39,6 +39,9 @@ import {
   membersOf,
 } from './schema-keys';
 
+/** What a warning about a circular `$ref` starts with. */
+export const CIRCULAR_REF_WARNING = 'Circular $ref';
+
 /** How a schema library reports what a walk runs into. */
 export interface SchemaWalkReporter {
   // Package named in errors and options, such as `valibot`.
@@ -316,7 +319,9 @@ const dereferenceObject = (
   }
 
   if (refName && context.parents?.includes(refName)) {
-    reporter.warn(`Circular $ref "${refName}" is validated as unknown.`);
+    reporter.warn(
+      `${CIRCULAR_REF_WARNING} "${refName}" is validated as unknown.`,
+    );
     return {};
   }
 
@@ -375,7 +380,7 @@ const buildCoreOptions = (
   ignoreEmptyRef: true,
   isVerbatimKey: isDataKey,
   onCircularRef: (ref) =>
-    reporter.warn(`Circular $ref "${ref}" is validated as unknown.`),
+    reporter.warn(`${CIRCULAR_REF_WARNING} "${ref}" is validated as unknown.`),
   onUnresolvedRef: (ref) =>
     reporter.warn(`Unresolvable $ref "${ref}" is validated as unknown.`),
   onResolveError: (message) => reporter.verbose(message),
