@@ -7831,6 +7831,12 @@ describe('generateZod with generateReusableSchemas', () => {
                 schemas: {
                   Language: { type: 'string', enum: ['ENGLISH', 'JAPANESE'] },
                   CourseId: { type: 'string', format: 'uuid' },
+                  Filter: {
+                    type: 'object',
+                    properties: {
+                      level: { type: 'string', enum: ['BEGINNER', 'ADVANCED'] },
+                    },
+                  },
                 },
                 parameters: componentParameters,
               },
@@ -7897,6 +7903,27 @@ describe('generateZod with generateReusableSchemas', () => {
         `"language": Language.optional().describe('Course language')`,
       );
       expect(implementation).not.toContain('zod.enum(');
+    });
+
+    it('inlines a schema $ref that is not a component schema', async () => {
+      // Only `#/components/schemas/<Name>` has a reusable schema to point at.
+      const implementation = await generateParameters([
+        {
+          name: 'courseId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+        {
+          name: 'level',
+          in: 'query',
+          schema: { $ref: '#/components/schemas/Filter/properties/level' },
+        },
+      ]);
+
+      expect(implementation).toContain(
+        "\"level\": zod.enum(['BEGINNER', 'ADVANCED']).optional()",
+      );
     });
   });
 });

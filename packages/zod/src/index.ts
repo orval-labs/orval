@@ -4391,14 +4391,16 @@ export const hasResponseSchema = (
 /* oxlint-enable typescript/no-unsafe-assignment */
 
 /**
- * Returns the `schema` a parameter declares, following only parameter-level
- * `$ref`s. Unlike `resolveRef`, a `$ref` inside `schema` is kept as is.
- * `undefined` when a ref can't be followed. (#4584)
+ * Returns the `schema` a parameter declares when it is a direct
+ * `#/components/schemas/*` `$ref`, following only parameter-level `$ref`s.
+ * `resolveRef` would resolve that `$ref` too, losing the reusable schema.
+ * `undefined` otherwise: any other schema is used as `resolveRef` resolved
+ * it. (#4584)
  */
-const getDeclaredParameterSchema = (
+const getDeclaredComponentSchemaRef = (
   parameter: OpenApiParameterObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiSchemaObject | OpenApiReferenceObject | undefined => {
+): OpenApiReferenceObject | undefined => {
   let current: unknown = parameter;
   const visited = new Set<string>();
   while (isObject(current) && typeof current.$ref === 'string') {
@@ -4407,8 +4409,11 @@ const getDeclaredParameterSchema = (
     const { refPaths } = getRefInfo(current.$ref, context);
     current = refPaths ? getAtPath(context.spec, refPaths) : undefined;
   }
-  return isObject(current) && 'schema' in current
-    ? (current.schema as OpenApiSchemaObject | OpenApiReferenceObject)
+  const schema = isObject(current) ? current.schema : undefined;
+  return isObject(schema) &&
+    typeof schema.$ref === 'string' &&
+    isComponentSchemaRef(schema.$ref)
+    ? (schema as OpenApiReferenceObject)
     : undefined;
 };
 
@@ -4484,12 +4489,12 @@ export const parseParameters = ({
       return acc;
     }
 
-    // `resolveRef` also resolves a `$ref` in the parameter's `schema`, which
-    // would inline the component. Read the declared schema instead so it can
-    // stay a named reference.
+    // `resolveRef` also resolves a component `$ref` in the parameter's
+    // `schema`, which would inline it. Keep the declared `$ref` so it stays a
+    // named reference.
     const declaredSchema =
       (useReusableSchemas
-        ? getDeclaredParameterSchema(val, context)
+        ? getDeclaredComponentSchemaRef(val, context)
         : undefined) ?? parameter.schema;
 
     const parameterSchema =
