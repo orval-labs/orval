@@ -37,6 +37,19 @@ declare const schemaModelTypeChecks: SchemaModelTypeChecks;`,
     });
   });
 
+  it('escapes the import specifier of the models', () => {
+    const { importLine } = renderModelTypeChecks({
+      checks: [{ modelName: 'Pet', schemaName: 'Pet' }],
+      modelsImportPath: String.raw`../O'Brien\model`,
+      inferOutput: (name) => `Infer<typeof ${name}>`,
+      taken: new Set(),
+    });
+
+    expect(importLine).toBe(
+      String.raw`import type * as Models from '../O\'Brien\\model';`,
+    );
+  });
+
   it('names the declarations around the ones the module has', () => {
     const { importLine, block } = render(['Models', 'Assert', 'Extends']);
     expect(importLine).toContain('* as ModelsSchema from');

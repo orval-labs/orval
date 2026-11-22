@@ -100,6 +100,9 @@ describe('getModelTypeCheckSkips', () => {
         type: 'object',
         properties: { file: { format: 'binary' } },
       },
+      // A number never reaches the string branch, so it stays a number.
+      Numeric: { type: 'integer', format: 'binary' },
+      NullableFile: { type: ['string', 'null'], format: 'binary' },
     } satisfies Record<string, OpenApiSchemaObject>;
 
     it('is skipped for Valibot', () => {
@@ -109,6 +112,8 @@ describe('getModelTypeCheckSkips', () => {
         Octets:
           'a binary string is validated as File, which the model types as Blob',
         Unencoded:
+          'a binary string is validated as File, which the model types as Blob',
+        NullableFile:
           'a binary string is validated as File, which the model types as Blob',
       });
     });
@@ -298,7 +303,38 @@ describe('getModelTypeCheckSkips', () => {
 
   describe('with useReadonlyArrays', () => {
     const reason =
-      'with useReadonlyArrays an array is readonly in the model, which the schema output is not';
+      'with useReadonlyArrays an array is readonly in the model, which the schema output is only for a readOnly array';
+
+    // The schema output of a readOnly array is readonly too, so the pair
+    // matches; `suppressReadonlyModifier` keeps it mutable.
+    const readOnlySchemas: Record<string, OpenApiSchemaObject> = {
+      ReadOnlyTags: {
+        type: 'array',
+        readOnly: true,
+        items: { type: 'string' },
+      },
+      Holder: {
+        type: 'object',
+        properties: {
+          tags: { type: 'array', readOnly: true, items: { type: 'string' } },
+        },
+      },
+    };
+
+    it('checks a readOnly array, whose schema output is readonly too', () => {
+      expect(
+        skipsOf(readOnlySchemas, 'valibot', { useReadonlyArrays: true }),
+      ).toEqual({});
+    });
+
+    it('skips a readOnly array with suppressReadonlyModifier', () => {
+      expect(
+        skipsOf(readOnlySchemas, 'valibot', {
+          useReadonlyArrays: true,
+          suppressReadonlyModifier: true,
+        }),
+      ).toEqual({ ReadOnlyTags: reason, Holder: reason });
+    });
     const schemas: Record<string, OpenApiSchemaObject> = {
       Tags: { type: 'array', items: { type: 'string' } },
       Pet: {
@@ -1025,6 +1061,128 @@ describe('getModelTypeCheckSkips', () => {
       expect(skips.get('Line')).toBe(
         'it references Models.Point, which is skipped',
       );
+    });
+  });
+
+  describe('definitions', () => {
+    const prefixItems = 'prefixItems is validated as an array of unknown';
+    const pair: OpenApiSchemaObject = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }, { type: 'number' }],
+    };
+
+    it('leaves out a definition nothing references', () => {
+      expect(
+        skipsOf({ Name: { type: 'string', $defs: { Pair: pair } } }, 'valibot'),
+      ).toEqual({});
+    });
+
+    it('follows a reference into a definition', () => {
+      expect(
+        skipsOf(
+          {
+            Line: {
+              type: 'object',
+              properties: {
+                ends: { $ref: '#/components/schemas/Line/$defs/Pair' },
+              },
+              $defs: { Pair: pair },
+            },
+          },
+          'valibot',
+        ),
+      ).toEqual({ Line: prefixItems });
+    });
+  });
+
+  describe('a reference to a subschema of a component', () => {
+    const prefixItems = 'prefixItems is validated as an array of unknown';
+    const schemas: Record<string, OpenApiSchemaObject> = {
+      Owner: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          pair: { type: 'array', prefixItems: [{ type: 'string' }] },
+        },
+      },
+      OwnerId: { $ref: '#/components/schemas/Owner/properties/id' },
+      OwnerPair: { $ref: '#/components/schemas/Owner/properties/pair' },
+    };
+
+    it('is followed to its target, not taken for the whole component', () => {
+      // OwnerId's target is a string, whatever else Owner holds, so it is
+      // checked. OwnerPair's target is the tuple itself, so it is skipped for
+      // that, not for referencing Owner.
+      expect(skipsOf(schemas, 'valibot')).toEqual({
+        Owner: prefixItems,
+        OwnerPair: prefixItems,
+      });
+    });
+  });
+
+  describe('a target reached in several roles', () => {
+    const itemRef =
+      '#/paths/~1item/get/responses/200/content/application~1json/schema';
+    const document = {
+      paths: {
+        '/item': {
+          get: {
+            responses: {
+              '200': {
+                description: 'An item',
+                content: {
+                  'application/json': {
+                    // Requires `extra` without declaring it, which matters
+                    // for a property but not for an `allOf` member.
+                    schema: {
+                      type: 'object',
+                      required: ['id', 'extra'],
+                      properties: { id: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } satisfies { paths: OpenApiPathsObject };
+
+    it('is checked in each, after an allOf member', () => {
+      // The walk reaches the `allOf` member before the property, which sits
+      // a level deeper.
+      expect(
+        skipsOf(
+          {
+            Holder: {
+              allOf: [{ $ref: itemRef }],
+              properties: {
+                wrap: {
+                  type: 'object',
+                  properties: { item: { $ref: itemRef } },
+                },
+              },
+            },
+          },
+          'valibot',
+          undefined,
+          document,
+        ),
+      ).toEqual({
+        Holder:
+          'a required key without a property is validated as unknown, which the model leaves out',
+      });
+    });
+
+    it('is not skipped for an allOf member alone', () => {
+      expect(
+        skipsOf(
+          { Holder: { allOf: [{ $ref: itemRef }] } },
+          'valibot',
+          undefined,
+          document,
+        ),
+      ).toEqual({});
     });
   });
 

@@ -2,6 +2,7 @@ import nodePath from 'node:path';
 
 import type { Tsconfig } from '../types';
 import { joinSafe, relativeSafe, toUnix } from '../utils/path';
+import { jsStringLiteralEscape } from '../utils/string';
 import { getImportExtension } from '../utils/tsconfig';
 import { allocateConstName } from './component-names';
 
@@ -82,7 +83,8 @@ export const renderModelTypeChecks = ({
   // Without an assertion, the import and the helpers would be unused.
   if (!hasAssertion) return { importLine: '', block: declaration.join('\n') };
   return {
-    importLine: `import type * as ${models} from '${modelsImportPath}';`,
+    // A directory name may hold a quote or a backslash.
+    importLine: `import type * as ${models} from '${jsStringLiteralEscape(modelsImportPath)}';`,
     block: [
       `type ${assert}<T extends true> = T;`,
       `type ${extendsName}<A, B> = [A] extends [B] ? true : false;`,

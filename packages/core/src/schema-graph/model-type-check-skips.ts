@@ -1,5 +1,5 @@
-import type { ContextSpec } from '../types';
-import { isObject, isString } from '../utils/assertion';
+import type { ContextSpec, OpenApiSchemaObject } from '../types';
+import { isObject, isString, isStringLikeSchema } from '../utils/assertion';
 import { isOctetStreamContentType } from '../utils/content-type';
 import {
   CIRCULAR_REF_WARNING,
@@ -8,10 +8,10 @@ import {
 } from './dereference';
 import { type RefPolicy, resolveSelf } from './ref-policy';
 import {
+  getComponentKey,
   getComponentSchema,
   getLocalRefTarget,
   getRef,
-  getRootComponentKey,
   toComponentRef,
 } from './refs';
 import {
@@ -291,9 +291,11 @@ const holdsReadOnlyArrayItem = ({ items }: Record<string, unknown>): boolean =>
   isObject(items) && items.readOnly === true && isArraySchema(items);
 
 // A string the generated schema validates as a file, with the same test the
-// generator applies to a string.
+// generator applies (`isBinaryScalarSchema`). Only a schema that reaches the
+// string branch counts: `{ type: 'integer', format: 'binary' }` is a number
+// in both.
 const isBinaryString = (schema: Record<string, unknown>): boolean =>
-  !isUntyped(schema) &&
+  isStringLikeSchema(schema as OpenApiSchemaObject) &&
   (schema.format === 'binary' ||
     (isOctetStreamContentType(
       isString(schema.contentMediaType) ? schema.contentMediaType : undefined,
@@ -305,6 +307,20 @@ const isArrayLike = (schema: Record<string, unknown>): boolean =>
   isArraySchema(schema) ||
   schema.items !== undefined ||
   schema.prefixItems !== undefined;
+
+// Whether the generated schema types the array's output as readonly, as the
+// model does for a readOnly array: one with items and no prefixItems, unless
+// `suppressReadonlyModifier` is on. The valibot generator adds `v.readonly()`
+// on the same test.
+const hasReadonlyOutput = (
+  schema: Record<string, unknown>,
+  { context }: ConstructSite,
+): boolean =>
+  schema.readOnly === true &&
+  schema.items !== undefined &&
+  schema.items !== false &&
+  schema.prefixItems === undefined &&
+  context.output.override.suppressReadonlyModifier !== true;
 
 const holdsOptionalDefault = (
   schema: Record<string, unknown>,
@@ -342,11 +358,12 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
   },
   {
     reason:
-      'with useReadonlyArrays an array is readonly in the model, which the schema output is not',
+      'with useReadonlyArrays an array is readonly in the model, which the schema output is only for a readOnly array',
     libraries: ['valibot'],
     isIn: (schema, site) =>
       site.context.output.override.useReadonlyArrays === true &&
-      isArrayLike(schema),
+      isArrayLike(schema) &&
+      !hasReadonlyOutput(schema, site),
   },
   {
     reason:
@@ -454,12 +471,13 @@ const CIRCULAR_REFERENCE: Pick<LooseConstruct, 'reason' | 'libraries'> = {
   libraries: ['valibot'],
 };
 
+// `$defs` and `definitions` are left out: a definition is part of the
+// generated type only where a `$ref` reaches it, and `collectNodes` follows
+// that `$ref`.
 const SCHEMA_MAP_KEYS = [
   'properties',
   'patternProperties',
   'dependentSchemas',
-  '$defs',
-  'definitions',
 ] as const;
 
 const SCHEMA_KEYS = [
@@ -500,11 +518,15 @@ const subschemasOf = (schema: Record<string, unknown>): Subschema[] =>
       ),
     );
 
-// Every schema node under the root, the root included. A `$ref` to a
-// component is not followed. One to another place in the document is, since
-// generating the component inlines what it points at.
+// Every schema node under the root, the root included. A `$ref` to a whole
+// component is not followed. One to another place in the document is, a
+// subschema of a component included, since generating the component inlines
+// what it points at.
 const collectNodes = (root: unknown, context: ContextSpec): SchemaNode[] => {
   const nodes: SchemaNode[] = [];
+  // By role and ref: a constructs check such as the required-key one depends
+  // on the role, so a target reached in several roles is visited in each.
+  // The roles are few, so a cycle still ends.
   const followed = new Set<string>();
   const pending: Subschema[] = [{ value: root, role: undefined }];
   // The list grows while it is read.
@@ -513,14 +535,11 @@ const collectNodes = (root: unknown, context: ContextSpec): SchemaNode[] => {
     nodes.push({ schema: value, role });
     pending.push(...subschemasOf(value));
     const ref = getRef(value);
-    if (
-      ref !== undefined &&
-      getRootComponentKey(ref) === undefined &&
-      !followed.has(ref)
-    ) {
-      followed.add(ref);
-      pending.push({ value: getLocalRefTarget(ref, context), role });
-    }
+    if (ref === undefined || getComponentKey(ref) !== undefined) continue;
+    const visit = `${role ?? ''} ${ref}`;
+    if (followed.has(visit)) continue;
+    followed.add(visit);
+    pending.push({ value: getLocalRefTarget(ref, context), role });
   }
   return nodes;
 };
@@ -551,11 +570,13 @@ const replacesCircularReference = (
   return replaced;
 };
 
-// The components a schema references anywhere in its tree.
+// The components a schema references as a whole anywhere in its tree. A
+// `$ref` into a component's subschema is not a dependency on the component:
+// `collectNodes` follows it to what it points at.
 const referencedComponents = (nodes: readonly SchemaNode[]) => {
   const keys = nodes.flatMap(({ schema: node }) => {
     const ref = getRef(node);
-    const key = ref === undefined ? undefined : getRootComponentKey(ref);
+    const key = ref === undefined ? undefined : getComponentKey(ref);
     return key === undefined ? [] : [key];
   });
   return [...new Set(keys)];
