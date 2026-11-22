@@ -4246,6 +4246,11 @@ Supported by the `fetch` client and by the query clients using
 without a validatable response — primitive or `void` responses, and
 `application/x-ndjson` streams.
 
+The `schema` validates the response body. By default the generated function
+returns `{ data, status, headers }`, so the mutator must return that shape, or
+`res.data` is `undefined`. To return the body instead, set
+`override.fetch.includeHttpResponseReturnType: false`, as below.
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
@@ -4255,7 +4260,10 @@ export default defineConfig({
       override: {
         includeSchemaInArguments: true,
         mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
-        fetch: { runtimeValidation: true },
+        fetch: {
+          runtimeValidation: true,
+          includeHttpResponseReturnType: false,
+        },
       },
     },
   },
