@@ -1015,16 +1015,20 @@ const isJsonMediaType = (contentType: string): boolean =>
  * `type: ['array', 'null']` (which {@link isEffectivelyArraySchema} does not
  * count), or through `oneOf` / `anyOf` branches that all are, `null` branches
  * aside.
+ *
+ * `ancestors` holds the schemas on the path down to this one, so a schema
+ * that contains itself stops the walk while one that two sibling branches
+ * share (`anyOf: [$ref Tags, $ref Tags]`) is checked in each.
  */
 const isJsonContainerSchema = (
   schema: OpenApiSchemaObject,
   context: ContextSpec,
-  seen: Set<OpenApiSchemaObject> = new Set(),
+  ancestors: ReadonlySet<OpenApiSchemaObject> = new Set(),
 ): boolean => {
-  if (isBooleanJsonSchema(schema) || seen.has(schema)) {
+  if (isBooleanJsonSchema(schema) || ancestors.has(schema)) {
     return false;
   }
-  seen.add(schema);
+  const path = new Set(ancestors).add(schema);
 
   const type = getSchemaType(schema);
   if (
@@ -1045,7 +1049,7 @@ const isJsonContainerSchema = (
   return (
     nonNullBranches.length > 0 &&
     nonNullBranches.every((branch) =>
-      isJsonContainerSchema(branch, context, seen),
+      isJsonContainerSchema(branch, context, path),
     )
   );
 };

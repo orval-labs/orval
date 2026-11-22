@@ -2802,6 +2802,43 @@ describe('getResReqTypes (JSON form-data parts, issue #4560)', () => {
     expect(formData).not.toContain('forEach');
   });
 
+  describe('shared and recursive branches', () => {
+    const ctxWithTags = extendContext({
+      spec: {
+        components: {
+          schemas: {
+            Tags: { type: 'array', items: { type: 'string' } },
+            // Refers only to itself, so it never reaches an object or array.
+            Loop: { oneOf: [{ $ref: '#/components/schemas/Loop' }] },
+          },
+        },
+      },
+    });
+    const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+
+    it('checks a schema that sibling branches share in each branch', () => {
+      const formData = formDataFor(
+        { tags: { anyOf: [ref('Tags'), ref('Tags')] } },
+        { tags: { contentType: 'application/json' } },
+        { ctx: ctxWithTags },
+      );
+
+      expect(formData).toContain(
+        "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+      );
+    });
+
+    it('stops on a schema that contains itself', () => {
+      const formData = formDataFor(
+        { loop: ref('Loop') },
+        { loop: { contentType: 'application/json' } },
+        { ctx: ctxWithTags },
+      );
+
+      expect(formData).not.toContain('new Blob');
+    });
+  });
+
   it('leaves a part mixing an object with a primitive as before', () => {
     const formData = formDataFor(
       { tags: { oneOf: [dto, { type: 'string' }] } },
