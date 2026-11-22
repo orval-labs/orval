@@ -3405,6 +3405,8 @@ export interface Pet {
 
 使用 `schemas: { type: 'effect' }` 时，mutator 会收到 Effect schema，参见[自定义 Mutator](/zh/docs/guides/effect#自定义-mutator)。
 
+`schema` 校验的是响应体。生成的函数默认返回 `{ data, status, headers }`，因此 mutator 必须返回这种结构，否则 `res.data` 为 `undefined`。若希望改为返回响应体，请设置 `override.fetch.includeHttpResponseReturnType: false`，如下所示。
+
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
@@ -3414,7 +3416,10 @@ export default defineConfig({
       override: {
         includeSchemaInArguments: true,
         mutator: { path: './src/custom-fetch.ts', name: 'customFetch' },
-        fetch: { runtimeValidation: true },
+        fetch: {
+          runtimeValidation: true,
+          includeHttpResponseReturnType: false,
+        },
       },
     },
   },
