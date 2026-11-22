@@ -190,6 +190,8 @@ Known limits:
 - Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 
+See the [Valibot with fetch sample](https://github.com/orval-labs/orval/tree/master/samples/fetch-app/valibot) on GitHub. It has one output that validates in the generated client, and one with a mutator that validates through `~standard`.
+
 ## Combining with HTTP Clients
 
 The `valibot` client generates schemas only. To use it with another client, generate that client in a separate output and parse responses yourself:
