@@ -18,6 +18,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAtPath,
   getDynamicAnchorName,
   getCustomFormatType,
   getFormatTypeError,
@@ -4389,6 +4390,28 @@ export const hasResponseSchema = (
 
 /* oxlint-enable typescript/no-unsafe-assignment */
 
+/**
+ * Returns the `schema` a parameter declares, following only parameter-level
+ * `$ref`s. Unlike `resolveRef`, a `$ref` inside `schema` is kept as is.
+ * `undefined` when a ref can't be followed. (#4584)
+ */
+const getDeclaredParameterSchema = (
+  parameter: OpenApiParameterObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiSchemaObject | OpenApiReferenceObject | undefined => {
+  let current: unknown = parameter;
+  const visited = new Set<string>();
+  while (isObject(current) && typeof current.$ref === 'string') {
+    if (visited.has(current.$ref)) return undefined;
+    visited.add(current.$ref);
+    const { refPaths } = getRefInfo(current.$ref, context);
+    current = refPaths ? getAtPath(context.spec, refPaths) : undefined;
+  }
+  return isObject(current) && 'schema' in current
+    ? (current.schema as OpenApiSchemaObject | OpenApiReferenceObject)
+    : undefined;
+};
+
 export const parseParameters = ({
   data,
   context,
@@ -4461,10 +4484,18 @@ export const parseParameters = ({
       return acc;
     }
 
+    // `resolveRef` also resolves a `$ref` in the parameter's `schema`, which
+    // would inline the component. Read the declared schema instead so it can
+    // stay a named reference.
+    const declaredSchema =
+      (useReusableSchemas
+        ? getDeclaredParameterSchema(val, context)
+        : undefined) ?? parameter.schema;
+
     const parameterSchema =
-      typeof parameter.schema === 'boolean'
-        ? toObjectSchema(parameter.schema)
-        : parameter.schema;
+      typeof declaredSchema === 'boolean'
+        ? toObjectSchema(declaredSchema)
+        : declaredSchema;
 
     // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
     // generator can take the namedRef path. We only shallow-clone to attach

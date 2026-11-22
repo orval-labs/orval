@@ -6,6 +6,7 @@ import type {
   ZodCoerceType,
   ZodVariantOption,
   OpenApiDocument,
+  OpenApiParameterObject,
   OpenApiReferenceObject,
   OpenApiResponsesObject,
   OpenApiSchemaObject,
@@ -7787,6 +7788,116 @@ describe('generateZod with generateReusableSchemas', () => {
     );
 
     expect(implementation).toContain('CreateNodeBody');
+  });
+
+  // #4584: a parameter's direct schema `$ref` was dereferenced and inlined.
+  describe('parameters', () => {
+    const generateParameters = async (
+      parameters: (OpenApiParameterObject | OpenApiReferenceObject)[],
+      componentParameters: Record<string, OpenApiParameterObject> = {},
+    ) => {
+      const result = await generateZod(
+        createTestGeneratorVerbOptions({
+          pathRoute: '/courses/{courseId}',
+          verb: 'get',
+          operationName: 'getCourses',
+          typeName: 'getCourses',
+          override: {
+            zod: {
+              generate: {
+                param: true,
+                query: true,
+                header: true,
+                body: false,
+                response: false,
+              },
+            },
+          },
+        }),
+        createTestGeneratorOptions({
+          pathRoute: '/courses/{courseId}',
+          context: {
+            spec: {
+              paths: {
+                '/courses/{courseId}': {
+                  get: {
+                    operationId: 'getCourses',
+                    parameters,
+                    responses: { '200': { description: 'OK' } },
+                  },
+                },
+              },
+              components: {
+                schemas: {
+                  Language: { type: 'string', enum: ['ENGLISH', 'JAPANESE'] },
+                  CourseId: { type: 'string', format: 'uuid' },
+                },
+                parameters: componentParameters,
+              },
+            },
+            output: {
+              override: { zod: { generateReusableSchemas: true } },
+            },
+          },
+        }),
+        testOutput,
+      );
+      return result.implementation;
+    };
+
+    it('keeps a direct schema $ref as a named reference', async () => {
+      const implementation = await generateParameters([
+        {
+          name: 'courseId',
+          in: 'path',
+          required: true,
+          schema: { $ref: '#/components/schemas/CourseId' },
+        },
+        {
+          name: 'language',
+          in: 'query',
+          schema: { $ref: '#/components/schemas/Language' },
+        },
+        {
+          name: 'x-language',
+          in: 'header',
+          required: true,
+          schema: { $ref: '#/components/schemas/Language' },
+        },
+      ]);
+
+      expect(implementation).toContain('"courseId": CourseId\n');
+      expect(implementation).toContain('"language": Language.optional()');
+      expect(implementation).toContain('"x-language": Language\n');
+      expect(implementation).not.toContain('zod.enum(');
+    });
+
+    it('keeps the schema $ref of a referenced parameter', async () => {
+      const implementation = await generateParameters(
+        [
+          {
+            name: 'courseId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+          { $ref: '#/components/parameters/LanguageParam' },
+        ],
+        {
+          LanguageParam: {
+            name: 'language',
+            in: 'query',
+            description: 'Course language',
+            schema: { $ref: '#/components/schemas/Language' },
+          },
+        },
+      );
+
+      expect(implementation).toContain(
+        `"language": Language.optional().describe('Course language')`,
+      );
+      expect(implementation).not.toContain('zod.enum(');
+    });
   });
 });
 

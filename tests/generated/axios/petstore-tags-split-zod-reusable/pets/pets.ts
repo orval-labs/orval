@@ -6,11 +6,11 @@
  */
 import * as zod from 'zod';
 
-import { CreatePetBody, Pet, PetList } from '../model';
+import { CreatePetBody, Pet, PetList, SortOrder } from '../model';
 
 export const ListPetsQueryParams = zod.object({
   limit: zod.int().optional(),
-  sort: zod.enum(['asc', 'desc']).optional(),
+  sort: SortOrder.optional(),
 });
 
 export const ListPetsResponse = PetList;
