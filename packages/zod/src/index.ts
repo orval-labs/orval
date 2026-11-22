@@ -73,6 +73,7 @@ import {
 } from '@orval/core';
 import jsesc from 'jsesc';
 
+import { getRefinementImports } from './callable-serializer';
 import {
   getLooseObjectFunctionName,
   getObjectFunctionName,
@@ -2566,9 +2567,7 @@ export const generateZodValidationSchemaDefinition = (
     } else if (enumValues.every((value) => isString(value))) {
       functions.push([
         'enum',
-        `[${enumValues
-          .map((value) => `'${jsStringLiteralEscape(value)}'`)
-          .join(', ')}]`,
+        `[${enumValues.map((value) => `'${jsStringLiteralEscape(value)}'`).join(', ')}]`,
       ]);
     } else {
       // `enum` means "equals one of the values", not an exclusive union: a
@@ -2799,6 +2798,65 @@ const buildMetaArgs = (args: ZodMetaArgs): string | undefined => {
   return parts.length > 0 ? `{ ${parts.join(', ')} }` : undefined;
 };
 
+/**
+ * Collect imports referenced by refinements anywhere in this schema tree.
+ * Keep the result separate from `consts`, since imports belong in the module's
+ * import section and must be deduplicated across schemas in the same file.
+ */
+const collectRefinementImports = (
+  definition: ZodValidationSchemaDefinition,
+): GeneratorImport[] => {
+  const imports: GeneratorImport[] = [];
+  const seen = new WeakSet<object>();
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      if (
+        value.length === 2 &&
+        value[0] === 'refine' &&
+        Array.isArray(value[1])
+      ) {
+        for (const refinement of value[1] as BoundRefinement[]) {
+          imports.push(...getRefinementImports(refinement));
+        }
+        return;
+      }
+      for (const item of value) visit(item);
+      return;
+    }
+
+    for (const item of Object.values(value)) visit(item);
+  };
+  visit(definition);
+  return imports;
+};
+
+/** Merge by local identifier and reject imports that would create invalid JS. */
+export const mergeRefinementImports = (
+  imports: readonly GeneratorImport[],
+): GeneratorImport[] => {
+  const byLocal = new Map<string, GeneratorImport>();
+  for (const item of imports) {
+    const local = item.alias ?? item.name;
+    const previous = byLocal.get(local);
+    if (previous) {
+      if (
+        previous.importPath !== item.importPath ||
+        previous.name !== item.name ||
+        previous.default !== item.default ||
+        previous.namespaceImport !== item.namespaceImport
+      ) {
+        throw new TypeError(`Conflicting callable imports for ${local}`);
+      }
+      continue;
+    }
+    byLocal.set(local, item);
+  }
+  return [...byLocal.values()];
+};
+
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpec,
@@ -2813,9 +2871,14 @@ export const parseZodValidationSchemaDefinition = (
   // by the caller next to `isZodV4` rather than per parse.
   hasZodXor = false,
   componentBrand?: string,
-): { zod: string; consts: string; usedRefs: Set<string> } => {
+): {
+  zod: string;
+  consts: string;
+  usedRefs: Set<string>;
+  imports: GeneratorImport[];
+} => {
   if (input.functions.length === 0) {
-    return { zod: '', consts: '', usedRefs: new Set() };
+    return { zod: '', consts: '', usedRefs: new Set(), imports: [] };
   }
 
   if (componentBrand) {
@@ -2832,6 +2895,7 @@ export const parseZodValidationSchemaDefinition = (
 
   let consts = '';
   const usedRefs = new Set<string>();
+  const imports = mergeRefinementImports(collectRefinementImports(input));
 
   const appendConstsChunk = (chunk: string) => {
     if (!chunk) {
@@ -3810,14 +3874,12 @@ ${Object.entries(objectArgs)
     if (consts.includes(',export')) {
       consts = consts.replaceAll(',export', '\nexport');
     }
-    return { zod: value, consts, usedRefs };
+    return { zod: value, consts, usedRefs, imports };
   }
 
   const schema = parsePropertyChain(input.functions);
   const value = preprocess
-    ? `.preprocess(${preprocess.name}, ${
-        schema.startsWith('.') ? 'zod' : ''
-      }${schema})`
+    ? `.preprocess(${preprocess.name}, ${schema.startsWith('.') ? 'zod' : ''}${schema})`
     : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
@@ -3825,7 +3887,7 @@ ${Object.entries(objectArgs)
   if (consts.includes(',export')) {
     consts = consts.replaceAll(',export', '\nexport');
   }
-  return { zod, consts, usedRefs };
+  return { zod, consts, usedRefs, imports };
 };
 
 const logResolveError = (message: string) => logger.verbose(message);
@@ -4762,6 +4824,14 @@ const generateZodRoute = async (
     ...inputResponses.flatMap((r) => [...r.usedRefs]),
   ]);
 
+  const refinementImports = mergeRefinementImports([
+    ...inputParams.imports,
+    ...inputQueryParams.imports,
+    ...inputHeaders.imports,
+    ...inputBody.imports,
+    ...inputResponses.flatMap((r) => r.imports),
+  ]);
+
   if (useReusableSchemas && allUsedRefs.size > 0) {
     inputParams = { ...inputParams, zod: rewriteSentinels(inputParams.zod) };
     inputQueryParams = {
@@ -4953,6 +5023,7 @@ const generateZodRoute = async (
       ...(paramsMutator ? [paramsMutator] : []),
     ],
     usedRefs: useReusableSchemas ? allUsedRefs : new Set<string>(),
+    refinementImports,
   };
 };
 
@@ -4976,23 +5047,33 @@ export const generateZodSections = async (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
-  const { request, response, mutators } = await generateZodRoute(
-    verbOptions,
-    options,
-  );
+  const {
+    request,
+    response,
+    mutators,
+    refinementImports = [],
+  } = await generateZodRoute(verbOptions, options);
   const imports = getFormatTypeZodImports(
     [request, response].join('\n'),
     options.context.output.override,
   );
 
-  return { request, response, mutators, imports };
+  return {
+    request,
+    response,
+    mutators,
+    imports: [...imports, ...refinementImports],
+  };
 };
 
 export const generateZod: ClientBuilder = async (verbOptions, options) => {
-  const { request, response, mutators, usedRefs } = await generateZodRoute(
-    verbOptions,
-    options,
-  );
+  const {
+    request,
+    response,
+    mutators,
+    usedRefs,
+    refinementImports = [],
+  } = await generateZodRoute(verbOptions, options);
   const implementation = [request, response].filter(Boolean).join('\n\n');
 
   return {
@@ -5010,6 +5091,7 @@ export const generateZod: ClientBuilder = async (verbOptions, options) => {
         implementation,
         options.context.output.override,
       ),
+      ...refinementImports,
     ],
     mutators,
   };

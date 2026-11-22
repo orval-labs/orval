@@ -1,3 +1,4 @@
+import { mergeRefinementImports } from '@orval/zod';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
@@ -8,6 +9,25 @@ import {
   resolveSchemaNames,
   rewriteReusableSchemas,
 } from './reusable-schemas';
+
+// Exists in the config/test module for TypeScript checking. The serializer
+// re-emits this name as an import; it never invokes the function at generation.
+const validateText = (value: unknown): boolean => typeof value === 'string';
+
+const schemaExtension: NonNullable<
+  GenerateReusableSchemaSetOptions['schemaExtension']
+> = [
+  {
+    type: 'string',
+    format: '',
+    validatorsGenerator: () => ({
+      callable: (value: unknown) => validateText(value),
+      bindings: {
+        $imports: ["import { validateText } from './validators';"],
+      },
+    }),
+  },
+];
 
 describe('resolveSchemaName', () => {
   // Identifiers are always PascalCase (matching operation wrappers + TS model
@@ -602,5 +622,71 @@ describe('generateReusableSchemaSet with $dynamicRef', () => {
       s?.includes('zod.lazy'),
     ).length;
     expect(lazyCount).toBe(1);
+  });
+});
+
+describe('reusable schema refinement imports', () => {
+  it('preserves and deduplicates imports from nested property refinements', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                nickname: { type: 'string' },
+              },
+              required: ['name', 'nickname'],
+            },
+          },
+        },
+      },
+    });
+
+    const [entry] = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true, schemaExtension },
+    );
+
+    expect(entry.zod).toContain('validateText(value)');
+    expect(entry.imports).toEqual([
+      { name: 'validateText', importPath: './validators', values: true },
+    ]);
+  });
+
+  it('retains each entry’s own imports after dependency rewriting', () => {
+    const context = createTestContextSpec({
+      spec: {
+        components: {
+          schemas: {
+            Pet: {
+              type: 'object',
+              properties: { owner: { $ref: '#/components/schemas/Owner' } },
+              required: ['owner'],
+            },
+            Owner: { type: 'string' },
+          },
+        },
+      },
+    });
+
+    const entries = generateReusableSchemaSet(
+      ['#/components/schemas/Pet'],
+      context,
+      { strict: false, isZodV4: true, schemaExtension },
+    );
+    const rewritten = rewriteReusableSchemas(entries);
+
+    expect(rewritten.find((entry) => entry.name === 'Pet')?.imports).toEqual(
+      [],
+    );
+    expect(rewritten.find((entry) => entry.name === 'Owner')?.imports).toEqual([
+      { name: 'validateText', importPath: './validators', values: true },
+    ]);
+    expect(
+      mergeRefinementImports(rewritten.flatMap((entry) => entry.imports ?? [])),
+    ).toHaveLength(1);
   });
 });

@@ -1,5 +1,6 @@
 import {
   type ContextSpec,
+  type GeneratorImport,
   type ZodCoerceType,
   type GeneratorMutator,
   type OpenApiSchemaObject,
@@ -62,6 +63,12 @@ export interface ReusableSchemaEntry {
   zod: string;
   consts: string;
   usedRefs: Set<string>;
+  /**
+   * Runtime imports needed by custom refinements in this component schema.
+   * Carried alongside the rendered expression so the module writer can emit
+   * and deduplicate them at file scope. Optional for legacy/synthetic entries.
+   */
+  imports?: GeneratorImport[];
   variant?: ZodVariantOption;
   /**
    * True when this schema references itself directly or transitively (its node
@@ -196,6 +203,7 @@ export const generateReusableSchemaSet = (
       zod: parsed.zod,
       consts: parsed.consts,
       usedRefs: parsed.usedRefs,
+      imports: parsed.imports,
       variant: options.variant,
     });
 

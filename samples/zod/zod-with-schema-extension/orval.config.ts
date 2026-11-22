@@ -1,54 +1,45 @@
-import { type OpenApiSchemaObject, defineConfig } from 'orval';
+import { type OpenApiSchemaObject, defineConfig } from "orval";
+import { isDecimalWithPrecision } from "./decimal-validator";
 
 /** A non-boolean schema carrying the vendor extension this sample validates. */
 type DecimalSchemaObject = Exclude<OpenApiSchemaObject, boolean> & {
-  'x-max-precision'?: number;
+  "x-max-precision"?: number;
 };
 
 export default defineConfig({
   petstore: {
     input: {
-      target: './petstore.yaml',
+      target: "./petstore.yaml",
     },
     output: {
-      client: 'zod',
-      mode: 'single',
-      target: './schemas',
+      client: "zod",
+      mode: "single",
+      target: "./schemas",
       override: {
         zod: {
           // Prefer Mini for more tree-shakeable generated schemas.
-          variant: 'mini',
+          variant: "mini",
           version: 4,
           schemaExtension: [
             {
-              type: 'string',
-              format: 'decimal',
+              type: "string",
+              format: "decimal",
               validatorsGenerator: (openapi_object: DecimalSchemaObject) => {
-                const maxPrecision = openapi_object['x-max-precision'];
+                const maxPrecision = openapi_object["x-max-precision"];
+
                 if (maxPrecision !== undefined) {
+                  const validateDecimal = isDecimalWithPrecision;
+
                   return {
-                    callable: (value: unknown) => {
-                      if (
-                        typeof value !== 'string' ||
-                        !/^[+-]?(?:\d+(\.\d*)?|\.\d+)$/.test(value)
-                      ) {
-                        return false;
-                      }
+                    callable: (value: unknown) =>
+                      typeof value === "string" && validateDecimal(value, maxPrecision),
 
-                      const precision = value.split('.')[1]?.length ?? 0;
-
-                      return precision === 0 || precision <= maxPrecision;
+                    bindings: {
+                      maxPrecision,
+                      $imports: [
+                        "import { isDecimalWithPrecision as validateDecimal } from '../decimal-validator';",
+                      ],
                     },
-                    // Zod 4 Mini accepts the full options object through zod.refine().
-                    // The error callback runs at validation time and shares
-                    // maxPrecision with the predicate via bindings.
-                    options: {
-                      error: (issue: { input: unknown }) =>
-                        `Expected a decimal with at most ${maxPrecision} fractional digits; received ${String(issue.input)}`,
-                      abort: true,
-                      params: { maxPrecision, format: 'decimal' },
-                    },
-                    bindings: { maxPrecision },
                   };
                 }
                 return null;
@@ -57,7 +48,7 @@ export default defineConfig({
           ],
         },
       },
-      formatter: 'prettier',
+      formatter: "prettier",
       clean: true,
     },
   },

@@ -9,6 +9,7 @@ import {
   escapeRegExp,
   findMediaType,
   generateImports,
+  type GeneratorImport,
   type GeneratorMutator,
   getReferencedFormatTypeImports,
   getImportExtension,
@@ -44,6 +45,7 @@ import {
   generateZodValidationSchemaDefinition,
   getFormatTypeZodImports,
   getZodImportSource,
+  mergeRefinementImports,
   parseZodValidationSchemaDefinition,
   renderZodExport,
   resolveIsZodV4,
@@ -66,6 +68,8 @@ interface ZodSchemaFileEntry {
   schemaName: string;
   consts: string;
   zodExpression: string;
+  /** Runtime imports referenced by custom Zod refinements. */
+  imports?: GeneratorImport[];
   /** Pre-rendered `import { x } from './x'` lines for reusable-schema refs. */
   importStatements?: string[];
 }
@@ -80,6 +84,71 @@ type ZodSchemaFileToWrite = ZodSchemaFileEntry & {
 const getZodSchemaImportStatement = (variant: ZodVariantOption) =>
   `import * as zod from '${getZodImportSource(variant)}';`;
 
+/** The local bindings already occupied by a generated module. */
+const getOccupiedZodBindings = (...contents: string[]): Set<string> => {
+  const occupied = new Set(['zod']);
+  for (const content of contents) {
+    for (const match of content.matchAll(
+      /^(?:export\s+)?(?:declare\s+)?(?:const|let|var|type|interface|class|function|enum)\s+([A-Za-z_$][\w$]*)/gm,
+    )) {
+      if (match[1]) occupied.add(match[1]);
+    }
+    // Sibling schema and params-mutator imports are emitted one per statement.
+    for (const match of content.matchAll(
+      /^import\s+(?:type\s+)?(?:\{\s*([\w$]+)(?:\s+as\s+([\w$]+))?\s*\}|([\w$]+)|\*\s+as\s+([\w$]+))\s+from\s+/gm,
+    )) {
+      const localName = [match[2], match[1], match[3], match[4]].find(Boolean);
+      if (localName) occupied.add(localName);
+    }
+  }
+  return occupied;
+};
+
+/** Merge refinement imports at the generated-module boundary, not per schema. */
+const renderRefinementImportStatements = (
+  imports: readonly GeneratorImport[],
+  generatedContent = '',
+  siblingImports = '',
+): string => {
+  if (imports.length === 0) return '';
+  const merged = mergeRefinementImports(imports);
+  const occupied = getOccupiedZodBindings(generatedContent, siblingImports);
+  const refinementBindings = new Map<string, string>();
+  const refinementNames = new Set(merged.map((imp) => imp.alias ?? imp.name));
+  for (const imp of merged) {
+    const localName = imp.alias ?? imp.name;
+    const source = `${imp.importPath}:${imp.name}:${!!imp.namespaceImport}`;
+    if (
+      occupied.has(localName) ||
+      (refinementBindings.has(localName) &&
+        refinementBindings.get(localName) !== source)
+    ) {
+      const baseAlias = `${localName}Refinement`;
+      let alias = baseAlias;
+      let suffix = 2;
+      while (occupied.has(alias) || refinementNames.has(alias)) {
+        alias = `${baseAlias}${suffix++}`;
+      }
+      throw new Error(
+        `Refinement import "${imp.name}" from "${imp.importPath}" conflicts on local name "${localName}". Set its import alias to "${alias}" and reference that alias in the refinement callable.`,
+      );
+    }
+    refinementBindings.set(localName, source);
+  }
+  // Core's generateImports handles named/default imports, but renders namespace
+  // imports as named imports. Preserve `import * as name` explicitly here.
+  const named = generateImports({
+    imports: merged.filter((imp) => !imp.namespaceImport),
+  });
+  const namespaces = merged
+    .filter((imp) => imp.namespaceImport)
+    .map(
+      (imp) =>
+        `import * as ${imp.alias ?? imp.name} from ${JSON.stringify(imp.importPath)};`,
+    );
+  return [named, ...namespaces].filter(Boolean).join('\n');
+};
+
 /**
  * Adds the imports of the `formatType` functions and types Zod schema
  * `content` references below its `zod` import, or above the content when it
@@ -91,28 +160,94 @@ export function addFormatTypeImports(
   override: Pick<WriteZodOutputOptions['override'], 'formatType' | 'zod'>,
   precedingContent = '',
 ): string {
-  const isImported = (name: string) =>
-    new RegExp(
-      String.raw`^import\s[^;]*?(?<![\w$])${escapeRegExp(name)}(?![\w$])[^;]*?\sfrom\s`,
-      'm',
-    ).test(precedingContent);
-  const valueImports = getFormatTypeZodImports(content, override);
+  const importedBindings: {
+    localName: string;
+    importedName: string;
+    importPath: string | undefined;
+    typeOnly: boolean;
+  }[] = [];
+  for (const match of `${precedingContent}\n${content}`.matchAll(
+    /^import\s+(type\s+)?([^;]*?)\s+from\s+(['"])([^'"]+)\3/gm,
+  )) {
+    const typeImport = match[1];
+    const clause = match[2];
+    const importPath = match[4];
+    if (!clause || !importPath) continue;
+    const defaultBinding = clause.match(/^([\w$]+)(?:\s*,|$)/)?.[1];
+    if (defaultBinding) {
+      importedBindings.push({
+        localName: defaultBinding,
+        importedName: 'default',
+        importPath,
+        typeOnly: !!typeImport,
+      });
+    }
+    const namespaceBinding = clause.match(/\*\s+as\s+([\w$]+)/)?.[1];
+    if (namespaceBinding) {
+      importedBindings.push({
+        localName: namespaceBinding,
+        importedName: '*',
+        importPath,
+        typeOnly: !!typeImport,
+      });
+    }
+    for (const specifier of (clause.match(/\{([^}]*)\}/)?.[1] ?? '').split(
+      ',',
+    )) {
+      const binding = /^(type\s+)?([\w$]+)(?:\s+as\s+([\w$]+))?$/.exec(
+        specifier.trim(),
+      );
+      const importedName = binding?.[2];
+      if (!importedName) continue;
+      importedBindings.push({
+        localName: binding[3] || importedName,
+        importedName,
+        importPath,
+        typeOnly: !!typeImport || !!binding[1],
+      });
+    }
+  }
+
+  const isImported = (imp: GeneratorImport): boolean => {
+    const localName = imp.alias ?? imp.name;
+    const importedName = imp.namespaceImport
+      ? '*'
+      : imp.default
+        ? 'default'
+        : imp.name;
+    let found = false;
+    for (const existing of importedBindings) {
+      if (existing.localName !== localName) continue;
+      if (
+        existing.importPath !== imp.importPath ||
+        existing.importedName !== importedName ||
+        (existing.typeOnly && imp.values !== false)
+      ) {
+        throw new Error(
+          `Format-type import "${imp.name}" from "${imp.importPath}" conflicts on local name "${localName}" with import "${existing.importedName}" from "${existing.importPath}". Use a distinct import alias${existing.typeOnly ? ' or change the existing type-only import to a value import' : ''}.`,
+        );
+      }
+      found = true;
+    }
+    if (!found) {
+      importedBindings.push({
+        localName,
+        importedName,
+        importPath: imp.importPath,
+        typeOnly: imp.values === false,
+      });
+    }
+    return found;
+  };
+
   const imports = [
-    ...valueImports,
-    // The TypeScript type a recursive schema is pinned to names them. A value
-    // import of the same binding, such as a `decodeImport`, covers the type.
+    ...getFormatTypeZodImports(content, override),
+    // A value import of the same local binding, module, and export also covers
+    // a type reference. isImported deduplicates that case below.
     ...getReferencedFormatTypeImports(content, override, (config) => [
       config.import,
-    ])
-      .filter(
-        (imp) =>
-          !valueImports.some(
-            (value) =>
-              value.name === imp.name && value.importPath === imp.importPath,
-          ),
-      )
-      .map((imp) => ({ ...imp, values: false })),
-  ].filter(({ name }) => !isImported(name));
+    ]).map((imp) => ({ ...imp, values: false })),
+  ].filter((imp) => !isImported(imp));
   if (imports.length === 0) return content;
   const statements = generateImports({ imports });
   const zodImport = getZodSchemaImportStatement(override.zod.variant);
@@ -283,18 +418,14 @@ function generateZodSchemaFileContent(
   // Omit the zod import when the content is concatenated into a file that already
   // imports zod (e.g. inline single-mode output, where the zod client emits its own).
   includeZodImport = true,
+  refinementImportsCollector?: GeneratorImport[],
 ): string {
-  // Group the zod import with any reusable-schema imports (deduped across the
-  // usually-single entries written to this file), then separate that block
-  // from the schema content with a single blank line.
-  const refImports = [
-    ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
-  ].toSorted();
-  const importBlock = [
-    ...(includeZodImport ? [getZodSchemaImportStatement(zodVariant)] : []),
-    ...refImports,
-  ].join('\n');
-
+  // In single-file mode, collect imports from both component and operation
+  // schemas before emitting them once in the shared module header.
+  const refinementImports = schemas.flatMap((s) => s.imports ?? []);
+  if (refinementImportsCollector) {
+    refinementImportsCollector.push(...refinementImports);
+  }
   const schemaContent = schemas
     .map(({ schemaName, consts, zodExpression }) => {
       const schemaConsts = consts ? `${consts}\n` : '';
@@ -310,6 +441,25 @@ function generateZodSchemaFileContent(
       );
     })
     .join('\n\n');
+
+  // Group the zod import with any reusable-schema imports (deduped across the
+  // usually-single entries written to this file), then separate that block
+  // from the schema content with a single blank line.
+  const refImports = [
+    ...new Set(schemas.flatMap((s) => s.importStatements ?? [])),
+  ].toSorted();
+  const refinementImportStatements = refinementImportsCollector
+    ? ''
+    : renderRefinementImportStatements(
+        refinementImports,
+        schemaContent,
+        refImports.join('\n'),
+      );
+  const importBlock = [
+    ...(includeZodImport ? [getZodSchemaImportStatement(zodVariant)] : []),
+    ...refImports,
+    ...(refinementImportStatements ? [refinementImportStatements] : []),
+  ].join('\n');
 
   const separator = importBlock ? `${importBlock}\n\n` : '';
   return `${header}${separator}${schemaContent}\n`;
@@ -806,6 +956,7 @@ export function generateZodSchemasInline(
   paramsMutator?: GeneratorMutator,
   includeParamsImport = false,
   sharedConstNameRegistry?: Record<string, number>,
+  refinementImportsCollector?: GeneratorImport[],
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
@@ -818,6 +969,7 @@ export function generateZodSchemasInline(
       paramsMutator,
       includeParamsImport,
       sharedConstNameRegistry,
+      refinementImportsCollector,
     );
   }
 
@@ -885,6 +1037,7 @@ export function generateZodSchemasInline(
       schemaName: name,
       consts: parsedZodDefinition.consts,
       zodExpression: parsedZodDefinition.zod,
+      imports: parsedZodDefinition.imports,
     });
   }
 
@@ -897,6 +1050,7 @@ export function generateZodSchemasInline(
     schemas,
     output.override.zod.variant,
     includeZodImport,
+    refinementImportsCollector,
   );
 }
 
@@ -907,6 +1061,7 @@ function generateZodSchemasInlineReusable(
   paramsMutator?: GeneratorMutator,
   includeParamsImport = false,
   constNameRegistry?: Record<string, number>,
+  refinementImportsCollector?: GeneratorImport[],
 ): string {
   const isZodV4 = resolveIsZodV4(
     output.override.zod.version,
@@ -955,7 +1110,10 @@ function generateZodSchemasInlineReusable(
   });
 
   const rewritten = rewriteReusableSchemas(entries);
-
+  const refinementImports = rewritten.flatMap((entry) => entry.imports ?? []);
+  if (refinementImportsCollector) {
+    refinementImportsCollector.push(...refinementImports);
+  }
   // Single-file inline mode emits every component schema in one file, so
   // recursive entries' TS-type references resolve in-file with no extra
   // imports — discard `extraImports` here.
@@ -984,8 +1142,15 @@ function generateZodSchemasInlineReusable(
     bodyReferencesMutator(body, paramsMutator)
       ? `${buildMutatorImportStatement(paramsMutator)}\n`
       : '';
-  const prefix =
-    zodImport || paramsImport ? `${zodImport}${paramsImport}\n` : '';
+  const refinementImportStatements = refinementImportsCollector
+    ? ''
+    : renderRefinementImportStatements(refinementImports, body, paramsImport);
+  const importBlock = [
+    ...(zodImport ? [zodImport.trimEnd()] : []),
+    ...(paramsImport ? [paramsImport.trimEnd()] : []),
+    ...(refinementImportStatements ? [refinementImportStatements] : []),
+  ].join('\n');
+  const prefix = importBlock ? `${importBlock}\n\n` : '';
   return `${prefix}${body}\n`;
 }
 
@@ -1093,6 +1258,7 @@ export async function writeZodSchemas(
       filePath,
       consts: parsedZodDefinition.consts,
       zodExpression: parsedZodDefinition.zod,
+      imports: parsedZodDefinition.imports,
     });
   }
 
@@ -1265,9 +1431,15 @@ async function writeZodSchemasReusable(
               paramsMutator!.path,
         })
       : undefined;
+    const refinementImportStatements = renderRefinementImportStatements(
+      entry.imports ?? [],
+      rendered.content,
+      [refImports, mutatorImportStr].filter(Boolean).join('\n'),
+    );
     const imports = [
       ...(mutatorImportStr ? [mutatorImportStr] : []),
       ...(refImports ? [refImports] : []),
+      ...(refinementImportStatements ? [refinementImportStatements] : []),
     ].join('\n');
 
     const fileContent =
@@ -1723,6 +1895,7 @@ function generateZodSchemasFromVerbs(
       consts: parsedZodDefinition.consts,
       zodExpression,
       importStatements,
+      imports: parsedZodDefinition.imports,
     });
   }
 
@@ -1842,6 +2015,7 @@ export async function writeZodSchemasSingle(
   const operationNames = new Set(
     schemasToWrite.map((entry) => entry.schemaName),
   );
+  const refinementImports: GeneratorImport[] = [];
   const components = generateZodSchemasInline(
     {
       ...builder,
@@ -1854,19 +2028,29 @@ export async function writeZodSchemasSingle(
     paramsMutator,
     true,
     constNameRegistry,
+    refinementImports,
   );
   const operations = generateZodSchemaFileContent(
     '',
     schemasToWrite.map((entry) => ({ ...entry, importStatements: undefined })),
     output.override.zod.variant,
     false,
+    refinementImports,
   );
+  const refinementImportStatements = renderRefinementImportStatements(
+    refinementImports,
+    `${components}${operations}`,
+  );
+  const importBlock = [
+    getZodSchemaImportStatement(output.override.zod.variant),
+    ...(refinementImportStatements ? [refinementImportStatements] : []),
+  ].join('\n');
   await writeGeneratedFile(
     namesAFile(schemasPath)
       ? schemasPath
       : path.join(schemasPath, `index${fileExtension}`),
     addFormatTypeImports(
-      `${header}${getZodSchemaImportStatement(output.override.zod.variant)}\n\n${components}${operations}`,
+      `${header}${importBlock}\n\n${components}${operations}`,
       output.override,
     ),
   );

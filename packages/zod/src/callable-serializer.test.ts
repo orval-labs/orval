@@ -4,8 +4,19 @@ import { runInNewContext } from 'node:vm';
 import type { BoundRefinement } from '@orval/core';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { serializeCallable } from './callable-serializer';
+import {
+  getRefinementImports,
+  serializeCallable,
+  serializeCallableParts,
+} from './callable-serializer';
 import { appendZodRefinements, renderZodRefine } from './export-emitter';
+
+// Type-only fixtures: these names intentionally remain free in fn.toString().
+declare const validateName: (value: string) => boolean;
+declare const Validator: { check: (value: string) => boolean };
+declare const defaultValidator: (value: string) => boolean;
+declare const formatError: (value: string) => string;
+declare const maxLength: number;
 
 const isCallable = (value: unknown): value is (input: unknown) => unknown =>
   typeof value === 'function';
@@ -548,5 +559,121 @@ describe('bound callable refinement emission', () => {
     expect(emitted).toContain('const minimum = 3;');
     expect(emitted).toContain('const minimum = 10;');
     expect(emitted.match(/const minimum = /g)).toHaveLength(2);
+  });
+});
+
+describe('callable import bindings', () => {
+  it('resolves aliased named imports without serializing them as captures', () => {
+    const descriptor: BoundRefinement<string> = {
+      callable: (value) => validateName(value) && value.length < maxLength,
+      bindings: {
+        maxLength: 10,
+        $imports: ["import { validate as validateName } from './validator';"],
+      },
+    };
+
+    const parts = serializeCallableParts(descriptor);
+    expect(parts.imports).toEqual([
+      {
+        name: 'validate',
+        alias: 'validateName',
+        importPath: './validator',
+        values: true,
+      },
+    ]);
+    expect(parts.declarations).toEqual(['  const maxLength = 10;']);
+    expect(parts.predicate).toContain('validateName(value)');
+  });
+
+  it('resolves namespace imports inside predicate and callbacks nested in options', () => {
+    const parts = serializeCallableParts({
+      callable: (value: string) => Validator.check(value),
+      options: { error: () => formatError('invalid') },
+      bindings: {
+        $imports: [
+          "import * as Validator from './validators';",
+          "import { formatError } from './errors';",
+        ],
+      },
+    });
+    expect(parts.imports).toHaveLength(2);
+    expect(parts.imports?.at(0)).toMatchObject({
+      namespaceImport: true,
+      name: 'Validator',
+    });
+    expect(parts.imports?.at(1)).toMatchObject({ name: 'formatError' });
+  });
+
+  it('supports default imports', () => {
+    const parts = serializeCallableParts({
+      callable: (value: string) => defaultValidator(value),
+      bindings: { $imports: ["import defaultValidator from 'validator';"] },
+    });
+    expect(parts.imports).toEqual([
+      {
+        name: 'defaultValidator',
+        default: true,
+        importPath: 'validator',
+        values: true,
+      },
+    ]);
+  });
+
+  it('rejects unresolved references even if another import was supplied', () => {
+    expect(() =>
+      serializeCallableParts({
+        callable: (value: string) => validateName(value),
+        bindings: { $imports: ["import { other } from 'validators';"] },
+      }),
+    ).toThrow(ReferenceError);
+  });
+
+  it('rejects a name appearing in both a capture and an import', () => {
+    expect(() =>
+      serializeCallableParts({
+        callable: (value: string) => validateName(value),
+        bindings: {
+          validateName: 'not a function',
+          $imports: ["import { validateName } from './validator';"],
+        },
+      }),
+    ).toThrow(/conflicts with import/);
+  });
+
+  it('rejects unused imports and side-effect-only imports', () => {
+    expect(() =>
+      serializeCallableParts({
+        callable: (value: string) => value.length > 0,
+        bindings: { $imports: ["import { unused } from 'validator';"] },
+      }),
+    ).toThrow(/Unused callable import/);
+    expect(() =>
+      getRefinementImports({
+        bindings: { $imports: ["import 'validator';"] },
+      }),
+    ).toThrow(/Side-effect-only/);
+  });
+
+  it('rejects non-import source, duplicate locals, and malformed import metadata', () => {
+    expect(() =>
+      getRefinementImports({
+        bindings: { $imports: ['const nope = 1;'] },
+      }),
+    ).toThrow(/static import declarations/);
+    expect(() =>
+      getRefinementImports({
+        bindings: {
+          $imports: [
+            "import { check as validateName } from './one';",
+            "import { verify as validateName } from './two';",
+          ],
+        },
+      }),
+    ).toThrow(/Duplicate imported/);
+    expect(() =>
+      getRefinementImports({
+        bindings: { $imports: 'invalid' as unknown as string[] },
+      }),
+    ).toThrow(/array of import statements/);
   });
 });
