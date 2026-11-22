@@ -756,6 +756,14 @@ describe('getStandardSchemaHelper output', () => {
     expect(helper.match(/function orvalParseStandardSchema/g)).toHaveLength(1);
     expect(helper).not.toContain(' as ');
   });
+
+  it('words the missing Standard Schema error for every library', () => {
+    const helper = getStandardSchemaHelper('orvalParseStandardSchema(P, x)');
+    expect(helper).toContain(
+      'Schema does not implement Standard Schema (needs Zod 3.24+, Valibot 1+ or Effect 3.15+)',
+    );
+    expect(helper).not.toContain('Zod below');
+  });
 });
 
 describe('standardSchema override merging', () => {
