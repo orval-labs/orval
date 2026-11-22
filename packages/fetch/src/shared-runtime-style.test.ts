@@ -1059,6 +1059,148 @@ describe('shared runtime options', () => {
     },
   );
 
+  it('declares the schema (input) type of a response that is only text', () => {
+    const { imports, implementation } = generateSharedClient(
+      verbOptions(
+        {
+          includeHttpResponseReturnType: false,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+        {
+          response: {
+            ...response,
+            contentTypes: ['text/plain'],
+            types: {
+              success: [
+                successType({
+                  key: '200',
+                  value: 'Pet',
+                  isRef: true,
+                  contentType: 'text/plain',
+                }),
+              ],
+              errors: [],
+            },
+          },
+        },
+      ),
+      makeSharedOptions([], { zodSchemaInArguments: true }),
+    );
+
+    expect(implementation).toContain("responseType: 'text'");
+    expect(implementation).toContain('execute<Pet>');
+    expect(implementation).not.toContain('PetOutput');
+    expect(implementation).not.toContain('validateResponse');
+    expect(implementation).not.toContain('Pet.parse');
+    expect(imports).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'PetOutput' })]),
+    );
+    expect(imports).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Pet', values: true }),
+      ]),
+    );
+  });
+
+  describe('with a text success response and a JSON error response', () => {
+    const textWithJsonError = (forceSuccessResponse: boolean) =>
+      verbOptions(
+        {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+        {
+          response: {
+            ...response,
+            contentTypes: ['text/plain', 'application/json'],
+            types: {
+              success: [
+                successType({
+                  key: '200',
+                  value: 'Pet',
+                  isRef: true,
+                  contentType: 'text/plain',
+                }),
+              ],
+              errors: [
+                successType({
+                  key: '404',
+                  value: 'Problem',
+                  isRef: true,
+                  contentType: 'application/json',
+                }),
+              ],
+            },
+          },
+        },
+      );
+
+    it.each([false, true])(
+      'declares the schema (input) type of the raw text it returns with forceSuccessResponse %s',
+      (forceSuccessResponse) => {
+        const { imports, implementation } = generateSharedClient(
+          textWithJsonError(forceSuccessResponse),
+          makeSharedOptions([], { zodSchemaInArguments: true }),
+        );
+
+        expect(implementation).toContain("responseType: 'auto'");
+        expect(implementation).toContain('execute<Pet>');
+        expect(implementation).not.toContain('PetOutput');
+        expect(imports).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ name: 'PetOutput' }),
+          ]),
+        );
+      },
+    );
+
+    it('emits no validation when the errors throw', () => {
+      const { imports, implementation } = generateSharedClient(
+        textWithJsonError(true),
+        makeSharedOptions([], { zodSchemaInArguments: true }),
+      );
+
+      expect(implementation).not.toContain('validateResponse');
+      expect(imports).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pet', values: true }),
+        ]),
+      );
+    });
+  });
+
+  it('declares the zod output type of a JSON success response with a text error response', () => {
+    const { implementation } = generateSharedClient(
+      verbOptions(
+        {
+          includeHttpResponseReturnType: false,
+          runtimeValidation: { enabled: true, strategy: 'throw' },
+        },
+        {
+          response: {
+            ...response,
+            contentTypes: ['application/json', 'text/plain'],
+            types: {
+              success: [successType({ key: '200', value: 'Pet', isRef: true })],
+              errors: [
+                successType({
+                  key: '500',
+                  value: 'string',
+                  contentType: 'text/plain',
+                }),
+              ],
+            },
+          },
+        },
+      ),
+      makeSharedOptions([], { zodSchemaInArguments: true }),
+    );
+
+    expect(implementation).toContain('execute<PetOutput>');
+    expect(implementation).toContain('validateResponse');
+  });
+
   it('validates through Standard Schema when standardSchema is set', () => {
     const { implementation } = generateSharedClient(
       verbOptions({

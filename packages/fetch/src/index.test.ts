@@ -793,6 +793,157 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
 
     expect(implementation).not.toContain('Pets.parse(');
   });
+
+  describe('with a response that is only text', () => {
+    const makeTextVerbOptions = () =>
+      makeZodValidationVerbOptions({
+        response: {
+          ...ZOD_RESPONSE,
+          types: {
+            success: [
+              successType({
+                key: '200',
+                value: 'Pets',
+                isRef: true,
+                contentType: 'text/plain',
+              }),
+            ],
+            errors: [],
+          },
+          contentTypes: ['text/plain'],
+        },
+      });
+
+    it('declares the schema (input) type of the raw text it returns', () => {
+      const implementation = generateRequestFunction(
+        makeTextVerbOptions(),
+        makeOptions(makeZodContext()),
+      );
+
+      expect(implementation).toContain('): Promise<Pets> =>');
+      expect(implementation).not.toContain('PetsOutput');
+      expect(implementation).not.toContain('Pets.parse(');
+    });
+
+    it('keeps the schema import type-only', () => {
+      expect(
+        getFetchResponseValidationImports(
+          makeTextVerbOptions(),
+          makeOptions(makeZodContext()),
+        ),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('with a text success response and a JSON error response', () => {
+    const makeTextWithJsonErrorVerbOptions = (forceSuccessResponse: boolean) =>
+      makeZodValidationVerbOptions({
+        override: {
+          fetch: {
+            includeHttpResponseReturnType: false,
+            forceSuccessResponse,
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+        response: {
+          ...ZOD_RESPONSE,
+          types: {
+            success: [
+              successType({
+                key: '200',
+                value: 'Pets',
+                isRef: true,
+                contentType: 'text/plain',
+              }),
+            ],
+            errors: [
+              successType({
+                key: '404',
+                value: 'Error',
+                isRef: true,
+                contentType: 'application/json',
+              }),
+            ],
+          },
+          contentTypes: ['text/plain', 'application/json'],
+        },
+      });
+
+    it.each([false, true])(
+      'declares the schema (input) type of the raw text it returns with forceSuccessResponse %s',
+      (forceSuccessResponse) => {
+        const implementation = generateRequestFunction(
+          makeTextWithJsonErrorVerbOptions(forceSuccessResponse),
+          makeOptions(makeZodContext()),
+        );
+
+        expect(implementation).toContain('): Promise<Pets> =>');
+        expect(implementation).not.toContain('PetsOutput');
+      },
+    );
+
+    it('keeps the parse of the JSON bodies when the errors share its block', () => {
+      const verbOptions = makeTextWithJsonErrorVerbOptions(false);
+      const options = makeOptions(makeZodContext());
+
+      expect(generateRequestFunction(verbOptions, options)).toContain(
+        'Pets.parse(parsedBody)',
+      );
+      const validation = getFetchResponseValidationImports(
+        verbOptions,
+        options,
+      );
+      expect(validation?.imports).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'Pets', values: true }),
+        ]),
+      );
+      expect(validation?.imports).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'PetsOutput' }),
+        ]),
+      );
+    });
+
+    it('emits no parse and keeps the imports type-only when the errors throw', () => {
+      const verbOptions = makeTextWithJsonErrorVerbOptions(true);
+      const options = makeOptions(makeZodContext());
+
+      expect(generateRequestFunction(verbOptions, options)).not.toContain(
+        'Pets.parse(',
+      );
+      expect(
+        getFetchResponseValidationImports(verbOptions, options),
+      ).toBeUndefined();
+    });
+  });
+
+  it('declares the output type of a JSON success response with a text error response', () => {
+    const verbOptions = makeZodValidationVerbOptions({
+      response: {
+        ...ZOD_RESPONSE,
+        types: {
+          success: ZOD_RESPONSE.types.success,
+          errors: [
+            successType({
+              key: '500',
+              value: 'string',
+              contentType: 'text/plain',
+            }),
+          ],
+        },
+        contentTypes: ['application/json', 'text/plain'],
+      },
+    });
+
+    const implementation = generateRequestFunction(
+      verbOptions,
+      makeOptions(makeZodContext()),
+    );
+
+    expect(implementation).toContain('): Promise<PetsOutput> =>');
+    expect(implementation).toContain('Pets.parse(parsedBody)');
+  });
 });
 
 describe('generateRequestFunction — inline array response validation (#4106)', () => {

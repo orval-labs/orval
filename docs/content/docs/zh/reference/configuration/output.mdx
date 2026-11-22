@@ -2817,7 +2817,7 @@ export default defineConfig({
 
 保留布尔写法是为了兼容旧用法：`true` ≡ `{ strategy: 'throw' }`。当使用 `{ strategy: 'both' }` 时，遇到无效响应会先通过 `console.error('[orval] <operation> response validation failed', error)` 输出原始 `ZodError`，然后再重新抛出（也就是 reject 返回的 Promise）。这样既能在生产环境里观察到契约漂移，也依然保持 fail-fast。
 
-校验后的响应类型会使用 schema 的 `zod.output` 别名（例如 `PetsOutput`），而不是输入型的 schema 名称，因为运行时 parse 返回的本来就是这个类型。当 schema 通过 `coerce`、`useDates`、默认值或 `.transform()` 对值做转换时，这一点尤其重要。使用 custom mutator 的 operation 会继续保留 schema（输入）类型，因为请求是由 mutator 自己发出的，生成的 parse 不会在那条路径上执行。
+校验后的响应类型会使用 schema 的 `zod.output` 别名（例如 `PetsOutput`），而不是输入型的 schema 名称，因为运行时 parse 返回的本来就是这个类型。当 schema 通过 `coerce`、`useDates`、默认值或 `.transform()` 对值做转换时，这一点尤其重要。使用 custom mutator 的 operation 会继续保留 schema（输入）类型，因为请求是由 mutator 自己发出的，生成的 parse 不会在那条路径上执行。仅声明了非 JSON content type 的成功响应会以原始文本返回，因此同样保留 schema（输入）类型，即使错误响应是 JSON。
 
 ### arrayFormat
 

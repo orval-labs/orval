@@ -24,6 +24,53 @@ export const isContentTypeNdJson = (contentType: string) => {
   );
 };
 
+export const isContentTypeJson = (contentType: string) =>
+  contentType.toLowerCase().includes('json');
+
+/**
+ * The content types the generated response parse has to handle. With
+ * `forceSuccessResponse` off the same parse block handles both 2xx and error
+ * status codes, so the error content types count too.
+ */
+export const getParseTimeContentTypes = ({
+  override,
+  response,
+}: Pick<GeneratorVerbOptions, 'override' | 'response'>): string[] => {
+  const successContentTypes = response.types.success
+    .map((t) => t.contentType)
+    .filter(Boolean);
+  const errorContentTypes = response.types.errors
+    .map((t) => t.contentType)
+    .filter(Boolean);
+  return override.fetch.forceSuccessResponse
+    ? successContentTypes
+    : [...successContentTypes, ...errorContentTypes];
+};
+
+/**
+ * Whether a response parse can read a JSON body, which is what response
+ * validation runs on. Declaring no content type falls back to JSON; a response
+ * declared only with other content types is returned as the raw text.
+ */
+export const parsesJsonBody = (contentTypes: string[]): boolean =>
+  contentTypes.length === 0 || contentTypes.some((ct) => isContentTypeJson(ct));
+
+/**
+ * Whether a success body is read as JSON and validated, so that its declared
+ * type is the schema's output. A success response declared only with other
+ * content types is returned as the raw text, whatever its error responses
+ * declare.
+ */
+export const validatesSuccessBody = (
+  verbOptions: Pick<GeneratorVerbOptions, 'override' | 'response'>,
+): boolean =>
+  parsesJsonBody(getParseTimeContentTypes(verbOptions)) &&
+  parsesJsonBody(
+    verbOptions.response.types.success
+      .map((t) => t.contentType)
+      .filter(Boolean),
+  );
+
 /** Resolves the flag, falling back to the legacy field for older overrides. */
 export const resolveIncludeSchemaInArguments = (
   override: ContextSpec['output']['override'],
