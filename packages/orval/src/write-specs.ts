@@ -1202,12 +1202,13 @@ async function writeSpecsInternal(
               precedingContent,
             )
         : valibotModule
-          ? (precedingContent) =>
+          ? (precedingContent, followingContent) =>
               valibotModule.generateValibotSchemasInline(
                 builder,
                 output,
                 includeValibotImport,
                 precedingContent,
+                followingContent,
               )
           : effectModule
             ? (precedingContent) =>

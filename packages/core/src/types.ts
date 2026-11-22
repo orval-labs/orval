@@ -202,6 +202,7 @@ export interface NormalizedOverrideOutput {
   useDates?: boolean;
   useDatesTransform?: boolean;
   formatType?: NormalizedFormatTypeMap;
+  modelTypeChecks?: NormalizedModelTypeChecksOptions;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -997,6 +998,16 @@ export interface OverrideOutput {
    */
   useDatesTransform?: boolean;
   formatType?: FormatTypeMap;
+  /**
+   * Also write a type-only block that fails `tsc` when the output type of a
+   * component schema and its model are not assignable both ways. Needs
+   * `client: 'valibot'` with `generateReusableSchemas`, and cannot be combined
+   * with `useBrandedTypes`, `useNullForOptional`, `enumGenerationType: 'enum'`
+   * or `namingConvention.properties`, which only the models follow, nor with
+   * `output.schemas`, which `generateReusableSchemas` rejects too. Off by
+   * default.
+   */
+  modelTypeChecks?: ModelTypeChecksOptions;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -1337,6 +1348,20 @@ export type OperationEffectOptions = Omit<
   'generateReusableSchemas'
 >;
 
+/**
+ * Type-only checks that the component schemas of a schema library output what
+ * the generated models declare.
+ */
+export interface ModelTypeChecksOptions {
+  /**
+   * The directory the models are written to, as `output.schemas` names it in
+   * the configuration that generates them. A relative path starts at the
+   * workspace of this output, which can differ from the workspace of the
+   * configuration that writes the models. An absolute path is used as it is.
+   */
+  models: string;
+}
+
 export interface ValibotOptions {
   strict?: ZodOptions['strict'];
   generate?: ZodOptions['generate'];
@@ -1631,6 +1656,11 @@ export type NormalizedOperationZodOptions = Pick<
   NormalizedZodOptions,
   OperationZodOverrideKey
 >;
+
+export interface NormalizedModelTypeChecksOptions {
+  /** The absolute path of the directory the models are written to. */
+  models: string;
+}
 
 export interface NormalizedValibotOptions {
   strict: NormalizedZodOptions['strict'];
@@ -3020,8 +3050,14 @@ export interface WriteModeProps {
   projectName?: string;
   header: string;
   needSchema: boolean;
-  /** `precedingContent` is the file content written before the schemas. */
-  generateSchemasInline?: (precedingContent?: string) => string;
+  /**
+   * `precedingContent` is the file content written before the schemas, and
+   * `followingContent` the operations written after them.
+   */
+  generateSchemasInline?: (
+    precedingContent?: string,
+    followingContent?: string,
+  ) => string;
   // Schema-to-tag map computed by `getApiBuilder` when `schemas.splitByTags` is
   // enabled. Mode writers forward it to `generateImportsForBuilder` so the
   // `indexFiles: false` branch can route each schema import into its tag

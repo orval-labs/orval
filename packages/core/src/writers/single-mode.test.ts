@@ -96,6 +96,38 @@ describe('writeSingleMode — separated mocks import inline schemas from the tar
     );
   });
 
+  it('gives the inline schemas the operations written after them', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const baseProps = createSplitModeProps(target);
+    const generateSchemasInline = vi.fn(
+      (_preceding?: string, _following?: string) => 'export const Pet = 1;\n',
+    );
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            implementation: 'export const listPets = () => 1;',
+          }),
+        },
+        imports: async () => "import * as v from 'valibot';\n",
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SINGLE,
+        schemas: undefined,
+      }),
+      generateSchemasInline,
+    };
+
+    await writeSingleMode({ ...props, needSchema: true });
+
+    const [preceding, following] = generateSchemasInline.mock.calls[0] ?? [];
+    expect(preceding).toContain("import * as v from 'valibot';");
+    expect(preceding).not.toContain('listPets');
+    expect(following).toContain('export const listPets = () => 1;');
+  });
+
   it('imports inline schemas from the target when mocks sit next to it', async () => {
     const target = path.join(tmpDir, 'petstore.ts');
     const importsMockCalls: Array<{ imports: readonly GeneratorDependency[] }> =
