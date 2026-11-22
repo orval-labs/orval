@@ -784,6 +784,15 @@ describe('generateRequestFunction — zod runtimeValidation response typing (#39
     expect(implementation).toContain('): Promise<Pets> =>');
     expect(implementation).not.toContain('PetsOutput');
   });
+
+  it('does not parse the response when the schemas are TypeScript types', () => {
+    const implementation = generateRequestFunction(
+      makeZodValidationVerbOptions(),
+      makeOptions(makeContext()),
+    );
+
+    expect(implementation).not.toContain('Pets.parse(');
+  });
 });
 
 describe('generateRequestFunction — inline array response validation (#4106)', () => {

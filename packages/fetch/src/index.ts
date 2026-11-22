@@ -530,18 +530,18 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     hasSchemaImport(response.imports, responseType) ||
     responseArraySchema !== undefined;
 
+  // TypeScript schemas are types, which have no `parse` to call.
   const isValidateResponse =
     override.fetch.runtimeValidation.enabled &&
+    getSchemaLibrary(context.output) !== undefined &&
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
-  const isZodSchemasOutput = getSchemaLibrary(context.output) !== undefined;
   // The generated parse returns the schema's zod output type, so the declared
   // response type must reference the `XOutput` alias. A custom mutator issues
   // the request itself — the generated parse never runs there — so its
   // declared types keep the schema (input) name.
-  const useValidatedOutputType =
-    isValidateResponse && isZodSchemasOutput && !mutator;
+  const useValidatedOutputType = isValidateResponse && !mutator;
   const validatesPrimitiveResponse = response.types.success.some(
     ({ value, schemas }) =>
       schemas.some(
