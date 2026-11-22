@@ -132,4 +132,18 @@ export default defineConfig({
       target: '../specifications/infinite-query-param-body.yaml',
     },
   },
+  typedHeaderParameters: {
+    output: {
+      target: '../generated/angular-query/typed-header-parameters/endpoints.ts',
+      schemas: '../generated/angular-query/typed-header-parameters/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      headers: true,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typed-header-parameters.yaml',
+    },
+  },
 });

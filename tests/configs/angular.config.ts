@@ -1055,4 +1055,18 @@ export default defineConfig({
       target: '../specifications/angular-http-resource-request-extension.yaml',
     },
   },
+  typedHeaderParameters: {
+    output: {
+      target: '../generated/angular/typed-header-parameters/endpoints.ts',
+      schemas: '../generated/angular/typed-header-parameters/model',
+      client: 'angular',
+      headers: true,
+      mock: false,
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/typed-header-parameters.yaml',
+    },
+  },
 });

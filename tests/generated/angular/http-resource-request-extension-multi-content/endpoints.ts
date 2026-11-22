@@ -134,7 +134,14 @@ export function getItemEventsResource(
   const buildRequest = (): HttpResourceRequest => {
     const request = {
       url: `/items/${itemId()}/events`,
-      headers: headers?.(),
+      headers: Object.fromEntries(
+        Object.entries(headers?.() ?? {})
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => [
+            key,
+            Array.isArray(value) ? value.map(String) : String(value),
+          ]),
+      ),
     };
     const normalizedRequest: HttpResourceRequest = request;
     const extendedRequest = applyOrvalRequestExtension(

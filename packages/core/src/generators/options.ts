@@ -23,6 +23,9 @@ import {
  */
 export type AngularObjectParamStrategy = 'flatten' | 'comma' | 'deepObject';
 
+export const getAngularHeadersExpression = (headersExpression: string) =>
+  `Object.fromEntries(Object.entries(${headersExpression}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, Array.isArray(value) ? value.map(String) : String(value)]))`;
+
 /**
  * Filters query params for Angular's HttpClient.
  *
@@ -741,7 +744,9 @@ export function generateAxiosOptions({
     }
 
     if (headers) {
-      value += '\n        headers,';
+      value += isAngular
+        ? `\n        headers: ${getAngularHeadersExpression('headers ?? {}')},`
+        : '\n        headers,';
     }
 
     if (hasSignal) {
@@ -804,7 +809,9 @@ export function generateAxiosOptions({
     }
 
     if (headers) {
-      value += '\n        headers: {...headers, ...options?.headers},';
+      value += isAngular
+        ? `\n        headers: {...${getAngularHeadersExpression('headers ?? {}')}, ...options?.headers},`
+        : '\n        headers: {...headers, ...options?.headers},';
     }
   }
 

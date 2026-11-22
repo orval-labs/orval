@@ -1356,6 +1356,23 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
     );
     expect(implementation).toContain('params: filterParams(encodedParams');
   });
+
+  it('stringifies typed header parameters for HttpHeaders', () => {
+    const implementation = generateAngularHttpRequestFunction(
+      makeVerbOptions({
+        headers: {
+          schema: { name: 'ListPetsHeaders', model: '', imports: [] },
+          deps: [],
+          isOptional: false,
+        },
+      }),
+      makeAngularOptions(),
+    );
+
+    expect(implementation).toContain(
+      'headers: new HttpHeaders(Object.fromEntries(Object.entries(headers ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, Array.isArray(value) ? value.map(String) : String(value)])))',
+    );
+  });
 });
 
 describe('getQueryErrorType with response envelopes', () => {
