@@ -1,5 +1,5 @@
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
-import { isObject, isString, isStringLikeSchema } from '../utils/assertion';
+import type { ContextSpec } from '../types';
+import { isObject, isString } from '../utils/assertion';
 import { isOctetStreamContentType } from '../utils/content-type';
 import {
   CIRCULAR_REF_WARNING,
@@ -290,12 +290,17 @@ const holdsEnumMember = (
 const holdsReadOnlyArrayItem = ({ items }: Record<string, unknown>): boolean =>
   isObject(items) && items.readOnly === true && isArraySchema(items);
 
-// A string the generated schema validates as a file, with the same test the
-// generator applies (`isBinaryScalarSchema`). Only a schema that reaches the
-// string branch counts: `{ type: 'integer', format: 'binary' }` is a number
-// in both.
+// Whether the generators reach their string branch for the schema, alone or
+// for one member of a type list such as `[string, number]`.
+const reachesString = ({ type }: Record<string, unknown>): boolean =>
+  type === 'string' || (Array.isArray(type) && type.includes('string'));
+
+// A string the generated schema validates as a file. Only a schema that
+// reaches the string branch counts: `{ type: 'integer', format: 'binary' }`
+// is a number in both, while the string member of `[string, number]` is a
+// file in the schema and a Blob in the model.
 const isBinaryString = (schema: Record<string, unknown>): boolean =>
-  isStringLikeSchema(schema as OpenApiSchemaObject) &&
+  reachesString(schema) &&
   (schema.format === 'binary' ||
     (isOctetStreamContentType(
       isString(schema.contentMediaType) ? schema.contentMediaType : undefined,

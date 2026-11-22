@@ -103,6 +103,15 @@ describe('getModelTypeCheckSkips', () => {
       // A number never reaches the string branch, so it stays a number.
       Numeric: { type: 'integer', format: 'binary' },
       NullableFile: { type: ['string', 'null'], format: 'binary' },
+      // Each member of a type list is generated, so the string one is a file.
+      FileOrNumber: { type: ['string', 'number'], format: 'binary' },
+      // Without a string member, or with an encoding, nothing is a file.
+      NumberOrNull: { type: ['number', 'null'], format: 'binary' },
+      EncodedOrNumber: {
+        type: ['string', 'number'],
+        contentMediaType: 'application/octet-stream',
+        contentEncoding: 'base64',
+      },
     } satisfies Record<string, OpenApiSchemaObject>;
 
     it('is skipped for Valibot', () => {
@@ -114,6 +123,8 @@ describe('getModelTypeCheckSkips', () => {
         Unencoded:
           'a binary string is validated as File, which the model types as Blob',
         NullableFile:
+          'a binary string is validated as File, which the model types as Blob',
+        FileOrNumber:
           'a binary string is validated as File, which the model types as Blob',
       });
     });
