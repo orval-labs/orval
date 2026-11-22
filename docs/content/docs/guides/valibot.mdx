@@ -3,7 +3,21 @@ title: Valibot
 description: Generate Valibot schemas from OpenAPI
 ---
 
-Generate [Valibot](https://valibot.dev/) schemas from your OpenAPI specification for runtime validation.
+Generate [Valibot](https://valibot.dev/) schemas from your OpenAPI specification for runtime validation. The generated code needs `valibot` 1.0 or newer:
+
+```sh
+npm install valibot
+```
+
+## Choosing a Mode
+
+|            | [`client: 'valibot'`](#configuration) | [`schemas: { type: 'valibot' }`](#validating-http-client-responses) |
+| ---------- | ------------------------------------- | ----------------------------------------------------------------- |
+| Use it to  | Parse and validate data yourself | Make a generated HTTP client validate its responses |
+| Generates  | A schema for the params, query, headers, body and response of each operation | A schema for each model, and for each operation's query params and headers, plus its request body and responses when they are not a `$ref` |
+| Type names | None, except on recursive schemas with `generateReusableSchemas`: `Pet` is the output, `PetInput` the input | Every schema: `Pet` is the input, `PetOutput` the output |
+
+To use both, generate them in separate outputs. See [Combining with HTTP Clients](#combining-with-http-clients).
 
 ## Configuration
 
@@ -233,7 +247,7 @@ if (result.success) {
 
 - `oneOf` and `anyOf` become `v.union`, or `v.variant` when a `discriminator` is set. `allOf` becomes `v.intersect`.
 - Objects strip unknown keys. The `strict` option emits `v.strictObject`, and `additionalProperties` emits `v.looseObject` or `v.record`.
-- `date` and `date-time` strings are validated as ISO dates. With `override.useDates` they are converted to `Date`.
+- `date` and `date-time` strings are validated as ISO dates, and a `date-time` needs an offset such as `Z`. With `override.useDates` they are converted to `Date`.
 - Binary fields (`format: binary`) become `v.file()`, including file parts in `multipart/form-data` bodies.
 - `readOnly` properties are left out of request bodies, and `writeOnly` properties out of responses. A `readOnly` array with `items` gets `v.readonly()`, so its output is a readonly array, as in the model. `suppressReadonlyModifier` turns this off for both.
 - A `default` that does not fit its schema is left out, with a warning.
@@ -245,6 +259,7 @@ if (result.success) {
 - When an item of a `readOnly` array fails a check, valibot skips the array's own checks, such as `maxItems`. A `v.union` around the array, or around an object that contains it, then reports one generic issue instead of the item's issue. A date conversion or `formatType` decoder has the same effect on a string that fails a check.
 - Every `$ref` is inlined unless [`generateReusableSchemas`](#reusable-schemas) is set, so shared schemas can make the output large. Inlining one schema stops with an error past 250,000 schema nodes.
 - `oneOf` does not check that exactly one alternative matches.
+- Query and path params are not coerced: a number read from a URL string fails `v.number()`. Header keys keep the casing of the spec.
 - Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected. An open member (`additionalProperties: true`) next to an object member is left out, so extra keys are stripped too.
 
 ## Validating HTTP Client Responses
@@ -267,30 +282,24 @@ export default defineConfig({
 });
 ```
 
-Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.path` itself when it names a file. Each schema also exports the types `X` (`v.InferInput`) and `XOutput` (`v.InferOutput`). A schema on a cycle declares both types in full instead, because they cannot be inferred, so its recursive fields keep their types.
+Every schema goes to one module, `<schemas.path>/index.valibot.ts`, or `schemas.path` itself when it names a file. There is no `index.ts` barrel, so here you import from `./src/api/model/index.valibot`. Each schema also exports the types `X` (`v.InferInput`) and `XOutput` (`v.InferOutput`). A schema on a cycle declares both types in full instead, because they cannot be inferred, so its recursive fields keep their types.
 
 - Validation runs through the `runtimeValidation` option of `override.fetch` for `fetch` and for `react-query`, `vue-query`, `svelte-query`, `solid-query`, `swr`, `pinia-colada` with `httpClient: 'fetch'`, `override.angular` for `angular`, and `override.query` for `angular-query`. It is off by default.
-- [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on, because Valibot schemas have no `parse` method. Validation errors are therefore `StandardSchemaError`, not `ValiError`, and async schemas are not supported.
+- [`standardSchema`](/docs/reference/configuration/output#standardschema) is always on, because Valibot schemas have no `parse` method. Validation errors are therefore `StandardSchemaError`, not `ValiError`, so `v.isValiError()` is false for them. Read `error.issues`. Async schemas are not supported.
 - Axios clients do not validate.
 - Generated validation is skipped for custom mutators. With [`includeSchemaInArguments`](/docs/reference/configuration/output#includeschemainarguments), the custom mutator of `fetch` or a fetch-backed client receives the schema as `schema` and validates the response itself through `schema['~standard'].validate()`. Angular clients do not pass the schema to a mutator.
 - `useDates` makes the schemas turn date strings into `Date`, so `XOutput` has `Date` where `X` has `string`. `useDatesTransform` turns on `useDates` and nothing more: the client adds no date deserializer.
 
-The following fail with a configuration error: `schemas.mode: 'split'`, `schemas.routes`, `schemas.splitByTags`, mock generators, `operationSchemas`, `factoryMethods`, `splitByContentType`, `standardSchema: false`, `override.formatType`, `override.useBigInt`, `override.namingConvention.properties`, Angular `runtimeValidation.requestBodies` with `useDates`, and the clients `zod`, `effect`, `valibot`, `hono` and `mcp`.
+The following fail with a configuration error: `schemas.mode: 'split'`, `schemas.routes`, `schemas.splitByTags`, mock generators (for MSW, add a second output with TypeScript models), `operationSchemas`, `factoryMethods`, `splitByContentType`, `standardSchema: false`, `override.formatType`, `override.useBigInt`, `override.namingConvention.properties`, Angular `runtimeValidation.requestBodies` with `useDates`, and the clients `zod`, `effect`, `valibot`, `hono` and `mcp`.
 
 Known limits:
 
-- Requests and responses share a component schema, so a required `writeOnly` property is optional in it.
+- A JSON error response is validated against the success schema, so a `404` with an error body throws a `StandardSchemaError`. Zod does the same.
+- Requests and responses share a component schema, so a required `writeOnly` property is optional in it, and a required `readOnly` property is still required in request body types.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 
 ## Combining with HTTP Clients
 
-The `valibot` client generates schemas only. To use it with another client, generate that client in a separate output and parse responses yourself:
+The `valibot` client generates schemas only. To have an HTTP client validate its responses, use [`schemas.type`](#validating-http-client-responses) instead.
 
-```ts
-import * as v from 'valibot';
-import { showPetById } from './src/api/endpoints';
-import { ShowPetByIdResponse } from './src/api/schemas';
-
-const response = await showPetById('1');
-const pet = v.parse(ShowPetByIdResponse, response.data);
-```
+To use the `valibot` client next to an HTTP client, for example to check a request body before sending it, generate each in its own output. Give each output its own `target`, or the Valibot output overwrites the client files. In `split`, `tags` and `tags-split` mode they can share a `target` if the Valibot output sets `fileExtension: '.valibot.ts'`.
