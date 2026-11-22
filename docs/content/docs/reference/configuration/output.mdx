@@ -1569,6 +1569,30 @@ export default defineConfig({
 });
 ```
 
+### modelTypeChecks
+
+**Type:** `{ models: string }`
+
+**Default:** unset
+
+Write a type-only block next to the reusable schemas that fails `tsc` when the output type of a component schema and its model are not assignable both ways. Nothing changes at runtime. Requires `client: 'valibot'` and [`override.valibot.generateReusableSchemas`](#generatereusableschemas-2), and cannot be combined with [`schemas`](#schemas), `useBrandedTypes`, `useNullForOptional`, `enumGenerationType: 'enum'` or `namingConvention.properties`. The configuration that writes the models must keep [`indexFiles`](#indexfiles) on, which is the default.
+
+`models` is the directory the models are written to, like [`schemas`](#schemas) in the configuration that generates them. A relative path starts at the workspace of this output, which can differ from the workspace of the configuration that writes the models, and an absolute path is used as it is. The schemas file imports it, so both configurations must use the same naming options. With `exactOptionalPropertyTypes` in your `tsconfig`, also set `override.valibot.exactOptional: true`. Output-wide, so it cannot be set per operation or tag. A component that Orval types more loosely than its model on purpose is skipped, with a comment saying why. See [Checking Against the Models](/docs/guides/valibot#checking-against-the-models).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      override: {
+        valibot: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+  },
+});
+```
+
 ---
 
 ## override.query

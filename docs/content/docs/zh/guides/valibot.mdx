@@ -99,6 +99,98 @@ export const ListPetsResponse = v.array(Pet);
 - 带 `discriminator` 的 `oneOf` 或 `anyOf`，当选项是引用时生成 `v.union`。
 - 名为 `Date` 或 `RegExp` 的组件会加上 `Schema` 后缀。两个同名组件会让生成报错并停止。
 
+### 与 Model 对照检查
+
+Model 和 schema 由不同的生成器生成，两者可能在无人察觉时产生偏差。如果项目在另一个配置中生成 TypeScript model，[`override.modelTypeChecks`](/zh/docs/reference/configuration/output#modeltypechecks) 会让 schema 文件断言每个组件 schema 的输出类型与其 model 一致：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+    },
+    input: { target: './petstore.yaml' },
+  },
+  validation: {
+    output: {
+      client: 'valibot',
+      target: './src/validation/schemas.ts',
+      override: {
+        valibot: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+`models` 是另一个配置写入 model 的目录，与它的 `output.schemas` 相同。相对路径从当前配置的 workspace 开始，它可能与另一个配置的 workspace 不同；绝对路径按原样使用。schema 文件会导入该目录，并多出一个仅用于类型的代码块，运行时不受影响：
+
+```ts
+import type * as Models from '../api/model';
+
+type Assert<T extends true> = T;
+type Extends<A, B> = [A] extends [B] ? true : false;
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<v.InferOutput<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, v.InferOutput<typeof Pet>>>,
+  ];
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+该类型不会导出，因此重新导出多个此类文件的 barrel 不会因它而冲突。环境声明 `declare const` 会读取该类型，因此 `noUnusedLocals` 不会报错，且不产生任何代码。
+
+当 schema 与其 model 无法双向赋值时，你自己的 `tsc` 会在该组件的断言处报错：`Type 'false' does not satisfy the constraint 'true'`。
+
+- 两个配置必须使用相同的命名选项，例如 `override.components.schemas`，这样 model 才与 schema 同名。
+- 双向可赋值无法发现只在一侧声明的可选属性，也无法发现任一侧为 `any` 的类型。必填属性、可空性、`readonly` 数组、枚举、联合类型以及嵌套或递归类型都能被检出。
+- 检查会导入 models 的 `index.ts`，并要求它按名称导出每个组件。请在生成 model 的配置中保持 `indexFiles` 开启（默认即开启）。
+- 在 schema 中映射类型的选项，例如 `formatType` 或 `useDates`，在 model 中也必须做同样的映射。请在两个配置中都设置 `useBigInt` 和 `useReadonlyArrays`，这样检查会跳过它们所改变的组件。
+- 如果 `tsconfig` 中启用了 `exactOptionalPropertyTypes`，model 会把可选属性写为 `a?: T`，因此请在 `override.valibot` 中设置 `exactOptional: true`，否则每个可选属性都会检查失败。当 Orval 读取的 `tsconfig` 启用了该选项而 `exactOptional` 未开启时，生成时会给出警告。
+- `modelTypeChecks` 会拒绝 `useBrandedTypes`、`useNullForOptional`、`enumGenerationType: 'enum'` 和 `namingConvention.properties` 并报错，因为它们会让 model 出现 schema 输出无法匹配的形态。schema 输出的字符串字面量不能赋值给 TypeScript `enum`，因此生成 model 的配置中也请使用 `'const'` 或 `'union'`。
+
+#### 被跳过的组件
+
+Orval 有意让某些 schema 的类型比 model 更宽松，因此在这些地方没有任何 schema 能与 model 一致。包含这类写法的组件不会生成断言，代码块中会有一条注释说明原因，文件仍可正常编译：
+
+```ts
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<v.InferOutput<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, v.InferOutput<typeof Pet>>>,
+  ];
+  // Point: skipped, prefixItems is validated as an array of unknown
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+引用了被跳过组件的组件也会被跳过，因为它的输出类型包含对方的类型。这些写法包括：
+
+- `prefixItems`（元组）按 `unknown` 数组校验。
+- 无法保留的循环引用按 `unknown` 校验。
+- 二进制字符串（例如 `format: binary`）按 `File` 校验，而 model 将其类型写为 `Blob`。
+- 可选属性上的 `default` 只让输出中的键变为必填。对 Valibot 而言，引用了带 `default` 的 schema 的属性也属于这种情况。
+- `properties` 旁边的 `additionalProperties` 在 model 中是 `unknown` 类型，而 schema 会校验它。
+- 与同一 schema 的 `properties` 并列的 `enum` `allOf` 成员，在 model 中是备选项，而在 schema 中是交叉。
+- 没有类型的 schema，例如 `{}` 或只有 `description` 的 schema，按 `unknown` 校验，而 model 将其类型写为 `{}`。
+- 没有类型、只描述对象的 schema，即只带 `additionalProperties`、`patternProperties` 或空 `properties` 的 schema，在任意层级（包括属性和 `allOf` 成员）都按 `unknown` 校验，而 model 将其类型写为对象。
+- 值为对象或数组的 `const` 不会被校验，带有对象或数组成员的 `enum` 按 `unknown` 校验。
+- 没有任何属性声明的必填键，例如只有 `required: [id]` 而没有 `properties`，按 `unknown` 校验，而 model 会省略该键。
+- `oneOf` 或 `anyOf` 的 schema 要求某个键，而只有其分支声明了它，例如 `required: [id]` 旁有一个分支把 `id` 写为可选，该键会在每个声明它的分支中变为必填，而 model 保持各分支的原有声明。
+- 与对象的属性并列、只要求若干键的 `oneOf` 或 `anyOf` 分支，例如 `{ required: [id] }`，会按带有这些键的对象校验，而 model 将其类型写为 `unknown`。
+- 启用 `useBigInt` 时，64 位整数（`format: int64` 或 `uint64`）在 model 中是 `bigint`，在 schema 中是 `number`。
+- 启用 `useReadonlyArrays` 时，数组在 model 中是 `readonly`，而 schema 的输出不是。
+- 引用数组的 `$ref` 旁边的 `readOnly` 会让输出变为 `readonly`，而 model 不会。
+- 数组 `items` 中的 `readOnly` 数组在 schema 中是 `readonly`，而 model 把 `readonly` 写在外层数组上。
+- 类型中含 `null` 的 `const`，model 会去掉 `null`。
+- 所有属性都是 `const` 的组件，model 会写成常量对象，因此每个键都是必填。带有可选 `const` 属性的组件与 schema 不一致。
+- 在同一 schema 的 `properties` 或 `allOf` 旁边，`oneOf` 或 `anyOf` 含有 `null`、可空或 `enum` 的备选项：model 会合并备选项并丢弃枚举旁的自有属性，而 schema 做交叉。
+
 ## 用法
 
 ### 解析数据

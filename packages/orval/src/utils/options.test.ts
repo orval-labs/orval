@@ -3897,6 +3897,228 @@ describe('normalizeOptions', () => {
     });
   });
 
+  describe('modelTypeChecks', () => {
+    const normalizeChecks = async (
+      override: Record<string, unknown>,
+      output: Record<string, unknown> = {},
+    ) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const normalized = await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              client: 'valibot',
+              target: './generated.ts',
+              override,
+              ...output,
+            },
+          },
+          workspace,
+        );
+        return { normalized, workspace };
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    const reusable = { valibot: { generateReusableSchemas: true } };
+
+    it('is off by default', async () => {
+      const { normalized } = await normalizeChecks(reusable);
+      expect(normalized.output.override.modelTypeChecks).toBeUndefined();
+    });
+
+    it('resolves the models directory against the workspace', async () => {
+      const { normalized, workspace } = await normalizeChecks({
+        ...reusable,
+        modelTypeChecks: { models: './models' },
+      });
+      expect(normalized.output.override.modelTypeChecks).toEqual({
+        models: path.join(workspace, 'models'),
+      });
+    });
+
+    it('resolves the models directory against the workspace of the output', async () => {
+      const { normalized, workspace } = await normalizeChecks(
+        { ...reusable, modelTypeChecks: { models: './models' } },
+        { workspace: './app' },
+      );
+      expect(normalized.output.override.modelTypeChecks).toEqual({
+        models: path.join(workspace, 'app', 'models'),
+      });
+    });
+
+    it('keeps an absolute models directory', async () => {
+      const models = path.resolve(path.sep, 'shared', 'models');
+      const { normalized } = await normalizeChecks({
+        ...reusable,
+        modelTypeChecks: { models },
+      });
+      expect(normalized.output.override.modelTypeChecks).toEqual({ models });
+    });
+
+    it('is rejected without generateReusableSchemas', async () => {
+      await expect(
+        normalizeChecks({ modelTypeChecks: { models: './models' } }),
+      ).rejects.toThrow(/requires `override.valibot.generateReusableSchemas`/);
+    });
+
+    it.each([
+      [
+        { useBrandedTypes: true },
+        'cannot be combined with `override.useBrandedTypes: true` (the models brand primitive component schemas): the schemas cannot match such models.',
+      ],
+      [
+        { useNullForOptional: true },
+        'cannot be combined with `override.useNullForOptional: true` (the models type an optional property as `T | null`)',
+      ],
+      [
+        { enumGenerationType: 'enum' },
+        "cannot be combined with `override.enumGenerationType: 'enum'` (the models declare an enum as a TypeScript `enum`",
+      ],
+      [
+        { namingConvention: { properties: 'snake_case' } },
+        'cannot be combined with `override.namingConvention.properties` (the models rename the properties)',
+      ],
+    ])(
+      'is rejected with %j, which only the models follow',
+      async (override, message) => {
+        await expect(
+          normalizeChecks({
+            ...reusable,
+            ...override,
+            modelTypeChecks: { models: './models' },
+          }),
+        ).rejects.toThrow(message);
+      },
+    );
+
+    it('names every option that only the models follow', async () => {
+      await expect(
+        normalizeChecks({
+          ...reusable,
+          useBrandedTypes: true,
+          enumGenerationType: 'enum',
+          modelTypeChecks: { models: './models' },
+        }),
+      ).rejects.toThrow(
+        "combined with `override.useBrandedTypes: true` (the models brand primitive component schemas); `override.enumGenerationType: 'enum'` (the models declare an enum as a TypeScript `enum`, which a string literal is not assignable to): the schemas cannot match such models.",
+      );
+    });
+
+    it.each(['operations', 'tags'] as const)(
+      'warns and drops it on an entry of override.%s',
+      async (source) => {
+        logWarningSpy.mockClear();
+        const { normalized } = await normalizeChecks({
+          ...reusable,
+          [source]: { entry: { modelTypeChecks: { models: './models' } } },
+        });
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `override.${source}.entry.modelTypeChecks is not supported`,
+          ),
+        );
+        expect(normalized.output.override.modelTypeChecks).toBeUndefined();
+        expect(
+          normalized.output.override[source]['entry'] as unknown as Record<
+            string,
+            unknown
+          >,
+        ).not.toHaveProperty('modelTypeChecks');
+      },
+    );
+
+    it('is accepted with the options that leave the models alone', async () => {
+      const { normalized } = await normalizeChecks({
+        ...reusable,
+        useBrandedTypes: false,
+        useNullForOptional: false,
+        enumGenerationType: 'union',
+        namingConvention: { enum: 'PascalCase' },
+        modelTypeChecks: { models: './models' },
+      });
+      expect(normalized.output.override.modelTypeChecks).toBeDefined();
+    });
+
+    it('is rejected for a client without reusable schemas to check', async () => {
+      await expect(
+        normalizeChecks(
+          { ...reusable, modelTypeChecks: { models: './models' } },
+          { client: 'fetch' },
+        ),
+      ).rejects.toThrow(/requires `client: 'valibot'`/);
+    });
+
+    it.each([{ models: '' }, { models: '  ' }, {}, true])(
+      'is rejected without a models directory (%j)',
+      async (modelTypeChecks) => {
+        await expect(
+          normalizeChecks({ ...reusable, modelTypeChecks }),
+        ).rejects.toThrow(/must name the directory/);
+      },
+    );
+
+    it('is rejected with output.schemas, as is generateReusableSchemas', async () => {
+      await expect(
+        normalizeChecks(
+          { ...reusable, modelTypeChecks: { models: './models' } },
+          { schemas: './models' },
+        ),
+      ).rejects.toThrow(
+        /generateReusableSchemas` cannot be combined with `output.schemas`/,
+      );
+    });
+
+    describe('with exactOptionalPropertyTypes in the tsconfig', () => {
+      const tsconfig = (exactOptionalPropertyTypes: boolean) => ({
+        tsconfig: { compilerOptions: { exactOptionalPropertyTypes } },
+      });
+      const warned = () =>
+        logWarningSpy.mock.calls.some(([message]) =>
+          String(message).includes('exactOptionalPropertyTypes'),
+        );
+
+      beforeEach(() => {
+        logWarningSpy.mockClear();
+      });
+
+      it('warns when the schemas are not exactOptional', async () => {
+        await normalizeChecks(
+          { ...reusable, modelTypeChecks: { models: './models' } },
+          tsconfig(true),
+        );
+        expect(warned()).toBe(true);
+      });
+
+      it('is quiet when the schemas are exactOptional', async () => {
+        await normalizeChecks(
+          {
+            valibot: { generateReusableSchemas: true, exactOptional: true },
+            modelTypeChecks: { models: './models' },
+          },
+          tsconfig(true),
+        );
+        expect(warned()).toBe(false);
+      });
+
+      it('is quiet when the flag is off', async () => {
+        await normalizeChecks(
+          { ...reusable, modelTypeChecks: { models: './models' } },
+          tsconfig(false),
+        );
+        expect(warned()).toBe(false);
+      });
+    });
+  });
+
   describe('effect generateReusableSchemas', () => {
     const normalizeEffect = async (
       output: Record<string, unknown>,

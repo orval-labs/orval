@@ -99,6 +99,98 @@ Each constant on a cycle also gets two exported types: `Pet` for its output and 
 - A `oneOf` or `anyOf` with a `discriminator` becomes `v.union` when an option is a reference.
 - A component named `Date` or `RegExp` gets a `Schema` suffix. Two components with the same name stop generation with an error.
 
+### Checking Against the Models
+
+Models and schemas come from separate generators, so they can drift apart without anyone noticing. When a project generates TypeScript models in another configuration, [`override.modelTypeChecks`](/docs/reference/configuration/output#modeltypechecks) makes the schemas file assert that each component schema outputs what its model declares:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+    },
+    input: { target: './petstore.yaml' },
+  },
+  validation: {
+    output: {
+      client: 'valibot',
+      target: './src/validation/schemas.ts',
+      override: {
+        valibot: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+`models` is the directory the other configuration writes its models to, like its `output.schemas`. A relative path starts at the workspace of this configuration, which can differ from that of the other one, and an absolute path is used as it is. The schemas file imports it and gets a type-only block. Nothing changes at runtime:
+
+```ts
+import type * as Models from '../api/model';
+
+type Assert<T extends true> = T;
+type Extends<A, B> = [A] extends [B] ? true : false;
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<v.InferOutput<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, v.InferOutput<typeof Pet>>>,
+  ];
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+The type is not exported, so a barrel that re-exports several of these files does not clash on it. The ambient `declare const` reads it, so `noUnusedLocals` stays quiet, and it emits no code.
+
+When a schema and its model are not assignable both ways, your own `tsc` run fails on the assertion of that component, with `Type 'false' does not satisfy the constraint 'true'`.
+
+- Both configurations must use the same naming options, such as `override.components.schemas`, so a model has the name of its schema.
+- Assignability in both directions does not catch an optional property that only one side declares, nor a type that is `any` on either side. Required properties, nullability, `readonly` arrays, enums, unions and nested or recursive types are caught.
+- The check imports the `index.ts` of the models and needs it to export every component by name. Keep `indexFiles` on, which is the default, in the configuration that writes the models.
+- An option such as `formatType` or `useDates` that maps a type in the schemas must map it in the models too. Set `useBigInt` and `useReadonlyArrays` in both configurations, so the checks skip the components they change.
+- With `exactOptionalPropertyTypes` in your `tsconfig`, the models type an optional property as `a?: T`, so set `exactOptional: true` in `override.valibot`, or every optional property fails the check. Orval warns at generation when the `tsconfig` it reads sets the flag and `exactOptional` is off.
+- `modelTypeChecks` rejects `useBrandedTypes`, `useNullForOptional`, `enumGenerationType: 'enum'` and `namingConvention.properties` with an error, because they shape the models in ways a schema output cannot match. A TypeScript `enum` is not assignable from the string literals a schema outputs, so use `'const'` or `'union'` in the configuration that writes the models too.
+
+#### Skipped components
+
+Orval types some schemas more loosely than their models on purpose, so no schema could match the model there. A component that holds one has no assertion. A comment in the block says why, so the file still compiles:
+
+```ts
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<v.InferOutput<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, v.InferOutput<typeof Pet>>>,
+  ];
+  // Point: skipped, prefixItems is validated as an array of unknown
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+A component that references a skipped one is skipped too, because its output type holds the other's. The constructs are:
+
+- `prefixItems` (a tuple) is validated as an array of `unknown`.
+- A circular reference that cannot be kept is validated as `unknown`.
+- A binary string, such as `format: binary`, is validated as `File`, and the model types it as `Blob`.
+- A `default` on an optional property makes the key required in the output only. For Valibot, this includes a property that references a schema with a `default`.
+- `additionalProperties` next to `properties` is typed as `unknown` by the model, and the schema checks it.
+- An `enum` `allOf` member next to the `properties` of the same schema is an alternative in the model and is intersected in the schema.
+- A schema without a type, such as `{}` or one with only a `description`, is validated as `unknown`, and the model types it as `{}`.
+- A schema without a type that only describes an object, with `additionalProperties`, `patternProperties` or an empty `properties`, is validated as `unknown` at any depth, in a property or an `allOf` member too, and the model types it as an object.
+- A `const` that is an object or an array is not validated, and an `enum` with such a member is validated as `unknown`.
+- A required key that no property declares, such as `required: [id]` without `properties`, is validated as `unknown`, and the model leaves it out.
+- A key that a `oneOf` or `anyOf` schema requires while only its alternatives declare it, such as `required: [id]` next to an alternative that lists `id` as optional, is required in each alternative that declares it, and the model leaves each one as it declares it.
+- A `oneOf` or `anyOf` alternative that only requires keys, such as `{ required: [id] }`, next to the properties of an object, is validated as an object with those keys, and the model types it as `unknown`.
+- With `useBigInt`, a 64-bit integer (`format: int64` or `uint64`) is a `bigint` in the model and a `number` in the schema.
+- With `useReadonlyArrays`, an array is `readonly` in the model, and the schema output is not.
+- A `readOnly` beside a reference to an array makes the output `readonly`, which the model does not.
+- A `readOnly` array in the `items` of an array is `readonly` in the schema, and the model puts `readonly` on the outer array.
+- A `const` with `null` in its `type` is typed without `null` by the model.
+- A component whose properties are all a `const` is written as a constant object by the model, so every key is required. A component with an optional one differs from the schema.
+- A `oneOf` or `anyOf` with a `null`, nullable or `enum` alternative, next to the `properties` or `allOf` of the same schema: the model merges the alternatives and drops the own properties of an enum, and the schema intersects them.
+
 ## Usage
 
 ### Parsing Data

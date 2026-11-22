@@ -30,6 +30,7 @@ export default defineConfig({
             'effect-schemas-runtime.spec.ts',
             'valibot-reusable-runtime.spec.ts',
             'valibot-schemas-runtime.spec.ts',
+            'valibot-model-type-checks.spec.ts',
           ],
         },
       },

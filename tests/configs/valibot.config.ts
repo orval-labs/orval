@@ -43,6 +43,61 @@ const formatTypeProject = (
   };
 };
 
+const MODELS = '../generated/valibot/model-type-checks-models/model';
+// A dot in the name of the models directory is not an extension.
+const DOTTED_MODELS =
+  '../generated/valibot/model-type-checks-options-models/model.gen';
+
+interface ModelTypeChecksProjectOptions {
+  mode?: OutputMode;
+  valibot?: ValibotOptions;
+  input?: string;
+  models?: string;
+  useBigInt?: boolean;
+  useReadonlyArrays?: boolean;
+  fileExtension?: string;
+}
+
+// The checks the option writes compile against the models of
+// `model-type-checks-models`.
+const modelTypeChecksProject = (
+  name: string,
+  {
+    mode,
+    valibot,
+    input = 'valibot-model-type-checks',
+    models = MODELS,
+    useBigInt,
+    useReadonlyArrays,
+    fileExtension,
+  }: ModelTypeChecksProjectOptions = {},
+) => {
+  const project = valibotProject(
+    name,
+    input,
+    { generateReusableSchemas: true, ...valibot },
+    mode,
+  );
+  return {
+    ...project,
+    output: {
+      ...project.output,
+      ...(fileExtension
+        ? {
+            fileExtension,
+            target: `../generated/valibot/${name}/${name}${fileExtension}`,
+          }
+        : {}),
+      override: {
+        ...project.output.override,
+        ...(useBigInt ? { useBigInt } : {}),
+        ...(useReadonlyArrays ? { useReadonlyArrays } : {}),
+        modelTypeChecks: { models },
+      },
+    },
+  };
+};
+
 export default defineConfig({
   logLevel: 'error',
   petstore: valibotProject('petstore', 'petstore'),
@@ -148,6 +203,70 @@ export default defineConfig({
       },
     };
   })(),
+  'model-type-checks': modelTypeChecksProject('model-type-checks'),
+  'model-type-checks-models': {
+    output: {
+      target: '../generated/valibot/model-type-checks-models/endpoints.ts',
+      schemas: MODELS,
+      client: 'fetch' as const,
+      clean: true,
+      formatter: 'prettier' as const,
+    },
+    input: { target: '../specifications/valibot-model-type-checks.yaml' },
+  },
+  'model-type-checks-tags-split': modelTypeChecksProject(
+    'model-type-checks-tags-split',
+    { mode: 'tags-split' },
+  ),
+  // For a project with `exactOptionalPropertyTypes`.
+  'model-type-checks-exact-optional': modelTypeChecksProject(
+    'model-type-checks-exact-optional',
+    { valibot: { exactOptional: true } },
+  ),
+  'model-type-checks-options': modelTypeChecksProject(
+    'model-type-checks-options',
+    {
+      input: 'valibot-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+    },
+  ),
+  // A file extension of several parts is not the extension of the models.
+  'model-type-checks-gen-extension': modelTypeChecksProject(
+    'model-type-checks-gen-extension',
+    {
+      input: 'valibot-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+      fileExtension: '.gen.ts',
+    },
+  ),
+  'model-type-checks-types-extension': modelTypeChecksProject(
+    'model-type-checks-types-extension',
+    {
+      input: 'valibot-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+      fileExtension: '.types.ts',
+    },
+  ),
+  'model-type-checks-options-models': {
+    output: {
+      target:
+        '../generated/valibot/model-type-checks-options-models/endpoints.ts',
+      schemas: DOTTED_MODELS,
+      client: 'fetch' as const,
+      clean: true,
+      formatter: 'prettier' as const,
+      override: { useBigInt: true, useReadonlyArrays: true },
+    },
+    input: {
+      target: '../specifications/valibot-model-type-checks-options.yaml',
+    },
+  },
   'recursive-file': (() => {
     const project = valibotProject('recursive-file', 'valibot-recursive-file', {
       generateReusableSchemas: true,

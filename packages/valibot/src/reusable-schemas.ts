@@ -187,11 +187,12 @@ export const generateValibotComponentConsts = (
 
 /**
  * One `export const` per component schema, dependencies first, each constant
- * on a cycle after its output and input types. Empty when the document has no
- * component schemas.
+ * on a cycle after its output and input types.
  */
-export const generateValibotComponents = (context: ContextSpec): string =>
-  generateValibotComponentConsts(context)
+export const renderValibotComponents = (
+  consts: readonly ValibotComponentConst[],
+): string =>
+  consts
     .map(({ name, expression, types }) =>
       [
         ...(types === undefined
@@ -204,3 +205,10 @@ export const generateValibotComponents = (context: ContextSpec): string =>
       ].join('\n\n'),
     )
     .join('\n\n');
+
+/**
+ * The component constants as source. Empty when the document has no component
+ * schemas.
+ */
+export const generateValibotComponents = (context: ContextSpec): string =>
+  renderValibotComponents(generateValibotComponentConsts(context));

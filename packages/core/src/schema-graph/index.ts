@@ -11,7 +11,11 @@ export {
   getExportNames,
   resolveComponentName,
 } from './component-names';
-export { createImportCheck, withInlineImports } from './inline-module';
+export {
+  createImportCheck,
+  getModuleIdentifiers,
+  withInlineImports,
+} from './inline-module';
 export {
   assertNoOutputTypeClash,
   collectOperationSchemas,

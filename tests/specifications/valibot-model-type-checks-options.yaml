@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas checked against models in a dotted directory
+  version: 0.0.0
+# Only the components are used, so there are no operations.
+paths: {}
+components:
+  schemas:
+    Pet:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        owner:
+          $ref: '#/components/schemas/Owner'
+    Owner:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    # With `useBigInt` the model holds a bigint and the schema a number, so
+    # the checks skip it and what references it.
+    Counter:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+          format: int64
+    Dashboard:
+      type: object
+      properties:
+        counter:
+          $ref: '#/components/schemas/Counter'
+    # With `useReadonlyArrays` the model holds a readonly array and the schema
+    # a mutable one, so the checks skip it.
+    Tags:
+      type: object
+      properties:
+        names:
+          type: array
+          items:
+            type: string

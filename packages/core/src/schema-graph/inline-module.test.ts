@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { createTestContextSpec } from '../test-utils';
-import { createImportCheck, withInlineImports } from './inline-module';
+import {
+  createImportCheck,
+  getModuleIdentifiers,
+  withInlineImports,
+} from './inline-module';
 
 describe('createImportCheck', () => {
   const isImported = createImportCheck(
@@ -56,5 +60,64 @@ describe('withInlineImports', () => {
         libraryImport: () => '',
       }),
     ).toBe('export const A = decode(1);\n\n');
+  });
+});
+
+describe('getModuleIdentifiers', () => {
+  it('reads the names imports bind', () => {
+    const names = getModuleIdentifiers(
+      [
+        "import Default from './a';",
+        "import * as Models from './b';",
+        "import type * as Typed from './b';",
+        "import { one, two as three, type Four } from './c';",
+        'import type {',
+        '  Five,',
+        "} from './d';",
+        "import Mixed, { six } from './e';",
+        "import './effect-only';",
+      ].join('\n'),
+    );
+    expect([...names].toSorted()).toEqual([
+      'Default',
+      'Five',
+      'Four',
+      'Mixed',
+      'Models',
+      'Typed',
+      'one',
+      'six',
+      'three',
+    ]);
+  });
+
+  it('reads the names declarations at the start of a line bind', () => {
+    const names = getModuleIdentifiers(
+      [
+        'export const getPet = () => 1;',
+        'type Assert<T> = T;',
+        'export interface Pet {}',
+        'export async function load() {}',
+        'export enum Kind { A }',
+        'declare const ambient: number;',
+        'class Holder {}',
+        '  const indented = 1;',
+        'const used = () => { return other; };',
+      ].join('\n'),
+    );
+    expect([...names].toSorted()).toEqual([
+      'Assert',
+      'Holder',
+      'Kind',
+      'Pet',
+      'ambient',
+      'getPet',
+      'load',
+      'used',
+    ]);
+  });
+
+  it('finds nothing in empty content', () => {
+    expect(getModuleIdentifiers('').size).toBe(0);
   });
 });

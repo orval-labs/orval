@@ -35,6 +35,7 @@ import {
   type JsDocOptions,
   type McpOptions,
   type McpHandlerOptions,
+  type ModelTypeChecksOptions,
   type McpServerOptions,
   type OperationManifestOptions,
   type Mutator,
@@ -43,6 +44,7 @@ import {
   type NormalizedValibotOptions,
   type NormalizedFactoryMethodsOptions,
   type NormalizedFormatTypeMap,
+  type NormalizedModelTypeChecksOptions,
   type NormalizedHonoOptions,
   type NormalizedHookOptions,
   type NormalizedJsDocOptions,
@@ -464,6 +466,85 @@ const REUSABLE_SCHEMA_CLIENTS = [
   { client: OutputClient.EFFECT, library: 'effect', label: 'Effect' },
 ] as const;
 
+// The clients whose reusable component schemas `modelTypeChecks` can check.
+const MODEL_TYPE_CHECK_CLIENTS = [
+  { client: OutputClient.VALIBOT, library: 'valibot' },
+] as const;
+
+interface ModelOnlyOption {
+  option: string;
+  isSet: (override: NormalizedOutputOptions['override']) => boolean;
+  /** How the models differ, which the schemas cannot follow. */
+  difference: string;
+}
+
+// Options that shape the models in a way the schemas have no counterpart for,
+// so no pair of a model and a schema would agree.
+const MODEL_ONLY_OPTIONS: readonly ModelOnlyOption[] = [
+  {
+    option: 'override.useBrandedTypes: true',
+    isSet: ({ useBrandedTypes }) => useBrandedTypes === true,
+    difference: 'the models brand primitive component schemas',
+  },
+  {
+    option: 'override.useNullForOptional: true',
+    isSet: ({ useNullForOptional }) => useNullForOptional === true,
+    difference: 'the models type an optional property as `T | null`',
+  },
+  {
+    option: "override.enumGenerationType: 'enum'",
+    isSet: ({ enumGenerationType }) => enumGenerationType === 'enum',
+    difference:
+      'the models declare an enum as a TypeScript `enum`, which a string literal is not assignable to',
+  },
+  {
+    option: 'override.namingConvention.properties',
+    isSet: ({ namingConvention }) => namingConvention.properties !== undefined,
+    difference: 'the models rename the properties',
+  },
+];
+
+/**
+ * Rejects the outputs `override.modelTypeChecks` has nothing to check in, and
+ * warns when the tsconfig makes the checks fail.
+ */
+function validateModelTypeChecks(output: NormalizedOutputOptions): void {
+  if (!output.override.modelTypeChecks) return;
+  const checked = MODEL_TYPE_CHECK_CLIENTS.find(
+    ({ client }) => client === output.client,
+  );
+  if (!checked) {
+    throw new Error(
+      `\`override.modelTypeChecks\` requires ${MODEL_TYPE_CHECK_CLIENTS.map(({ client }) => `\`client: '${client}'\``).join(' or ')}.`,
+    );
+  }
+  const { library } = checked;
+  if (!output.override[library].generateReusableSchemas) {
+    throw new Error(
+      `\`override.modelTypeChecks\` requires \`override.${library}.generateReusableSchemas\`: only a component schema has a model to check against.`,
+    );
+  }
+  const modelOnly = MODEL_ONLY_OPTIONS.filter(({ isSet }) =>
+    isSet(output.override),
+  );
+  if (modelOnly.length > 0) {
+    throw new Error(
+      `\`override.modelTypeChecks\` cannot be combined with ${modelOnly.map(({ option, difference }) => `\`${option}\` (${difference})`).join('; ')}: the schemas cannot match such models.`,
+    );
+  }
+  // The models have no `exactOptionalPropertyTypes` form of their own: under
+  // the flag, `a?: T` means the key is absent or `T`, which only schemas
+  // generated with `exactOptional` output.
+  if (
+    output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes &&
+    !output.override[library].exactOptional
+  ) {
+    logger.warn(
+      `The tsconfig sets \`exactOptionalPropertyTypes\`, so the checks of every optional property fail unless \`override.${library}.exactOptional\` is \`true\`.`,
+    );
+  }
+}
+
 /** Rejects schema-routing combinations that are unsupported by generation. */
 function validateSchemaRoutes(output: NormalizedOutputOptions): void {
   const schemas = output.schemas;
@@ -480,6 +561,7 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
       );
     }
   }
+  validateModelTypeChecks(output);
   if (!schemas || isString(schemas)) return;
   const { type } = schemas;
   if (
@@ -704,6 +786,18 @@ function isPackageSpecifierCandidate(
 
     dir = parent;
   }
+}
+
+function normalizeModelTypeChecks(
+  { models }: ModelTypeChecksOptions,
+  workspace: string,
+): NormalizedModelTypeChecksOptions {
+  if (!isString(models) || models.trim() === '') {
+    throw new Error(
+      '`override.modelTypeChecks.models` must name the directory the models are written to.',
+    );
+  }
+  return { models: nodePath.resolve(workspace, models) };
 }
 
 function normalizeValibotOptions(
@@ -1417,6 +1511,14 @@ export async function normalizeOptions(
         useDatesTransform: outputOptions.override?.useDatesTransform ?? false,
         useBrandedTypes: outputOptions.override?.useBrandedTypes ?? false,
         formatType: normalizeFormatType(outputOptions.override?.formatType),
+        ...(outputOptions.override?.modelTypeChecks
+          ? {
+              modelTypeChecks: normalizeModelTypeChecks(
+                outputOptions.override.modelTypeChecks,
+                outputWorkspace,
+              ),
+            }
+          : {}),
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
@@ -1859,9 +1961,14 @@ function normalizeOperationsAndTags(
           zod,
           effect,
           valibot,
-          ...rest
+          ...operationRest
         },
       ]) => {
+        // Output-wide only, so absent from the operation options type.
+        const { modelTypeChecks, ...rest } =
+          operationRest as typeof operationRest & {
+            modelTypeChecks?: unknown;
+          };
         const unsupportedOperationZodKeys =
           zod &&
           unsupportedZodKeys.filter(
@@ -1901,6 +2008,12 @@ function normalizeOperationsAndTags(
         if (valibot && isReusableSchemasFlagSet(valibot)) {
           logger.warn(
             `override.${source}.${key}.valibot.generateReusableSchemas is not supported - it is output-wide and configured via \`override.valibot.generateReusableSchemas\`. Ignoring.`,
+          );
+        }
+
+        if (modelTypeChecks !== undefined) {
+          logger.warn(
+            `override.${source}.${key}.modelTypeChecks is not supported - it is output-wide and configured via \`override.modelTypeChecks\`. Ignoring.`,
           );
         }
 

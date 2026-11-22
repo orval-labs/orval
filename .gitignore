@@ -3,6 +3,9 @@ dist
 .rpt2_cache
 .impeccable
 
+# Scratch directories of the tests that typecheck what they write
+tests/.tmp-model-checks-*
+
 ### macOS ###
 *.DS_Store
 .AppleDouble
