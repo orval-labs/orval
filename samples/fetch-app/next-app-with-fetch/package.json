@@ -13,7 +13,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "next": "15.5.28",
+    "next": "15.5.29",
     "react": "catalog:react",
     "react-dom": "^18.3.1"
   },
