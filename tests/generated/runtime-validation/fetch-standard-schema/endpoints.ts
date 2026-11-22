@@ -44,10 +44,10 @@ function orvalSafeParseStandardSchema<O>(
 ):
   | { success: true; data: O }
   | { success: false; error: OrvalStandardSchemaError } {
-  // Zod below 3.24 has no standard schema property.
+  // Schemas from older library versions have no standard schema property.
   if (!('~standard' in schema)) {
     throw new globalThis.TypeError(
-      'Schema does not implement Standard Schema (Zod 3.24 or newer is required)',
+      'Schema does not implement Standard Schema (needs Zod 3.24+, Valibot 1+ or Effect 3.15+)',
     );
   }
   const result = schema['~standard'].validate(value);
