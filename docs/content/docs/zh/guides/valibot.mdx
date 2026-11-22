@@ -3,7 +3,21 @@ title: Valibot
 description: 从 OpenAPI 生成 Valibot schema
 ---
 
-从 OpenAPI 规范生成 [Valibot](https://valibot.dev/) schema，用于运行时校验。
+从 OpenAPI 规范生成 [Valibot](https://valibot.dev/) schema，用于运行时校验。生成的代码需要 `valibot` 1.0 或更高版本：
+
+```sh
+npm install valibot
+```
+
+## 选择模式
+
+|          | [`client: 'valibot'`](#配置) | [`schemas: { type: 'valibot' }`](#校验-http-client-响应) |
+| -------- | ---------------------------- | -------------------------------------------------------- |
+| 用途     | 自行解析和校验数据 | 让生成的 HTTP client 校验响应 |
+| 生成内容 | 每个 operation 的 params、query、headers、body 和 response 各一个 schema | 每个模型一个 schema，以及每个 operation 的 query 参数和 headers，外加不是 `$ref` 的请求体和响应 |
+| 类型名称 | 无；仅在使用 `generateReusableSchemas` 的递归 schema 上有：`Pet` 为输出类型，`PetInput` 为输入类型 | 每个 schema 都有：`Pet` 为输入类型，`PetOutput` 为输出类型 |
+
+若要同时使用两者，请在不同的输出中分别生成。参见[与 HTTP Client 结合使用](#与-http-client-结合使用)。
 
 ## 配置
 
@@ -233,7 +247,7 @@ if (result.success) {
 
 - `oneOf` 和 `anyOf` 生成 `v.union`；设置了 `discriminator` 时生成 `v.variant`。`allOf` 生成 `v.intersect`。
 - 对象会去掉未知的键。`strict` 选项生成 `v.strictObject`，`additionalProperties` 生成 `v.looseObject` 或 `v.record`。
-- `date` 和 `date-time` 字符串按 ISO 日期校验。设置 `override.useDates` 后会转换为 `Date`。
+- `date` 和 `date-time` 字符串按 ISO 日期校验，`date-time` 需要带偏移量，例如 `Z`。设置 `override.useDates` 后会转换为 `Date`。
 - 二进制字段（`format: binary`）生成 `v.file()`，包括 `multipart/form-data` 请求体中的文件字段。
 - 请求体中会去掉 `readOnly` 属性，响应中会去掉 `writeOnly` 属性。带 `items` 的 `readOnly` 数组会加上 `v.readonly()`，因此其输出与模型一样是只读数组。`suppressReadonlyModifier` 会同时关闭两者的只读修饰。
 - 与 schema 不符的 `default` 会被去掉，并给出警告。
@@ -245,18 +259,47 @@ if (result.success) {
 - 当 `readOnly` 数组中的某个元素校验失败时，valibot 会跳过该数组自身的检查，例如 `maxItems`。包含该数组（或包含它的对象）的 `v.union` 随后只报告一个通用错误，而不是该元素的具体错误。日期转换或 `formatType` 解码器对校验失败的字符串也有同样的影响。
 - 除非设置 [`generateReusableSchemas`](#可复用-schema)，否则每个 `$ref` 都会被内联，共享的 schema 可能让输出变得很大。内联单个 schema 超过 250,000 个 schema 节点时会报错并停止。
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
+- query 和 path 参数不会被强制转换：从 URL 字符串读取的数字无法通过 `v.number()`。header 的键保持规范中的大小写。
 - 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。与对象成员并列的开放成员（`additionalProperties: true`）会被省略，多余的键同样会被去掉。
-- 设置 `schemas: { type: 'valibot' }` 并开启 client 的 `runtimeValidation` 后，生成的 client 用 Valibot 校验响应。支持 `fetch`、`httpClient: 'fetch'` 的 query 类 client 和 `swr`、`angular` 以及 `angular-query`；axios client 不校验响应。详见英文文档。
+
+## 校验 HTTP Client 响应
+
+将 `schemas.type` 设为 `valibot`，并开启 client 的 `runtimeValidation`。生成的 client 随后会用 Valibot schema 而不是 Zod 来校验响应。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: { path: './src/api/model', type: 'valibot' },
+      override: {
+        fetch: { runtimeValidation: true },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+所有 schema 都写入同一个模块 `<schemas.path>/index.valibot.ts`；当 `schemas.path` 指向文件时，则直接写入该文件。不会生成 `index.ts` barrel，因此这里应从 `./src/api/model/index.valibot` 导入。每个 schema 还会导出类型 `X`（`v.InferInput`）和 `XOutput`（`v.InferOutput`）。位于循环上的 schema 会完整声明这两个类型，因为它们无法被推断，这样递归字段仍保留各自的类型。
+
+- 校验通过 `runtimeValidation` 选项运行：`fetch`，以及使用 `httpClient: 'fetch'` 的 `react-query`、`vue-query`、`svelte-query`、`solid-query`、`swr`、`pinia-colada` 使用 `override.fetch`；`angular` 使用 `override.angular`；`angular-query` 使用 `override.query`。默认关闭。
+- [`standardSchema`](/zh/docs/reference/configuration/output#standardschema) 始终开启，因为 Valibot schema 没有 `parse` 方法。因此校验错误是 `StandardSchemaError` 而不是 `ValiError`，`v.isValiError()` 对它们返回 false。请读取 `error.issues`。不支持异步 schema。
+- Axios client 不会校验。
+- 自定义 mutator 会跳过生成的校验。设置 [`includeSchemaInArguments`](/zh/docs/reference/configuration/output#includeschemainarguments) 后，`fetch` 或基于 fetch 的 client 的自定义 mutator 会把 schema 作为 `schema` 收到，并通过 `schema['~standard'].validate()` 自行校验响应。Angular client 不会把 schema 传给 mutator。
+- `useDates` 让 schema 把日期字符串转换为 `Date`，因此 `XOutput` 中是 `Date`，`X` 中是 `string`。`useDatesTransform` 只会开启 `useDates`：client 不会添加日期反序列化器。
+
+以下情况会因配置错误而失败：`schemas.mode: 'split'`、`schemas.routes`、`schemas.splitByTags`、mock generators（需要 MSW 时，请另加一个使用 TypeScript 模型的输出）、`operationSchemas`、`factoryMethods`、`splitByContentType`、`standardSchema: false`、`override.formatType`、`override.useBigInt`、`override.namingConvention.properties`、与 `useDates` 同用的 Angular `runtimeValidation.requestBodies`，以及 `zod`、`effect`、`valibot`、`hono` 和 `mcp` client。
+
+已知限制：
+
+- JSON 错误响应也会按成功响应的 schema 校验，因此带错误体的 `404` 会抛出 `StandardSchemaError`。Zod 的行为相同。
+- 请求和响应共用同一个组件 schema，因此必填的 `writeOnly` 属性在其中是可选的，必填的 `readOnly` 属性在请求体类型中仍然是必填的。
+- `format: binary` 在 JSON 中同样映射为 `v.file()`，因此带有此类属性的 JSON 响应校验会失败。二进制值的类型为 `File`，而不是 `Blob`。
 
 ## 与 HTTP Client 结合使用
 
-`valibot` client 只生成 schema。若要与其他 client 配合，请在单独的输出中生成该 client，然后自行解析响应：
+`valibot` client 只生成 schema。若要让 HTTP client 校验自己的响应，请改用 [`schemas.type`](#校验-http-client-响应)。
 
-```ts
-import * as v from 'valibot';
-import { showPetById } from './src/api/endpoints';
-import { ShowPetByIdResponse } from './src/api/schemas';
-
-const response = await showPetById('1');
-const pet = v.parse(ShowPetByIdResponse, response.data);
-```
+若要把 `valibot` client 与 HTTP client 搭配使用（例如在发送前检查请求体），请把两者生成到各自的输出中。每个输出请使用各自的 `target`，否则 Valibot 输出会覆盖 client 文件。在 `split`、`tags` 和 `tags-split` 模式下，如果 Valibot 输出设置了 `fileExtension: '.valibot.ts'`，两者可以共用一个 `target`。

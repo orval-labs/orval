@@ -200,7 +200,7 @@ Schema 文件仍然写入文件系统的 `path` ——只有生成的 import 语
 
 - 目标包必须在指定的导入路径处导出这些类型。
 - 开启 `indexFiles: true`（推荐）时，所有类型都从单个 `importPath` 导入（如 `@acme/models`）。
-- 关闭 `indexFiles` 时，每个 schema 会单独导入（如 `@acme/models/pet`）。包必须支持这些子路径导出。对于 Zod schema（`type: 'zod'`），单文件后缀为 `.zod`，因此包还必须暴露 `./pet.zod`（如 `@acme/models/pet.zod`）。
+- 关闭 `indexFiles` 时，每个 schema 会单独导入（如 `@acme/models/pet`）。包必须支持这些子路径导出。对于 Zod schema（`type: 'zod'`），单文件后缀为 `.zod`，因此包还必须暴露 `./pet.zod`（如 `@acme/models/pet.zod`）。Valibot 和 Effect schema（`type: 'valibot'` 或 `'effect'`）始终是单个模块，因此所有导入都来自 `importPath` 本身。
 - 如果使用 faker schema 工厂（`mock: { generators: [{ type: 'faker', schemas: true }] }`），包还必须导出 `./index.faker`。当包无法暴露子路径时（例如 `importPath` 通过 tsconfig path mapping 解析到单个 barrel 文件），在 faker generator 上设置 [`schemasImportPath`](#schemasimportpath) 将 faker 工厂指向单独的导入路径。
 - 如果使用 factory methods（`factoryMethods`），无论 `indexFiles` 如何设置，每个 schema 都会单独导入。
 - 设置 `importPath` 后，`factoryMethods.outputDirectory` 中的相对路径计算会被跳过：工厂会根据包说明符而非磁盘上的工厂输出目录来解析 import。
@@ -311,9 +311,9 @@ src/gen/
 ## schemaFileExtension
 
 **类型：** `String`
-**默认值：** 当生成 Zod schemas（`schemas: { type: 'zod' }` 或 `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)）时为 `'.zod.ts'`，否则与 [`fileExtension`](#fileextension) 相同。
+**默认值：** 当生成 Zod schemas（`schemas: { type: 'zod' }` 或 `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)）时为 `'.zod.ts'`，使用 `schemas: { type: 'valibot' }` 时为 `'.valibot.ts'`，使用 `schemas: { type: 'effect' }` 时为 `'.effect.ts'`，否则与 [`fileExtension`](#fileextension) 相同。
 
-仅覆盖 schema 产物的文件扩展名，而不影响全局 `fileExtension`（后者仍控制 client 输出、mock 文件等）。它同时适用于 TypeScript 和 Zod schema 文件。未设置 [`schemas`](#schemas) 时，写在 target 旁边的 schemas 文件会保留 `.schemas` 标记，因此 `target: './api.ts'` 配合 `schemaFileExtension: '.types.ts'` 会生成 `api.schemas.types.ts`。当你希望 client 文件使用一种扩展名，而 schema 文件使用另一种扩展名时，这会很有用：
+仅覆盖 schema 产物的文件扩展名，而不影响全局 `fileExtension`（后者仍控制 client 输出、mock 文件等）。它同时适用于 TypeScript、Zod、Valibot 和 Effect schema 文件。未设置 [`schemas`](#schemas) 时，写在 target 旁边的 schemas 文件会保留 `.schemas` 标记，因此 `target: './api.ts'` 配合 `schemaFileExtension: '.types.ts'` 会生成 `api.schemas.types.ts`。当你希望 client 文件使用一种扩展名，而 schema 文件使用另一种扩展名时，这会很有用：
 
 ```ts title="orval.config.ts"
 export default defineConfig({
@@ -2273,6 +2273,18 @@ export default defineConfig({
 });
 ```
 
+### strict
+
+**类型：** `Object`
+
+按位置（`param`、`query`、`header`、`body` 和 `response`）生成 `v.strictObject` 而不是 `v.object`。默认全部为 `false`。
+
+### generate
+
+**类型：** `Object`
+
+按位置选择是否生成 schema（键与 `strict` 相同）。默认全部为 `true`。
+
 ### exactOptional
 
 **类型：** `boolean`
@@ -3420,13 +3432,11 @@ export interface Pet {
 **类型：** `Boolean`
 **默认值：** `false`
 
-把响应对应的 Zod、Valibot 或 Effect schema 作为额外的 `schema` 选项传给自定义 `mutator`，这样 mutator 就可以自己完成响应校验。
+把响应对应的 schema（Zod、Valibot 或 Effect，由 `schemas.type` 决定）作为额外的 `schema` 选项传给自定义 `mutator`，这样 mutator 就可以自己完成响应校验。
 
 自定义 mutator 会自己发出请求，因此 Orval 为 `runtimeValidation` 生成的 `Schema.parse()` 调用不会运行。启用这个选项后，schema 会改为直接交给 mutator 处理。
 
-适用于 `fetch` Client。需要 `schemas: { type: 'zod' }`、`{ type: 'valibot' }` 或 `{ type: 'effect' }`，以及 `override.fetch.runtimeValidation: true`。对于没有可校验响应的 operation，不会传入 schema，比如 primitive 或 `void` 响应，以及 `application/x-ndjson` stream（流）。
-
-使用 `schemas: { type: 'effect' }` 时，mutator 会收到 Effect schema，参见[自定义 Mutator](/zh/docs/guides/effect#自定义-mutator)。
+适用于 `fetch` Client，以及使用 `httpClient: 'fetch'` 的 query 类 Client。需要 `schemas: { type: 'zod' }`、`{ type: 'valibot' }` 或 `{ type: 'effect' }`，以及 `override.fetch.runtimeValidation: true`。对于没有可校验响应的 operation，不会传入 schema，比如 primitive 或 `void` 响应，以及 `application/x-ndjson` stream（流）。
 
 `schema` 校验的是响应体。生成的函数默认返回 `{ data, status, headers }`，因此 mutator 必须返回这种结构，否则 `res.data` 为 `undefined`。若希望改为返回响应体，请设置 `override.fetch.includeHttpResponseReturnType: false`，如下所示。
 
@@ -3467,6 +3477,32 @@ export const customFetch = async <T>(
 <Callout type="info">
 `schema.parse()` 在不匹配时会抛出 `ZodError`。如果你希望自己处理校验失败，请在 mutator 中改用 `safeParse()`。
 </Callout>
+
+使用 `schemas: { type: 'valibot' }` 时，schema 没有 `parse` 方法。请改为通过它的 [Standard Schema](https://standardschema.dev) 接口校验，配置除 `schemas.type` 外相同。schema 只描述成功响应，因此 `response.ok` 为 false 时 mutator 会跳过校验。它的输出类型可能与生成的类型 `T` 不同（例如使用 `useDates` 时），所以该选项的类型写为 `GenericSchema`，并将结果转换为 `T`：
+
+```ts title="src/custom-fetch.ts"
+import type { GenericSchema } from 'valibot';
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit & { schema?: GenericSchema },
+): Promise<T> => {
+  const { schema, ...init } = options;
+  const response = await fetch(url, init);
+  const data: unknown = await response.json();
+
+  if (!schema || !response.ok) return data as T;
+
+  const result = await schema['~standard'].validate(data);
+  if (result.issues) {
+    throw new Error(result.issues.map((issue) => issue.message).join('; '));
+  }
+
+  return result.value as T;
+};
+```
+
+Effect schema（`schemas: { type: 'effect' }`）有相同的 `~standard` 接口。mutator 的类型以及用 Effect 自身解码的方式，参见[自定义 Mutator](/zh/docs/guides/effect#自定义-mutator)。该示例返回 `{ data, status, headers }`，因此配合它使用时请保持 `includeHttpResponseReturnType` 为默认值。
 
 `includeZodSchemaInArguments` 是该选项已弃用的别名，可能会在 9.0 中移除。两者同时设置时，以 `includeSchemaInArguments` 为准。
 
