@@ -4654,6 +4654,33 @@ export default defineConfig({
 - `serialize-with-brackets`: `formData.append('items[]', JSON.stringify(value))`
 - `explode`: Expands nested objects with indexed keys
 
+#### JSON parts
+
+An object or array part whose `encoding` declares a JSON `contentType` (`application/json` or a `+json` type) is sent as a single `Blob` of that type, whatever `arrayHandling` is set to. Servers that bind a part by its media type, such as Spring's `@RequestPart`, need the type to read the part as JSON:
+
+```yaml
+requestBody:
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          dto:
+            $ref: '#/components/schemas/DeviceCreateRequest'
+      encoding:
+        dto:
+          contentType: application/json
+```
+
+```ts
+formData.append(
+  'dto',
+  new Blob([JSON.stringify(body.dto)], { type: 'application/json' }),
+);
+```
+
+Without that encoding, the part is appended as a JSON string, as before. A `Blob` part is sent with a filename, which some servers (such as multer) read as a file.
+
 ### formUrlEncoded
 
 **Type:** `Boolean | String | Object`

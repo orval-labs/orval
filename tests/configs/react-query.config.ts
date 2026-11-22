@@ -1805,6 +1805,24 @@ export default defineConfig({
       target: '../specifications/issue-3066.yaml',
     },
   },
+  // Regression for issue #4560. An object or array multipart part whose
+  // `encoding.contentType` is `application/json` is sent as a Blob of that
+  // type (what Spring's `@RequestPart` binds), not a bare JSON string; a part
+  // without an encoding (`note`) is still stringified.
+  issue4560: {
+    output: {
+      target: '../generated/react-query/issue-4560/endpoints.ts',
+      schemas: '../generated/react-query/issue-4560/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      mode: 'split',
+      clean: true,
+      formatter: 'prettier',
+    },
+    input: {
+      target: '../specifications/issue-4560.yaml',
+    },
+  },
   // Regression for issue #708. When an operation generates both a regular
   // query and an infinite query, the two must not share a query key, otherwise
   // React Query serves one query's cached data for the other (the infinite

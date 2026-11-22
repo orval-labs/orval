@@ -734,6 +734,25 @@ function getSchemaFormDataAndUrlEncoded({
         form += `Object.entries(${propName} ?? {}).forEach(([key, value]) => {\n`;
         form += skipLine;
         form += `  if (value !== undefined && value !== null) {\n`;
+        if (!isUrlEncoded) {
+          // A variant's key is only known at runtime, so a part whose
+          // `encoding` declares a JSON type is matched by key here: an object
+          // or array value is sent as one part of that type, as the
+          // properties branch does (#4560). A file value keeps its own type.
+          for (const [key, { contentType }] of Object.entries(encoding ?? {})) {
+            if (
+              directKeys.includes(key) ||
+              contentType === undefined ||
+              !isJsonMediaType(contentType)
+            ) {
+              continue;
+            }
+            form += `    if (key === ${JSON.stringify(key)} && typeof value === 'object' && !(value instanceof Blob)) {\n`;
+            form += `      ${appendJsonPart(variableName, 'key', 'value', contentType)}\n`;
+            form += `      return;\n`;
+            form += `    }\n`;
+          }
+        }
         if (usesFormValueHelper(context)) {
           // The variants are only known at runtime, so `format: date` comes
           // from the property name.
@@ -957,6 +976,97 @@ export function isEffectivelyObjectSchema(
 
   return false;
 }
+
+/**
+ * True when `contentType` is a list of media types: a comma outside a quoted
+ * parameter value (RFC 9110 §5.6.4) separates them, while one inside, as in
+ * `application/json; profile="a,b"`, belongs to a single type.
+ */
+const isMediaTypeList = (contentType: string): boolean => {
+  let quoted = false;
+  for (let i = 0; i < contentType.length; i++) {
+    const char = contentType[i];
+    if (quoted && char === '\\') {
+      i++;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * True for a single JSON media type, `application/json` or any type with a
+ * `+json` suffix (`application/vnd.api+json`, `model/gltf+json`), with or
+ * without parameters. A list of types is not a single type to label a part
+ * with.
+ */
+const isJsonMediaType = (contentType: string): boolean =>
+  !isMediaTypeList(contentType) &&
+  /^(?:application\/json|[\w.-]+\/[\w.-]+\+json)\s*(?:;|$)/i.test(
+    contentType.trim(),
+  );
+
+/**
+ * True for a schema whose value is an object or an array, which a JSON part
+ * sends as one document: directly, through a nullable type union such as
+ * `type: ['array', 'null']` (which {@link isEffectivelyArraySchema} does not
+ * count), or through `oneOf` / `anyOf` branches that all are, `null` branches
+ * aside.
+ *
+ * `ancestors` holds the schemas on the path down to this one, so a schema
+ * that contains itself stops the walk while one that two sibling branches
+ * share (`anyOf: [$ref Tags, $ref Tags]`) is checked in each.
+ */
+const isJsonContainerSchema = (
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  ancestors: ReadonlySet<OpenApiSchemaObject> = new Set(),
+): boolean => {
+  if (isBooleanJsonSchema(schema) || ancestors.has(schema)) {
+    return false;
+  }
+  const path = new Set(ancestors).add(schema);
+
+  const type = getSchemaType(schema);
+  if (
+    (Array.isArray(type) && type.includes('array')) ||
+    isEffectivelyArraySchema(schema, context) ||
+    isEffectivelyObjectSchema(schema, context)
+  ) {
+    return true;
+  }
+
+  const branches = getSchemaOneOf(schema) ?? getSchemaAnyOf(schema);
+  if (!branches) {
+    return false;
+  }
+  const nonNullBranches = branches
+    .map((branch) => resolveSchemaRef(branch, context).schema)
+    .filter((branch) => isBooleanJsonSchema(branch) || branch.type !== 'null');
+  return (
+    nonNullBranches.length > 0 &&
+    nonNullBranches.every((branch) =>
+      isJsonContainerSchema(branch, context, path),
+    )
+  );
+};
+
+/**
+ * The form-data statement sending `value` as a single part of the JSON
+ * `contentType` its `encoding` declares, see {@link isJsonMediaType}.
+ */
+const appendJsonPart = (
+  variableName: string,
+  key: string,
+  value: string,
+  contentType: string,
+) =>
+  `${variableName}.append(${key}, new Blob([JSON.stringify(${value})], { type: '${jsStringLiteralEscape(
+    contentType,
+  )}' }));`;
 
 /**
  * Array counterpart of {@link isEffectivelyObjectSchema}: `type: array`
@@ -1349,6 +1459,23 @@ function resolveSchemaPropertiesToFormData({
       formDataValue = `${variableName}.append(\`${keyPrefix}${escapedKey}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${jsStringLiteralEscape(
         effectiveContentType ?? '',
       )}' }));\n`;
+    } else if (
+      !isUrlEncoded &&
+      partContentType !== undefined &&
+      isJsonMediaType(partContentType) &&
+      isJsonContainerSchema(valueSchema, context)
+    ) {
+      // An object or array part whose `encoding.contentType` is JSON is sent
+      // as one part carrying that type, as a server binding the part by its
+      // media type (e.g. Spring's `@RequestPart`) needs. A plain string part
+      // has no content type. Only an explicit encoding opts in: a Blob part
+      // is also sent with a filename, which some servers read as a file.
+      formDataValue = `${appendJsonPart(
+        variableName,
+        `\`${keyPrefix}${escapedKey}\``,
+        nonOptionalValueKey,
+        partContentType,
+      )}\n`;
     } else if (isEffectivelyObjectSchema(valueSchema, context)) {
       // `style: deepObject` + `explode: true` encodes each property as a
       // bracketed key on the parent, e.g. `metadata[order_id]=6735`. This is

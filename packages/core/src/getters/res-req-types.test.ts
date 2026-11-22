@@ -419,7 +419,8 @@ describe('getResReqTypes (content type handling)', () => {
                     contentMediaType: 'image/png',
                     contentEncoding: 'base64',
                   },
-                  // Object field with nested contentMediaType (should be ignored - JSON)
+                  // Object field with nested contentMediaType (should be ignored - JSON).
+                  // Its `application/json` encoding sends it as a JSON Blob (#4560).
                   metadata: {
                     type: 'object',
                     properties: {
@@ -520,7 +521,7 @@ formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyReque
 formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
 formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
 formData.append(\`base64Field\`, bodyRequestBody.base64Field);
-formData.append(\`metadata\`, JSON.stringify(bodyRequestBody.metadata));
+formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
 formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile instanceof Blob ? bodyRequestBody.wildcardFile : new Blob([bodyRequestBody.wildcardFile], { type: '*/*' }));
 bodyRequestBody.photos.forEach(value => formData.append(\`photos\`, value));
 `);
@@ -2579,6 +2580,338 @@ describe('getResReqTypes (form-data part content type escaping)', () => {
       String.raw`new Blob([bodyRequestBody.note], { type: 'text/plain\', evil: \'injected' })`,
     );
     expect(result.formData).not.toContain("evil: 'injected'");
+  });
+});
+
+describe('getResReqTypes (JSON form-data parts, issue #4560)', () => {
+  const ctxWithDevice = extendContext({
+    spec: {
+      components: {
+        schemas: {
+          DeviceCreateRequest: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+          },
+        },
+      },
+    },
+  });
+
+  const formDataFor = (
+    properties: Record<string, OpenApiSchemaObject | OpenApiReferenceObject>,
+    encoding: Record<string, { contentType?: string; style?: 'deepObject' }>,
+    {
+      mediaType = 'multipart/form-data',
+      required = Object.keys(properties),
+      ctx = ctxWithDevice,
+    }: {
+      mediaType?: string;
+      required?: string[];
+      ctx?: ContextSpec;
+    } = {},
+  ) => {
+    const reqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            [mediaType]: {
+              schema: { type: 'object', properties, required },
+              encoding,
+            },
+          },
+          required: true,
+        },
+      ],
+    ];
+    const result = getResReqTypes(reqBody, 'Body', ctx)[0];
+    return mediaType === 'multipart/form-data'
+      ? result.formData
+      : result.formUrlEncoded;
+  };
+
+  const dto = { $ref: '#/components/schemas/DeviceCreateRequest' };
+
+  it('sends an object part with a JSON encoding as a Blob of that type', () => {
+    const formData = formDataFor(
+      { dto, file: { type: 'string', format: 'binary' } },
+      { dto: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dto`, new Blob([JSON.stringify(bodyRequestBody.dto)], { type: 'application/json' }));",
+    );
+    expect(formData).toContain(
+      'formData.append(`file`, bodyRequestBody.file);',
+    );
+  });
+
+  it('sends an array part with a JSON encoding as one Blob', () => {
+    const formData = formDataFor(
+      { dtos: { type: 'array', items: dto } },
+      { dtos: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dtos`, new Blob([JSON.stringify(bodyRequestBody.dtos)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  it('keeps a +json type and its parameters on the part', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/vnd.device+json; charset=utf-8' } },
+    );
+
+    expect(formData).toContain(
+      "{ type: 'application/vnd.device+json; charset=utf-8' }",
+    );
+  });
+
+  it('keeps the guard of an optional JSON part', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      { required: [] },
+    );
+
+    expect(formData).toContain('if(bodyRequestBody.dto !== undefined) {');
+    expect(formData).toContain(
+      'new Blob([JSON.stringify(bodyRequestBody.dto)]',
+    );
+  });
+
+  it('sends a JSON part as one Blob under exploded array handling', () => {
+    const formData = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      {
+        ctx: extendContext({
+          spec: ctxWithDevice.spec,
+          override: {
+            formData: { arrayHandling: 'explode', disabled: false },
+          },
+        }),
+      },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`dto`, new Blob([JSON.stringify(bodyRequestBody.dto)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('`dto.name`');
+  });
+
+  it.each([
+    ['no encoding', {}],
+    ['a non-JSON encoding', { dto: { contentType: 'text/plain' } }],
+    [
+      'a list of types',
+      { dto: { contentType: 'application/json, application/xml' } },
+    ],
+  ])('stringifies an object part as before with %s', (_, encoding) => {
+    const formData = formDataFor({ dto }, encoding);
+
+    expect(formData).toContain(
+      'formData.append(`dto`, JSON.stringify(bodyRequestBody.dto));',
+    );
+    expect(formData).not.toContain('new Blob');
+  });
+
+  it('leaves url-encoded bodies alone', () => {
+    const formUrlEncoded = formDataFor(
+      { dto },
+      { dto: { contentType: 'application/json' } },
+      { mediaType: 'application/x-www-form-urlencoded' },
+    );
+
+    expect(formUrlEncoded).not.toContain('new Blob');
+    expect(formUrlEncoded).toContain('JSON.stringify(bodyRequestBody.dto)');
+  });
+
+  it.each([
+    ['a +json type of another top-level type', 'model/gltf+json'],
+    [
+      'a quoted parameter holding a comma',
+      'application/json; profile="urn:example:a,b"',
+    ],
+  ])('sends a JSON Blob for %s', (_, contentType) => {
+    const formData = formDataFor({ dto }, { dto: { contentType } });
+
+    expect(formData).toContain(
+      `formData.append(\`dto\`, new Blob([JSON.stringify(bodyRequestBody.dto)]`,
+    );
+  });
+
+  it.each(['text/json', 'application/jsonp', 'application/json-seq'])(
+    'does not read %s as JSON',
+    (contentType) => {
+      expect(formDataFor({ dto }, { dto: { contentType } })).not.toContain(
+        'new Blob',
+      );
+    },
+  );
+
+  it('sends a nullable array part with a JSON encoding as one Blob', () => {
+    const formData = formDataFor(
+      { tags: { type: ['array', 'null'], items: { type: 'string' } } },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain('if(bodyRequestBody.tags !== null) {');
+    expect(formData).toContain(
+      "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  it.each<[string, OpenApiSchemaObject]>([
+    [
+      'oneOf arrays',
+      {
+        oneOf: [
+          { type: 'array', items: { type: 'string' } },
+          { type: 'array', items: { type: 'integer' } },
+        ],
+      },
+    ],
+    [
+      'anyOf objects',
+      {
+        anyOf: [
+          { $ref: '#/components/schemas/DeviceCreateRequest' },
+          { type: 'object', properties: { id: { type: 'integer' } } },
+        ],
+      },
+    ],
+    [
+      'a nullable oneOf',
+      {
+        oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+      },
+    ],
+  ])('sends a part composed of %s as one JSON Blob', (_, tags) => {
+    const formData = formDataFor(
+      { tags },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  describe('shared and recursive branches', () => {
+    const ctxWithTags = extendContext({
+      spec: {
+        components: {
+          schemas: {
+            Tags: { type: 'array', items: { type: 'string' } },
+            // Refers only to itself, so it never reaches an object or array.
+            Loop: { oneOf: [{ $ref: '#/components/schemas/Loop' }] },
+          },
+        },
+      },
+    });
+    const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+
+    it('checks a schema that sibling branches share in each branch', () => {
+      const formData = formDataFor(
+        { tags: { anyOf: [ref('Tags'), ref('Tags')] } },
+        { tags: { contentType: 'application/json' } },
+        { ctx: ctxWithTags },
+      );
+
+      expect(formData).toContain(
+        "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+      );
+    });
+
+    it('stops on a schema that contains itself', () => {
+      const formData = formDataFor(
+        { loop: ref('Loop') },
+        { loop: { contentType: 'application/json' } },
+        { ctx: ctxWithTags },
+      );
+
+      expect(formData).not.toContain('new Blob');
+    });
+  });
+
+  it('leaves a part mixing an object with a primitive as before', () => {
+    const formData = formDataFor(
+      { tags: { oneOf: [dto, { type: 'string' }] } },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).not.toContain('new Blob');
+  });
+
+  describe('oneOf variant keys', () => {
+    const formDataForVariants = (mediaType = 'multipart/form-data') => {
+      const reqBody: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              [mediaType]: {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        dto,
+                        file: { type: 'string', format: 'binary' },
+                      },
+                    },
+                    {
+                      type: 'object',
+                      properties: { note: { type: 'string' } },
+                    },
+                  ],
+                },
+                encoding: {
+                  dto: { contentType: 'application/json' },
+                  file: { contentType: 'application/json' },
+                },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+      const result = getResReqTypes(reqBody, 'Body', ctxWithDevice)[0];
+      return mediaType === 'multipart/form-data'
+        ? result.formData
+        : result.formUrlEncoded;
+    };
+
+    it('sends a JSON-encoded variant key as one Blob at runtime', async () => {
+      const formData = formDataForVariants() ?? '';
+      // The loop is plain JavaScript, so it can run as it is.
+      const build = runInNewContext(
+        `(bodyRequestBody) => {\n${formData}\nreturn formData;\n}`,
+        { FormData, Blob, File, Buffer },
+      ) as (body: unknown) => FormData;
+      const file = new Blob(['bytes'], { type: 'image/png' });
+
+      const result = build({ dto: { name: 'probe' }, file, note: 'n' });
+
+      const dtoPart = result.get('dto');
+      expect(dtoPart).toBeInstanceOf(Blob);
+      expect((dtoPart as Blob).type).toBe('application/json');
+      expect(await (dtoPart as Blob).text()).toBe('{"name":"probe"}');
+      // A file value keeps its own type, whatever its encoding says.
+      expect((result.get('file') as Blob).type).toBe('image/png');
+      expect(result.get('note')).toBe('n');
+    });
+
+    it('leaves url-encoded variant keys alone', () => {
+      expect(
+        formDataForVariants('application/x-www-form-urlencoded'),
+      ).not.toContain('new Blob');
+    });
   });
 });
 
