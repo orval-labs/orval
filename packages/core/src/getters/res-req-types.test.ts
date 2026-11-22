@@ -2765,6 +2765,52 @@ describe('getResReqTypes (JSON form-data parts, issue #4560)', () => {
     expect(formData).not.toContain('forEach');
   });
 
+  it.each<[string, OpenApiSchemaObject]>([
+    [
+      'oneOf arrays',
+      {
+        oneOf: [
+          { type: 'array', items: { type: 'string' } },
+          { type: 'array', items: { type: 'integer' } },
+        ],
+      },
+    ],
+    [
+      'anyOf objects',
+      {
+        anyOf: [
+          { $ref: '#/components/schemas/DeviceCreateRequest' },
+          { type: 'object', properties: { id: { type: 'integer' } } },
+        ],
+      },
+    ],
+    [
+      'a nullable oneOf',
+      {
+        oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+      },
+    ],
+  ])('sends a part composed of %s as one JSON Blob', (_, tags) => {
+    const formData = formDataFor(
+      { tags },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).toContain(
+      "formData.append(`tags`, new Blob([JSON.stringify(bodyRequestBody.tags)], { type: 'application/json' }));",
+    );
+    expect(formData).not.toContain('forEach');
+  });
+
+  it('leaves a part mixing an object with a primitive as before', () => {
+    const formData = formDataFor(
+      { tags: { oneOf: [dto, { type: 'string' }] } },
+      { tags: { contentType: 'application/json' } },
+    );
+
+    expect(formData).not.toContain('new Blob');
+  });
+
   describe('oneOf variant keys', () => {
     const formDataForVariants = (mediaType = 'multipart/form-data') => {
       const reqBody: [string, OpenApiRequestBodyObject][] = [

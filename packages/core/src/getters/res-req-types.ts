@@ -1010,18 +1010,43 @@ const isJsonMediaType = (contentType: string): boolean =>
   );
 
 /**
- * True for a schema whose type is an array, including a nullable union such
- * as `type: ['array', 'null']`, which {@link isEffectivelyArraySchema} does
- * not count.
+ * True for a schema whose value is an object or an array, which a JSON part
+ * sends as one document: directly, through a nullable type union such as
+ * `type: ['array', 'null']` (which {@link isEffectivelyArraySchema} does not
+ * count), or through `oneOf` / `anyOf` branches that all are, `null` branches
+ * aside.
  */
-const isArrayOrNullableArraySchema = (
+const isJsonContainerSchema = (
   schema: OpenApiSchemaObject,
   context: ContextSpec,
+  seen: Set<OpenApiSchemaObject> = new Set(),
 ): boolean => {
+  if (isBooleanJsonSchema(schema) || seen.has(schema)) {
+    return false;
+  }
+  seen.add(schema);
+
   const type = getSchemaType(schema);
-  return (
+  if (
     (Array.isArray(type) && type.includes('array')) ||
-    isEffectivelyArraySchema(schema, context)
+    isEffectivelyArraySchema(schema, context) ||
+    isEffectivelyObjectSchema(schema, context)
+  ) {
+    return true;
+  }
+
+  const branches = getSchemaOneOf(schema) ?? getSchemaAnyOf(schema);
+  if (!branches) {
+    return false;
+  }
+  const nonNullBranches = branches
+    .map((branch) => resolveSchemaRef(branch, context).schema)
+    .filter((branch) => isBooleanJsonSchema(branch) || branch.type !== 'null');
+  return (
+    nonNullBranches.length > 0 &&
+    nonNullBranches.every((branch) =>
+      isJsonContainerSchema(branch, context, seen),
+    )
   );
 };
 
@@ -1434,8 +1459,7 @@ function resolveSchemaPropertiesToFormData({
       !isUrlEncoded &&
       partContentType !== undefined &&
       isJsonMediaType(partContentType) &&
-      (isEffectivelyObjectSchema(valueSchema, context) ||
-        isArrayOrNullableArraySchema(valueSchema, context))
+      isJsonContainerSchema(valueSchema, context)
     ) {
       // An object or array part whose `encoding.contentType` is JSON is sent
       // as one part carrying that type, as a server binding the part by its
