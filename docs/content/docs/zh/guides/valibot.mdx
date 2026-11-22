@@ -294,7 +294,7 @@ export default defineConfig({
 
 已知限制：
 
-- JSON 错误响应也会按成功响应的 schema 校验，因此带错误体的 `404` 会抛出 `StandardSchemaError`。Zod 的行为相同。
+- 使用 fetch client 且 [`forceSuccessResponse`](/zh/docs/reference/configuration/output#forcesuccessresponse) 为默认值 `false` 时，JSON 错误响应也会按成功响应的 schema 校验，与状态码无关。不符合该 schema 的 `404` 响应体会抛出 `StandardSchemaError`，符合的则通过校验。Zod 的行为相同。设置 `forceSuccessResponse: true` 时，以及在 Angular client 中，错误状态码的响应不会被校验。
 - 请求和响应共用同一个组件 schema，因此必填的 `writeOnly` 属性在其中是可选的，必填的 `readOnly` 属性在请求体类型中仍然是必填的。
 - `format: binary` 在 JSON 中同样映射为 `v.file()`，因此带有此类属性的 JSON 响应校验会失败。二进制值的类型为 `File`，而不是 `Blob`。
 
@@ -302,4 +302,4 @@ export default defineConfig({
 
 `valibot` client 只生成 schema。若要让 HTTP client 校验自己的响应，请改用 [`schemas.type`](#校验-http-client-响应)。
 
-若要把 `valibot` client 与 HTTP client 搭配使用（例如在发送前检查请求体），请把两者生成到各自的输出中。每个输出请使用各自的 `target`，否则 Valibot 输出会覆盖 client 文件。在 `split`、`tags` 和 `tags-split` 模式下，如果 Valibot 输出设置了 `fileExtension: '.valibot.ts'`，两者可以共用一个 `target`。
+若要把 `valibot` client 与 HTTP client 搭配使用（例如在发送前检查请求体），请把两者生成到各自的输出中。每个输出请使用各自的 `target`，否则 Valibot 输出会覆盖 client 文件。在 `tags` 和 `tags-split` 模式下，`target` 的文件名会被忽略，只有它所在的目录有效：使用默认文件扩展名时，位于同一目录的 `http.ts` 和 `validation.ts` 都会为标签 `pets` 写入 `pets.ts`。这两种模式请使用不同的目录，或在 Valibot 输出中设置 `fileExtension: '.valibot.ts'`，这样两者可以共用一个目录。同一设置也让 `split` 模式可以共用 `./src/api` 这样的目录 target。共用文件 target 仍可能冲突：`./src/api/endpoints.valibot.ts` 会让两个输出都写入 `endpoints.valibot.ts`。

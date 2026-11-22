@@ -458,7 +458,7 @@ src/gen/
 ## schemaFileExtension
 
 **Type:** `String`
-**Default:** `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), `'.valibot.ts'` with `schemas: { type: 'valibot' }`, `'.effect.ts'` with `schemas: { type: 'effect' }`, otherwise the same as [`fileExtension`](#fileextension).
+**Default:** the value of [`fileExtension`](#fileextension) when you set it. Otherwise `'.zod.ts'` when generating Zod schemas (`schemas: { type: 'zod' }` or `client: 'zod'` + [`generateReusableSchemas`](#generatereusableschemas)), `'.valibot.ts'` with `schemas: { type: 'valibot' }`, `'.effect.ts'` with `schemas: { type: 'effect' }`, and `'.ts'` for the rest.
 
 Override the file extension for schema artifacts only — without affecting the global `fileExtension` (which still drives client output, mock files, etc.). It applies to TypeScript, Zod, Valibot and Effect schema files alike. Without [`schemas`](#schemas), the schemas file written next to the target keeps its `.schemas` marker, so `target: './api.ts'` with `schemaFileExtension: '.types.ts'` produces `api.schemas.types.ts`. Useful when you want client files at one extension and schema files at another:
 
@@ -4344,7 +4344,8 @@ export const customFetch = async <T>(
 ): Promise<T> => {
   const { schema, ...init } = options;
   const response = await fetch(url, init);
-  const data: unknown = await response.json();
+  const text = await response.text();
+  const data: unknown = text ? JSON.parse(text) : undefined;
 
   if (!schema || !response.ok) return data as T;
 

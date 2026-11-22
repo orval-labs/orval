@@ -294,7 +294,7 @@ The following fail with a configuration error: `schemas.mode: 'split'`, `schemas
 
 Known limits:
 
-- A JSON error response is validated against the success schema, so a `404` with an error body throws a `StandardSchemaError`. Zod does the same.
+- With the fetch clients and the default [`forceSuccessResponse: false`](/docs/reference/configuration/output#forcesuccessresponse), a JSON error response is validated against the success schema, whatever its status. A `404` body that does not fit the schema throws a `StandardSchemaError`, and one that fits passes. Zod does the same. With `forceSuccessResponse: true`, and in the Angular clients, an error status is not validated.
 - Requests and responses share a component schema, so a required `writeOnly` property is optional in it, and a required `readOnly` property is still required in request body types.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 
@@ -302,4 +302,4 @@ Known limits:
 
 The `valibot` client generates schemas only. To have an HTTP client validate its responses, use [`schemas.type`](#validating-http-client-responses) instead.
 
-To use the `valibot` client next to an HTTP client, for example to check a request body before sending it, generate each in its own output. Give each output its own `target`, or the Valibot output overwrites the client files. In `split`, `tags` and `tags-split` mode they can share a `target` if the Valibot output sets `fileExtension: '.valibot.ts'`.
+To use the `valibot` client next to an HTTP client, for example to check a request body before sending it, generate each in its own output. Give each output its own `target`, or the Valibot output overwrites the client files. In `tags` and `tags-split` mode the file name of a `target` is ignored and only its directory counts: with the default file extension, `http.ts` and `validation.ts` in one directory both write `pets.ts` for the tag `pets`. Use separate directories there, or set `fileExtension: '.valibot.ts'` on the Valibot output so the two can share one. The same setting lets `split` mode share a directory target such as `./src/api`. A shared file target can still collide: `./src/api/endpoints.valibot.ts` makes both outputs write `endpoints.valibot.ts`.
