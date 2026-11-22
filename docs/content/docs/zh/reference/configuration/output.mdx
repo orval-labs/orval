@@ -1259,6 +1259,29 @@ export default defineConfig({
 });
 ```
 
+### modelTypeChecks
+
+**类型：** `{ models: string }`
+**默认值：** 未设置
+
+在可复用 schema 旁生成仅用于类型的代码块：当组件 schema 的输出类型与其 model 不能双向赋值时，`tsc` 会报错。运行时不受影响。需要 `client: 'valibot'` 和 [`override.valibot.generateReusableSchemas`](#generatereusableschemas-2)，且不能与 [`schemas`](#schemas)、`useBrandedTypes`、`useNullForOptional`、`enumGenerationType: 'enum'` 或 `namingConvention.properties` 同时设置。生成 model 的配置必须保持 [`indexFiles`](#indexfiles) 开启（默认即开启）。
+
+`models` 是 model 的写入目录，与生成这些 model 的配置中的 [`schemas`](#schemas) 相同。相对路径从当前输出的 workspace 开始，它可能与写入 model 的配置的 workspace 不同；绝对路径按原样使用。schema 文件会导入该目录，因此两个配置必须使用相同的命名选项。如果 `tsconfig` 中启用了 `exactOptionalPropertyTypes`，还需设置 `override.valibot.exactOptional: true`。作用于整个输出，不能按 operation 或 tag 设置。Orval 有意让类型比 model 更宽松的组件会被跳过，并留下说明原因的注释。参见[与 Model 对照检查](/zh/docs/guides/valibot#与-model-对照检查)。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'valibot',
+      override: {
+        valibot: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+  },
+});
+```
+
 ## override.query
 
 TanStack Query 选项：
