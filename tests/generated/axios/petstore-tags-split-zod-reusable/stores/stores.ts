@@ -6,11 +6,11 @@
  */
 import * as zod from 'zod';
 
-import { CreateStoreBody, Store, StoreList } from '../model';
+import { CreateStoreBody, SortOrder, Store, StoreList } from '../model';
 
 export const ListStoresQueryParams = zod.object({
   limit: zod.int().optional(),
-  sort: zod.enum(['asc', 'desc']).optional(),
+  sort: SortOrder.optional(),
 });
 
 export const ListStoresResponse = StoreList;

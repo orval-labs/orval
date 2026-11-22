@@ -18,6 +18,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getAtPath,
   getDynamicAnchorName,
   getCustomFormatType,
   getFormatTypeError,
@@ -4389,6 +4390,33 @@ export const hasResponseSchema = (
 
 /* oxlint-enable typescript/no-unsafe-assignment */
 
+/**
+ * Returns the `schema` a parameter declares when it is a direct
+ * `#/components/schemas/*` `$ref`, following only parameter-level `$ref`s.
+ * `resolveRef` would resolve that `$ref` too, losing the reusable schema.
+ * `undefined` otherwise: any other schema is used as `resolveRef` resolved
+ * it. (#4584)
+ */
+const getDeclaredComponentSchemaRef = (
+  parameter: OpenApiParameterObject | OpenApiReferenceObject,
+  context: ContextSpec,
+): OpenApiReferenceObject | undefined => {
+  let current: unknown = parameter;
+  const visited = new Set<string>();
+  while (isObject(current) && typeof current.$ref === 'string') {
+    if (visited.has(current.$ref)) return undefined;
+    visited.add(current.$ref);
+    const { refPaths } = getRefInfo(current.$ref, context);
+    current = refPaths ? getAtPath(context.spec, refPaths) : undefined;
+  }
+  const schema = isObject(current) ? current.schema : undefined;
+  return isObject(schema) &&
+    typeof schema.$ref === 'string' &&
+    isComponentSchemaRef(schema.$ref)
+    ? (schema as OpenApiReferenceObject)
+    : undefined;
+};
+
 export const parseParameters = ({
   data,
   context,
@@ -4461,10 +4489,18 @@ export const parseParameters = ({
       return acc;
     }
 
+    // `resolveRef` also resolves a component `$ref` in the parameter's
+    // `schema`, which would inline it. Keep the declared `$ref` so it stays a
+    // named reference.
+    const declaredSchema =
+      (useReusableSchemas
+        ? getDeclaredComponentSchemaRef(val, context)
+        : undefined) ?? parameter.schema;
+
     const parameterSchema =
-      typeof parameter.schema === 'boolean'
-        ? toObjectSchema(parameter.schema)
-        : parameter.schema;
+      typeof declaredSchema === 'boolean'
+        ? toObjectSchema(declaredSchema)
+        : declaredSchema;
 
     // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
     // generator can take the namedRef path. We only shallow-clone to attach
