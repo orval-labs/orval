@@ -1,0 +1,246 @@
+openapi: 3.1.0
+info:
+  title: Valibot schemas checked against the models
+  version: 0.0.0
+paths:
+  /items:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: An item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /pairs:
+    get:
+      operationId: getPairs
+      responses:
+        '200':
+          description: A pair
+          content:
+            application/json:
+              schema:
+                type: array
+                prefixItems:
+                  - type: string
+                  - type: number
+components:
+  schemas:
+    # A readOnly array and a self reference.
+    Item:
+      type: object
+      required: [name, tags, children]
+      properties:
+        name:
+          type: string
+        tags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+    Pet:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [available, sold]
+        nickname:
+          type: string
+          nullable: true
+        owner:
+          $ref: '#/components/schemas/Owner'
+    Owner:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    # Valibot declares its constant as `DateSchema`, the model is `Date`.
+    Date:
+      type: object
+      required: [day]
+      properties:
+        day:
+          type: string
+          format: date
+    # The schemas below are looser than their models on purpose, so the
+    # checks skip them.
+    Point:
+      type: array
+      prefixItems:
+        - type: number
+        - type: number
+    # References a skipped schema.
+    Route:
+      type: object
+      required: [stops]
+      properties:
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Point'
+    Upload:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+    Anything:
+      description: Any value
+    Settings:
+      type: object
+      properties:
+        pageSize:
+          type: integer
+          default: 20
+    Tree:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Tree'
+    # A required key that no property declares.
+    Requirement:
+      type: object
+      required: [id, extra]
+      properties:
+        id:
+          type: string
+    # An enum with an object member.
+    Variant:
+      type: object
+      properties:
+        kind:
+          enum:
+            - a: 1
+            - [1, 2]
+    # Alternatives that only require keys, next to the own properties.
+    Choice:
+      type: object
+      properties:
+        left:
+          type: string
+        right:
+          type: string
+      oneOf:
+        - required: [left]
+        - required: [right]
+    Tags:
+      type: array
+      items:
+        type: string
+    # A readOnly beside a reference to an array.
+    Labelled:
+      type: object
+      required: [tags]
+      properties:
+        tags:
+          $ref: '#/components/schemas/Tags'
+          readOnly: true
+    # A readOnly array in an array.
+    Grid:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items:
+            type: array
+            readOnly: true
+            items:
+              type: string
+    # A key that the schema requires and only the alternatives declare.
+    Contact:
+      type: object
+      required: [email]
+      anyOf:
+        - type: object
+          properties:
+            email:
+              type: string
+        - type: object
+          properties:
+            phone:
+              type: string
+    # Every alternative requires the key already, so it is checked.
+    Receipt:
+      type: object
+      required: [total]
+      oneOf:
+        - type: object
+          required: [total]
+          properties:
+            total:
+              type: number
+        - type: object
+          required: [total, tip]
+          properties:
+            total:
+              type: number
+            tip:
+              type: number
+    # A component of constants is a constant object in the model.
+    Marker:
+      type: object
+      properties:
+        kind:
+          const: marker
+    # Without a type, the schema accepts any value, whatever else it holds.
+    Dictionary:
+      additionalProperties:
+        type: string
+    Patterned:
+      patternProperties:
+        '^x-':
+          type: string
+    Bare:
+      properties: {}
+    Merged:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - additionalProperties:
+            type: string
+    Wrapper:
+      type: object
+      properties:
+        meta:
+          additionalProperties:
+            type: string
+        extra:
+          description: Any value
+    # The model merges a null alternative into the properties of the schema.
+    NullAlt:
+      type: object
+      properties:
+        id:
+          type: string
+      anyOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: 'null'
+    # The model leaves null out of a const.
+    NullableConst:
+      type: object
+      required: [kind, name]
+      properties:
+        kind:
+          type: [string, 'null']
+          const: circle
+        name:
+          type: string
+    # A reference into the paths is inlined.
+    PairHolder:
+      type: object
+      properties:
+        pair:
+          $ref: '#/paths/~1pairs/get/responses/200/content/application~1json/schema'
