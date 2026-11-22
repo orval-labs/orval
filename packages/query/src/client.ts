@@ -16,6 +16,7 @@ import {
   type GeneratorVerbOptions,
   getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsHelperBody,
+  getAngularHeadersExpression,
   getArrayResponseSchema,
   getIsBodyVerb,
   getQueryParamsEncoding,
@@ -224,7 +225,9 @@ export const generateAngularHttpRequestFunction = (
     httpOptions.push('params: httpParams');
   }
   if (headers) {
-    httpOptions.push('headers: new HttpHeaders(headers)');
+    httpOptions.push(
+      `headers: new HttpHeaders(${getAngularHeadersExpression('headers ?? {}')})`,
+    );
   }
 
   // Use only success response content types to determine responseType

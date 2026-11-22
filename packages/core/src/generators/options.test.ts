@@ -25,6 +25,7 @@ import {
   getAngularFilteredParamsCallExpression,
   getAngularFilteredParamsExpression,
   getAngularFilteredParamsHelperBody,
+  getAngularHeadersExpression,
   getAngularObjectParamStrategies,
 } from './options';
 
@@ -1669,5 +1670,80 @@ describe('generateOptions', () => {
     expect(result).toContain("observe: 'events'");
     expect(result).not.toContain(',{{');
     expect(result).not.toContain('{\n      data,{{');
+  });
+});
+
+describe('Angular header parameters', () => {
+  const headerResponse = {
+    imports: [],
+    definition: { success: 'Pet', errors: 'unknown' },
+    isBlob: false,
+    types: { success: [], errors: [] },
+    contentTypes: ['application/json'],
+    schemas: [],
+    originalSchema: {},
+  };
+
+  it('stringifies values and drops undefined ones', () => {
+    const headers = {
+      'X-Tenant-Id': 42,
+      'X-Dry-Run': false,
+      'X-Tags': [1, 'a'],
+      'X-Trace': undefined,
+    };
+
+    expect(
+      runInNewContext(getAngularHeadersExpression('headers'), { headers }),
+    ).toEqual({
+      'X-Tenant-Id': '42',
+      'X-Dry-Run': 'false',
+      'X-Tags': ['1', 'a'],
+    });
+  });
+
+  it('converts header parameters before merging request options', () => {
+    const result = generateAxiosOptions({
+      response: headerResponse,
+      isExactOptionalPropertyTypes: false,
+      queryParams: undefined,
+      headers: minimalSchema,
+      requestOptions: true,
+      hasSignal: false,
+      isAngular: true,
+    });
+
+    expect(result).toContain(
+      `headers: {...${getAngularHeadersExpression('headers ?? {}')}, ...options?.headers},`,
+    );
+  });
+
+  it('converts header parameters without request options', () => {
+    const result = generateAxiosOptions({
+      response: headerResponse,
+      isExactOptionalPropertyTypes: false,
+      queryParams: undefined,
+      headers: minimalSchema,
+      requestOptions: false,
+      hasSignal: false,
+      isAngular: true,
+    });
+
+    expect(result).toContain(
+      `headers: ${getAngularHeadersExpression('headers ?? {}')},`,
+    );
+  });
+
+  it('keeps header parameters as they are for axios', () => {
+    const result = generateAxiosOptions({
+      response: headerResponse,
+      isExactOptionalPropertyTypes: false,
+      queryParams: undefined,
+      headers: minimalSchema,
+      requestOptions: true,
+      hasSignal: false,
+      isAngular: false,
+    });
+
+    expect(result).toContain('headers: {...headers, ...options?.headers},');
   });
 });

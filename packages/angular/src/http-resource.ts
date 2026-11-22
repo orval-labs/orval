@@ -1,5 +1,6 @@
 import {
   buildAngularParamsFilterExpression,
+  getAngularHeadersExpression,
   type ClientBuilder,
   type ClientDependenciesBuilder,
   type ClientExtraFilesBuilder,
@@ -697,7 +698,9 @@ const buildResourceRequest = (
       : bodyAccess;
 
   const paramsAccess = queryParams ? 'params?.()' : undefined;
-  const headersAccess = headers ? 'headers?.()' : undefined;
+  const headersAccess = headers
+    ? getAngularHeadersExpression('headers?.() ?? {}')
+    : undefined;
   // Object-typed query param serialization (issue #3705), gated for
   // `override.angular.queryObjectSerialization`, `paramsFilter`, and
   // `paramsSerializer`.

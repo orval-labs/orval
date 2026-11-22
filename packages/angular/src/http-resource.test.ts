@@ -3268,7 +3268,9 @@ describe('angular httpResource generator', () => {
       // `headers?:` are distinct substrings, so this pins the required form.
       expect(header).toContain('headers: Signal<GetPetByIdHeaders>');
       expect(header).not.toContain('headers?: Signal<GetPetByIdHeaders>');
-      expect(header).toContain('headers: headers?.()');
+      expect(header).toContain(
+        'headers: Object.fromEntries(Object.entries(headers?.() ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, Array.isArray(value) ? value.map(String) : String(value)]))',
+      );
     });
 
     it('renders required QUERY_PARAM/BODY props as required Signals, not optional', () => {

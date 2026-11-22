@@ -219,7 +219,14 @@ export function listPetsResource(
     const request = {
       url: `/pets`,
       params: filterParams(params?.() ?? {}, new Set<string>([])),
-      headers: headers?.(),
+      headers: Object.fromEntries(
+        Object.entries(headers?.() ?? {})
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => [
+            key,
+            Array.isArray(value) ? value.map(String) : String(value),
+          ]),
+      ),
     };
     return applyOrvalRequestExtension(request, options);
   }, options);
@@ -375,7 +382,17 @@ export class SwaggerPetstoreService {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'events',
         params: filteredParams,
-        headers: { ...headers, ...options?.headers },
+        headers: {
+          ...Object.fromEntries(
+            Object.entries(headers ?? {})
+              .filter(([, value]) => value !== undefined)
+              .map(([key, value]) => [
+                key,
+                Array.isArray(value) ? value.map(String) : String(value),
+              ]),
+          ),
+          ...options?.headers,
+        },
       });
     }
 
@@ -384,7 +401,17 @@ export class SwaggerPetstoreService {
         ...(options as Omit<NonNullable<typeof options>, 'observe'>),
         observe: 'response',
         params: filteredParams,
-        headers: { ...headers, ...options?.headers },
+        headers: {
+          ...Object.fromEntries(
+            Object.entries(headers ?? {})
+              .filter(([, value]) => value !== undefined)
+              .map(([key, value]) => [
+                key,
+                Array.isArray(value) ? value.map(String) : String(value),
+              ]),
+          ),
+          ...options?.headers,
+        },
       });
     }
 
@@ -392,7 +419,17 @@ export class SwaggerPetstoreService {
       ...(options as Omit<NonNullable<typeof options>, 'observe'>),
       observe: 'body',
       params: filteredParams,
-      headers: { ...headers, ...options?.headers },
+      headers: {
+        ...Object.fromEntries(
+          Object.entries(headers ?? {})
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => [
+              key,
+              Array.isArray(value) ? value.map(String) : String(value),
+            ]),
+        ),
+        ...options?.headers,
+      },
     });
   }
 

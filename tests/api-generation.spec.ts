@@ -203,7 +203,7 @@ test('angular http-resource-headers exposes request descriptor extension (#3710)
 
   // The already-supported OpenAPI `in: header` forwarding (top-level
   // `output.headers: true`) still works alongside the new extension.
-  expect(content).toContain('headers: headers?.()');
+  expect(content).toContain('Object.entries(headers?.() ?? {})');
   expect(content).toMatch(/headers[?]?:\s*Signal<[A-Za-z]+Headers>/);
 });
 
