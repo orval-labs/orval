@@ -20,6 +20,17 @@ export {
   type OperationSchema,
   type SchemaParsers,
 } from './operation-schemas';
+export {
+  getModelTypeCheckSkips,
+  type ModelTypeCheckLibrary,
+  type ModelTypeCheckSkipOptions,
+} from './model-type-check-skips';
+export {
+  type ModelTypeCheck,
+  getModelsImportPath,
+  type RenderedModelTypeChecks,
+  renderModelTypeChecks,
+} from './model-type-checks';
 export { omitDirectional, relaxWriteOnly } from './read-only';
 export { createWarnOnceReporter } from './reporter';
 export {
