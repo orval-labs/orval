@@ -5111,7 +5111,14 @@ Wired clients:
 - `client: 'fetch'`, plus `react-query`, `vue-query`, `svelte-query`,
   `solid-query`, `swr` and `pinia-colada` under `httpClient: 'fetch'`;
 - `client: 'angular'`, both its `HttpClient` services and its `httpResource`
-  helpers.
+  helpers;
+- `client: 'angular-query'` with `httpClient: 'angular'`.
+
+Under `angular-query`, the request function converts the body in a `map` on the
+`HttpClient` call, and chains the deserializer onto the `Promise` a custom
+mutator returns. As under `angular`, dates are converted before
+`runtimeValidation` parses the body, a body typed through a mutator's `BodyType`
+is left to the mutator, and Valibot or Effect schemas get no conversion.
 
 Under `angular`, a service method converts the body for every `observe` value,
 and so does the `Observable` a custom mutator returns. An `httpResource` helper

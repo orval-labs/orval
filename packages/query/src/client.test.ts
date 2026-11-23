@@ -1375,6 +1375,192 @@ describe('generateAngularHttpRequestFunction — zod runtimeValidation response 
   });
 });
 
+describe('generateAngularHttpRequestFunction with useDatesTransform (#4592)', () => {
+  const datedSchema: OpenApiSchemaObject = {
+    type: 'object',
+    required: ['createdAt'],
+    properties: { createdAt: { type: 'string', format: 'date-time' } },
+  };
+
+  const response: GeneratorVerbOptions['response'] = {
+    imports: [{ name: 'Pet', schemaName: 'Pet', values: true }],
+    definition: { success: 'Pet', errors: 'unknown' },
+    types: {
+      success: [
+        {
+          value: 'Pet',
+          contentType: 'application/json',
+          key: '200',
+          type: 'object',
+          isEnum: false,
+          hasReadonlyProps: false,
+          imports: [],
+          schemas: [],
+          isRef: false,
+          dependencies: [],
+          originalSchema: datedSchema,
+        },
+      ],
+      errors: [],
+    },
+    contentTypes: ['application/json'],
+    isBlob: false,
+    schemas: [],
+  };
+
+  const datedBody: GeneratorVerbOptions['body'] = {
+    implementation: 'appointment',
+    definition: 'Appointment',
+    imports: [],
+    schemas: [],
+    originalSchema: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['day'],
+            properties: { day: { type: 'string', format: 'date' } },
+          },
+        },
+      },
+    },
+    contentType: 'application/json',
+    formData: '',
+    formUrlEncoded: '',
+    isOptional: false,
+    isBlob: false,
+  };
+
+  const bodyProp = {
+    name: 'appointment',
+    definition: 'appointment: Appointment',
+    implementation: 'appointment: Appointment',
+    default: undefined,
+    required: true,
+    type: GetterPropType.BODY,
+  };
+
+  const mutator: GeneratorMutator = {
+    name: 'customClient',
+    path: '/path/to/mutator.ts',
+    default: false,
+    hasErrorType: false,
+    errorTypeName: '',
+    hasSecondArg: true,
+    hasThirdArg: false,
+    isHook: false,
+  };
+
+  const makeVerbOptions = (
+    overrides: Parameters<typeof createTestGeneratorVerbOptions>[0] = {},
+    override: Record<string, unknown> = {},
+  ) =>
+    createTestGeneratorVerbOptions({
+      operationId: 'updatePet',
+      operationName: 'updatePet',
+      typeName: 'updatePet',
+      verb: 'put',
+      route: '/pets',
+      pathRoute: '/pets',
+      response,
+      body: datedBody,
+      props: [bodyProp],
+      override: {
+        requestOptions: false,
+        formData: { disabled: true, arrayHandling: 'serialize' },
+        formUrlEncoded: false,
+        useDatesTransform: true,
+        ...override,
+      },
+      ...overrides,
+    });
+
+  const makeOptions = (
+    schemas:
+      | string
+      | { path: string; type: 'zod'; splitByTags: boolean } = './model',
+  ) =>
+    createTestGeneratorOptions({
+      route: '/pets',
+      pathRoute: '/pets',
+      context: {
+        output: { schemas, httpClient: OutputHttpClient.ANGULAR },
+      },
+    });
+
+  it('converts the response and serializes the body on the HttpClient call', () => {
+    const result = generateAngularHttpRequestFunction(
+      makeVerbOptions(),
+      makeOptions(),
+    );
+
+    expect(result).toContain(
+      'http.put<Pet>(url, serializeUpdatePetRequest(appointment)).pipe(map((data) => deserializeUpdatePetResponse(data as Pet)))',
+    );
+    expect(result).toContain(
+      'const deserializeUpdatePetResponse = (data: Pet): Pet =>',
+    );
+    expect(result).toContain(
+      'const serializeUpdatePetRequest = (data: Appointment): Appointment =>',
+    );
+    // The helpers follow the operation, so its doc comment stays attached.
+    expect(result.indexOf('const updatePet')).toBeLessThan(
+      result.indexOf('const deserializeUpdatePetResponse'),
+    );
+  });
+
+  it('converts the dates before the Zod schema validates them', () => {
+    const result = generateAngularHttpRequestFunction(
+      makeVerbOptions(
+        {},
+        {
+          query: {
+            runtimeValidation: { enabled: true, strategy: 'throw' },
+          },
+        },
+      ),
+      makeOptions({ path: './model', type: 'zod', splitByTags: false }),
+    );
+
+    const deserialize = result.indexOf(
+      'deserializeUpdatePetResponse(data as unknown as Pet)',
+    );
+    expect(deserialize).toBeGreaterThan(-1);
+    expect(deserialize).toBeLessThan(result.indexOf('Pet.parse(data)'));
+  });
+
+  it('chains the deserializer onto the Promise a mutator returns', () => {
+    const result = generateAngularHttpRequestFunction(
+      makeVerbOptions({ mutator }),
+      makeOptions(),
+    );
+
+    expect(result).toContain('data: serializeUpdatePetRequest(appointment)');
+    expect(result).toMatch(/\)\.then\(deserializeUpdatePetResponse\);/);
+  });
+
+  it('leaves a body typed through the mutator BodyType to the mutator', () => {
+    const result = generateAngularHttpRequestFunction(
+      makeVerbOptions({ mutator: { ...mutator, bodyTypeName: 'BodyType' } }),
+      makeOptions(),
+    );
+
+    expect(result).not.toContain('serializeUpdatePetRequest');
+    expect(result).toContain('.then(deserializeUpdatePetResponse)');
+  });
+
+  it('generates no helpers when useDatesTransform is off', () => {
+    const result = generateAngularHttpRequestFunction(
+      makeVerbOptions({}, { useDatesTransform: false }),
+      makeOptions(),
+    );
+
+    expect(result).not.toContain('serializeUpdatePetRequest');
+    expect(result).not.toContain('deserializeUpdatePetResponse');
+    expect(result).toContain('http.put<Pet>(url, appointment)');
+  });
+});
+
 describe('getQueryErrorType with response envelopes', () => {
   const errorType = (
     key: string,
