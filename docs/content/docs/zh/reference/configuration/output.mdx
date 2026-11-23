@@ -4082,7 +4082,12 @@ export const getOrderDetails = (orderId: string) => {
 
 它只会转换 schema 中明确声明为日期的字段，不会遍历整个响应，也不会通过字符串模式匹配去“猜”日期；没有日期字段的 operation 也不会生成额外代码。设置 `useDatesTransform: true` 会隐式开启 `useDates: true`。这样一来，就不再需要 `useDates` 下展示的 Axios interceptor 方案。
 
-当前限制如下：没有 OpenAPI [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object) `mapping` 的 `oneOf` / `anyOf` 会被跳过，因为静态分析无法判断某个 payload（载荷）到底匹配哪个分支；带显式 `mapping` 的 discriminated union 则会被转换，并在 discriminator 属性上生成一个包含多个 `case` 的 `switch`。`additionalProperties` map 不会被转换，多种 success shape 的响应也会被跳过，递归 schema 也会整体保持不变，因为如果只转换循环之上的层级，就会导致更深层的日期仍然是字符串，而生成类型却已经声明成 `Date`。目前只有基于 Axios 的 Clients 接入了这一能力（`react-query`、`vue-query`、`svelte-query`，以及 `httpClient: 'axios'` 的 `solid-query`）。
+当前限制如下：没有 OpenAPI [`discriminator`](https://spec.openapis.org/oas/v3.1.0#discriminator-object) `mapping` 的 `oneOf` / `anyOf` 会被跳过，因为静态分析无法判断某个 payload（载荷）到底匹配哪个分支；带显式 `mapping` 的 discriminated union 则会被转换，并在 discriminator 属性上生成一个包含多个 `case` 的 `switch`。`additionalProperties` map 不会被转换，多种 success shape 的响应也会被跳过，递归 schema 也会整体保持不变，因为如果只转换循环之上的层级，就会导致更深层的日期仍然是字符串，而生成类型却已经声明成 `Date`。已接入这一能力的 client：
+
+- 基于 Axios 的 query client：`react-query`、`vue-query`、`svelte-query`，以及 `httpClient: 'axios'` 的 `solid-query`；
+- `client: 'fetch'`，以及 `httpClient: 'fetch'` 下的 `react-query`、`vue-query`、`svelte-query`、`solid-query`、`swr` 和 `pinia-colada`；
+- `client: 'angular'`，包括其 `HttpClient` service 和 `httpResource` helper；
+- `httpClient: 'angular'` 的 `client: 'angular-query'`。
 
 ### useBigInt
 

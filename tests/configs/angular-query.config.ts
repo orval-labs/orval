@@ -1,4 +1,38 @@
-import { defineConfig } from 'orval';
+import { defineConfig, type OverrideOutput } from 'orval';
+
+// `useDatesTransform` with a mapped `date-time`. The spec keeps dates out of
+// path params, which a query key would interpolate as an object.
+const datesTransform = (
+  name: string,
+  override: OverrideOutput = {},
+  schemaType?: 'zod',
+) => ({
+  output: {
+    target: `../generated/angular-query/${name}/endpoints.ts`,
+    schemas: schemaType
+      ? { type: schemaType, path: `../generated/angular-query/${name}/model` }
+      : `../generated/angular-query/${name}/model`,
+    client: 'angular-query' as const,
+    httpClient: 'angular' as const,
+    override: {
+      query: { signal: true },
+      useDatesTransform: true,
+      formatType: {
+        'date-time': {
+          type: 'Temporal.Instant',
+          decode: 'Temporal.Instant.from',
+          encode: 'String',
+        },
+      },
+      ...override,
+    },
+    clean: true,
+    formatter: 'prettier' as const,
+  },
+  input: {
+    target: '../specifications/angular-dates-transform-tags.yaml',
+  },
+});
 
 export default defineConfig({
   logLevel: 'error',
@@ -146,4 +180,18 @@ export default defineConfig({
       target: '../specifications/typed-header-parameters.yaml',
     },
   },
+  // #4592: `useDatesTransform` converts dates in the `HttpClient` request
+  // functions, through a custom mutator, and before Zod validates the body.
+  datesTransform: datesTransform('dates-transform'),
+  datesTransformMutator: datesTransform('dates-transform-mutator', {
+    mutator: {
+      path: '../mutators/custom-client-angular-query.ts',
+      name: 'customClient',
+    },
+  }),
+  datesTransformZod: datesTransform(
+    'dates-transform-zod',
+    { query: { signal: true, runtimeValidation: true } },
+    'zod',
+  ),
 });

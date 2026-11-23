@@ -125,6 +125,26 @@ export const generateAngularHttpRequestFunction = (
     isFormUrlEncoded,
   });
 
+  const { deserializer, serializer } = getAngularDateHelpers({
+    operationName,
+    response,
+    body,
+    props,
+    verb,
+    mutator,
+    override,
+    context,
+  });
+  // Emitted after the operation so its doc comment stays attached to it; the
+  // helpers are only referenced at call time, so there is no TDZ issue.
+  const dateHelpersImplementation = [deserializer, serializer]
+    .filter((helper) => helper !== undefined)
+    .map(({ implementation }) => `\n${implementation}`)
+    .join('');
+  const serializedBody = serializer
+    ? { ...body, implementation: `${serializer.name}(${body.implementation})` }
+    : body;
+
   // Handle mutator case
   if (mutator) {
     const isExactOptionalPropertyTypes =
@@ -137,7 +157,7 @@ export const generateAngularHttpRequestFunction = (
 
     const mutatorConfig = generateMutatorConfig({
       route,
-      body,
+      body: serializedBody,
       headers,
       queryParams,
       response,
@@ -168,9 +188,9 @@ export const generateAngularHttpRequestFunction = (
       ${bodyForm}${paramsEncoding ? `\n      ${paramsEncoding}` : ''}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
-      ${requestOptions});
+      ${requestOptions})${deserializer ? `.then(${deserializer.name})` : ''};
     }
-  `;
+  ${dateHelpersImplementation}`;
   }
 
   // Generate native Angular HttpClient implementation
@@ -253,7 +273,10 @@ export const generateAngularHttpRequestFunction = (
       : isFormUrlEncoded && body.formUrlEncoded
         ? 'formUrlEncoded'
         : body.definition
-          ? toObjectString([body], 'implementation').replace(/,\s*$/, '')
+          ? toObjectString([serializedBody], 'implementation').replace(
+              /,\s*$/,
+              '',
+            )
           : '';
 
   switch (verb) {
@@ -273,6 +296,17 @@ export const generateAngularHttpRequestFunction = (
       httpCall = `http.${verb}${httpGeneric}(url, ${bodyArg || 'undefined'}${optionsStr})`;
       break;
     }
+  }
+
+  // Dates are converted before the validation pipe runs, since `zod.date()`
+  // rejects the wire string. A validated call is typed as the schema output,
+  // which need not overlap the type the deserializer takes.
+  // The deserializer exists only for a JSON success body, which never sets a
+  // `responseType` option, so the call keeps its `HttpClient` generic here.
+  if (deserializer) {
+    httpCall = `${httpCall}.pipe(map((data) => ${deserializer.name}(data${
+      shouldValidateResponse ? ' as unknown' : ''
+    } as ${responseType})))`;
   }
 
   // If validation is enabled, pipe through the shared runtime-validation emitter
@@ -314,7 +348,60 @@ export const generateAngularHttpRequestFunction = (
     }
     return lastValueFrom(request$);
   }
-`;
+${dateHelpersImplementation}`;
+};
+
+/**
+ * The `useDatesTransform` helpers of an angular-query operation:
+ * `deserialize{Op}Response` for its JSON success body and
+ * `serialize{Op}Request` for its JSON request body, each only when there is
+ * something to convert. A Valibot or Effect schema converts the date strings
+ * itself and rejects a `Date`, and a body typed through a mutator's `BodyType`
+ * need not have the schema's shape.
+ */
+const getAngularDateHelpers = ({
+  operationName,
+  response,
+  body,
+  props,
+  verb,
+  mutator,
+  override,
+  context,
+}: Pick<
+  GeneratorVerbOptions,
+  | 'operationName'
+  | 'response'
+  | 'body'
+  | 'props'
+  | 'verb'
+  | 'mutator'
+  | 'override'
+> &
+  Pick<GeneratorOptions, 'context'>) => {
+  if (!override.useDatesTransform || getStandardSchemaLibrary(context.output)) {
+    return {};
+  }
+
+  const deserializer = generateResponseDateDeserializer({
+    operationName,
+    response,
+    context,
+    props,
+  });
+  const serializer =
+    getIsBodyVerb(verb) && !mutator?.bodyTypeName
+      ? generateRequestDateSerializer({
+          operationName,
+          body,
+          context,
+          props,
+          // `HttpClient` sends a string body as it is, not as JSON.
+          wrapValueBody: true,
+        })
+      : undefined;
+
+  return { deserializer, serializer };
 };
 export const generateAxiosRequestFunction = (
   {
