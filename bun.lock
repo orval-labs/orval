@@ -457,6 +457,20 @@
         "vite-plus": "catalog:",
       },
     },
+    "samples/fetch-app/valibot": {
+      "name": "fetch-app-valibot",
+      "version": "8.49.0",
+      "dependencies": {
+        "valibot": "catalog:valibot",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "orval": "workspace:*",
+        "prettier": "catalog:",
+        "typescript": "catalog:",
+        "vite-plus": "catalog:",
+      },
+    },
     "samples/hono/composite-routes-with-tags-split": {
       "name": "@hono/composite-routes-with-tags-split",
       "version": "8.49.0",
@@ -2744,6 +2758,8 @@
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
     "fetch-app-shared-runtime": ["fetch-app-shared-runtime@workspace:samples/fetch-app/shared-runtime"],
+
+    "fetch-app-valibot": ["fetch-app-valibot@workspace:samples/fetch-app/valibot"],
 
     "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
