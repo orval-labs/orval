@@ -470,10 +470,13 @@ const REUSABLE_SCHEMA_CLIENTS = [
 // The clients whose reusable component schemas `modelTypeChecks` can check.
 const MODEL_TYPE_CHECK_CLIENTS = [
   { client: OutputClient.VALIBOT, library: 'valibot' },
+  { client: OutputClient.ZOD, library: 'zod' },
 ] as const;
 
 interface ModelOnlyOption {
   option: string;
+  /** The libraries whose schemas cannot follow the models. */
+  libraries: readonly (typeof MODEL_TYPE_CHECK_CLIENTS)[number]['library'][];
   isSet: (override: NormalizedOutputOptions['override']) => boolean;
   /** How the models differ, which the schemas cannot follow. */
   difference: string;
@@ -484,22 +487,27 @@ interface ModelOnlyOption {
 const MODEL_ONLY_OPTIONS: readonly ModelOnlyOption[] = [
   {
     option: 'override.useBrandedTypes: true',
+    libraries: ['valibot', 'zod'],
     isSet: ({ useBrandedTypes }) => useBrandedTypes === true,
     difference: 'the models brand primitive component schemas',
   },
   {
     option: 'override.useNullForOptional: true',
+    libraries: ['valibot', 'zod'],
     isSet: ({ useNullForOptional }) => useNullForOptional === true,
     difference: 'the models type an optional property as `T | null`',
   },
   {
     option: "override.enumGenerationType: 'enum'",
+    libraries: ['valibot', 'zod'],
     isSet: ({ enumGenerationType }) => enumGenerationType === 'enum',
     difference:
       'the models declare an enum as a TypeScript `enum`, which a string literal is not assignable to',
   },
   {
     option: 'override.namingConvention.properties',
+    // Zod renames the keys of its output as the models do.
+    libraries: ['valibot'],
     isSet: ({ namingConvention }) => namingConvention.properties !== undefined,
     difference: 'the models rename the properties',
   },
@@ -509,7 +517,9 @@ const MODEL_ONLY_OPTIONS: readonly ModelOnlyOption[] = [
  * Rejects the outputs `override.modelTypeChecks` has nothing to check in, and
  * warns when the tsconfig makes the checks fail.
  */
-function validateModelTypeChecks(output: NormalizedOutputOptions): void {
+async function validateModelTypeChecks(
+  output: NormalizedOutputOptions,
+): Promise<void> {
   if (!output.override.modelTypeChecks) return;
   const checked = MODEL_TYPE_CHECK_CLIENTS.find(
     ({ client }) => client === output.client,
@@ -525,29 +535,56 @@ function validateModelTypeChecks(output: NormalizedOutputOptions): void {
       `\`override.modelTypeChecks\` requires \`override.${library}.generateReusableSchemas\`: only a component schema has a model to check against.`,
     );
   }
-  const modelOnly = MODEL_ONLY_OPTIONS.filter(({ isSet }) =>
-    isSet(output.override),
+  const modelOnly = MODEL_ONLY_OPTIONS.filter(
+    ({ libraries, isSet }) =>
+      libraries.includes(library) && isSet(output.override),
   );
   if (modelOnly.length > 0) {
     throw new Error(
       `\`override.modelTypeChecks\` cannot be combined with ${modelOnly.map(({ option, difference }) => `\`${option}\` (${difference})`).join('; ')}: the schemas cannot match such models.`,
     );
   }
+  // Reusable Valibot schemas already reject `output.schemas`, and Zod keeps
+  // them next to the operations only without it.
+  if (output.schemas) {
+    throw new Error(
+      '`override.modelTypeChecks` cannot be combined with `output.schemas`: the checks are written next to the reusable schemas, which `output.schemas` moves into files of their own.',
+    );
+  }
   // The models have no `exactOptionalPropertyTypes` form of their own: under
   // the flag, `a?: T` means the key is absent or `T`, which only schemas
   // generated with `exactOptional` output.
-  if (
-    output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes &&
-    !output.override[library].exactOptional
-  ) {
-    logger.warn(
-      `The tsconfig sets \`exactOptionalPropertyTypes\`, so the checks of every optional property fail unless \`override.${library}.exactOptional\` is \`true\`.`,
-    );
+  if (output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes) {
+    const zod = library === 'zod' ? await import('@orval/zod') : undefined;
+    // Zod 3 has no `exactOptional`, so its optional keys stay `T | undefined`,
+    // and Zod 4 gained the method in 4.3.0.
+    if (
+      zod &&
+      !zod.resolveIsZodV4(output.override.zod.version, output.packageJson)
+    ) {
+      logger.warn(
+        'The tsconfig sets `exactOptionalPropertyTypes`, and Zod 3 has no `exactOptional` output, so the checks of every optional property fail. Use Zod 4.3 or later, or turn the flag off.',
+      );
+    } else if (
+      zod &&
+      output.override.zod.exactOptional &&
+      zod.lacksZodExactOptional(output.packageJson)
+    ) {
+      logger.warn(
+        'The tsconfig sets `exactOptionalPropertyTypes`, and `override.zod.exactOptional` needs Zod 4.3 or later, so the generated schemas do not compile with an earlier Zod. Upgrade Zod to 4.3 or later, or set `override.zod.exactOptional` to `false` and turn the flag off.',
+      );
+    } else if (!output.override[library].exactOptional) {
+      logger.warn(
+        `The tsconfig sets \`exactOptionalPropertyTypes\`, so the checks of every optional property fail unless \`override.${library}.exactOptional\` is \`true\`${library === 'zod' ? ' (Zod 4.3 or later)' : ''}.`,
+      );
+    }
   }
 }
 
 /** Rejects schema-routing combinations that are unsupported by generation. */
-function validateSchemaRoutes(output: NormalizedOutputOptions): void {
+async function validateSchemaRoutes(
+  output: NormalizedOutputOptions,
+): Promise<void> {
   const schemas = output.schemas;
   for (const { client, library, label } of REUSABLE_SCHEMA_CLIENTS) {
     if (!output.override[library].generateReusableSchemas) continue;
@@ -562,7 +599,7 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
       );
     }
   }
-  validateModelTypeChecks(output);
+  await validateModelTypeChecks(output);
   if (!schemas || isString(schemas)) return;
   const { type } = schemas;
   if (
@@ -1610,7 +1647,7 @@ export async function normalizeOptions(
     );
   }
 
-  validateSchemaRoutes(normalizedOptions.output);
+  await validateSchemaRoutes(normalizedOptions.output);
   validateRuntimeValidation(normalizedOptions.output);
 
   // The faker generator's `schemasImportPath` overrides where schema-level

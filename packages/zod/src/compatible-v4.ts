@@ -39,6 +39,34 @@ const getRangeLowerBound = (range: string) =>
     range.trim().replace(/^npm:(?:@[^/]+\/)?[^@]+@/, ''),
   )?.[1];
 
+// Whether the Zod the project can run is at least `minimum`: the installed
+// version when known, else the lower bound of the declared range. `undefined`
+// when neither can be read. The prerelease suffix is kept, so a canary build
+// of the minimum stays below it.
+const hasZodVersionAtLeast = (
+  packageJson: PackageJson | undefined,
+  minimum: string,
+): boolean | undefined => {
+  if (!packageJson) {
+    return undefined;
+  }
+
+  const installed = packageJson.resolvedVersions?.zod;
+  const version = installed
+    ? installed
+    : getRangeLowerBound(getZodPackageVersion(packageJson) ?? '');
+
+  if (!version) {
+    return undefined;
+  }
+
+  try {
+    return compareVersions(version, minimum);
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * `zod.xor` shipped in Zod 4.2.0 (classic and mini). Earlier Zod 4 releases
  * would fail at import time on `zod.xor`, so `oneOf` keeps `zod.union` unless
@@ -59,26 +87,17 @@ const getRangeLowerBound = (range: string) =>
  * Unlike {@link isZodVersionV4}, the prerelease suffix is kept so
  * `4.2.0-canary.*` builds that predate `xor` stay on `zod.union`.
  */
-export const supportsZodXor = (packageJson: PackageJson | undefined) => {
-  if (!packageJson) {
-    return false;
-  }
+export const supportsZodXor = (packageJson: PackageJson | undefined) =>
+  hasZodVersionAtLeast(packageJson, '4.2.0') === true;
 
-  const installed = packageJson.resolvedVersions?.zod;
-  const version = installed
-    ? installed
-    : getRangeLowerBound(getZodPackageVersion(packageJson) ?? '');
-
-  if (!version) {
-    return false;
-  }
-
-  try {
-    return compareVersions(version, '4.2.0');
-  } catch {
-    return false;
-  }
-};
+/**
+ * `exactOptional` shipped in Zod 4.3.0 (classic and mini). Reports `false`
+ * only when the installed version, or the lower bound of the declared range,
+ * is known to predate it; an undetectable version is not flagged, since the
+ * Zod 4 output assumes a modern release then.
+ */
+export const lacksZodExactOptional = (packageJson: PackageJson | undefined) =>
+  hasZodVersionAtLeast(packageJson, '4.3.0') === false;
 
 /**
  * Resolves whether to emit Zod 4-style output.

@@ -5145,6 +5145,7 @@ export {
   getZodImportSource,
   getZodTypeName,
   isZodVersionV4,
+  lacksZodExactOptional,
   resolveIsZodV4,
   supportsZodXor,
 } from './compatible-v4';
