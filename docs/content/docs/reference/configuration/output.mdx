@@ -1577,17 +1577,17 @@ export default defineConfig({
 
 **Default:** unset
 
-Write a type-only block next to the reusable schemas that fails `tsc` when the output type of a component schema and its model are not assignable both ways. Nothing changes at runtime. Requires `client: 'valibot'` and [`override.valibot.generateReusableSchemas`](#generatereusableschemas-2), and cannot be combined with [`schemas`](#schemas), `useBrandedTypes`, `useNullForOptional`, `enumGenerationType: 'enum'` or `namingConvention.properties`. The configuration that writes the models must keep [`indexFiles`](#indexfiles) on, which is the default.
+For `client: 'zod'` and `client: 'valibot'`. Write a type-only block next to the reusable schemas that fails `tsc` when the output type of a component schema (`zod.output` or `v.InferOutput`) and its model are not assignable both ways. Nothing changes at runtime. Requires the client's `generateReusableSchemas` ([Zod](#generatereusableschemas), [Valibot](#generatereusableschemas-2)), and cannot be combined with [`schemas`](#schemas): the block is written where the schemas are written, next to the operations. It also rejects `useBrandedTypes`, `useNullForOptional` and `enumGenerationType: 'enum'`, and for Valibot `namingConvention.properties`, which only the models follow. The configuration that writes the models must keep [`indexFiles`](#indexfiles) on, which is the default.
 
-`models` is the directory the models are written to, like [`schemas`](#schemas) in the configuration that generates them. A relative path starts at the workspace of this output, which can differ from the workspace of the configuration that writes the models, and an absolute path is used as it is. The schemas file imports it, so both configurations must use the same naming options. With `exactOptionalPropertyTypes` in your `tsconfig`, also set `override.valibot.exactOptional: true`. Output-wide, so it cannot be set per operation or tag. A component that Orval types more loosely than its model on purpose is skipped, with a comment saying why. See [Checking Against the Models](/docs/guides/valibot#checking-against-the-models).
+`models` is the directory the models are written to, like [`schemas`](#schemas) in the configuration that generates them. A relative path starts at the workspace of this output, which can differ from the workspace of the configuration that writes the models, and an absolute path is used as it is. The schemas file imports it, so both configurations must use the same naming options. With `exactOptionalPropertyTypes` in your `tsconfig`, also set `exactOptional: true` in `override.zod` or `override.valibot`. Zod needs version 4.3 or later for it, since Zod 3 has no `.exactOptional()` and keeps `.optional()`, and Zod 4.0 to 4.2 lack the method. Output-wide, so it cannot be set per operation or tag. A component that Orval types more loosely than its model on purpose is skipped, with a comment saying why. See Checking Against the Models for [Zod](/docs/guides/zod#checking-against-the-models) and [Valibot](/docs/guides/valibot#checking-against-the-models).
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      client: 'valibot',
+      client: 'zod', // or 'valibot' with override.valibot
       override: {
-        valibot: { generateReusableSchemas: true },
+        zod: { generateReusableSchemas: true },
         modelTypeChecks: { models: './src/api/model' },
       },
     },
@@ -2586,7 +2586,7 @@ export const Pet = zod.object({ name: zod.string().exactOptional() });
 Behavior:
 
 - **Opt-in.** Left `false`, optional properties emit `.optional()` as before, so existing output is unchanged.
-- **zod v4 only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted.
+- **zod 4.3 or later only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted. `.exactOptional()` was added in zod 4.3.0, so the output of zod 4.0 to 4.2 does not compile with the option on.
 - Applies to optional properties in both the classic and [`mini`](#variant) variants.
 
 ### generateCompanionTypes

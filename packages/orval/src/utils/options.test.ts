@@ -3903,9 +3903,16 @@ describe('normalizeOptions', () => {
     const normalizeChecks = async (
       override: Record<string, unknown>,
       output: Record<string, unknown> = {},
+      zodVersion?: string,
     ) => {
       const workspace = await createTempWorkspace();
       try {
+        if (zodVersion) {
+          await writeFile(
+            path.join(workspace, 'package.json'),
+            JSON.stringify({ dependencies: { zod: zodVersion } }),
+          );
+        }
         const normalized = await normalizeOptions(
           {
             input: {
@@ -4038,6 +4045,61 @@ describe('normalizeOptions', () => {
       },
     );
 
+    describe('for Zod', () => {
+      const zod = { zod: { generateReusableSchemas: true } };
+
+      it.each([
+        [
+          { useBrandedTypes: true },
+          'cannot be combined with `override.useBrandedTypes: true`',
+        ],
+        [
+          { useNullForOptional: true },
+          'cannot be combined with `override.useNullForOptional: true`',
+        ],
+        [
+          { enumGenerationType: 'enum' },
+          "cannot be combined with `override.enumGenerationType: 'enum'`",
+        ],
+      ])('is rejected with %j', async (override, message) => {
+        await expect(
+          normalizeChecks(
+            { ...zod, ...override, modelTypeChecks: { models: './models' } },
+            { client: 'zod' },
+          ),
+        ).rejects.toThrow(message);
+      });
+
+      it('names only the options Zod rejects when several are set', async () => {
+        await expect(
+          normalizeChecks(
+            {
+              ...zod,
+              useBrandedTypes: true,
+              namingConvention: { properties: 'snake_case' },
+              enumGenerationType: 'enum',
+              modelTypeChecks: { models: './models' },
+            },
+            { client: 'zod' },
+          ),
+        ).rejects.toThrow(
+          /combined with `override.useBrandedTypes: true` \(the models brand primitive component schemas\); `override.enumGenerationType: 'enum'` \(/,
+        );
+      });
+
+      it('accepts namingConvention.properties, which Zod renames as the models do', async () => {
+        const { normalized } = await normalizeChecks(
+          {
+            ...zod,
+            namingConvention: { properties: 'snake_case' },
+            modelTypeChecks: { models: './models' },
+          },
+          { client: 'zod' },
+        );
+        expect(normalized.output.override.modelTypeChecks).toBeDefined();
+      });
+    });
+
     it('is accepted with the options that leave the models alone', async () => {
       const { normalized } = await normalizeChecks({
         ...reusable,
@@ -4050,13 +4112,47 @@ describe('normalizeOptions', () => {
       expect(normalized.output.override.modelTypeChecks).toBeDefined();
     });
 
+    it('accepts Zod with its reusable schemas', async () => {
+      const { normalized, workspace } = await normalizeChecks(
+        {
+          zod: { generateReusableSchemas: true },
+          modelTypeChecks: { models: './models' },
+        },
+        { client: 'zod' },
+      );
+      expect(normalized.output.override.modelTypeChecks).toEqual({
+        models: path.join(workspace, 'models'),
+      });
+    });
+
+    it('is rejected for Zod without its generateReusableSchemas', async () => {
+      await expect(
+        normalizeChecks(
+          { ...reusable, modelTypeChecks: { models: './models' } },
+          { client: 'zod' },
+        ),
+      ).rejects.toThrow(/requires `override.zod.generateReusableSchemas`/);
+    });
+
+    it('is rejected for Zod with output.schemas', async () => {
+      await expect(
+        normalizeChecks(
+          {
+            zod: { generateReusableSchemas: true },
+            modelTypeChecks: { models: './models' },
+          },
+          { client: 'zod', schemas: './models' },
+        ),
+      ).rejects.toThrow(/cannot be combined with `output.schemas`/);
+    });
+
     it('is rejected for a client without reusable schemas to check', async () => {
       await expect(
         normalizeChecks(
           { ...reusable, modelTypeChecks: { models: './models' } },
           { client: 'fetch' },
         ),
-      ).rejects.toThrow(/requires `client: 'valibot'`/);
+      ).rejects.toThrow(/requires `client: 'valibot'` or `client: 'zod'`/);
     });
 
     it.each([{ models: '' }, { models: '  ' }, {}, true])(
@@ -4110,6 +4206,94 @@ describe('normalizeOptions', () => {
         );
         expect(warned()).toBe(false);
       });
+
+      it('warns for Zod too, unless it is exactOptional', async () => {
+        const zod = (exactOptional: boolean) =>
+          normalizeChecks(
+            {
+              zod: { generateReusableSchemas: true, exactOptional },
+              modelTypeChecks: { models: './models' },
+            },
+            { client: 'zod', ...tsconfig(true) },
+          );
+        await zod(false);
+        expect(warned()).toBe(true);
+        logWarningSpy.mockClear();
+        await zod(true);
+        expect(warned()).toBe(false);
+      });
+
+      it('warns for Zod 3, which has no exactOptional output', async () => {
+        await normalizeChecks(
+          {
+            zod: {
+              generateReusableSchemas: true,
+              exactOptional: true,
+              version: 3,
+            },
+            modelTypeChecks: { models: './models' },
+          },
+          { client: 'zod', ...tsconfig(true) },
+        );
+        expect(
+          logWarningSpy.mock.calls.some(([message]) =>
+            String(message).includes('Zod 3 has no `exactOptional`'),
+          ),
+        ).toBe(true);
+      });
+
+      it('is quiet for Zod 4 with exactOptional, whichever the version is set by', async () => {
+        await normalizeChecks(
+          {
+            zod: {
+              generateReusableSchemas: true,
+              exactOptional: true,
+              version: 4,
+            },
+            modelTypeChecks: { models: './models' },
+          },
+          { client: 'zod', ...tsconfig(true) },
+        );
+        expect(warned()).toBe(false);
+      });
+
+      it.each(['4.2.1', '^4.0.0'])(
+        'warns for Zod %s, which has no exactOptional method',
+        async (zodVersion) => {
+          await normalizeChecks(
+            {
+              zod: { generateReusableSchemas: true, exactOptional: true },
+              modelTypeChecks: { models: './models' },
+            },
+            { client: 'zod', packageJson: './package.json', ...tsconfig(true) },
+            zodVersion,
+          );
+          expect(
+            logWarningSpy.mock.calls.some(
+              ([message]) =>
+                String(message).includes('Zod 4.3') &&
+                String(message).includes(
+                  'set `override.zod.exactOptional` to `false`',
+                ),
+            ),
+          ).toBe(true);
+        },
+      );
+
+      it.each(['4.3.0', '^4.4.0'])(
+        'is quiet for Zod %s with exactOptional',
+        async (zodVersion) => {
+          await normalizeChecks(
+            {
+              zod: { generateReusableSchemas: true, exactOptional: true },
+              modelTypeChecks: { models: './models' },
+            },
+            { client: 'zod', packageJson: './package.json', ...tsconfig(true) },
+            zodVersion,
+          );
+          expect(warned()).toBe(false);
+        },
+      );
 
       it('is quiet when the flag is off', async () => {
         await normalizeChecks(

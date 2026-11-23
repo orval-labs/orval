@@ -222,6 +222,107 @@ export default defineConfig({
 ⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
 ```
 
+## 与 Model 对照检查
+
+Model 和 schema 由不同的生成器生成，两者可能在无人察觉时产生偏差。如果项目在另一个配置中生成 TypeScript model，共享选项 [`override.modelTypeChecks`](/zh/docs/reference/configuration/output#modeltypechecks)（也适用于 [Valibot](/zh/docs/guides/valibot#与-model-对照检查)）会让 schema 文件断言每个组件 schema 的输出类型与其 model 一致。它需要 `generateReusableSchemas`，并且只在 schema 与 operation 写在一起时可用，即不设置 `output.schemas`：
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+    },
+    input: { target: './petstore.yaml' },
+  },
+  validation: {
+    output: {
+      client: 'zod',
+      target: './src/validation/schemas.ts',
+      override: {
+        zod: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+`models` 是另一个配置写入 model 的目录，与它的 `output.schemas` 相同。相对路径从当前配置的 workspace 开始，它可能与另一个配置的 workspace 不同；绝对路径按原样使用。schema 文件会导入该目录，并多出一个仅用于类型的代码块，运行时不受影响：
+
+```ts
+import type * as Models from '../api/model';
+
+type Assert<T extends true> = T;
+type Extends<A, B> = [A] extends [B] ? true : false;
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<zod.output<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, zod.output<typeof Pet>>>,
+  ];
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+该类型不会导出，因此重新导出多个此类文件的 barrel 不会因它而冲突。环境声明 `declare const` 会读取该类型，因此 `noUnusedLocals` 不会报错，且不产生任何代码。
+
+当 schema 与其 model 无法双向赋值时，你自己的 `tsc` 会在该组件的断言处报错：`Type 'false' does not satisfy the constraint 'true'`。检查读取的是 `zod.output`，Zod 3、Zod 4 和 Zod Mini 都有它。
+
+- 两个配置必须使用相同的命名选项，例如 `override.components.schemas`，这样 model 才与 schema 同名。
+- 双向可赋值无法发现只在一侧声明的可选属性，也无法发现任一侧为 `any` 的类型。必填属性、可空性、枚举、联合类型以及嵌套类型都能被检出。
+- 递归组件是与其常量所标注的类型对照检查的，该类型由 Orval 通过 model 生成器写出，因此只有两者对组件本身的处理出现偏差时才会在此显现。
+- 检查会导入 models 的 `index.ts`，并要求它按名称导出每个组件。请在生成 model 的配置中保持 `indexFiles` 开启（默认即开启）。
+- 在 schema 中映射类型的选项，例如 `formatType` 或 `useDates`，在 model 中也必须做同样的映射。请在两个配置中都设置 `useBigInt` 和 `useReadonlyArrays`，这样检查会跳过它们所改变的组件。
+- 如果 `tsconfig` 中启用了 `exactOptionalPropertyTypes`，model 会把可选属性写为 `a?: T`，因此请在 `override.zod` 中设置 `exactOptional: true`，否则每个可选属性都会检查失败。这需要 Zod 4.3 或更高版本，因为 Zod 3 以及 Zod 4.0 到 4.2 没有 `.exactOptional()`。当 Orval 读取的 `tsconfig` 启用了该选项而 `exactOptional` 未开启时，或检测到的 Zod 版本低于 4.3（`exactOptional` 的任何设置都无法满足该选项：请升级 Zod，或设置 `exactOptional: false` 并关闭该选项）时，生成时会给出警告。
+- `modelTypeChecks` 会拒绝 `useBrandedTypes`、`useNullForOptional` 和 `enumGenerationType: 'enum'` 并报错，因为它们会让 model 出现 Zod 输出无法匹配的形态。schema 输出的字符串字面量不能赋值给 TypeScript `enum`，因此生成 model 的配置中也请使用 `'const'` 或 `'union'`。`namingConvention.properties` 可以使用，因为 Zod 会像 model 一样重命名其输出的键。
+
+### 被跳过的组件
+
+Orval 有意让某些 schema 的类型比 model 更宽松，因此在这些地方没有任何 schema 能与 model 一致。包含这类写法的组件不会生成断言，代码块中会有一条注释说明原因，文件仍可正常编译：
+
+```ts
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<zod.output<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, zod.output<typeof Pet>>>,
+  ];
+  // Labels: skipped, a readOnly array is readonly in the model, which the schema output is not
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+引用了被跳过组件的组件也会被跳过，因为它的输出类型包含对方的类型。这些写法包括：
+
+- 带 `items` 的 `readOnly` 数组在 model 中是 `readonly T[]`，而 Zod schema 的输出是 `T[]`。
+- 可选属性上的 `default` 只让输出中的键变为必填。
+- `properties` 旁边的 `additionalProperties` 在 model 中是 `unknown` 类型，而 schema 会校验它。
+- 没有类型的 schema，例如 `{}` 或只有 `description` 的 schema，按 `unknown` 校验，而 model 将其类型写为 `{}`。
+- 没有类型、只带 `patternProperties`、空 `properties` 或 `additionalProperties: false` 的组件按 `unknown` 校验，而 model 将其类型写为对象。Zod 会为带 schema 或 `true` 的 `additionalProperties` 保留 record，属性或成员中的这类 schema 在 model 中同样没有类型。
+- 值为对象或数组的 `const` 不会被校验。
+- 类型中含 `null` 的 `const`，model 会去掉 `null`。
+- 所有属性都是 `const` 的组件，model 会写成常量对象，因此每个键都是必填。带有可选 `const` 属性的组件与 schema 不一致。
+- 在同一 schema 的 `properties` 或 `allOf` 旁边，`oneOf` 或 `anyOf` 含有 `null`、可空或 `enum` 的备选项：model 会合并备选项并丢弃枚举旁的自有属性，而 schema 做交叉。
+- 在同一 schema 的 `properties` 旁边，`allOf` 含有 `enum` 成员：model 把该成员与自有属性做成备选项，而 schema 做交叉。
+- 指向整个组件 schema 以外目标的 `$ref`，例如 `#/paths/...` 或 `#/components/responses/...`，会按 `unknown` 校验。
+- 与对象的 `properties` 并列、只要求若干键的 `oneOf` 或 `anyOf` 分支，例如 `{ required: [id] }`，会按带有这些键的对象校验，而 model 将其类型写为 `unknown`。
+- 启用 `useBigInt` 时，64 位整数（`format: int64` 或 `uint64`）在 model 中是 `bigint`，在 schema 中是 `number`。
+- 启用 `useReadonlyArrays` 时，数组在 model 中是 `readonly`，而 schema 的输出不是。
+- 带有 `items` 的元组（`prefixItems`），若其 `maxItems` 不大于前缀项的数量，model 会保留其剩余元素类型，而 schema 会省略它们。
+- 经过元组（`prefixItems`）的循环引用：Zod 只内联一层，之后将其验证为 `unknown`，因此位于这种环上的组件没有断言。
+- 非对象类型的 `type` 含 `null`（`'null'` 或 `['null', 'string']`）并与 `allOf`、`oneOf` 或 `anyOf` 同级：Zod 只验证组合部分，会丢弃 `null`。`['object', 'null']` 会保留 `null`，仍有断言。
+- 使用 Zod 3 时，没有类型的必填属性（`{}`、`true` 或对它的引用、只有 `description` 或 `not` 的 schema、`additionalProperties: false` 这类对象形状，或含此类成员的 `oneOf`）在输出中是可选的，而 model 要求它必填；属性和 `required` 列表位于不同的 `allOf` 成员中时也是如此。Zod 4 会保持该键必填。
+- 使用 Zod 3 时，没有原始类型成员的 `enum`（空，或只含对象和数组）会被验证为 `never`。
+- 与字符串 `format`（`email`、`uuid` 等）同级的 `const` 会被验证为该 format，而不是字面量；带 `const` 的二进制字符串（`format: binary`，或没有 `contentEncoding` 的 `contentMediaType: application/octet-stream`）会被验证为文件。
+- 没有 `prefixItems` 的 `items: false` 在 model 中是 `unknown[]`，在 schema 中是 `never[]`。
+- 空 schema 的 `not`（`not: {}`）会被验证为 `never`，而 model 将其类型写为 `unknown`。
+- 非对象的 `type` 与 `allOf` 同级，且该 `allOf` 的成员全是 `true`（类型不是标量时也可以是 `{}`），或与带有可接受任何值的候选项（如 `{}` 或 `true`）的 `oneOf`、`anyOf` 同级：schema 会被验证为 `unknown`，而 model 保留该类型。
+- 在没有 `properties` 和 `additionalProperties` 的 schema 上，带 schema 的 `unevaluatedProperties` 只有 model 会为其定类型。
+- `multipart/form-data` 请求体中带有媒体类型的字符串部分（来自 `encoding.<part>.contentType` 或自身的 `contentMediaType`，如 `image/png`、`application/json`），在 model 中会放宽为文件或字符串，而 schema 验证的是字符串。数组部分的元素，以及在请求体内联的 `allOf`、`oneOf` 或 `anyOf` 成员中声明的部分同样如此；`format: binary`、带 `const`、带 `contentEncoding` 的字符串和嵌套对象的属性不受影响。
+
+有些情况无法被检测，因此检查仍可能失败：在递归 `allOf` 上使用 `override.zod.coerce`，在声明了同名但定义不同的键的 `allOf` 成员上使用 `override.zod.strict`，以及与全局类型同名的组件，例如启用 `useDates` 时名为 `Date` 的组件。
+
 ## 用法
 
 ### 解析数据

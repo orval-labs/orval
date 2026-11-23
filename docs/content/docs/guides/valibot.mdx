@@ -115,7 +115,7 @@ Each constant on a cycle also gets two exported types: `Pet` for its output and 
 
 ### Checking Against the Models
 
-Models and schemas come from separate generators, so they can drift apart without anyone noticing. When a project generates TypeScript models in another configuration, [`override.modelTypeChecks`](/docs/reference/configuration/output#modeltypechecks) makes the schemas file assert that each component schema outputs what its model declares:
+Models and schemas come from separate generators, so they can drift apart without anyone noticing. When a project generates TypeScript models in another configuration, the shared [`override.modelTypeChecks`](/docs/reference/configuration/output#modeltypechecks) option, which also works with [Zod](/docs/guides/zod#checking-against-the-models), makes the schemas file assert that each component schema outputs what its model declares:
 
 ```ts title="orval.config.ts"
 export default defineConfig({

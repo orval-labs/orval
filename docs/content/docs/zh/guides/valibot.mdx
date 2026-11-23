@@ -115,7 +115,7 @@ export const ListPetsResponse = v.array(Pet);
 
 ### 与 Model 对照检查
 
-Model 和 schema 由不同的生成器生成，两者可能在无人察觉时产生偏差。如果项目在另一个配置中生成 TypeScript model，[`override.modelTypeChecks`](/zh/docs/reference/configuration/output#modeltypechecks) 会让 schema 文件断言每个组件 schema 的输出类型与其 model 一致：
+Model 和 schema 由不同的生成器生成，两者可能在无人察觉时产生偏差。如果项目在另一个配置中生成 TypeScript model，共享选项 [`override.modelTypeChecks`](/zh/docs/reference/configuration/output#modeltypechecks)（也适用于 [Zod](/zh/docs/guides/zod#与-model-对照检查)）会让 schema 文件断言每个组件 schema 的输出类型与其 model 一致：
 
 ```ts title="orval.config.ts"
 export default defineConfig({

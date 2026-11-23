@@ -31,6 +31,7 @@ export default defineConfig({
             'valibot-reusable-runtime.spec.ts',
             'valibot-schemas-runtime.spec.ts',
             'valibot-model-type-checks.spec.ts',
+            'zod-model-type-checks.spec.ts',
           ],
         },
       },

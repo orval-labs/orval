@@ -20,6 +20,7 @@ import {
   kebab,
   type NamingConvention,
   type NormalizedFormatTypeMap,
+  type NormalizedModelTypeChecksOptions,
   type NormalizedOutputOptions,
   type OpenApiParameterObject,
   type OpenApiParameterWithSchemaObject,
@@ -63,6 +64,7 @@ import {
 } from './reusable-schemas';
 import { reconcileZodBarrel } from './utils/barrel';
 import { namesAFile } from './utils/options';
+import { generateZodModelTypeChecks } from './zod-model-type-checks';
 
 interface ZodSchemaFileEntry {
   schemaName: string;
@@ -148,6 +150,13 @@ const renderRefinementImportStatements = (
     );
   return [named, ...namespaces].filter(Boolean).join('\n');
 };
+
+// The line that stands in for the type check of a skipped schema.
+const SKIPPED_CHECK_COMMENT = /^ {2}\/\/ [^\n]*?: skipped, [^\n]*$/gm;
+
+// An import statement. It names modules, not functions, so its path must not
+// count as a reference, such as a `models` path next to a function `models`.
+const IMPORT_STATEMENT = /^import\b(?:[^;'"]*?\bfrom\s*)?\s*(['"])[^'"\n]*\1/gm;
 
 /**
  * Adds the imports of the `formatType` functions and types Zod schema
@@ -240,11 +249,16 @@ export function addFormatTypeImports(
     return found;
   };
 
+  // The comments of the model type checks and the import statements name no
+  // function.
+  const referencing = content
+    .replaceAll(SKIPPED_CHECK_COMMENT, '')
+    .replaceAll(IMPORT_STATEMENT, '');
   const imports = [
-    ...getFormatTypeZodImports(content, override),
+    ...getFormatTypeZodImports(referencing, override),
     // A value import of the same local binding, module, and export also covers
     // a type reference. isImported deduplicates that case below.
-    ...getReferencedFormatTypeImports(content, override, (config) => [
+    ...getReferencedFormatTypeImports(referencing, override, (config) => [
       config.import,
     ]).map((imp) => ({ ...imp, values: false })),
   ].filter((imp) => !isImported(imp));
@@ -265,6 +279,7 @@ interface WriteZodOutputOptions {
     useNamedParameters?: boolean;
     useBrandedTypes?: boolean;
     formatType?: NormalizedFormatTypeMap;
+    modelTypeChecks?: NormalizedModelTypeChecksOptions;
     zod: {
       variant: ZodVariantOption;
       version: ZodVersionOption;
@@ -957,6 +972,7 @@ export function generateZodSchemasInline(
   includeParamsImport = false,
   sharedConstNameRegistry?: Record<string, number>,
   refinementImportsCollector?: GeneratorImport[],
+  moduleContent = '',
 ): string {
   const useReusableSchemas =
     output.override.zod.generateReusableSchemas === true;
@@ -970,6 +986,7 @@ export function generateZodSchemasInline(
       includeParamsImport,
       sharedConstNameRegistry,
       refinementImportsCollector,
+      moduleContent,
     );
   }
 
@@ -1062,6 +1079,7 @@ function generateZodSchemasInlineReusable(
   includeParamsImport = false,
   constNameRegistry?: Record<string, number>,
   refinementImportsCollector?: GeneratorImport[],
+  moduleContent = '',
 ): string {
   const isZodV4 = resolveIsZodV4(
     output.override.zod.version,
@@ -1117,19 +1135,13 @@ function generateZodSchemasInlineReusable(
   // Single-file inline mode emits every component schema in one file, so
   // recursive entries' TS-type references resolve in-file with no extra
   // imports — discard `extraImports` here.
-  const body = rewritten
+  const components = rewritten
     .map(
       (entry) =>
         renderReusableSchemaEntry(entry, context, output.override.zod.variant)
           .content,
     )
     .join('\n\n');
-
-  // Omit the zod import when concatenated into a file that already imports it
-  // (inline single-mode output where the zod client emits `import * as zod`).
-  const zodImport = includeZodImport
-    ? `${getZodSchemaImportStatement(output.override.zod.variant)}\n`
-    : '';
   // In split modes (`split` / `tags-split`) the inline schemas are written to
   // a separate `.schemas` file with no other imports, so the params-mutator
   // import has to be emitted here. In `single` / `tags` modes the schemas are
@@ -1139,9 +1151,28 @@ function generateZodSchemasInlineReusable(
   const paramsImport =
     paramsMutator &&
     includeParamsImport &&
-    bodyReferencesMutator(body, paramsMutator)
+    bodyReferencesMutator(components, paramsMutator)
       ? `${buildMutatorImportStatement(paramsMutator)}\n`
       : '';
+  const { importLine: modelsImport, block: modelTypeChecks } =
+    generateZodModelTypeChecks(context, rewritten, components, {
+      moduleContent,
+      isZodV4,
+      importedNames: paramsImport && paramsMutator ? [paramsMutator.name] : [],
+      refinementImports: [
+        ...refinementImports,
+        ...(refinementImportsCollector ?? []),
+      ],
+    });
+  const body = modelTypeChecks
+    ? `${components}\n\n${modelTypeChecks}`
+    : components;
+
+  // Omit the zod import when concatenated into a file that already imports it
+  // (inline single-mode output where the zod client emits `import * as zod`).
+  const zodImport = includeZodImport
+    ? `${getZodSchemaImportStatement(output.override.zod.variant)}\n`
+    : '';
   const refinementImportStatements = refinementImportsCollector
     ? ''
     : renderRefinementImportStatements(refinementImports, body, paramsImport);
@@ -1149,6 +1180,7 @@ function generateZodSchemasInlineReusable(
     ...(zodImport ? [zodImport.trimEnd()] : []),
     ...(paramsImport ? [paramsImport.trimEnd()] : []),
     ...(refinementImportStatements ? [refinementImportStatements] : []),
+    ...(modelsImport ? [modelsImport] : []),
   ].join('\n');
   const prefix = importBlock ? `${importBlock}\n\n` : '';
   return `${prefix}${body}\n`;

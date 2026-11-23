@@ -225,6 +225,107 @@ Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`,
 ⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.
 ```
 
+## Checking Against the Models
+
+Models and schemas come from separate generators, so they can drift apart without anyone noticing. When a project generates TypeScript models in another configuration, the shared [`override.modelTypeChecks`](/docs/reference/configuration/output#modeltypechecks) option, which also works with [Valibot](/docs/guides/valibot#checking-against-the-models), makes the schemas file assert that each component schema outputs what its model declares. It needs `generateReusableSchemas` and works when the schemas are written next to the operations, so without `output.schemas`:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  api: {
+    output: {
+      client: 'fetch',
+      target: './src/api/endpoints.ts',
+      schemas: './src/api/model',
+    },
+    input: { target: './petstore.yaml' },
+  },
+  validation: {
+    output: {
+      client: 'zod',
+      target: './src/validation/schemas.ts',
+      override: {
+        zod: { generateReusableSchemas: true },
+        modelTypeChecks: { models: './src/api/model' },
+      },
+    },
+    input: { target: './petstore.yaml' },
+  },
+});
+```
+
+`models` is the directory the other configuration writes its models to, like its `output.schemas`. A relative path starts at the workspace of this configuration, which can differ from that of the other one, and an absolute path is used as it is. The schemas file imports it and gets a type-only block. Nothing changes at runtime:
+
+```ts
+import type * as Models from '../api/model';
+
+type Assert<T extends true> = T;
+type Extends<A, B> = [A] extends [B] ? true : false;
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<zod.output<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, zod.output<typeof Pet>>>,
+  ];
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+The type is not exported, so a barrel that re-exports several of these files does not clash on it. The ambient `declare const` reads it, so `noUnusedLocals` stays quiet, and it emits no code.
+
+When a schema and its model are not assignable both ways, your own `tsc` run fails on the assertion of that component, with `Type 'false' does not satisfy the constraint 'true'`. The check reads `zod.output`, which Zod 3, Zod 4 and Zod Mini all have.
+
+- Both configurations must use the same naming options, such as `override.components.schemas`, so a model has the name of its schema.
+- Assignability in both directions does not catch an optional property that only one side declares, nor a type that is `any` on either side. Required properties, nullability, enums, unions and nested types are caught.
+- A recursive component is checked against the type its constant is annotated with, which Orval writes from the model generator, so only a drift in how the two handle the component itself shows up there.
+- The check imports the `index.ts` of the models and needs it to export every component by name. Keep `indexFiles` on, which is the default, in the configuration that writes the models.
+- An option such as `formatType` or `useDates` that maps a type in the schemas must map it in the models too. Set `useBigInt` and `useReadonlyArrays` in both configurations, so the checks skip the components they change.
+- With `exactOptionalPropertyTypes` in your `tsconfig`, the models type an optional property as `a?: T`, so set `exactOptional: true` in `override.zod`, or every optional property fails the check. It needs Zod 4.3 or later, since `.exactOptional()` does not exist in Zod 3 or in Zod 4.0 to 4.2. Orval warns at generation when the `tsconfig` it reads sets the flag and `exactOptional` is off, and when the Zod version it detects is below 4.3, where no setting of `exactOptional` satisfies it: upgrade Zod, or set `exactOptional: false` and turn the flag off.
+- `modelTypeChecks` rejects `useBrandedTypes`, `useNullForOptional` and `enumGenerationType: 'enum'` with an error, because they shape the models in ways a Zod output cannot match. A TypeScript `enum` is not assignable from the string literals a schema outputs, so use `'const'` or `'union'` in the configuration that writes the models too. `namingConvention.properties` is accepted, since Zod renames the keys of its output as the models do.
+
+### Skipped components
+
+Orval types some schemas more loosely than their models on purpose, so no schema could match the model there. A component that holds one has no assertion. A comment in the block says why, so the file still compiles:
+
+```ts
+type SchemaModelTypeChecks = {
+  Pet: [
+    Assert<Extends<zod.output<typeof Pet>, Models.Pet>>,
+    Assert<Extends<Models.Pet, zod.output<typeof Pet>>>,
+  ];
+  // Labels: skipped, a readOnly array is readonly in the model, which the schema output is not
+};
+declare const schemaModelTypeChecks: SchemaModelTypeChecks;
+```
+
+A component that references a skipped one is skipped too, because its output type holds the other's. The constructs are:
+
+- A `readOnly` array with `items` is `readonly T[]` in the model, and a Zod schema outputs `T[]`.
+- A `default` on an optional property makes the key required in the output only.
+- `additionalProperties` next to `properties` is typed as `unknown` by the model, and the schema checks it.
+- A schema without a type, such as `{}` or one with only a `description`, is validated as `unknown`, and the model types it as `{}`.
+- A component without a type that only has `patternProperties`, an empty `properties` or `additionalProperties: false` is validated as `unknown`, and the model types it as an object. Zod keeps a record for `additionalProperties` with a schema or `true`, and a property or a member of that kind is untyped in the model too.
+- A `const` that is an object or an array is not validated.
+- A `const` with `null` in its `type` is typed without `null` by the model.
+- A component whose properties are all a `const` is written as a constant object by the model, so every key is required. A component with an optional one differs from the schema.
+- A `oneOf` or `anyOf` with a `null`, nullable or `enum` alternative, next to the `properties` or `allOf` of the same schema: the model merges the alternatives and drops the own properties of an enum, and the schema intersects them.
+- An `allOf` with an `enum` member, next to `properties` of the same schema: the model makes the member and the own properties alternatives, and the schema intersects them.
+- A `$ref` to anything but a whole component schema, such as `#/paths/...` or `#/components/responses/...`, is validated as `unknown`.
+- A `oneOf` or `anyOf` alternative that only requires keys, such as `{ required: [id] }`, next to the `properties` of an object, is validated as an object with those keys, and the model types it as `unknown`.
+- With `useBigInt`, a 64-bit integer (`format: int64` or `uint64`) is a `bigint` in the model and a `number` in the schema.
+- With `useReadonlyArrays`, an array is `readonly` in the model, and the schema output is not.
+- A tuple (`prefixItems`) with `items` and a `maxItems` that is no more than the number of its prefix items keeps its rest items in the model, and the schema leaves them out.
+- A circular reference that runs through a tuple (`prefixItems`) is inlined one level by Zod and validated as `unknown` after that, so a component on such a cycle has no assertion.
+- A `type` with `null` that is not an object type (`'null'` or `['null', 'string']`) next to `allOf`, `oneOf` or `anyOf`: Zod validates the composition and drops the `null`. A `['object', 'null']` type keeps it and has an assertion.
+- With Zod 3, a required property without a type (`{}`, `true` or a reference to it, one with only a `description` or a `not`, an object shape such as `additionalProperties: false`, or a `oneOf` with such a member) is optional in the output, and the model requires it, also when the property and the `required` list sit in different `allOf` members. Zod 4 keeps the key required.
+- With Zod 3, an `enum` with no primitive member (empty, or with objects and arrays only) is validated as `never`.
+- A `const` next to a string `format` (`email`, `uuid`, ...) is validated as the format, not as the literal, and a binary string (`format: binary`, or `contentMediaType: application/octet-stream` without a `contentEncoding`) with a `const` is validated as a file.
+- `items: false` without `prefixItems` is `unknown[]` in the model and `never[]` in the schema.
+- A `not` of an empty schema (`not: {}`) is validated as `never`, and the model types it as `unknown`.
+- A `type` that is not an object, next to an `allOf` whose members are all `true` (or `{}` when the type is not a scalar), or next to a `oneOf` or `anyOf` with an alternative that accepts any value, such as `{}` or `true`, is validated as `unknown`, and the model keeps the type.
+- `unevaluatedProperties` with a schema, on a schema without `properties` and `additionalProperties`, is typed by the model only.
+- A string part of a `multipart/form-data` body that has a media type, from `encoding.<part>.contentType` or its own `contentMediaType` (`image/png`, `application/json`, ...), is widened to a file or a string in the model, and the schema validates a string. The model does so for the items of an array part and for a part declared in an inline `allOf`, `oneOf` or `anyOf` member of the body, and not for `format: binary`, a `const`, a `contentEncoding` or a property of a nested object.
+
+Some cases are not detected, so a check can still fail on them: `override.zod.coerce` on a recursive `allOf`, `override.zod.strict` on `allOf` members that declare the same key differently, and a component named like a global type, such as `Date` with `useDates`.
+
 ## Usage
 
 ### Parsing Data

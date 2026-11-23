@@ -37,6 +37,19 @@ declare const schemaModelTypeChecks: SchemaModelTypeChecks;`,
     });
   });
 
+  it('spells the type parameters apart from the names a scan reads as references', () => {
+    const { block } = renderModelTypeChecks({
+      checks: [{ modelName: 'Pet', schemaName: 'Pet' }],
+      modelsImportPath: '../model',
+      inferOutput: (name) => `Infer<typeof ${name}>`,
+      taken: new Set(),
+      scanned: new Set(['T', 'A']),
+    });
+    expect(block).toContain(
+      'type Assert<TSchema extends true> = TSchema;\ntype Extends<ASchema, B> = [ASchema] extends [B] ? true : false;',
+    );
+  });
+
   it('escapes the import specifier of the models', () => {
     const { importLine } = renderModelTypeChecks({
       checks: [{ modelName: 'Pet', schemaName: 'Pet' }],

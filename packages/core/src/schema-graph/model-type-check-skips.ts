@@ -1,6 +1,10 @@
+import { getFormDataComponentContexts } from '../getters/form-data-components';
 import type { ContextSpec } from '../types';
 import { isObject, isString } from '../utils/assertion';
-import { isOctetStreamContentType } from '../utils/content-type';
+import {
+  getFormDataFieldFileType,
+  isOctetStreamContentType,
+} from '../utils/content-type';
 import {
   CIRCULAR_REF_WARNING,
   dereferenceWithPolicy,
@@ -18,15 +22,19 @@ import {
   ALTERNATIVE_KEYS,
   type CompositionKey,
   COMPOSITION_KEYS,
+  hasOnlyAnnotations,
   membersOf,
   stringList,
 } from './schema-keys';
 
 /** The schema libraries whose output `modelTypeChecks` compares to the models. */
-export type ModelTypeCheckLibrary = 'valibot';
+export type ModelTypeCheckLibrary = 'valibot' | 'zod';
 
 interface ConstructSite {
   context: ContextSpec;
+  library: ModelTypeCheckLibrary;
+  /** Whether the Zod output is Zod 4 or Zod Mini, not Zod 3. */
+  isZodV4: boolean;
 }
 
 /** The composition keyword a subschema is a member of, if any. */
@@ -63,11 +71,12 @@ const isArraySchema = ({ type }: Record<string, unknown>): boolean =>
   Array.isArray(type) ? type.includes('array') : type === 'array';
 
 // Whether the schema fills a missing value. Valibot feeds the default of a
-// referenced schema into the property that references it.
+// referenced schema into the property that references it, Zod keeps the
+// reference and so the optional property.
 const hasDefault = (schema: unknown, site: ConstructSite): boolean => {
   if (!isObject(schema)) return false;
   if (schema.default !== undefined) return true;
-  if (getRef(schema) === undefined) return false;
+  if (site.library !== 'valibot' || getRef(schema) === undefined) return false;
   const { schema: target } = resolveSelf(schema, site.context, new Set());
   return isObject(target) && target.default !== undefined;
 };
@@ -109,6 +118,13 @@ const isUntypedObjectShape = (schema: Record<string, unknown>): boolean =>
     (key) => schema[key] === undefined || OBJECT_SHAPE_KEYS.includes(key),
   );
 
+// Whether Zod validates such a schema as unknown. It keeps a record when
+// `additionalProperties` is `true` or a schema.
+const isUntypedClosedObjectShape = (schema: Record<string, unknown>): boolean =>
+  isUntypedObjectShape(schema) &&
+  schema.additionalProperties !== true &&
+  !isObject(schema.additionalProperties);
+
 const hasComposition = (schema: Record<string, unknown>): boolean =>
   COMPOSITION_KEYS.some((key) => schema[key] !== undefined);
 
@@ -133,11 +149,13 @@ const isRequiredOnly = (member: unknown): boolean =>
 
 // Next to the own properties of an object, an alternative that only requires
 // keys is validated as an object with those keys required, which the model
-// leaves untyped. That holds next to an `object` type too.
+// leaves untyped. Valibot does so next to an `object` type too.
 const holdsRequiredOnlyAlternative = (
   schema: Record<string, unknown>,
+  site: ConstructSite,
 ): boolean =>
-  (hasKeys(schema.properties) || isObjectType(schema)) &&
+  (hasKeys(schema.properties) ||
+    (site.library === 'valibot' && isObjectType(schema))) &&
   alternativesOf(schema).some(isRequiredOnly);
 
 // Whether the schema is a numeric 64-bit integer, which `useBigInt` types as
@@ -307,11 +325,29 @@ const isBinaryString = (schema: Record<string, unknown>): boolean =>
     ) &&
       !schema.contentEncoding));
 
+// A tuple that cannot grow keeps its rest items in the model, while the Zod
+// schema leaves them out.
+const isClosedTupleWithRest = ({
+  prefixItems,
+  items,
+  maxItems,
+}: Record<string, unknown>): boolean =>
+  Array.isArray(prefixItems) &&
+  prefixItems.length > 0 &&
+  Boolean(items) &&
+  typeof maxItems === 'number' &&
+  maxItems <= prefixItems.length;
+
 // Whether the schema is an array of any kind, tuples included.
 const isArrayLike = (schema: Record<string, unknown>): boolean =>
   isArraySchema(schema) ||
   schema.items !== undefined ||
   schema.prefixItems !== undefined;
+
+// Whether the array has an `items` schema, the only case where the model
+// applies `readOnly`.
+const hasItemsSchema = ({ items }: Record<string, unknown>): boolean =>
+  items !== undefined && items !== false;
 
 // Whether the generated schema types the array's output as readonly, as the
 // model does for a readOnly array: one with items and no prefixItems, unless
@@ -322,8 +358,7 @@ const hasReadonlyOutput = (
   { context }: ConstructSite,
 ): boolean =>
   schema.readOnly === true &&
-  schema.items !== undefined &&
-  schema.items !== false &&
+  hasItemsSchema(schema) &&
   schema.prefixItems === undefined &&
   context.output.override.suppressReadonlyModifier !== true;
 
@@ -335,6 +370,252 @@ const holdsOptionalDefault = (
   const required = Array.isArray(schema.required) ? schema.required : [];
   return Object.entries(schema.properties).some(
     ([key, property]) => !required.includes(key) && hasDefault(property, site),
+  );
+};
+
+// Whether the type is `null` or a list that holds it. `nullable` is left out:
+// Zod keeps the null it adds.
+const hasNullType = ({ type }: Record<string, unknown>): boolean =>
+  Array.isArray(type) ? type.includes('null') : type === 'null';
+
+// Whether Zod drops the null of a type that sits next to a composition: it
+// validates the composition alone. An object type keeps its null, since the
+// composition then validates the object alongside it.
+const holdsNullTypeNextToComposition = (
+  schema: Record<string, unknown>,
+): boolean =>
+  hasNullType(schema) &&
+  !isObjectType(schema) &&
+  alternativesOf(schema).length + membersOf(schema.allOf).length > 0;
+
+// What a `$ref` points at: a component, or any other local target.
+const refTargetOf = (ref: string, context: ContextSpec): unknown =>
+  getComponentSchema(ref, context) ?? getLocalRefTarget(ref, context);
+
+// What the answers of `isUnknownValued` keep across the schemas it visits.
+interface UnknownWalk {
+  // The answers for referenced components, whose walk met no cycle.
+  answers: Map<string, boolean>;
+  // How many references the walk left in place for being cyclic or unresolved.
+  cuts: number;
+}
+
+// Whether the schema accepts any value, so the generated schema is `unknown`:
+// an untyped schema, `true`, or a composition that holds such a member. A
+// component several branches reach is answered once.
+const isUnknownValued = (
+  schema: unknown,
+  context: ContextSpec,
+  followed: ReadonlySet<string>,
+  walk: UnknownWalk = { answers: new Map(), cuts: 0 },
+): boolean => {
+  if (schema === true) return true;
+  const memberRef = isObject(schema) ? plainRefOf(schema) : undefined;
+  const shared =
+    memberRef !== undefined && !followed.has(memberRef)
+      ? walk.answers.get(memberRef)
+      : undefined;
+  if (shared !== undefined) return shared;
+  const { schema: target, followed: path } = resolveSelf(
+    schema,
+    context,
+    followed,
+  );
+  if (!isObject(target)) return target === true;
+  const left = getRef(target);
+  const cutsBefore = walk.cuts;
+  if (left !== undefined) {
+    // A reference left in place is cyclic or unresolved, or the alias of a
+    // boolean schema, which alias following leaves alone.
+    if (!path.has(left) && refTargetOf(left, context) === true) return true;
+    walk.cuts++;
+  }
+  const unknownIn = (members: unknown[]) => ({
+    some: () =>
+      members.some((member) => isUnknownValued(member, context, path, walk)),
+    every: () =>
+      members.every((member) => isUnknownValued(member, context, path, walk)),
+  });
+  const answer = (): boolean => {
+    if (target.oneOf !== undefined || target.anyOf !== undefined) {
+      return unknownIn(alternativesOf(target)).some();
+    }
+    const intersection = membersOf(target.allOf);
+    if (intersection.length > 0 && isUntyped({ ...target, allOf: undefined })) {
+      return unknownIn(intersection).every();
+    }
+    return isUntyped(target) || isUntypedClosedObjectShape(target);
+  };
+  const result = answer();
+  if (
+    memberRef !== undefined &&
+    !followed.has(memberRef) &&
+    walk.cuts === cutsBefore
+  ) {
+    walk.answers.set(memberRef, result);
+  }
+  return result;
+};
+
+interface ObjectParts {
+  properties: Record<string, unknown>;
+  required: ReadonlySet<string>;
+}
+
+// What the walk of `mergedObjectParts` keeps across the members of one schema.
+interface ObjectPartsWalk {
+  // The parts of a referenced component, whose walk met no cycle.
+  parts: Map<string, ObjectParts>;
+  // How many references the walk left in place for being cyclic.
+  cuts: number;
+}
+
+// The properties and required keys of the schema and of its `allOf` members,
+// which the generated schema intersects. A property of the schema itself wins
+// over the members, and a later member over an earlier one. A component that
+// several members reach is walked once.
+const mergedObjectParts = (
+  schema: Record<string, unknown>,
+  context: ContextSpec,
+  followed: ReadonlySet<string>,
+  walk: ObjectPartsWalk = { parts: new Map(), cuts: 0 },
+): ObjectParts => {
+  const properties: Record<string, unknown> = {};
+  const required = new Set(stringList(schema.required));
+  for (const member of membersOf(schema.allOf)) {
+    const memberRef = plainRefOf(member);
+    const shared =
+      memberRef !== undefined && !followed.has(memberRef)
+        ? walk.parts.get(memberRef)
+        : undefined;
+    const parts = shared ?? partsOfMember(member, context, followed, walk);
+    if (parts === undefined) continue;
+    Object.assign(properties, parts.properties);
+    for (const key of parts.required) required.add(key);
+  }
+  if (isObject(schema.properties)) Object.assign(properties, schema.properties);
+  return { properties, required };
+};
+
+// The ref of a member that is a `$ref` and annotations only, which holds what
+// its component holds.
+const plainRefOf = (member: unknown): string | undefined =>
+  isObject(member) && hasOnlyAnnotations(member) ? getRef(member) : undefined;
+
+const partsOfMember = (
+  member: unknown,
+  context: ContextSpec,
+  followed: ReadonlySet<string>,
+  walk: ObjectPartsWalk,
+): ObjectParts | undefined => {
+  const { schema: target, followed: path } = resolveSelf(
+    member,
+    context,
+    followed,
+  );
+  if (!isObject(target)) return undefined;
+  const memberRef = plainRefOf(member);
+  const cutsBefore = walk.cuts;
+  // A reference that is still in place is cyclic or unresolved.
+  if (getRef(target) !== undefined) walk.cuts++;
+  const parts = mergedObjectParts(target, context, path, walk);
+  if (
+    memberRef !== undefined &&
+    !followed.has(memberRef) &&
+    walk.cuts === cutsBefore
+  ) {
+    walk.parts.set(memberRef, parts);
+  }
+  return parts;
+};
+
+// Whether a required property accepts any value. Zod 3 makes the key of an
+// `unknown` property optional in the output type, while the model requires it.
+// The property and the requirement may sit in different `allOf` members.
+const requiresUnknownProperty = (
+  schema: Record<string, unknown>,
+  { context, isZodV4 }: ConstructSite,
+): boolean => {
+  if (isZodV4) return false;
+  const { properties, required } = mergedObjectParts(
+    schema,
+    context,
+    new Set(),
+  );
+  const walk: UnknownWalk = { answers: new Map(), cuts: 0 };
+  return [...required].some(
+    (key) =>
+      Object.hasOwn(properties, key) &&
+      isUnknownValued(properties[key], context, new Set(), walk),
+  );
+};
+
+// The string formats that the Zod generator validates as the format, with no
+// literal next to it. Another format, and a const next to `ipv4` or `ipv6`,
+// is validated as the literal.
+const VALIDATED_STRING_FORMATS: ReadonlySet<string> = new Set([
+  'date',
+  'time',
+  'time-local',
+  'date-time',
+  'date-time-local',
+  'email',
+  'uri',
+  'hostname',
+  'uuid',
+]);
+
+// Whether the schema is a string with a const and a format that the Zod
+// generator validates as the format, or as a file for a binary string.
+const isConstWithFormat = (schema: Record<string, unknown>): boolean =>
+  schema.const !== undefined &&
+  ((isString(schema.format) &&
+    VALIDATED_STRING_FORMATS.has(schema.format) &&
+    reachesString(schema)) ||
+    isBinaryString(schema));
+
+// Whether the schema evaluates properties by a schema of its own, with no
+// `properties` to anchor the object.
+// The model reads `additionalProperties` first, so it decides the record.
+const isUnevaluatedRecord = (schema: Record<string, unknown>): boolean =>
+  isObject(schema.unevaluatedProperties) &&
+  schema.additionalProperties === undefined &&
+  !hasKeys(schema.properties);
+
+const SCALAR_TYPES: readonly string[] = [
+  'string',
+  'number',
+  'integer',
+  'boolean',
+];
+
+// Whether a type that is not an object sits next to a composition whose
+// schema is `unknown`: the model keeps the type, and the generated schema
+// holds no trace of it. An `allOf` member without a type takes the scalar type
+// of its parent, except `true`; an alternative takes none.
+const holdsUnknownCompositionUnderType = (
+  schema: Record<string, unknown>,
+  { context }: ConstructSite,
+): boolean => {
+  const types = (Array.isArray(schema.type) ? schema.type : [schema.type])
+    .filter((type) => type !== undefined && type !== 'null')
+    .map(String);
+  if (types.length === 0 || types.includes('object')) return false;
+  const inheritsType = types.length === 1 && SCALAR_TYPES.includes(types[0]);
+  const isUnknown = (member: unknown) =>
+    isUnknownValued(member, context, new Set());
+  const intersection = membersOf(schema.allOf);
+  return (
+    alternativesOf(schema).some(isUnknown) ||
+    (intersection.length > 0 &&
+      intersection.every(
+        (member) =>
+          member === true ||
+          (!inheritsType &&
+            isObject(member) &&
+            getRef(member) === undefined &&
+            isUnknown(member)),
+      ))
   );
 };
 
@@ -358,8 +639,21 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
   {
     reason:
       'the default of an optional property makes it required in the schema output only',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: holdsOptionalDefault,
+  },
+  {
+    reason:
+      'a readOnly array is readonly in the model, which the schema output is not',
+    libraries: ['zod'],
+    // The model leaves the elements of a tuple alone, an array without items
+    // mutable, and `suppressReadonlyModifier` leaves the array mutable.
+    isIn: (schema, site) =>
+      schema.readOnly === true &&
+      isArraySchema(schema) &&
+      hasItemsSchema(schema) &&
+      schema.prefixItems === undefined &&
+      site.context.output.override.suppressReadonlyModifier !== true,
   },
   {
     reason:
@@ -369,6 +663,20 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
       site.context.output.override.useReadonlyArrays === true &&
       isArrayLike(schema) &&
       !hasReadonlyOutput(schema, site),
+  },
+  {
+    reason:
+      'with useReadonlyArrays an array is readonly in the model, which the schema output is not',
+    libraries: ['zod'],
+    isIn: (schema, site) =>
+      site.context.output.override.useReadonlyArrays === true &&
+      isArrayLike(schema),
+  },
+  {
+    reason:
+      'a tuple of a fixed length keeps its rest items in the model, which the schema leaves out',
+    libraries: ['zod'],
+    isIn: isClosedTupleWithRest,
   },
   {
     reason:
@@ -391,14 +699,14 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
   {
     reason:
       'additionalProperties next to properties is typed unknown by the model',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: (schema) =>
       hasKeys(schema.properties) && hasKeys(schema.additionalProperties),
   },
   {
     reason:
       'a schema without a type is validated as unknown, which the model types as {}',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     atRoot: true,
     isIn: isUntyped,
   },
@@ -409,8 +717,17 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
     isIn: isUntypedObjectShape,
   },
   {
+    // In a property or a member, the model leaves such a schema untyped too,
+    // so only a component of its own differs.
+    reason:
+      'a schema without a type that describes an object is validated as unknown, which the model types as an object',
+    libraries: ['zod'],
+    atRoot: true,
+    isIn: isUntypedClosedObjectShape,
+  },
+  {
     reason: 'a const that is an object or an array is not validated',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: ({ const: value }) => isStructured(value),
   },
   {
@@ -432,41 +749,102 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
     isIn: requiresKeyOfAlternatives,
   },
   {
+    reason:
+      'a reference to anything but a whole component schema is validated as unknown',
+    libraries: ['zod'],
+    isIn: (schema) => {
+      const ref = getRef(schema);
+      return ref !== undefined && getComponentKey(ref) === undefined;
+    },
+  },
+  {
     reason: 'a const typed with null is typed without null by the model',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: isNullableConst,
   },
   {
     reason:
       'a component of constants is a constant object in the model, with every key required',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     atRoot: true,
     isIn: holdsOptionalConst,
   },
   {
     reason:
       'a null, nullable or enum alternative next to properties or allOf is merged by the model and intersected in the schema',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: holdsNullOrEnumAlternative,
   },
   {
     reason:
       'an enum allOf member next to properties is an alternative in the model and intersected in the schema',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: holdsEnumMember,
   },
   {
     reason:
       'an alternative that only requires keys is validated as an object with them, which the model types as unknown',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: holdsRequiredOnlyAlternative,
   },
   {
     reason:
       'a 64-bit integer is a bigint in the model with useBigInt, and a number in the schema',
-    libraries: ['valibot'],
+    libraries: ['valibot', 'zod'],
     isIn: (schema, site) =>
       site.context.output.override.useBigInt === true && isBigInteger(schema),
+  },
+  {
+    reason:
+      'a null type next to allOf, oneOf or anyOf is validated without the null',
+    libraries: ['zod'],
+    isIn: holdsNullTypeNextToComposition,
+  },
+  {
+    reason:
+      'a required property without a type is optional in the Zod 3 output',
+    libraries: ['zod'],
+    isIn: requiresUnknownProperty,
+  },
+  {
+    reason:
+      'a const next to a string format is validated as the format, not as the literal',
+    libraries: ['zod'],
+    isIn: isConstWithFormat,
+  },
+  {
+    reason:
+      'items of false is typed unknown[] by the model and never[] by the schema',
+    libraries: ['zod'],
+    isIn: (schema) =>
+      schema.items === false && schema.prefixItems === undefined,
+  },
+  {
+    reason:
+      'a not of an empty schema is validated as never, which the model types as unknown',
+    libraries: ['zod'],
+    isIn: ({ not }) => isObject(not) && !hasKeys(not),
+  },
+  {
+    reason:
+      'in the Zod 3 output an enum without a primitive member is validated as never, which the model types as unknown',
+    libraries: ['zod'],
+    isIn: ({ enum: members }, { isZodV4 }) =>
+      !isZodV4 &&
+      Array.isArray(members) &&
+      (members.length === 0 || members.some(isStructured)),
+  },
+  {
+    reason:
+      'a type next to a composition that is validated as unknown is kept by the model',
+    libraries: ['zod'],
+    isIn: holdsUnknownCompositionUnderType,
+  },
+  {
+    reason:
+      'unevaluatedProperties of a schema is typed by the model and not by the schema',
+    libraries: ['zod'],
+    isIn: isUnevaluatedRecord,
   },
 ];
 
@@ -587,6 +965,115 @@ const referencedComponents = (nodes: readonly SchemaNode[]) => {
   return [...new Set(keys)];
 };
 
+/** What Zod does with a circular reference that runs through a tuple. */
+const TUPLE_CYCLE: Pick<LooseConstruct, 'reason' | 'libraries'> = {
+  reason: 'a circular reference through prefixItems is validated as unknown',
+  libraries: ['zod'],
+};
+
+/** What the model does with the encoded part of a multipart body. */
+const ENCODED_PART: Pick<LooseConstruct, 'reason' | 'libraries'> = {
+  reason:
+    'the media type of a multipart part widens the model to a file, which the schema does not',
+  libraries: ['zod'],
+};
+
+// The components that a tuple of the schema references, by its
+// `prefixItems`, anywhere in its tree.
+const tupleReferences = (
+  nodes: readonly SchemaNode[],
+  context: ContextSpec,
+): string[] =>
+  referencedComponents(
+    nodes.flatMap(({ schema: node }) =>
+      membersOf(node.prefixItems).flatMap((member) =>
+        collectNodes(member, context),
+      ),
+    ),
+  );
+
+// Whether the component can be reached again from one of the targets.
+const reachesAgain = (
+  key: string,
+  targets: readonly string[],
+  references: ReadonlyMap<string, readonly string[]>,
+): boolean => {
+  const visited = new Set<string>();
+  const pending = [...targets];
+  for (const next of pending) {
+    if (next === key) return true;
+    if (visited.has(next)) continue;
+    visited.add(next);
+    pending.push(...(references.get(next) ?? []));
+  }
+  return false;
+};
+
+// Whether the model widens the part to a file, or a file or a string: a
+// string that has a media type, from the `encoding` of the part or its own
+// `contentMediaType`, and no `contentEncoding`, unless the schema validates
+// the same file. The model passes the part to
+// the items of an array, not a tuple, and to the members of a composition, and
+// leaves a component reference to the model of that component.
+const widensPart = (
+  part: unknown,
+  contentType: string | undefined,
+): boolean => {
+  if (!isObject(part) || getRef(part) !== undefined) return false;
+  if (reachesString(part)) {
+    // The model keeps a constant over the file type.
+    if (part.const !== undefined) return false;
+    // The model keeps `format: binary` a file whatever the encoding says. For
+    // another file the schema is a string, unless it validates a file.
+    const fileType = getFormDataFieldFileType(part, contentType);
+    return (
+      part.format !== 'binary' &&
+      (fileType === 'text' || (fileType === 'binary' && !isBinaryString(part)))
+    );
+  }
+  return (
+    // The model resolves the rest items of a tuple without the part.
+    (part.prefixItems === undefined && widensPart(part.items, contentType)) ||
+    alternativesOf(part)
+      .concat(membersOf(part.allOf))
+      .some((member) => widensPart(member, contentType))
+  );
+};
+
+// Whether a part of the body is widened: a property of the schema, or of an
+// inline member of its composition, which the model reads as the parts.
+const holdsWidenedPart = (
+  schema: unknown,
+  encoding: Record<string, { contentType?: string }>,
+): boolean => {
+  if (!isObject(schema) || getRef(schema) !== undefined) return false;
+  const properties = isObject(schema.properties) ? schema.properties : {};
+  return (
+    Object.entries(properties).some(([part, property]) =>
+      widensPart(property, encoding[part]?.contentType),
+    ) ||
+    alternativesOf(schema)
+      .concat(membersOf(schema.allOf))
+      .some((member) => holdsWidenedPart(member, encoding))
+  );
+};
+
+// The components whose multipart body has a part that the model widens to a
+// file, or a file or a string.
+const encodedMultipartComponents = (context: ContextSpec): Set<string> => {
+  const components: Record<string, unknown> =
+    context.spec.components?.schemas ?? {};
+  return new Set(
+    [...getFormDataComponentContexts(context)]
+      .filter(
+        ([key, formData]) =>
+          !formData.atPart &&
+          holdsWidenedPart(components[key], formData.encoding),
+      )
+      .map(([key]) => key),
+  );
+};
+
 export interface ModelTypeCheckSkipOptions {
   library: ModelTypeCheckLibrary;
   /** The name a component has in the models, for the reason of a skipped one. */
@@ -596,6 +1083,11 @@ export interface ModelTypeCheckSkipOptions {
    * references the library validates as unknown.
    */
   refPolicy?: RefPolicy;
+  /**
+   * Whether the Zod output is Zod 4 or Zod Mini, which is the default, and
+   * not Zod 3. Zod 3 types some constructs differently.
+   */
+  isZodV4?: boolean;
 }
 
 /**
@@ -606,17 +1098,22 @@ export interface ModelTypeCheckSkipOptions {
  */
 export const getModelTypeCheckSkips = (
   context: ContextSpec,
-  { library, nameOf, refPolicy }: ModelTypeCheckSkipOptions,
+  { library, nameOf, refPolicy, isZodV4 = true }: ModelTypeCheckSkipOptions,
 ): ReadonlyMap<string, string> => {
   const components: Record<string, unknown> =
     context.spec.components?.schemas ?? {};
-  const site: ConstructSite = { context };
+  const site: ConstructSite = { context, library, isZodV4 };
   const skips = new Map<string, string>();
   const references = new Map<string, string[]>();
+  const tuples = new Map<string, string[]>();
+  const encoded = ENCODED_PART.libraries.includes(library)
+    ? encodedMultipartComponents(context)
+    : new Set<string>();
 
   for (const [key, schema] of Object.entries(components)) {
     const nodes = collectNodes(schema, context);
     references.set(key, referencedComponents(nodes));
+    tuples.set(key, tupleReferences(nodes, context));
     const construct = LOOSE_CONSTRUCTS.find(
       ({ libraries, atRoot, isIn }) =>
         libraries.includes(library) &&
@@ -627,12 +1124,23 @@ export const getModelTypeCheckSkips = (
     );
     if (construct) {
       skips.set(key, construct.reason);
+    } else if (encoded.has(key)) {
+      skips.set(key, ENCODED_PART.reason);
     } else if (
       refPolicy &&
       CIRCULAR_REFERENCE.libraries.includes(library) &&
       replacesCircularReference(key, context, refPolicy)
     ) {
       skips.set(key, CIRCULAR_REFERENCE.reason);
+    }
+  }
+
+  // A tuple that a reference cycle passes through is where Zod stops inlining.
+  if (TUPLE_CYCLE.libraries.includes(library)) {
+    for (const [key, targets] of tuples) {
+      if (!skips.has(key) && reachesAgain(key, targets, references)) {
+        skips.set(key, TUPLE_CYCLE.reason);
+      }
     }
   }
 

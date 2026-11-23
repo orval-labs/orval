@@ -1000,12 +1000,12 @@ export interface OverrideOutput {
   formatType?: FormatTypeMap;
   /**
    * Also write a type-only block that fails `tsc` when the output type of a
-   * component schema and its model are not assignable both ways. Needs
-   * `client: 'valibot'` with `generateReusableSchemas`, and cannot be combined
-   * with `useBrandedTypes`, `useNullForOptional`, `enumGenerationType: 'enum'`
-   * or `namingConvention.properties`, which only the models follow, nor with
-   * `output.schemas`, which `generateReusableSchemas` rejects too. Off by
-   * default.
+   * component schema and its model are not assignable both ways. For
+   * `client: 'zod'` or `client: 'valibot'`, with that client's
+   * `generateReusableSchemas`. It cannot be combined with `useBrandedTypes`,
+   * `useNullForOptional` or `enumGenerationType: 'enum'`, nor, for Valibot,
+   * with `namingConvention.properties`, which only the models follow, nor with
+   * `output.schemas`. Off by default.
    */
   modelTypeChecks?: ModelTypeChecksOptions;
   useTypeOverInterfaces?: boolean;
@@ -1349,8 +1349,8 @@ export type OperationEffectOptions = Omit<
 >;
 
 /**
- * Type-only checks that the component schemas of a schema library output what
- * the generated models declare.
+ * Type-only checks that the component schemas of a schema library, Zod or
+ * Valibot, output what the generated models declare.
  */
 export interface ModelTypeChecksOptions {
   /**

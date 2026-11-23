@@ -11,6 +11,7 @@ import {
   getZodDateTimeFormat,
   getZodTimeFormat,
   isZodVersionV4,
+  lacksZodExactOptional,
   resolveIsZodV4,
   supportsZodXor,
 } from './compatible-v4';
@@ -367,5 +368,34 @@ describe('supportsZodXor', () => {
         resolvedVersions: { zod: '4.4.2' },
       }),
     ).toBe(true);
+  });
+});
+
+describe('lacksZodExactOptional', () => {
+  const withZod = (zod: string) => ({ dependencies: { zod } });
+
+  it('is true for a Zod that predates 4.3.0', () => {
+    expect(lacksZodExactOptional(withZod('4.2.1'))).toBe(true);
+    expect(lacksZodExactOptional(withZod('^4.0.0'))).toBe(true);
+    expect(lacksZodExactOptional(withZod('^3.25.0'))).toBe(true);
+    expect(
+      lacksZodExactOptional({
+        dependencies: { zod: '^4.4.0' },
+        resolvedVersions: { zod: '4.2.1' },
+      }),
+    ).toBe(true);
+  });
+
+  it('is false from 4.3.0', () => {
+    expect(lacksZodExactOptional(withZod('4.3.0'))).toBe(false);
+    expect(lacksZodExactOptional(withZod('~4.3.1'))).toBe(false);
+    expect(lacksZodExactOptional(withZod('>=4.3.0 <5'))).toBe(false);
+  });
+
+  it('is false when the version cannot be read', () => {
+    expect(lacksZodExactOptional(undefined)).toBe(false);
+    expect(lacksZodExactOptional({})).toBe(false);
+    expect(lacksZodExactOptional(withZod('4.x'))).toBe(false);
+    expect(lacksZodExactOptional(withZod('latest'))).toBe(false);
   });
 });
