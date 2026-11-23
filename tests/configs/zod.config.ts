@@ -1,4 +1,56 @@
+import type { OutputMode, ZodVariantOption } from '@orval/core';
 import { defineConfig } from 'orval';
+
+const MODELS = '../generated/zod/model-type-checks-models/model';
+// A dot in the name of the models directory is not an extension.
+const DOTTED_MODELS =
+  '../generated/zod/model-type-checks-options-models/model.gen';
+
+interface ModelTypeChecksProjectOptions {
+  mode?: OutputMode;
+  variant?: ZodVariantOption;
+  exactOptional?: boolean;
+  input?: string;
+  models?: string;
+  useBigInt?: boolean;
+  useReadonlyArrays?: boolean;
+  fileExtension?: string;
+}
+
+// The checks the option writes compile against the models of the next project.
+const modelTypeChecksProject = (
+  name: string,
+  {
+    mode,
+    variant,
+    exactOptional,
+    input = 'zod-model-type-checks',
+    models = MODELS,
+    useBigInt,
+    useReadonlyArrays,
+    fileExtension,
+  }: ModelTypeChecksProjectOptions = {},
+) => ({
+  output: {
+    target: `../generated/zod/${name}/${name}${fileExtension ?? '.ts'}`,
+    ...(fileExtension ? { fileExtension } : {}),
+    client: 'zod' as const,
+    clean: true,
+    formatter: 'prettier' as const,
+    ...(mode ? { mode } : {}),
+    override: {
+      zod: {
+        generateReusableSchemas: true,
+        ...(variant ? { variant } : {}),
+        ...(exactOptional ? { exactOptional } : {}),
+      },
+      ...(useBigInt ? { useBigInt } : {}),
+      ...(useReadonlyArrays ? { useReadonlyArrays } : {}),
+      modelTypeChecks: { models },
+    },
+  },
+  input: { target: `../specifications/${input}.yaml` },
+});
 
 export default defineConfig({
   logLevel: 'error',
@@ -703,5 +755,69 @@ export default defineConfig({
     input: {
       target: '../specifications/issue-4255.yaml',
     },
+  },
+  'model-type-checks': modelTypeChecksProject('model-type-checks'),
+  'model-type-checks-models': {
+    output: {
+      target: '../generated/zod/model-type-checks-models/endpoints.ts',
+      schemas: MODELS,
+      client: 'fetch' as const,
+      clean: true,
+      formatter: 'prettier' as const,
+    },
+    input: { target: '../specifications/zod-model-type-checks.yaml' },
+  },
+  'model-type-checks-tags-split': modelTypeChecksProject(
+    'model-type-checks-tags-split',
+    { mode: 'tags-split' },
+  ),
+  'model-type-checks-mini': modelTypeChecksProject('model-type-checks-mini', {
+    variant: 'mini',
+  }),
+  // For a project with `exactOptionalPropertyTypes`.
+  'model-type-checks-exact-optional': modelTypeChecksProject(
+    'model-type-checks-exact-optional',
+    { exactOptional: true },
+  ),
+  'model-type-checks-options': modelTypeChecksProject(
+    'model-type-checks-options',
+    {
+      input: 'zod-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+    },
+  ),
+  // A file extension of several parts is not the extension of the models.
+  'model-type-checks-gen-extension': modelTypeChecksProject(
+    'model-type-checks-gen-extension',
+    {
+      input: 'zod-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+      fileExtension: '.gen.ts',
+    },
+  ),
+  'model-type-checks-types-extension': modelTypeChecksProject(
+    'model-type-checks-types-extension',
+    {
+      input: 'zod-model-type-checks-options',
+      models: DOTTED_MODELS,
+      useBigInt: true,
+      useReadonlyArrays: true,
+      fileExtension: '.types.ts',
+    },
+  ),
+  'model-type-checks-options-models': {
+    output: {
+      target: '../generated/zod/model-type-checks-options-models/endpoints.ts',
+      schemas: DOTTED_MODELS,
+      client: 'fetch' as const,
+      clean: true,
+      formatter: 'prettier' as const,
+      override: { useBigInt: true, useReadonlyArrays: true },
+    },
+    input: { target: '../specifications/zod-model-type-checks-options.yaml' },
   },
 });

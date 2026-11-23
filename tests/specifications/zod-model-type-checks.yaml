@@ -1,0 +1,396 @@
+openapi: 3.1.0
+info:
+  title: Zod schemas checked against the models
+  version: 0.0.0
+paths:
+  /items:
+    get:
+      operationId: getItem
+      responses:
+        '200':
+          description: An item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+  /pairs:
+    get:
+      operationId: getPairs
+      responses:
+        '200':
+          description: A pair
+          content:
+            application/json:
+              schema:
+                type: array
+                prefixItems:
+                  - type: string
+                  - type: number
+  /uploads:
+    post:
+      operationId: postUpload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Upload'
+            encoding:
+              report:
+                contentType: text/csv
+      responses:
+        '204':
+          description: Accepted
+  /images:
+    post:
+      operationId: postImage
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImageUpload'
+            encoding:
+              attachments:
+                contentType: image/png
+      responses:
+        '204':
+          description: Accepted
+components:
+  schemas:
+    # An enum for the members below.
+    Level:
+      type: string
+      enum: [low, high]
+    # Properties of its own next to an enum member.
+    LevelOwn:
+      type: object
+      properties:
+        note:
+          type: string
+      allOf:
+        - $ref: '#/components/schemas/Level'
+    LevelInline:
+      type: object
+      required: [note]
+      properties:
+        note:
+          type: string
+      allOf:
+        - type: integer
+          enum: [1, 2]
+    # A readOnly array and a self reference. A readOnly array is skipped.
+    Item:
+      type: object
+      required: [name, tags, children]
+      properties:
+        name:
+          type: string
+        tags:
+          type: array
+          readOnly: true
+          items:
+            type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+    Pet:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [available, sold]
+        nickname:
+          type: string
+          nullable: true
+        owner:
+          $ref: '#/components/schemas/Owner'
+    Owner:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    Birthday:
+      type: object
+      required: [day]
+      properties:
+        day:
+          type: string
+          format: date
+    # Zod has tuples and reads a cycle lazily, so these are checked.
+    Point:
+      type: array
+      prefixItems:
+        - type: number
+        - type: number
+    Tree:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Tree'
+    # Zod leaves out a required key that no property declares, like the model.
+    Requirement:
+      type: object
+      required: [id, extra]
+      properties:
+        id:
+          type: string
+    Tags:
+      type: array
+      items:
+        type: string
+    # A readOnly beside a reference to an array does not change the output.
+    Labelled:
+      type: object
+      required: [tags]
+      properties:
+        tags:
+          $ref: '#/components/schemas/Tags'
+          readOnly: true
+    # The schemas below are looser than their models on purpose, so the
+    # checks skip them.
+    Anything:
+      description: Any value
+    Settings:
+      type: object
+      properties:
+        pageSize:
+          type: integer
+          default: 20
+    # References a skipped schema.
+    Account:
+      type: object
+      properties:
+        settings:
+          $ref: '#/components/schemas/Settings'
+    Labels:
+      type: object
+      properties:
+        labels:
+          type: array
+          readOnly: true
+          items:
+            type: string
+    Bag:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+      additionalProperties:
+        type: string
+    # Alternatives that only require keys, next to the own properties.
+    Choice:
+      type: object
+      properties:
+        left:
+          type: string
+        right:
+          type: string
+      oneOf:
+        - required: [left]
+        - required: [right]
+    # A tuple that cannot grow keeps its rest items in the model only.
+    Pair:
+      type: array
+      minItems: 2
+      maxItems: 2
+      prefixItems:
+        - type: string
+        - type: number
+      items:
+        type: string
+    # With room for them, Zod keeps the rest items like the model does.
+    Stretch:
+      type: array
+      prefixItems:
+        - type: string
+        - type: number
+      items:
+        type: string
+    # A component of constants is a constant object in the model.
+    Marker:
+      type: object
+      properties:
+        kind:
+          const: marker
+    # Without a type, the schema accepts any value, whatever else it holds.
+    Dictionary:
+      additionalProperties:
+        type: string
+    Patterned:
+      patternProperties:
+        '^x-':
+          type: string
+    Bare:
+      properties: {}
+    Merged:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - additionalProperties:
+            type: string
+    Wrapper:
+      type: object
+      properties:
+        meta:
+          additionalProperties:
+            type: string
+        extra:
+          description: Any value
+    AllowAll:
+      additionalProperties: true
+    NoExtra:
+      additionalProperties: false
+    MergedPattern:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - patternProperties:
+            '^x-':
+              type: string
+    MergedBare:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - properties: {}
+    WrapperPattern:
+      type: object
+      properties:
+        meta:
+          patternProperties:
+            '^x-':
+              type: string
+        bare:
+          properties: {}
+        open:
+          additionalProperties: true
+    WrapperNoExtra:
+      type: object
+      properties:
+        closed:
+          additionalProperties: false
+    MergedNoExtra:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - additionalProperties: false
+    # The model merges a null alternative into the properties of the schema.
+    NullAlt:
+      type: object
+      properties:
+        id:
+          type: string
+      anyOf:
+        - type: object
+          properties:
+            left:
+              type: string
+        - type: 'null'
+    # The model leaves null out of a const.
+    NullableConst:
+      type: object
+      required: [kind, name]
+      properties:
+        kind:
+          type: [string, 'null']
+          const: circle
+        name:
+          type: string
+    # Zod validates a reference into the paths as unknown.
+    PairHolder:
+      type: object
+      properties:
+        pair:
+          $ref: '#/paths/~1pairs/get/responses/200/content/application~1json/schema'
+    # Zod inlines a circular reference through a tuple one level, then
+    # validates it as unknown.
+    TupleLoop:
+      type: object
+      properties:
+        step:
+          type: array
+          prefixItems:
+            - type: string
+            - $ref: '#/components/schemas/TupleLoop'
+    TupleFirst:
+      type: array
+      prefixItems:
+        - $ref: '#/components/schemas/TupleSecond'
+    TupleSecond:
+      type: object
+      properties:
+        back:
+          $ref: '#/components/schemas/TupleFirst'
+    TupleHolder:
+      type: object
+      properties:
+        loop:
+          $ref: '#/components/schemas/TupleLoop'
+    # A tuple that no cycle passes through is checked.
+    TupleLeaf:
+      type: array
+      prefixItems:
+        - type: string
+        - $ref: '#/components/schemas/Level'
+    # Zod validates the composition and drops the null type next to it.
+    NullAllOf:
+      type: object
+      properties:
+        level:
+          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/Level'
+    NullAnyOf:
+      type: [string, 'null']
+      anyOf:
+        - type: string
+        - type: number
+    # Zod validates a string with a format as the format, not as the literal.
+    EmailConst:
+      type: object
+      required: [contact]
+      properties:
+        contact:
+          type: string
+          format: email
+          const: team@example.com
+    # The model types the items as unknown, the schema as never.
+    NoItems:
+      type: array
+      items: false
+    # A schema that accepts no value is never in the schema.
+    NeverItems:
+      type: array
+      items:
+        not: {}
+    UnevaluatedRecord:
+      type: object
+      unevaluatedProperties:
+        type: string
+    # The model types the encoded part as a file or a string.
+    Upload:
+      type: object
+      properties:
+        report:
+          type: string
+        note:
+          type: string
+    # The model types a part with a media type, and the items of an array part,
+    # as a file or a string.
+    ImageUpload:
+      type: object
+      properties:
+        picture:
+          type: string
+          contentMediaType: image/png
+        attachments:
+          type: array
+          items:
+            type: string
+    # An object type keeps its null next to a composition.
+    NullableObject:
+      type: [object, 'null']
+      oneOf:
+        - type: object
+          properties:
+            name:
+              type: string
