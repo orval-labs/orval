@@ -54,15 +54,16 @@ import {
 import {
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
+  getParseTimeContentTypes,
   getResponseDateDeserializer,
+  isContentTypeJson,
   isContentTypeNdJson,
+  parsesJsonBody,
   passesZodSchemaToMutator,
+  validatesSuccessBody,
   wrapSchemaWithDateDeserializer,
 } from './response-helpers';
 import { clientConfigTemplate, RUNTIME_TEMPLATE } from './runtime';
-
-const isContentTypeJson = (contentType: string) =>
-  contentType.toLowerCase().includes('json');
 
 /**
  * Whether the request functions use the shared runtime: the fetch client, and
@@ -170,9 +171,10 @@ export const getSharedRuntimeImports = (
  * value import.
  */
 const getResponseValidation = (
-  { mutator, override, response }: GeneratorVerbOptions,
+  verbOptions: GeneratorVerbOptions,
   { context }: GeneratorOptions,
 ) => {
+  const { mutator, override, response } = verbOptions;
   const responseType = response.definition.success;
   const hasClientMutator = usesClientConfig(context.output, mutator);
   if (
@@ -197,15 +199,31 @@ const getResponseValidation = (
     return undefined;
   }
 
+  // The runtime returns a body without a JSON content type as is, before
+  // validation runs, so generated code has no use for a validation callback or
+  // the schema value there. A client-config mutator issues the request itself
+  // and receives the schema either way.
+  if (
+    !hasClientMutator &&
+    (getResponseType(verbOptions) === 'text' ||
+      !parsesJsonBody(getParseTimeContentTypes(verbOptions)))
+  ) {
+    return undefined;
+  }
+
+  // A success response without a JSON content type is returned as the raw text,
+  // so its declared type keeps the schema (input) name like a client mutator's.
+  const hasOutputType = !hasClientMutator && validatesSuccessBody(verbOptions);
+
   return {
     schemaRef: arraySchema?.schemaRef ?? getSchemaValueRef(responseType),
-    outputTypeRef: hasClientMutator
-      ? undefined
-      : (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(responseType)),
+    outputTypeRef: hasOutputType
+      ? (arraySchema?.outputTypeRef ?? getSchemaOutputTypeRef(responseType))
+      : undefined,
     imports: rewriteImportsForResponseValidation(
       response.imports,
       arraySchema?.elementName ?? responseType,
-      { includeOutputType: !hasClientMutator },
+      { includeOutputType: hasOutputType },
     ),
     composesZod: arraySchema !== undefined,
   };

@@ -16,6 +16,7 @@ import {
   type FakerMockOptions,
   type GlobalMockOptions,
   getFileInfo,
+  getSchemaLibrary,
   getTagKey,
   type GlobalOptions,
   type HonoOptions,
@@ -639,6 +640,62 @@ function validateSchemaRoutes(output: NormalizedOutputOptions): void {
       ),
     );
   }
+}
+
+// The clients that issue requests through the fetch request function when
+// `httpClient` is `fetch`, and so read `override.fetch.runtimeValidation`.
+const FETCH_BACKED_CLIENTS: ReadonlySet<string> = new Set([
+  OutputClient.REACT_QUERY,
+  OutputClient.VUE_QUERY,
+  OutputClient.SVELTE_QUERY,
+  OutputClient.SOLID_QUERY,
+  OutputClient.SWR,
+  OutputClient.PINIA_COLADA,
+]);
+
+const RUNTIME_VALIDATION_KEYS = ['fetch', 'query', 'angular'] as const;
+
+/** The `override` key whose `runtimeValidation` the client reads, if any. */
+function getRuntimeValidationKey(
+  client: OutputClient,
+  httpClient: OutputHttpClient,
+): (typeof RUNTIME_VALIDATION_KEYS)[number] | undefined {
+  if (client === OutputClient.FETCH) return 'fetch';
+  if (client === OutputClient.ANGULAR) return 'angular';
+  if (client === OutputClient.ANGULAR_QUERY) return 'query';
+  return FETCH_BACKED_CLIENTS.has(client) &&
+    httpClient === OutputHttpClient.FETCH
+    ? 'fetch'
+    : undefined;
+}
+
+/**
+ * Warns about output-level `runtimeValidation` settings that do not validate
+ * responses with the client, and about ones that need Zod, Valibot or Effect
+ * schemas. Per-tag and per-operation overrides are not checked.
+ */
+function validateRuntimeValidation(output: NormalizedOutputOptions): void {
+  const { client, httpClient, override } = output;
+  // A custom client or the mcp generator may read any of them.
+  if (!isString(client) || client === OutputClient.MCP) return;
+
+  const key = getRuntimeValidationKey(client, httpClient);
+  const clientLabel = FETCH_BACKED_CLIENTS.has(client)
+    ? `\`client: '${client}'\` with \`httpClient: '${httpClient}'\``
+    : `\`client: '${client}'\``;
+  for (const name of RUNTIME_VALIDATION_KEYS) {
+    if (name === key || !override[name].runtimeValidation?.enabled) continue;
+    logger.warn(
+      `\`override.${name}.runtimeValidation\` does not validate responses with ${clientLabel}.${key ? ` Use \`override.${key}.runtimeValidation\` instead.` : ''}`,
+    );
+  }
+
+  if (!key || !override[key].runtimeValidation?.enabled) return;
+  if (getSchemaLibrary(output)) return;
+
+  logger.warn(
+    `\`override.${key}.runtimeValidation\` has no effect without \`schemas: { type: 'zod' }\`, \`{ type: 'valibot' }\` or \`{ type: 'effect' }\`. Ignoring.`,
+  );
 }
 
 /** Rejects a faker `schemasPath` that has nothing to write or would clash. */
@@ -1554,6 +1611,7 @@ export async function normalizeOptions(
   }
 
   validateSchemaRoutes(normalizedOptions.output);
+  validateRuntimeValidation(normalizedOptions.output);
 
   // The faker generator's `schemasImportPath` overrides where schema-level
   // faker factories are imported from. Those factories are only emitted when

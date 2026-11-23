@@ -71,10 +71,14 @@ import {
 import {
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
+  getParseTimeContentTypes,
   getResponseDateDeserializer,
+  isContentTypeJson,
   isContentTypeNdJson,
+  parsesJsonBody,
   passesZodSchemaToMutator,
   resolveIncludeSchemaInArguments,
+  validatesSuccessBody,
   wrapSchemaWithDateDeserializer,
 } from './response-helpers';
 import { GET_HEADERS_HELPER } from './runtime';
@@ -418,9 +422,6 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   }
 }\n`;
 
-  const isContentTypeJson = (contentType: string) =>
-    contentType.toLowerCase().includes('json');
-
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
@@ -471,9 +472,6 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   // output would change.
   const parsedBodyBinding = dateDeserializer ? 'let' : 'const';
 
-  const successContentTypes = response.types.success
-    .map((t) => t.contentType)
-    .filter(Boolean);
   const errorContentTypes = response.types.errors
     .map((t) => t.contentType)
     .filter(Boolean);
@@ -481,12 +479,14 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   // Resolve parsing strategy at generation time based on spec-declared content types.
   // Only emit a runtime Content-Type check when responses have mixed types.
   //
-  // When `forceSuccessResponse` is false the same parse block handles both 2xx
-  // and error status codes, so its strategy must cover error content types too
-  // (otherwise e.g. 200 application/json + 429 text/plain still JSON.parses text).
-  const parseTimeContentTypes = override.fetch.forceSuccessResponse
-    ? successContentTypes
-    : [...successContentTypes, ...errorContentTypes];
+  // The same parse block handles both 2xx and error status codes when
+  // `forceSuccessResponse` is false, so its strategy must cover error content
+  // types too (otherwise e.g. 200 application/json + 429 text/plain still
+  // JSON.parses text).
+  const parseTimeContentTypes = getParseTimeContentTypes({
+    override,
+    response,
+  });
   const successHasJson = parseTimeContentTypes.some((ct) =>
     isContentTypeJson(ct),
   );
@@ -530,18 +530,22 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     hasSchemaImport(response.imports, responseType) ||
     responseArraySchema !== undefined;
 
+  // TypeScript schemas are types, which have no `parse` to call.
   const isValidateResponse =
     override.fetch.runtimeValidation.enabled &&
+    getSchemaLibrary(context.output) !== undefined &&
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
-  const isZodSchemasOutput = getSchemaLibrary(context.output) !== undefined;
   // The generated parse returns the schema's zod output type, so the declared
   // response type must reference the `XOutput` alias. A custom mutator issues
   // the request itself — the generated parse never runs there — so its
-  // declared types keep the schema (input) name.
+  // declared types keep the schema (input) name. So does a success response
+  // without a JSON content type, which is returned as the raw text.
   const useValidatedOutputType =
-    isValidateResponse && isZodSchemasOutput && !mutator;
+    isValidateResponse &&
+    validatesSuccessBody({ override, response }) &&
+    !mutator;
   const validatesPrimitiveResponse = response.types.success.some(
     ({ value, schemas }) =>
       schemas.some(
@@ -936,7 +940,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
   ${
     isValidateResponse
-      ? hasMixedSuccessContentTypes || successAlwaysJson
+      ? parsesJsonBody(parseTimeContentTypes)
         ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${hasMixedSuccessContentTypes ? emptyMixedBodyExpression : '{}'}${convertParsedBody('parsedBody', { checkContentType: true })}
   const data = ${validatesPrimitiveResponse ? 'res.ok && ' : ''}contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : `const parsedBody = body !== null ? body : ''
@@ -1090,6 +1094,15 @@ export const getFetchResponseValidationImports = (
   const responseType = response.definition.success;
   if (isPrimitiveResponseType(responseType)) return undefined;
 
+  // The generated parse only reads JSON, so a response without a JSON content
+  // type keeps its type-only imports and the schema (input) name.
+  if (
+    !mutator &&
+    !parsesJsonBody(getParseTimeContentTypes({ override, response }))
+  ) {
+    return undefined;
+  }
+
   // ndjson streams skip the generated parse entirely, so their schema import
   // stays type-only and no Output alias is needed.
   const isNdJsonResponse = response.contentTypes.some(isContentTypeNdJson);
@@ -1121,7 +1134,10 @@ export const getFetchResponseValidationImports = (
     imports: rewriteImportsForResponseValidation(
       response.imports,
       schemaImportName,
-      { includeOutputType: !mutator },
+      {
+        includeOutputType:
+          !mutator && validatesSuccessBody({ override, response }),
+      },
     ),
     composesZod:
       !isNamedSchema ||

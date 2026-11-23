@@ -8,6 +8,7 @@ import type {
   NormalizedSchemaOptions,
   OutputClientFunc,
   OutputMocksConfig,
+  OutputOptions,
   OverrideOutput,
 } from '@orval/core';
 import {
@@ -1023,6 +1024,7 @@ describe('normalizeOptions', () => {
           output: {
             target: './generated.ts',
             client: 'fetch',
+            schemas: { path: './model', type: 'zod' },
             override: {
               fetch: {
                 runtimeValidation: { strategy: 'both' },
@@ -4668,6 +4670,203 @@ describe('normalizeOptions', () => {
       }
     },
   );
+
+  describe('runtimeValidation settings', () => {
+    const zod = { path: './model', type: 'zod' } as const;
+    const valibot = { path: './model', type: 'valibot' } as const;
+    const effect = { path: './model', type: 'effect' } as const;
+
+    const normalizeRuntimeValidation = async (output: OutputOptions) => {
+      const workspace = await createTempWorkspace();
+      logWarningSpy.mockClear();
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: { target: './generated.ts', ...output },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it.each([
+      ['TypeScript schemas', { schemas: './model' }],
+      ['no schemas', {}],
+      ['the react-query fetch request', { client: 'react-query' as const }],
+    ])(
+      'warns that the fetch setting needs schemas with %s',
+      async (_, output) => {
+        await normalizeRuntimeValidation({
+          client: 'fetch',
+          ...output,
+          override: { fetch: { runtimeValidation: true } },
+        });
+
+        expect(logWarningSpy).toHaveBeenCalledWith(
+          expect.stringMatching(
+            /override\.fetch\.runtimeValidation.* has no effect without .*zod.*valibot.*effect.*Ignoring/s,
+          ),
+        );
+      },
+    );
+
+    it.each([
+      ['zod', zod],
+      ['valibot', valibot],
+      ['effect', effect],
+    ])('accepts the fetch setting with %s schemas', async (_, schemas) => {
+      await normalizeRuntimeValidation({
+        client: 'fetch',
+        schemas,
+        override: { fetch: { runtimeValidation: { strategy: 'both' } } },
+      });
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('accepts a disabled setting without schemas', async () => {
+      await normalizeRuntimeValidation({
+        client: 'fetch',
+        override: { fetch: { runtimeValidation: false } },
+      });
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('warns without schemas when a mutator makes the request', async () => {
+      await normalizeRuntimeValidation({
+        client: 'fetch',
+        schemas: './model',
+        override: {
+          mutator: { path: './mutator.ts', name: 'customFetch' },
+          fetch: { runtimeValidation: true },
+        },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /override\.fetch\.runtimeValidation.* has no effect without .*zod.*valibot.*effect.*Ignoring/s,
+        ),
+      );
+    });
+
+    it.each([
+      ['angular', 'angular' as const],
+      ['angular-query', 'angular-query' as const],
+    ])('warns without schemas for %s', async (_, client) => {
+      const key = client === 'angular' ? 'angular' : 'query';
+      await normalizeRuntimeValidation({
+        client,
+        schemas: './model',
+        override: { [key]: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `\`override.${key}.runtimeValidation\` has no effect without`,
+        ),
+      );
+    });
+
+    it('warns that the query setting is ignored by the fetch request', async () => {
+      await normalizeRuntimeValidation({
+        client: 'react-query',
+        schemas: zod,
+        override: { query: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`override.query.runtimeValidation` does not validate responses with `client: 'react-query'` with `httpClient: 'fetch'`. Use `override.fetch.runtimeValidation` instead.",
+        ),
+      );
+    });
+
+    it('warns that the fetch setting is ignored by angular-query', async () => {
+      await normalizeRuntimeValidation({
+        client: 'angular-query',
+        schemas: zod,
+        override: { fetch: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`override.fetch.runtimeValidation` does not validate responses with `client: 'angular-query'`. Use `override.query.runtimeValidation` instead.",
+        ),
+      );
+    });
+
+    it('warns that the fetch setting is ignored with axios', async () => {
+      await normalizeRuntimeValidation({
+        client: 'react-query',
+        httpClient: 'axios',
+        schemas: zod,
+        override: { fetch: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`override.fetch.runtimeValidation` does not validate responses with `client: 'react-query'` with `httpClient: 'axios'`.",
+        ),
+      );
+    });
+
+    it('warns that the fetch setting does not validate responses with axios', async () => {
+      await normalizeRuntimeValidation({
+        client: 'axios',
+        schemas: zod,
+        override: { fetch: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`override.fetch.runtimeValidation` does not validate responses with `client: 'axios'`.",
+        ),
+      );
+    });
+
+    it('warns for a client that reads none of the settings', async () => {
+      await normalizeRuntimeValidation({
+        client: 'axios',
+        schemas: zod,
+        override: { angular: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "`override.angular.runtimeValidation` does not validate responses with `client: 'axios'`.",
+        ),
+      );
+    });
+
+    it('stays quiet when the setting is off', async () => {
+      await normalizeRuntimeValidation({
+        client: 'axios',
+        override: { fetch: { runtimeValidation: false } },
+      });
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('stays quiet when the client reads the setting', async () => {
+      await normalizeRuntimeValidation({
+        client: 'angular',
+        schemas: valibot,
+        override: { angular: { runtimeValidation: true } },
+      });
+
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+  });
 
   describe('formatType normalization', () => {
     it('returns undefined formatType when not configured', async () => {
