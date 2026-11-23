@@ -56,4 +56,4 @@ Options are read from `override.valibot.*`:
 - `exactOptional` - emit `v.exactOptional` for optional properties
 - `generateReusableSchemas` - emit one constant per component schema instead of inlining every `$ref`
 
-The shared `override.modelTypeChecks` option writes type-only checks that fail `tsc` when a component schema and its model differ (needs `generateReusableSchemas`).
+The shared `override.modelTypeChecks` option writes type-only checks that fail `tsc` when a component schema and its model differ (needs `generateReusableSchemas`). It works with Zod too.

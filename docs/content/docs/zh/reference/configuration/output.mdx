@@ -1264,17 +1264,17 @@ export default defineConfig({
 **类型：** `{ models: string }`
 **默认值：** 未设置
 
-在可复用 schema 旁生成仅用于类型的代码块：当组件 schema 的输出类型与其 model 不能双向赋值时，`tsc` 会报错。运行时不受影响。需要 `client: 'valibot'` 和 [`override.valibot.generateReusableSchemas`](#generatereusableschemas-2)，且不能与 [`schemas`](#schemas)、`useBrandedTypes`、`useNullForOptional`、`enumGenerationType: 'enum'` 或 `namingConvention.properties` 同时设置。生成 model 的配置必须保持 [`indexFiles`](#indexfiles) 开启（默认即开启）。
+适用于 `client: 'zod'` 和 `client: 'valibot'`。在可复用 schema 旁生成仅用于类型的代码块：当组件 schema 的输出类型（`zod.output` 或 `v.InferOutput`）与其 model 不能双向赋值时，`tsc` 会报错。运行时不受影响。需要对应 client 的 `generateReusableSchemas`（[Zod](#generatereusableschemas)、[Valibot](#generatereusableschemas-2)），且不能与 [`schemas`](#schemas) 同时设置：代码块写在与 operation 同处的 schema 文件中。它还会拒绝 `useBrandedTypes`、`useNullForOptional` 和 `enumGenerationType: 'enum'`，对 Valibot 还会拒绝 `namingConvention.properties`，因为只有 model 会遵循这些选项。生成 model 的配置必须保持 [`indexFiles`](#indexfiles) 开启（默认即开启）。
 
-`models` 是 model 的写入目录，与生成这些 model 的配置中的 [`schemas`](#schemas) 相同。相对路径从当前输出的 workspace 开始，它可能与写入 model 的配置的 workspace 不同；绝对路径按原样使用。schema 文件会导入该目录，因此两个配置必须使用相同的命名选项。如果 `tsconfig` 中启用了 `exactOptionalPropertyTypes`，还需设置 `override.valibot.exactOptional: true`。作用于整个输出，不能按 operation 或 tag 设置。Orval 有意让类型比 model 更宽松的组件会被跳过，并留下说明原因的注释。参见[与 Model 对照检查](/zh/docs/guides/valibot#与-model-对照检查)。
+`models` 是 model 的写入目录，与生成这些 model 的配置中的 [`schemas`](#schemas) 相同。相对路径从当前输出的 workspace 开始，它可能与写入 model 的配置的 workspace 不同；绝对路径按原样使用。schema 文件会导入该目录，因此两个配置必须使用相同的命名选项。如果 `tsconfig` 中启用了 `exactOptionalPropertyTypes`，还需在 `override.zod` 或 `override.valibot` 中设置 `exactOptional: true`。Zod 需要 Zod 4.3 或更高版本，因为 Zod 3 没有 `.exactOptional()`，仍会生成 `.optional()`，而 Zod 4.0 到 4.2 也没有该方法。作用于整个输出，不能按 operation 或 tag 设置。Orval 有意让类型比 model 更宽松的组件会被跳过，并留下说明原因的注释。参见 [Zod](/zh/docs/guides/zod#与-model-对照检查) 和 [Valibot](/zh/docs/guides/valibot#与-model-对照检查) 的“与 Model 对照检查”。
 
 ```ts title="orval.config.ts"
 export default defineConfig({
   petstore: {
     output: {
-      client: 'valibot',
+      client: 'zod', // 或使用 override.valibot 的 'valibot'
       override: {
-        valibot: { generateReusableSchemas: true },
+        zod: { generateReusableSchemas: true },
         modelTypeChecks: { models: './src/api/model' },
       },
     },
@@ -2150,7 +2150,7 @@ export const Pet = zod.object({ name: zod.string().exactOptional() });
 行为：
 
 - **显式开启。** 保持为 `false` 时，仍和以前一样输出 `.optional()`。
-- **仅 zod v4。** zod v3 没有 `.exactOptional()`，因此在 v3 下该选项为 no-op，仍输出 `.optional()`。
+- **仅 zod 4.3 及更高版本。** zod v3 没有 `.exactOptional()`，因此在 v3 下该选项为 no-op，仍输出 `.optional()`。`.exactOptional()` 在 zod 4.3.0 中加入，因此在 zod 4.0 到 4.2 下开启该选项后生成的代码无法通过编译。
 - 同时适用于 classic 和 [`mini`](#variant) 变体中的可选属性。
 
 ### generateCompanionTypes
