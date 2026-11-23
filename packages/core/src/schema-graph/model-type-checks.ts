@@ -27,6 +27,11 @@ interface ModelTypeChecksInput {
   inferOutput: (schemaName: string) => string;
   /** Names the module declares or imports, which the block must not reuse. */
   taken: ReadonlySet<string>;
+  /**
+   * Names that a scan of the module's text takes for a reference to an import,
+   * which the type parameters of the helpers must not spell.
+   */
+  scanned?: ReadonlySet<string>;
 }
 
 export interface RenderedModelTypeChecks {
@@ -47,6 +52,7 @@ export const renderModelTypeChecks = ({
   modelsImportPath,
   inferOutput,
   taken,
+  scanned = new Set(),
 }: ModelTypeChecksInput): RenderedModelTypeChecks => {
   if (checks.length === 0) return { importLine: '', block: '' };
   const used = new Set(taken);
@@ -55,6 +61,10 @@ export const renderModelTypeChecks = ({
   const extendsName = allocateConstName('Extends', used);
   const checksName = allocateConstName('SchemaModelTypeChecks', used);
   const readerName = allocateConstName('schemaModelTypeChecks', used);
+  const parameters = new Set(scanned);
+  const [assertParameter, leftParameter, rightParameter] = ['T', 'A', 'B'].map(
+    (name) => allocateConstName(name, parameters),
+  );
   const hasAssertion = checks.some(({ skipped }) => skipped === undefined);
 
   const entries = checks.map(({ modelName, schemaName, skipped }) => {
@@ -86,8 +96,8 @@ export const renderModelTypeChecks = ({
     // A directory name may hold a quote or a backslash.
     importLine: `import type * as ${models} from '${jsStringLiteralEscape(modelsImportPath)}';`,
     block: [
-      `type ${assert}<T extends true> = T;`,
-      `type ${extendsName}<A, B> = [A] extends [B] ? true : false;`,
+      `type ${assert}<${assertParameter} extends true> = ${assertParameter};`,
+      `type ${extendsName}<${leftParameter}, ${rightParameter}> = [${leftParameter}] extends [${rightParameter}] ? true : false;`,
       ...declaration,
     ].join('\n'),
   };
