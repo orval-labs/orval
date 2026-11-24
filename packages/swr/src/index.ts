@@ -970,3 +970,5 @@ const swrClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => swrClientBuilder;
 
 export default builder;
+
+export type * from './options';

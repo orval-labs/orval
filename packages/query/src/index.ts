@@ -315,3 +315,5 @@ export const builder =
   };
 
 export default builder;
+
+export type * from './options';

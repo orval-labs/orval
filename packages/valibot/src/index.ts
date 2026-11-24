@@ -162,3 +162,5 @@ const valibotClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => valibotClientBuilder;
 
 export default builder;
+
+export type * from './options';

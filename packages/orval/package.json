@@ -72,9 +72,6 @@
   },
   "devDependencies": {
     "rimraf": "catalog:",
-    "typedoc": "^0.28.19",
-    "typedoc-plugin-coverage": "^4.0.2",
-    "typedoc-plugin-markdown": "^4.10.0",
     "typescript": "catalog:ts6",
     "vite-plus": "catalog:"
   },

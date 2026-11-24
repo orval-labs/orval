@@ -4,6 +4,7 @@ import type { PackUserConfig } from 'vite-plus/pack';
 export const definePackage = (
   pack: PackUserConfig = {},
   test: UserConfig['test'] = {},
+  extraBuildInputs: readonly string[] = [],
 ) =>
   defineConfig({
     pack: {
@@ -12,7 +13,7 @@ export const definePackage = (
       platform: 'node',
       format: 'esm',
       tsconfig: 'tsconfig.build.json',
-      dts: { sourcemap: true },
+      dts: { sourcemap: true, tsconfig: '../tsconfig.build.json' },
       exports: true,
       sourcemap: false,
       treeshake: true,
@@ -33,6 +34,11 @@ export const definePackage = (
               'vite.config.ts',
               { pattern: 'tsconfig.base.json', base: 'workspace' },
               { pattern: 'packages/vite.config.base.ts', base: 'workspace' },
+              { pattern: 'packages/tsconfig.build.json', base: 'workspace' },
+              ...extraBuildInputs.map((pattern) => ({
+                pattern,
+                base: 'workspace' as const,
+              })),
             ],
             output: ['dist/**'],
           },

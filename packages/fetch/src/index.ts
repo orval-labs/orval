@@ -1300,3 +1300,5 @@ const fetchClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => fetchClientBuilder;
 
 export default builder;
+
+export type * from './options';

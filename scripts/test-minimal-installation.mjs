@@ -199,10 +199,50 @@ try {
     write(
       dir,
       'usage.ts',
-      `import generate, { generate as named, defineConfig, defineTransformer, type Options, type CommonMockOptions, type McpOptions${fixture === 'full' ? ', type ZodParamsContext' : ''} } from '${packageName}';
+      `import generate, { generate as named, defineConfig, defineTransformer, type Options, type CommonMockOptions, type FetchOptions as LegacyFetchOptions, type McpOptions${fixture === 'full' ? ', type ZodParamsContext' : ''} } from '${packageName}';
+import type { FetchOptions } from '@orval/fetch';
+import type { FetchOptions as CoreFetchOptions } from '@orval/core';
+
 void [generate, named, defineConfig, defineTransformer];
 type PublicOptions = Options;
 ${fixture === 'full' ? 'type PublicZodContext = ZodParamsContext;\n' : ''}
+type Assert<T extends true> = T;
+type MutuallyAssignable<A, B> = [A] extends [B] ? [B] extends [A] ? true : false : false;
+type FetchCompatibility = [
+  Assert<MutuallyAssignable<FetchOptions, LegacyFetchOptions>>,
+  Assert<MutuallyAssignable<FetchOptions, CoreFetchOptions>>,
+];
+
+const fetch: FetchOptions = { arrayFormat: 'brackets' };
+const invalidFetch: FetchOptions = {
+  // @ts-expect-error Unknown array format must be rejected.
+  arrayFormat: 'invalid',
+};
+defineConfig({ pets: { output: { target: './src/api.ts', client: 'fetch', override: { fetch } } } });
+
+declare module '@orval/core' {
+  interface FetchOptions { consumerFetchOption?: true }
+  interface CommonMockOptions { consumerMockOption?: true }
+  interface McpOptions { consumerMcpOption?: true }
+  interface McpServerOptions { consumerServerOption?: true }
+}
+const augmentedFetch: LegacyFetchOptions = { consumerFetchOption: true };
+const augmentedMock: CommonMockOptions = { consumerMockOption: true };
+const augmentedMcp: McpOptions = { consumerMcpOption: true };
+defineConfig({
+  pets: {
+    output: {
+      target: './src/api.ts',
+      override: {
+        fetch: { consumerFetchOption: true },
+        mcp: { consumerMcpOption: true, server: { path: './server.ts', consumerServerOption: true } },
+      },
+      mock: { generators: [{ type: 'faker', consumerMockOption: true }] },
+    },
+  },
+});
+void [invalidFetch, augmentedFetch, augmentedMock, augmentedMcp];
+
 const localeNepal: CommonMockOptions = { locale: 'en_NP' };
 const localeMongolian: CommonMockOptions = { locale: 'mn_MN_cyrl' };
 const invalidLocale: CommonMockOptions = {
@@ -219,6 +259,25 @@ const invalidMethod: McpOptions = { cacheHints: {
   'tools/unknown': { ttlMs: 100 },
 } };
 void [localeNepal, localeMongolian, invalidLocale, cache, invalidScope, invalidMethod];
+${
+  fixture === 'full'
+    ? `
+import type { CommonMockOptions as GeneratorMockOptions } from '@orval/mock';
+import type { OutputMocksConfig } from '@orval/core';
+import type { McpOptions as GeneratorMcpOptions } from '@orval/mcp';
+
+type OptionalGeneratorCompatibility = [
+  Assert<MutuallyAssignable<GeneratorMockOptions, CommonMockOptions>>,
+  Assert<MutuallyAssignable<GeneratorMcpOptions, McpOptions>>,
+  Assert<MutuallyAssignable<import('@orval/query').QueryOptions, import('orval').QueryOptions>>,
+  Assert<MutuallyAssignable<import('@orval/zod').ZodOptions, import('orval').ZodOptions>>,
+];
+const mock: OutputMocksConfig = { generators: [{ type: 'faker', locale: 'en_NP' }] };
+const mcp: GeneratorMcpOptions = cache;
+defineConfig({ pets: { output: { target: './src/api.ts', mock, override: { mcp } } } });
+`
+    : ''
+}
 `,
     );
     run(bun, ['install', '--ignore-scripts'], dir, { timeout: 300_000 });

@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.base.json",
+  "include": ["*/src/**/*.ts"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/node_modules",
+    "**/dist",
+    "**/src/test-utils"
+  ],
+  "compilerOptions": {
+    "paths": {
+      "@orval/core": ["./core/src/index.ts"]
+    }
+  }
+}

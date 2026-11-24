@@ -97,3 +97,5 @@ export {
   dedupeStrictMockTypeDeclarations,
 } from './mock-types';
 export { generateMSW, generateMSWImports } from './msw';
+
+export type * from './options';

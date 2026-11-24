@@ -76,3 +76,5 @@ export const builder = () => (options?: AngularOptions) => {
 };
 
 export default builder;
+
+export type * from './options';

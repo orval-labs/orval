@@ -132,8 +132,6 @@
         "tinyglobby": "^0.2.16",
       },
       "devDependencies": {
-        "@faker-js/faker": "10.6.0",
-        "@modelcontextprotocol/server": "catalog:mcp",
         "@types/esutils": "^2.0.2",
         "@types/jsesc": "^3.0.3",
         "oxc-parser": "^0.159.0",
@@ -199,6 +197,7 @@
         "@orval/zod": "workspace:*",
       },
       "devDependencies": {
+        "@modelcontextprotocol/server": "catalog:mcp",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vite-plus": "catalog:",
@@ -217,6 +216,7 @@
         "@orval/core": "workspace:*",
       },
       "devDependencies": {
+        "@faker-js/faker": "10.6.0",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vite-plus": "catalog:",
@@ -254,9 +254,6 @@
       },
       "devDependencies": {
         "rimraf": "catalog:",
-        "typedoc": "^0.28.19",
-        "typedoc-plugin-coverage": "^4.0.2",
-        "typedoc-plugin-markdown": "^4.10.0",
         "typescript": "catalog:ts6",
         "vite-plus": "catalog:",
       },

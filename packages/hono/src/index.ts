@@ -1203,3 +1203,5 @@ const honoClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => honoClientBuilder;
 
 export default builder;
+
+export type * from './options';

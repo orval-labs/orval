@@ -806,3 +806,5 @@ const mcpClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => mcpClientBuilder;
 
 export default builder;
+
+export type * from './options';

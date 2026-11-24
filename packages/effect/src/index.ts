@@ -2354,3 +2354,5 @@ const effectClientBuilder: ClientGeneratorsBuilder = {
 export const builder = () => () => effectClientBuilder;
 
 export default builder;
+
+export type * from './options';

@@ -32,7 +32,7 @@ describe('resolveInstalledVersion', () => {
   });
 
   it('resolves scoped package', () => {
-    const version = resolveInstalledVersion('@faker-js/faker', projectDir);
+    const version = resolveInstalledVersion('@types/jsesc', projectDir);
     expect(version).toBeDefined();
     expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });

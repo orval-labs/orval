@@ -28,6 +28,7 @@
     "@orval/zod": "workspace:*"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server": "catalog:mcp",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
@@ -39,5 +40,10 @@
     "@modelcontextprotocol/server": {
       "optional": true
     }
+  },
+  "inlinedDependencies": {
+    "@modelcontextprotocol/core": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.6.2"
   }
 }

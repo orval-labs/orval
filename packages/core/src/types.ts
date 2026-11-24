@@ -1,10 +1,42 @@
-import type { allLocales } from '@faker-js/faker';
-import type { McpServerOptions as McpSdkServerOptions } from '@modelcontextprotocol/server';
-
 // Type-only, so it is erased: no runtime `types` -> `constants` cycle.
 import type { OPERATION_METHODS } from './constants';
+import type {
+  AngularOptions,
+  AxiosOptions,
+  BoundRefinement,
+  EffectOptions,
+  FetchOptions,
+  GlobalMockOptions,
+  HonoOptions,
+  McpOptions,
+  MockData,
+  MockOptions,
+  MockProperties,
+  NormalizedAngularOptions,
+  NormalizedAxiosOptions,
+  NormalizedEffectOptions,
+  NormalizedFetchOptions,
+  NormalizedHonoOptions,
+  NormalizedMcpOptions,
+  NormalizedOperationZodOptions,
+  NormalizedQueryOptions,
+  NormalizedValibotOptions,
+  NormalizedZodOptions,
+  OperationEffectOptions,
+  OperationValibotOptions,
+  OperationZodOptions,
+  OperationZodOverrideKey,
+  OverrideMockOptions,
+  QueryOptions,
+  SwrOptions,
+  ValibotOptions,
+  ZodOptions,
+  ZodVersionOption,
+} from './generator-options';
 // Type-only, so it is erased: no runtime `types` -> `writers` dependency.
 import type { SchemaOutputPlan } from './writers/schema-output-plan';
+
+export type * from './generator-options';
 
 export const SupportedFormatter = {
   PRETTIER: 'prettier',
@@ -380,27 +412,6 @@ export interface BaseUrlRuntime {
   baseUrl?: never;
 }
 
-/**
- * Opt-in config for `override.angular.baseUrl`: composes a runtime base URL
- * for a generated Angular output via Angular DI (an `InjectionToken`) rather
- * than baking a static prefix into every route at generation time.
- *
- * Angular-client only; mutually exclusive with the top-level `output.baseUrl`
- * (which bakes a prefix into every generated route string for ALL clients).
- * `apiId` is required and explicit — never derived from the spec — so the
- * generated identifiers (`<API_ID>_BASE_URL`, `provide<Api>BaseUrl`, ...) are
- * stable across regenerations and collision-free when multiple outputs are
- * generated into the same app.
- */
-export interface AngularBaseUrlOptions {
-  /** Explicit, stable identifier for this API, used to derive all generated DI token/helper names. Must match `/^[A-Za-z][A-Za-z0-9_-]*$/`. */
-  apiId: string;
-  /** Index into the specification's `servers` array to embed as the default fallback URL. Defaults to `0`. */
-  index?: number;
-  /** Values for any `{variable}` placeholders in the selected server URL. */
-  variables?: Record<string, string | VariableRuntimeValue>;
-}
-
 export const PropertySortOrder = {
   ALPHABETICAL: 'Alphabetical',
   SPECIFICATION: 'Specification',
@@ -683,77 +694,6 @@ export type PreferredContentType =
   | 'application/octet-stream'
   | (string & {});
 
-// Shared by every mock generator.
-export interface CommonMockOptions {
-  // Use OpenAPI examples to seed mock values where available
-  useExamples?: boolean;
-  // Generate response factories for every HTTP status defined in the spec
-  generateEachHttpStatus?: boolean;
-  // Faker locale (controls the `@faker-js/faker/locale/<x>` import path)
-  locale?: keyof typeof allLocales;
-  // Selects which response schema is mocked when multiple content types exist
-  preferredContentType?: string;
-  // Emit reusable mock factories for object-like array item schemas found in
-  // operation responses (e.g. `getTenantResponseModelDtoMock` for
-  // `value: TenantResponseModelDto[]`). Defaults to `false`.
-  arrayItems?: boolean;
-}
-
-export interface MswMockOptions extends CommonMockOptions {
-  type: typeof OutputMockType.MSW;
-  // Emit faker responses in MSW handler output, defaults to true. Disable to
-  // generate handlers only which require passing in mock responses, falls back
-  // to `undefined` if no mock response passed to handler.
-  operationResponses?: boolean;
-  // Base URL prefix for the generated MSW route matchers
-  baseUrl?: string;
-  // Response delay before MSW handlers resolve (false disables delay)
-  delay?: false | number | (() => number);
-  // Execute the `delay` function at runtime rather than build time
-  delayFunctionLazyExecute?: boolean;
-  // Custom output directory for MSW mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. Only picks where deinlined mock files
-  // land; `OutputMocksConfig.inline: true` keeps mocks in the implementation
-  // file in `single`/`tags` modes even when this path is set.
-  path?: string;
-}
-
-export interface FakerMockOptions extends CommonMockOptions {
-  type: typeof OutputMockType.FAKER;
-  // Emit a consolidated mock factory file for every entry under
-  // `components/schemas` (one `get<SchemaName>Mock` per schema). Defaults to
-  // `false` — schema factories are opt-in to preserve existing output.
-  schemas?: boolean;
-  // Package specifier for importing the schema-level faker factories (the
-  // `get<SchemaName>Mock` functions emitted when `schemas: true`). When set,
-  // it is used verbatim as the schema factory import path instead of appending
-  // `/index.faker` to `schemas.importPath`. This lets consumers expose fakers
-  // through a dedicated barrel separate from the production type barrel.
-  // Requires `schemas.importPath` or `schemasPath` to also be set.
-  schemasImportPath?: string;
-  // Output directory for the schema-level faker factories file
-  // (`index.faker.ts`). Defaults to the `schemas` directory. Set it to keep
-  // `@faker-js/faker` out of a schemas package, e.g. to a subdirectory of the
-  // faker `path`. Requires `schemas: true` and `output.schemas`.
-  schemasPath?: string;
-  // Package specifier for the faker group barrel. When set, MSW files import
-  // the `get<Op>ResponseMock` factories from it instead of a relative path
-  // into the faker directory. Only used in `split` and `tags-split` modes,
-  // where MSW and faker are written to separate files.
-  importPath?: string;
-  // Emit per-operation response mock factories (the historical behavior).
-  // Defaults to `true`. Set to `false` together with `schemas: true` to get
-  // only the consolidated schema factories.
-  operationResponses?: boolean;
-  // Custom output directory for faker mock files. Overrides the shared
-  // `OutputMocksConfig.path` when set. Only picks where deinlined mock files
-  // land; `OutputMocksConfig.inline: true` keeps mocks in the implementation
-  // file in `single`/`tags` modes even when this path is set.
-  path?: string;
-}
-
-export type GlobalMockOptions = MswMockOptions | FakerMockOptions;
-
 // The top-level `mock` key on OutputOptions accepts this object form:
 //   mock: {
 //     indexMockFiles: true,
@@ -805,56 +745,6 @@ export interface NormalizedMocksConfig {
   fixtures?: boolean;
   generators: (GlobalMockOptions | ClientMockBuilder)[];
 }
-
-export type OverrideMockOptions = Partial<GlobalMockOptions> & {
-  arrayMin?: number;
-  arrayMax?: number;
-  stringMin?: number;
-  stringMax?: number;
-  numberMin?: number;
-  numberMax?: number;
-  required?: boolean; // When true, all properties are required (and thus not optional) in mocks.
-  nonNullable?: boolean; // When true, nullable mock values are never wrapped in `arrayElement([value, null])`.
-  exactOptional?: boolean; // When true, optional properties are omitted instead of set to `undefined`, for `exactOptionalPropertyTypes`.
-  properties?: MockProperties;
-  // Scope property overrides to a named schema (e.g. `components/schemas/Apple`),
-  // so the same property name can mock differently per schema. Matching rules are
-  // identical to `properties` (bare name, `/regex/`, exact `#.path`).
-  schemas?: Record<string, { properties: MockProperties }>;
-  format?: Record<string, unknown>;
-  fractionDigits?: number;
-};
-
-export type MockOptions = Omit<
-  OverrideMockOptions,
-  'properties' | 'schemas'
-> & {
-  properties?: Record<string, unknown>;
-  operations?: Record<string, { properties: Record<string, unknown> }>;
-  tags?: Record<string, { properties: Record<string, unknown> }>;
-  schemas?: Record<string, { properties: Record<string, unknown> }>;
-};
-
-export type MockPropertiesObject = Record<string, unknown>;
-export type MockPropertiesObjectFn = (
-  specs: OpenApiDocument,
-) => MockPropertiesObject;
-
-export type MockProperties = MockPropertiesObject | MockPropertiesObjectFn;
-
-export type MockDataObject = Record<string, unknown>;
-
-export type MockDataObjectFn = (specs: OpenApiDocument) => MockDataObject;
-
-export type MockDataArray = unknown[];
-
-export type MockDataArrayFn = (specs: OpenApiDocument) => MockDataArray;
-
-export type MockData =
-  | MockDataObject
-  | MockDataObjectFn
-  | MockDataArray
-  | MockDataArrayFn;
 
 type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
@@ -1084,205 +974,6 @@ export interface OverrideOutputContentType {
 }
 
 /**
- * Strategy controlling how an existing hono handler file is treated on
- * regeneration.
- *
- * - `smart` (default): non-destructively reconcile orval-owned imports and
- *   `zValidator` arguments and append handlers for new operations, preserving
- *   all user-authored imports, middleware, bodies, and top-level code.
- * - `skip`: leave an existing handler file byte-for-byte unchanged.
- * - `full`: rebuild the preamble and validator chain from the spec, splicing
- *   back only the handler body. Drops custom imports/middleware/helpers.
- */
-export type HonoHandlerStrategy = 'smart' | 'skip' | 'full';
-
-export interface NormalizedHonoOptions {
-  handlers?: string;
-  handlerGenerationStrategy: HonoHandlerStrategy;
-  compositeRoute: string;
-  validator: boolean | 'hono';
-  validatorOutputPath: string;
-}
-
-export interface ZodDateTimeOptions {
-  offset?: boolean;
-  local?: boolean;
-  precision?: number;
-}
-
-export interface ZodTimeOptions {
-  precision?: -1 | 0 | 1 | 2 | 3;
-}
-
-/**
- * Target Zod major version for generated output.
- *
- * - `4` — always emit Zod 4-style output (`z.strictObject`, `z.looseObject`,
- *   `z.iso.datetime()`, `.meta()`, …) regardless of the installed `zod` version.
- * - `3` — always emit Zod 3-compatible output (`.strict()`/`.passthrough()`,
- *   `z.string().datetime()`, …) regardless of the installed `zod` version.
- * - `'auto'` — infer the target from the `zod` version resolved in the output
- *   project's `package.json`; when no `zod` package can be detected, fall back
- *   to Zod 4 output.
- */
-export type ZodVersionOption = 3 | 4 | 'auto';
-
-export type ZodVariantOption = 'classic' | 'mini';
-
-interface BaseZodOptions<TVersion extends ZodVersionOption = ZodVersionOption> {
-  strict?: {
-    param?: boolean;
-    query?: boolean;
-    header?: boolean;
-    body?: boolean;
-    response?: boolean;
-  };
-  generate?: {
-    param?: boolean;
-    query?: boolean;
-    header?: boolean;
-    body?: boolean;
-    response?: boolean;
-  };
-  coerce?: {
-    param?: boolean | ZodCoerceType[];
-    query?: boolean | ZodCoerceType[];
-    header?: boolean | ZodCoerceType[];
-    body?: boolean | ZodCoerceType[];
-    response?: boolean | ZodCoerceType[];
-  };
-  preprocess?: {
-    param?: Mutator;
-    query?: Mutator;
-    header?: Mutator;
-    body?: Mutator;
-    response?: Mutator;
-  };
-  /**
-   * Mutator referencing a function called once per emitted validator at schema
-   * construction time. It receives codegen-time context (operation, location,
-   * schema name, field path, validator name) and returns a Zod `params` object
-   * (e.g. `{ error: ... }`) that is appended as the trailing argument.
-   *
-   * The plural name follows Zod's own term for the validator's second argument
-   * (`z.string(params)`) and is unrelated to the singular `param` key used by
-   * `generate` / `coerce` / `preprocess` above, which refers to the path-parameter
-   * location.
-   */
-  params?: Mutator;
-  useBrandedTypes?: boolean;
-  /**
-   * When true, each generated `export const X = <zod schema>` is followed by
-   * `export type X = zod.input<typeof X>;` and
-   * `export type XOutput = zod.output<typeof X>;`, including the `Item`
-   * schema split out for a bounded/array body or response. Default `false`.
-   */
-  generateCompanionTypes?: boolean;
-
-  /** Accepts a list of objects specifying OpenAPI property type and format for which
-   * to append additional .refine() callbacks. These .refine() callbacks are generated
-   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
-   * validatorsGenerator may return either a single validator or a list, or null if evaluation indicates that
-   * no refinements should be added. */
-  schemaExtension?: SchemaExtension<TVersion>;
-}
-
-interface ZodOptionsBase<
-  TVersion extends ZodVersionOption,
-> extends BaseZodOptions<TVersion> {
-  /**
-   * Select the generated Zod API style. `classic` imports from `zod`; `mini`
-   * imports from `zod/mini` and emits the functional/check-based Zod Mini API.
-   * Zod Mini requires a Zod 4 target.
-   */
-  variant?: ZodVariantOption;
-  /**
-   * Pin the Zod output target so generation is deterministic instead of
-   * inferred from the installed `zod` version. Defaults to `'auto'`, which
-   * infers from the detected package and otherwise falls back to Zod 4 output.
-   * See {@link ZodVersionOption}.
-   */
-  version?: TVersion;
-  dateTimeOptions?: ZodDateTimeOptions;
-  timeOptions?: ZodTimeOptions;
-  generateEachHttpStatus?: boolean;
-  /**
-   * When true, emits one reusable Zod schema per `#/components/schemas/*` `$ref`
-   * (with `namingConvention` applied to the name) and references it everywhere
-   * instead of inlining. Default `false`. See `docs/superpowers/specs/2026-05-26-reusable-zod-schemas-design.md`.
-   */
-  generateReusableSchemas?: boolean;
-  /**
-   * When true (zod v4 only), attaches registry metadata to generated
-   * **component** schemas via `.meta({ id, description?, deprecated? })`: `id` is
-   * the schema name, plus `description`/`deprecated` when the OpenAPI schema
-   * provides them. On zod v3 (which has no `.meta()`) descriptions still emit
-   * via `.describe()`. Default `false`.
-   */
-  generateMeta?: boolean;
-  /**
-   * When true, a `oneOf`/`anyOf` that carries an OpenAPI `discriminator` is
-   * emitted as `zod.discriminatedUnion(key, [...])` (better per-branch errors)
-   * instead of a plain `zod.union([...])`, but only when every branch can be
-   * represented as an object — otherwise it safely falls back to a union.
-   * Default `false` (opt-in), so existing output is unchanged.
-   */
-  generateDiscriminatedUnion?: boolean;
-  /**
-   * When true (Zod 4.2+ only), emits `oneOf` as `zod.xor([...])` instead of
-   * `zod.union([...])`, so a value matching more than one branch is rejected.
-   * Non-strict object branches strip unknown keys, so a subtype payload also
-   * matches its supertype (`oneOf: [Pet, Dog]`) and fails `xor`; enable this
-   * only when the `oneOf` branches are disjoint. Kept as `zod.union` on Zod 3,
-   * Zod 4.0/4.1, when no `zod` version can be detected, when a branch is
-   * coerced, for a `oneOf` with a `discriminator`, and when a branch renders
-   * looser than the spec (`{}`,
-   * `required`-only branches, or keywords such as `not`/`if` that Orval drops).
-   * Default `false` (opt-in), so existing output is unchanged.
-   */
-  generateXor?: boolean;
-  /**
-   * What to do when a schema construct is validated more loosely than the
-   * spec says. `'warn'` generates it anyway, without a message. `'error'`
-   * fails the generation with the schema path. Output-wide. Default `'warn'`.
-   */
-  unsupported?: UnsupportedSchemaMode;
-  /**
-   * When true (zod v4 only), emits optional object properties with
-   * `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of
-   * `.optional()`, so consumers with `exactOptionalPropertyTypes` infer
-   * `{ x?: T }` rather than `{ x?: T | undefined }`. On zod v3 (which has no
-   * `.exactOptional()`) this is a no-op and `.optional()` is emitted. Default
-   * `false` (opt-in), so existing output is unchanged.
-   */
-  exactOptional?: boolean;
-
-  /** Accepts a list of objects specifying OpenAPI property type and format for which
-   * to append additional .refine() callbacks. These .refine() callbacks are generated
-   * according to validatorsGenerator, which has access to the entire OpenAPI Spec object for the property.
-   * validatorsGenerator may return either a single validator or a list. */
-  schemaExtension?: SchemaExtension<TVersion>;
-}
-
-/**
- * Make version: 3 / 4 a discriminator so schemaExtension options are checked
- * against the selected Zod major. `auto` cannot be resolved at type-check time,
- * so it intentionally accepts either version's options.
- */
-export type ZodOptions =
-  | (ZodOptionsBase<3> & { version: 3 })
-  | (ZodOptionsBase<4> & { version: 4 })
-  | (ZodOptionsBase<'auto'> & { version?: 'auto' });
-
-/**
- * Per-operation/tag Zod overrides only include settings that are actually
- * merged into the operation-specific generator path. Output-wide target and
- * schema-layout settings belong on `override.zod`, not `override.operations.*`
- * / `override.tags.*`.
- */
-export type OperationZodOptions = BaseZodOptions;
-
-/**
  * Runtime source of truth for the `override.zod` keys that may also be set per
  * operation or tag. `NormalizedOperationZodOptions`, the unsupported-key
  * warning, and the operation/tag normalization in `orval` are all derived from
@@ -1300,8 +991,6 @@ export const operationZodOverrideKeys = [
   'schemaExtension',
 ] as const satisfies readonly (keyof OperationZodOptions)[];
 
-export type OperationZodOverrideKey = (typeof operationZodOverrideKeys)[number];
-
 // Compile-time exhaustiveness: adding a key to `BaseZodOptions` without adding
 // it to `operationZodOverrideKeys` makes this alias non-`never` and the
 // `satisfies` below fail.
@@ -1310,49 +999,6 @@ type MissingOperationZodOverrideKey = Exclude<
   OperationZodOverrideKey
 >;
 true satisfies MissingOperationZodOverrideKey extends never ? true : never;
-
-/**
- * Target Effect major version for generated output.
- *
- * - `4` — always emit Effect 4 Schema output (`S.Union([...])`, `.check(...)`,
- *   `S.optionalKey`, …) regardless of the installed `effect` version.
- * - `3` — always emit Effect 3 Schema output (`S.Union(...)`, `.pipe(...)`,
- *   `S.optionalWith`, …) regardless of the installed `effect` version.
- * - `'auto'` — infer the target from the `effect` version resolved in the
- *   output project's `package.json`; when no `effect` package can be detected,
- *   fall back to Effect 4 output.
- */
-export type EffectVersionOption = 3 | 4 | 'auto';
-
-export interface EffectOptions {
-  strict?: ZodOptions['strict'];
-  generate?: ZodOptions['generate'];
-  generateEachHttpStatus?: boolean;
-  useBrandedTypes?: boolean;
-  /**
-   * When true, emits optional Struct properties with
-   * `S.optionalWith(schema, { exact: true })` (Effect 3) or
-   * `S.optionalKey(schema)` (Effect 4) instead of `S.optional(schema)`, so
-   * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
-   */
-  exactOptional?: boolean;
-  /**
-   * Pin the Effect output target instead of inferring it from the installed
-   * `effect` version. Defaults to `'auto'`. See {@link EffectVersionOption}.
-   */
-  version?: EffectVersionOption;
-  /**
-   * Emit one constant per component schema an operation reaches instead of
-   * inlining every `$ref`. Output-wide. Default `false`.
-   */
-  generateReusableSchemas?: boolean;
-}
-
-/** `override.effect` keys that may also be set per operation or tag. */
-export type OperationEffectOptions = Omit<
-  EffectOptions,
-  'generateReusableSchemas'
->;
 
 /**
  * Type-only checks that the component schemas of a schema library, Zod or
@@ -1375,129 +1021,13 @@ export interface ModelTypeChecksOptions {
  */
 export type UnsupportedSchemaMode = 'warn' | 'error';
 
-export interface ValibotOptions {
-  strict?: ZodOptions['strict'];
-  generate?: ZodOptions['generate'];
-  /**
-   * When true, optional object properties use `v.exactOptional(schema)` so
-   * `exactOptionalPropertyTypes` consumers infer `{ x?: T }`. Default `false`.
-   */
-  exactOptional?: boolean;
-  /**
-   * Emit one constant per `#/components/schemas/*` entry instead of inlining
-   * every `$ref`. Output-wide. Default `false`.
-   */
-  generateReusableSchemas?: boolean;
-  /**
-   * What to do when a schema construct is validated more loosely than the
-   * spec says. `'warn'` generates it anyway and logs the cases Orval already
-   * warns about. `'error'` fails the generation with the schema path.
-   * Output-wide. Default `'warn'`.
-   */
-  unsupported?: UnsupportedSchemaMode;
-}
-
-/** `override.valibot` keys that may also be set per operation or tag. */
-export type OperationValibotOptions = Omit<
-  ValibotOptions,
-  'generateReusableSchemas' | 'unsupported'
+/** Flags for the sections that a schema generator can emit or validate. */
+export type SchemaSectionFlags = Record<
+  'param' | 'query' | 'header' | 'body' | 'response',
+  boolean
 >;
 
-export type ZodCoerceType =
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'bigint'
-  | 'date'
-  // Not a real `z.coerce.array()` — opting 'array' into `coerce.<location>`
-  // wraps array params in a single→array preprocess so a single repeated-key
-  // query value (delivered as a scalar by the server framework) still parses.
-  | 'array';
-
 type SchemaExtensionFormat = string;
-
-/** Predicate accepted by a Zod `.refine()` call. */
-export type RefinementFunction<TValue = never> = (value: TValue) => boolean;
-
-/** Options accepted by the second argument of Zod 3's `.refine()`. */
-export type Zod3RefinementParams = {
-  message?: string;
-  path?: (string | number)[];
-  params?: object;
-};
-
-/** Zod 3 also permits producing the options from the validated value. */
-export type Zod3RefinementOptions<TValue> =
-  | string
-  | Zod3RefinementParams
-  | ((value: TValue) => Zod3RefinementParams);
-
-/** The custom issue handed to Zod 4's `error` callback. */
-export interface Zod4RefinementIssue {
-  readonly code: 'custom';
-  readonly input: unknown;
-  readonly path?: Array<string | number>;
-  readonly message?: string;
-  readonly params?: Record<string, unknown>;
-}
-
-/** Options accepted by Zod 4's `.refine()` / `zod.refine()`. */
-export type Zod4RefinementOptions =
-  | string
-  | {
-      error?:
-        | string
-        | ((
-            issue: Zod4RefinementIssue,
-          ) => string | { message: string } | undefined | null);
-      /** @deprecated Zod 4 prefers `error`. */
-      message?: string;
-      path?: Array<string | number>;
-      abort?: boolean;
-      when?: (payload: {
-        value: unknown;
-        issues: readonly unknown[];
-      }) => boolean;
-      params?: Record<string, unknown>;
-    };
-
-/**
- * Match `.refine()` options to the generated Zod version. When version is
- * `'auto'` (or not supplied), both forms remain available because the installed
- * Zod major is only determined during generation.
- */
-export type ZodRefinementOptions<
-  TValue = never,
-  TVersion extends ZodVersionOption = ZodVersionOption,
-> = TVersion extends 3
-  ? Zod3RefinementOptions<TValue>
-  : TVersion extends 4
-    ? Zod4RefinementOptions
-    : Zod3RefinementOptions<TValue> | Zod4RefinementOptions;
-
-/**
- * Values captured from a refinement's lexical environment. `$imports` contains
- * static ES import declarations to emit in the generated module, rather than
- * values to serialize into a closure. Import names are checked against free
- * identifiers in the callable and callbacks nested inside `options`.
- */
-export type RefinementBindings = Readonly<Record<string, unknown>> & {
-  readonly $imports?: readonly string[];
-};
-
-/**
- * A refinement plus its optional Zod `.refine()` second argument. Both the
- * validator and any functions nested inside `options` can capture values from
- * `bindings`. If no bindings are needed, null is an acceptable value.
- */
-export type BoundRefinement<
-  TValue = never,
-  TVersion extends ZodVersionOption = ZodVersionOption,
-> = {
-  callable: RefinementFunction<TValue>;
-  options?: ZodRefinementOptions<TValue, TVersion>;
-  bindings: RefinementBindings | null;
-};
 
 /** An internal evaluator that automatically assigns a type to the BoundRefinement given a known OpenAPI type. */
 type SchemaExtensionValue<T extends PrimitiveSchemaType> = T extends 'string'
@@ -1627,156 +1157,9 @@ export type NormalizedFormatTypeMap = {
   [K in StringFormat]?: NormalizedFormatTypeConfig;
 };
 
-export interface NormalizedZodOptions {
-  variant: ZodVariantOption;
-  version: ZodVersionOption;
-  strict: {
-    param: boolean;
-    query: boolean;
-    header: boolean;
-    body: boolean;
-    response: boolean;
-  };
-  generate: {
-    param: boolean;
-    query: boolean;
-    header: boolean;
-    body: boolean;
-    response: boolean;
-  };
-  coerce: {
-    param: boolean | ZodCoerceType[];
-    query: boolean | ZodCoerceType[];
-    header: boolean | ZodCoerceType[];
-    body: boolean | ZodCoerceType[];
-    response: boolean | ZodCoerceType[];
-  };
-  preprocess?: {
-    param?: NormalizedMutator;
-    query?: NormalizedMutator;
-    header?: NormalizedMutator;
-    body?: NormalizedMutator;
-    response?: NormalizedMutator;
-  };
-  schemaExtension?: SchemaExtension;
-  params?: NormalizedMutator;
-  generateEachHttpStatus: boolean;
-  useBrandedTypes: boolean;
-  generateReusableSchemas: boolean;
-  generateMeta: boolean;
-  generateDiscriminatedUnion: boolean;
-  generateXor: boolean;
-  unsupported: UnsupportedSchemaMode;
-  exactOptional: boolean;
-  generateCompanionTypes: boolean;
-  dateTimeOptions: ZodDateTimeOptions;
-  timeOptions: ZodTimeOptions;
-}
-
-export type NormalizedOperationZodOptions = Pick<
-  NormalizedZodOptions,
-  OperationZodOverrideKey
->;
-
 export interface NormalizedModelTypeChecksOptions {
   /** The absolute path of the directory the models are written to. */
   models: string;
-}
-
-export interface NormalizedValibotOptions {
-  strict: NormalizedZodOptions['strict'];
-  generate: NormalizedZodOptions['generate'];
-  exactOptional: boolean;
-  generateReusableSchemas: boolean;
-  unsupported: UnsupportedSchemaMode;
-}
-
-export interface NormalizedEffectOptions {
-  strict: NormalizedZodOptions['strict'];
-  generate: NormalizedZodOptions['generate'];
-  generateEachHttpStatus: boolean;
-  useBrandedTypes: boolean;
-  exactOptional: boolean;
-  version: EffectVersionOption;
-  generateReusableSchemas: boolean;
-}
-
-/**
- * A single parameter value for `mutationInvalidates` params.
- *
- * - `string` – treated as a variable reference, e.g. `"petId"` → `variables.petId`
- * - `{ literal: string }` – emitted as a string literal, e.g. `{ literal: "@me" }` → `"@me"`
- */
-export type InvalidateTargetParam = string | { literal: string };
-
-export type InvalidateTarget =
-  | string
-  | {
-      query: string;
-      params?: InvalidateTargetParam[] | Record<string, InvalidateTargetParam>;
-      invalidateMode?: 'invalidate' | 'reset';
-      file?: string;
-    };
-
-export interface MutationInvalidatesRule {
-  onMutations: string[];
-  invalidates: InvalidateTarget[];
-}
-
-export type MutationInvalidatesConfig = MutationInvalidatesRule[];
-
-export interface HonoOptions {
-  handlers?: string;
-  handlerGenerationStrategy?: HonoHandlerStrategy;
-  compositeRoute?: string;
-  validator?: boolean | 'hono';
-  validatorOutputPath?: string;
-}
-
-export interface McpServerOptions {
-  path: string;
-  name?: string;
-  default?: boolean;
-}
-
-export interface NormalizedMcpServerOptions {
-  path: string;
-  name?: string;
-  default: boolean;
-}
-
-export interface McpHandlerOptions {
-  path: string;
-  name?: string;
-  default?: boolean;
-}
-
-export interface NormalizedMcpHandlerOptions {
-  path: string;
-  name?: string;
-  default: boolean;
-}
-
-export interface McpOptions {
-  server?: McpServerOptions;
-  handler?: McpHandlerOptions;
-  /**
-   * Cache hints the generated server attaches to list and read results on
-   * MCP 2026-07-28 connections. Passed to `McpServer` as is; omitted by
-   * default so the SDK's own default (`ttlMs: 0`, `private`) applies.
-   *
-   * The generated tool list is fixed at build time, so `tools/list` is a
-   * typical candidate for `cacheScope: 'public'` with a TTL of a few minutes
-   * to an hour. The server never sends `listChanged`, so a redeploy with new
-   * tools becomes visible only once the TTL expires.
-   */
-  cacheHints?: McpSdkServerOptions['cacheHints'];
-}
-
-export interface NormalizedMcpOptions {
-  server?: NormalizedMcpServerOptions;
-  handler?: NormalizedMcpHandlerOptions;
-  cacheHints?: McpSdkServerOptions['cacheHints'];
 }
 
 /**
@@ -1820,345 +1203,6 @@ export interface NormalizedRuntimeValidation {
   strategy: RuntimeValidationStrategy;
   /** Set only when configured, so default normalized values are unchanged. */
   standardSchema?: boolean;
-}
-
-/**
- * Angular's `runtimeValidation` surface. On top of the shared forms, the object
- * form can opt JSON request bodies into parsing before they are sent. The
- * object form enables response validation too, with `strategy` defaulting to
- * `throw`.
- */
-export type AngularRuntimeValidation =
-  | boolean
-  | {
-      strategy?: RuntimeValidationStrategy;
-      /**
-       * Parse JSON request bodies with the generated Zod schema before the
-       * request is sent. `strategy` applies to request bodies as well.
-       *
-       * @default false
-       */
-      requestBodies?: boolean;
-      /**
-       * Validate through the Standard Schema interface (`schema['~standard']`)
-       * instead of Zod's `parse`/`safeParse`.
-       */
-      standardSchema?: boolean;
-    };
-
-export interface NormalizedAngularRuntimeValidation extends NormalizedRuntimeValidation {
-  /** Omitted is the same as `false`. */
-  requestBodies?: boolean;
-}
-
-export type InfiniteQueryParamLocation = 'query' | 'body';
-
-export interface QueryDocsOptions {
-  /**
-   * Add an `@route METHOD /path` line to the JSDoc of generated hooks.
-   *
-   * @default false
-   */
-  route?: boolean;
-}
-
-export interface NormalizedQueryOptions {
-  useQuery?: boolean;
-  useSuspenseQuery?: boolean;
-  useMutation?: boolean;
-  useInfinite?: boolean;
-  useSuspenseInfiniteQuery?: boolean;
-  useInfiniteQueryParam?: string | string[];
-  /**
-   * Where the `useInfiniteQueryParam` page param lives. `'query'` pages
-   * through a URL query parameter; `'body'` pages through a property of the
-   * JSON request body, for `POST` endpoints that paginate with a filter body.
-   *
-   * @default 'query'
-   */
-  useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
-  usePrefetch?: boolean;
-  useInvalidate?: boolean;
-  useSetQueryData?: boolean;
-  useGetQueryData?: boolean;
-  /**
-   * Hold a query whose params are not resolved yet with `skipToken` instead of
-   * the generated `enabled` guard, so a caller's own `enabled` cannot replace
-   * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
-   */
-  useSkipToken?: boolean;
-  /**
-   * Extra JSDoc emitted on generated query and mutation hooks.
-   */
-  docs?: QueryDocsOptions;
-
-  options?: Record<string, unknown>;
-  queryKey?: NormalizedMutator;
-  queryOptions?: NormalizedMutator;
-  mutationOptions?: NormalizedMutator;
-  shouldExportMutatorHooks?: boolean;
-  shouldExportHttpClient?: boolean;
-  shouldExportKeys?: boolean;
-  shouldFilterQueryKey?: boolean;
-  queryKeyFilter?: string;
-  shouldSplitQueryKey?: boolean;
-  useOperationIdAsQueryKey?: boolean;
-  signal?: boolean;
-  version?: 3 | 4 | 5;
-  mutationInvalidates?: MutationInvalidatesConfig;
-  runtimeValidation?: NormalizedRuntimeValidation;
-}
-
-export interface QueryOptions {
-  useQuery?: boolean;
-  useSuspenseQuery?: boolean;
-  useMutation?: boolean;
-  useInfinite?: boolean;
-  useSuspenseInfiniteQuery?: boolean;
-  useInfiniteQueryParam?: string | string[];
-  /**
-   * Where the `useInfiniteQueryParam` page param lives. `'query'` pages
-   * through a URL query parameter; `'body'` pages through a property of the
-   * JSON request body, for `POST` endpoints that paginate with a filter body.
-   *
-   * @default 'query'
-   */
-  useInfiniteQueryParamLocation?: InfiniteQueryParamLocation;
-  usePrefetch?: boolean;
-  useInvalidate?: boolean;
-  useSetQueryData?: boolean;
-  useGetQueryData?: boolean;
-  /**
-   * Hold a query whose params are not resolved yet with `skipToken` instead of
-   * the generated `enabled` guard, so a caller's own `enabled` cannot replace
-   * the check and `refetch()` cannot bypass it. TanStack Query v5 only.
-   */
-  useSkipToken?: boolean;
-  /**
-   * Extra JSDoc emitted on generated query and mutation hooks.
-   */
-  docs?: QueryDocsOptions;
-
-  options?: Record<string, unknown>;
-  queryKey?: Mutator;
-  queryOptions?: Mutator;
-  mutationOptions?: Mutator;
-  shouldExportMutatorHooks?: boolean;
-  shouldExportHttpClient?: boolean;
-  shouldExportKeys?: boolean;
-  /**
-   * @deprecated Renamed to `shouldExportKeys`, since it now also exports mutation keys
-   */
-  shouldExportQueryKey?: boolean;
-  shouldFilterQueryKey?: boolean;
-  queryKeyFilter?: string;
-  shouldSplitQueryKey?: boolean;
-  useOperationIdAsQueryKey?: boolean;
-  signal?: boolean;
-  version?: 3 | 4 | 5;
-  mutationInvalidates?: MutationInvalidatesConfig;
-  runtimeValidation?: RuntimeValidation;
-}
-
-export interface AngularOptions {
-  provideIn?: 'root' | 'any' | boolean;
-  /**
-   * Preferred name for configuring how retrieval-style operations are emitted.
-   *
-   * - `httpClient`: keep retrievals as service methods
-   * - `httpResource`: emit retrievals as Angular `httpResource` helpers
-   * - `both`: emit retrieval helpers and keep service methods where needed
-   *
-   * Mutation-style operations still use generated `HttpClient` service methods
-   * by default unless a per-operation override forces a different behavior.
-   */
-  retrievalClient?: 'httpClient' | 'httpResource' | 'both';
-  /**
-   * Backward-compatible alias for `retrievalClient`.
-   *
-   * Kept for compatibility with existing configs.
-   */
-  client?: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation?: AngularRuntimeValidation;
-  httpResource?: AngularHttpResourceOptions;
-  /**
-   * Opt-in: compose the runtime base URL for this output via Angular DI
-   * (an `InjectionToken`) instead of baking a static prefix into every
-   * route at generation time. Angular-client only; mutually exclusive with
-   * the top-level `output.baseUrl`.
-   */
-  baseUrl?: AngularBaseUrlOptions;
-  /**
-   * Controls how object-typed query parameters are serialized when no
-   * `paramsSerializer` is configured.
-   *
-   * - `spec` (default): honor the OpenAPI parameter's `style`/`explode` —
-   *   `form` + `explode: true` (the OpenAPI default) spreads the object's
-   *   properties as top-level query params, `form` + `explode: false` joins
-   *   them into a single comma-separated value, and `deepObject` emits
-   *   bracketed `name[prop]` keys.
-   * - `legacy`: restore the pre-#3705 behavior of silently dropping
-   *   object-typed query params from the generated request.
-   *
-   * Has no effect when a `paramsSerializer` or `paramsFilter` is configured
-   * for the operation — those remain in full control of the raw value. See
-   * issue #3705.
-   */
-  queryObjectSerialization?: 'spec' | 'legacy';
-  /**
-   * Emit the `observe: 'body' | 'events' | 'response'` overloads on generated
-   * `HttpClient` service methods.
-   *
-   * Set to `false` to emit only the `observe: 'body'` signature
-   * (`Observable<TData>`), which keeps generated services easy to mock with
-   * tools such as Vitest, Jasmine, Spectator or ng-mocks. See issue #4289.
-   *
-   * @default true
-   */
-  observeOverloads?: boolean;
-}
-
-export interface NormalizedAngularOptions {
-  provideIn: 'root' | 'any' | boolean;
-  client: 'httpClient' | 'httpResource' | 'both';
-  runtimeValidation: NormalizedAngularRuntimeValidation;
-  httpResource?: AngularHttpResourceOptions;
-  baseUrl?: AngularBaseUrlOptions;
-  queryObjectSerialization: 'spec' | 'legacy';
-  /**
-   * Always set at the output level; omitted on tag/operation overrides that
-   * don't specify it so the output-level value is preserved when merged.
-   */
-  observeOverloads?: boolean;
-}
-
-export interface AngularHttpResourceOptions {
-  /**
-   * Value to expose while the resource is idle/loading.
-   *
-   * Serialized as a literal into generated code.
-   */
-  defaultValue?: unknown;
-  /**
-   * Debug name shown in Angular DevTools.
-   */
-  debugName?: string;
-  /**
-   * Raw code expression for HttpResourceOptions.injector.
-   * Example: `inject(Injector)`.
-   */
-  injector?: string;
-  /**
-   * Raw code expression for HttpResourceOptions.equal.
-   * Example: `(a, b) => a.id === b.id`.
-   */
-  equal?: string;
-}
-
-export interface SwrOptions {
-  useInfinite?: boolean;
-  useSWRMutationForGet?: boolean;
-  useSuspense?: boolean;
-  generateErrorTypes?: boolean;
-  swrOptions?: unknown;
-  swrMutationOptions?: unknown;
-  swrInfiniteOptions?: unknown;
-}
-
-export interface NormalizedAxiosOptions {
-  includeHttpResponseReturnType: boolean;
-}
-
-export interface AxiosOptions {
-  /**
-   * Include the HTTP status in the return type so it discriminates the
-   * response data type.
-   *
-   * @default false
-   */
-  includeHttpResponseReturnType?: boolean;
-}
-
-export interface NormalizedFetchOptions {
-  asyncInferredMutator?: boolean;
-  includeHttpResponseReturnType: boolean;
-  forceSuccessResponse: boolean;
-  includeHttpErrorResponse?: boolean;
-  serializeResponseHeaders: boolean;
-  jsonReviver?: Mutator;
-  runtimeValidation: NormalizedRuntimeValidation;
-  useRuntimeFetcher: boolean;
-  httpClientInjection?: 'factory';
-  /**
-   * Serialization format for array query parameters that do not have an explicit
-   * `explode` setting in the OpenAPI spec.
-   *
-   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
-   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
-   * - `comma` — join values with a comma: `foo=1,2`
-   */
-  arrayFormat?: 'repeat' | 'brackets' | 'comma';
-  runtimeImplementationStyle: FetchRuntimeImplementationStyle;
-  runtimeOutputPath: string;
-  clientConfigOutputPath: string;
-}
-
-export type FetchRuntimeImplementationStyle = 'inline' | 'shared';
-
-export interface FetchOptions {
-  /** Make inferred Promise-returning mutator operations async. @default false */
-  asyncInferredMutator?: boolean;
-  includeHttpResponseReturnType?: boolean;
-  forceSuccessResponse?: boolean;
-  /**
-   * Pass full error response types to a custom mutator's ErrorType and declared
-   * error statuses/media types in its third argument. Requires response envelopes,
-   * forceSuccessResponse, and a non-hook mutator accepting three arguments.
-   * Only explicit error status codes are supported after content-type filtering.
-   *
-   * @default false
-   */
-  includeHttpErrorResponse?: boolean;
-  /**
-   * Return response `headers` as a plain `Record<string, string>` instead of a
-   * `Headers` instance, so the response stays serializable. Keys are lowercased
-   * and `set-cookie` is omitted. With a `mutator` this only changes the declared
-   * type — the mutator must return headers in that shape itself.
-   *
-   * @default false
-   */
-  serializeResponseHeaders?: boolean;
-  jsonReviver?: Mutator;
-  runtimeValidation?: RuntimeValidation;
-  useRuntimeFetcher?: boolean;
-  /**
-   * When `'factory'`, wraps all generated functions inside a factory closure
-   * that accepts a `fetch` implementation once, instead of passing it per-call.
-   * Applies to `client: 'fetch'` only, and is read from `output.override.fetch`.
-   *
-   * @default undefined (top-level functions, fetchFn passed per-call)
-   */
-  httpClientInjection?: 'factory';
-  /**
-   * Serialization format for array query parameters that do not have an explicit
-   * `explode` setting in the OpenAPI spec.
-   *
-   * - `repeat` — repeat the key for each value: `foo=1&foo=2`
-   * - `brackets` — append `[]` to the key: `foo[]=1&foo[]=2`
-   * - `comma` — join values with a comma: `foo=1,2`
-   */
-  arrayFormat?: 'repeat' | 'brackets' | 'comma';
-  /**
-   * `'shared'` generates the execution logic once into a shared runtime and
-   * turns every operation into a thin wrapper. Read from `output.override.fetch` only.
-   *
-   * @default 'inline'
-   */
-  runtimeImplementationStyle?: FetchRuntimeImplementationStyle;
-  /** @default `runtime.ts` next to the target */
-  runtimeOutputPath?: string;
-  /** Emitted only with a global `mutator`. @default `client-config.ts` next to the target */
-  clientConfigOutputPath?: string;
 }
 
 export type InputTransformerFn = (

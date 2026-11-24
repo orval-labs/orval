@@ -26,6 +26,7 @@
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
+    "@faker-js/faker": "10.6.0",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
@@ -41,5 +42,8 @@
     "@faker-js/faker": {
       "optional": true
     }
+  },
+  "inlinedDependencies": {
+    "@faker-js/faker": "10.6.0"
   }
 }

@@ -5156,3 +5156,5 @@ export {
 } from './export-emitter';
 
 export default builder;
+
+export type * from './options';
