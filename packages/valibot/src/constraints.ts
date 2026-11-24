@@ -24,6 +24,7 @@ const FORMATS = new Map<string, FlagActionKind>([
 
 export const numberActions = (
   schema: OpenApiNonBooleanSchemaObject,
+  path?: string,
 ): ValibotAction[] => {
   const constraints = [
     ['minValue', schema.minimum, 'minimum'],
@@ -37,7 +38,7 @@ export const numberActions = (
       // `v.multipleOf` uses `%`, which rejects valid decimals such as 19.99.
       if (value !== undefined) {
         assertSafeNumericConstraint(value, label);
-        warnOnce(`Skipping non-integer multipleOf ${value}.`);
+        warnOnce(`Skipping non-integer multipleOf ${value}.`, path);
       }
       return [];
     }
@@ -77,7 +78,10 @@ export const sizeActions = (
   return actions;
 };
 
-export const patternActions = (pattern: string): ValibotAction[] => {
+export const patternActions = (
+  pattern: string,
+  path?: string,
+): ValibotAction[] => {
   // `\p{...}` only means a Unicode property with the `u` flag.
   const flags = /(^|[^\\])(?:\\\\)*\\[pPu]\{/.test(pattern) ? 'u' : '';
   // A pattern JavaScript cannot compile (`(?i)`, `\A`, ...) would throw
@@ -91,7 +95,10 @@ export const patternActions = (pattern: string): ValibotAction[] => {
       },
     ];
   } catch {
-    warnOnce(`Skipping pattern that is not a JavaScript RegExp: ${pattern}`);
+    warnOnce(
+      `Skipping pattern that is not a JavaScript RegExp: ${pattern}`,
+      path,
+    );
     return [];
   }
 };

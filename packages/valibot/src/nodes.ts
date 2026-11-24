@@ -105,6 +105,8 @@ export interface BaseSchema {
 export type ChildGenerator = (
   member: OpenApiSchemaObject | undefined,
   isRequired?: boolean,
+  // Names the member in the path of what is reported about it.
+  segment?: string,
 ) => ValibotNode;
 
 export const plainNode = (schema: ValibotSchema): ValibotNode => ({

@@ -2,6 +2,7 @@ import {
   callFormatTypeFunction,
   type ContextSpec,
   getCustomFormatType,
+  getFormatTypeConfig,
   getEnumMembers,
   getFormatTypeError,
   getUnionMemberContext,
@@ -22,17 +23,18 @@ import {
   type ResolvedType,
   resolveType,
   toCanonicalNullable,
+  tryResolveRefSchema,
   withoutOuterAnnotations,
 } from '@orval/core';
 
-import { generateComposition } from './composition';
+import { generateComposition, type RefResolver } from './composition';
 import {
   numberActions,
   patternActions,
   sizeActions,
   stringBase,
 } from './constraints';
-import { warnOnce } from './logger';
+import { noticeOnce, useUnsupportedModeOf, warnOnce } from './logger';
 import {
   type BaseSchema,
   type ChildGenerator,
@@ -43,12 +45,21 @@ import {
   type ValibotNode,
   type ValibotSchema,
 } from './nodes';
+import { joinPath } from './path';
 import { isReusableSchemasEnabled, resolveComponentName } from './refs';
+import {
+  reportIgnoredKeywords,
+  reportUncheckedConstraints,
+  reportUncheckedEncoding,
+  reportUncheckedFormat,
+} from './unsupported';
 
 export interface SchemaRules {
   required?: boolean;
   // Form bodies are serialized as strings, so a binary field stays a string.
   urlEncoded?: boolean;
+  // Where the schema sits, named in what is reported about it.
+  path?: string;
 }
 
 // A required key without a property gets the additional properties type.
@@ -59,7 +70,11 @@ const undeclaredEntries = (
 ): ValibotEntry[] => {
   if (keys.length === 0) return [];
   const { default: _default, ...withoutDefault } = additional ?? {};
-  const value = child(additional ? withoutDefault : undefined);
+  const value = child(
+    additional ? withoutDefault : undefined,
+    true,
+    'additionalProperties',
+  );
   return keys.map((key) => ({ key, value }));
 };
 
@@ -82,7 +97,7 @@ const generateObject = (
   const requiredKeys = new Set(required);
   const declared = Object.keys(properties).map((key): ValibotEntry => ({
     key,
-    value: child(properties[key], requiredKeys.has(key)),
+    value: child(properties[key], requiredKeys.has(key), key),
   }));
   const undeclared = undeclaredEntries(
     [...requiredKeys].filter(
@@ -95,7 +110,11 @@ const generateObject = (
 
   if (entries.length > 0) {
     if (typedAdditional) {
-      return { kind: 'objectWithRest', entries, rest: child(typedAdditional) };
+      return {
+        kind: 'objectWithRest',
+        entries,
+        rest: child(typedAdditional, true, 'additionalProperties'),
+      };
     }
     const isDictionary = declared.length === 0 && additional !== false;
     return {
@@ -110,7 +129,10 @@ const generateObject = (
     };
   }
   if (typedAdditional) {
-    return { kind: 'record', value: child(typedAdditional) };
+    return {
+      kind: 'record',
+      value: child(typedAdditional, true, 'additionalProperties'),
+    };
   }
   if (additional === false) {
     return {
@@ -165,14 +187,16 @@ const generateEnum = (
 const generateArray = (
   schema: OpenApiNonBooleanSchemaObject,
   child: ChildGenerator,
+  path: string | undefined,
 ): BaseSchema => {
   if ('prefixItems' in schema) {
     warnOnce(
       '`prefixItems` is not supported yet, the tuple is validated as an array of unknown.',
+      path,
     );
     return plainBase({ kind: 'array', item: child(undefined) });
   }
-  return plainBase({ kind: 'array', item: child(schema.items) });
+  return plainBase({ kind: 'array', item: child(schema.items, true, 'items') });
 };
 
 const generateByType = (
@@ -181,10 +205,11 @@ const generateByType = (
   child: ChildGenerator,
   strict: boolean,
   urlEncoded: boolean,
+  path: string | undefined,
 ): BaseSchema => {
   switch (type) {
     case 'array': {
-      return generateArray(schema, child);
+      return generateArray(schema, child, path);
     }
     case 'null': {
       return plainBase({ kind: 'null' });
@@ -206,11 +231,11 @@ const generateByType = (
       return plainBase(generateObject(schema, child, strict));
     }
     default: {
-      return plainBase(
-        hasProperties(schema)
-          ? generateObject(schema, child, strict)
-          : { kind: 'unknown' },
-      );
+      if (hasProperties(schema)) {
+        return plainBase(generateObject(schema, child, strict));
+      }
+      reportUncheckedConstraints(schema, path);
+      return plainBase({ kind: 'unknown' });
     }
   }
 };
@@ -221,16 +246,19 @@ const generateBase = (
   strict: boolean,
   nullable: boolean,
   urlEncoded: boolean,
+  path: string | undefined,
+  resolveRef?: RefResolver,
 ): BaseSchema => {
   const constant = generateConst(schema.const);
   if (constant) return constant;
   if (schema.const !== undefined) {
     warnOnce(
       '`const` with an object or array value is not supported, it is not validated.',
+      path,
     );
   }
 
-  const composition = generateComposition(schema, child);
+  const composition = generateComposition(schema, child, path, resolveRef);
   if (composition) return composition;
 
   const type = resolveType(schema);
@@ -244,11 +272,11 @@ const generateBase = (
   }
 
   if (hasStructuredMember(schema.enum)) {
-    warnOnce('`enum` with object or array members is not validated.');
+    warnOnce('`enum` with object or array members is not validated.', path);
   } else if (schema.enum && type !== 'array' && type !== 'null') {
     return generateEnum(schema, nullable);
   }
-  return generateByType(schema, type, child, strict, urlEncoded);
+  return generateByType(schema, type, child, strict, urlEncoded, path);
 };
 
 // The model types an array readonly only when it has `items`.
@@ -272,6 +300,7 @@ const generateActions = (
   schema: OpenApiNonBooleanSchemaObject,
   base: BaseSchema,
   context: ContextSpec,
+  path: string | undefined,
 ): ValibotAction[] => {
   const { kind } = base.schema;
   const { override } = context.output;
@@ -286,7 +315,7 @@ const generateActions = (
   }
   return [
     ...base.actions,
-    ...(kind === 'number' ? numberActions(schema) : []),
+    ...(kind === 'number' ? numberActions(schema, path) : []),
     // A transformation such as `v.readonly()` stops the pipe once the value
     // has an issue. Placed before the size checks, it keeps the value typed
     // when only a size check fails, so an enclosing union reports that issue.
@@ -295,7 +324,7 @@ const generateActions = (
       : []),
     ...(kind === 'string' || kind === 'array' ? sizeActions(kind, schema) : []),
     ...(kind === 'string' && isString(schema.pattern)
-      ? patternActions(schema.pattern)
+      ? patternActions(schema.pattern, path)
       : []),
     // The transform runs after every check, which expect the string.
     ...(kind === 'string' && isDateFormatType(schema.format, override)
@@ -426,7 +455,7 @@ const generateDefault = (
     schema.const === undefined;
   if (!isPlainNumber || !(isString(value) || typeof value === 'number')) {
     if (fitsSchema(value, schema)) return toJsLiteral(value);
-    warnOnce(
+    noticeOnce(
       `The default ${JSON.stringify(value)} does not fit its schema, it is left out.`,
     );
     return undefined;
@@ -438,11 +467,22 @@ const generateDefault = (
   const fits =
     Number.isFinite(parsed) && (type === 'number' || Number.isInteger(parsed));
   if (fits) return String(parsed);
-  warnOnce(
+  noticeOnce(
     `The default "${String(value)}" does not fit a ${type}, it is left out.`,
   );
   return undefined;
 };
+
+// The schema a `$ref` member stands for, so `oneOf` can tell referenced
+// alternatives apart.
+const refResolver =
+  (context: ContextSpec): RefResolver =>
+  (member) => {
+    const ref = getRef(member);
+    const target =
+      ref === undefined ? undefined : tryResolveRefSchema(ref, context);
+    return isNonBoolean(target) ? target : undefined;
+  };
 
 // Siblings of a `$ref` apply next to it, so they are generated as an `allOf`
 // with the reference as a member.
@@ -475,6 +515,7 @@ export const generateValibotValidationSchemaDefinition = (
   strict: boolean,
   rules?: SchemaRules,
 ): ValibotNode => {
+  useUnsupportedModeOf(context);
   const required = rules?.required ?? false;
   const urlEncoded = rules?.urlEncoded ?? false;
 
@@ -498,7 +539,9 @@ export const generateValibotValidationSchemaDefinition = (
   const hasDefault = defaultValue !== undefined;
   // The string member of a `type: [...]` union keeps the format unmapped.
   const isUnion = getMultiTypes(schema).length > 1;
-  const child: ChildGenerator = (member, isRequired = true) => {
+  const path = rules?.path;
+  const child: ChildGenerator = (member, isRequired = true, segment) => {
+    const memberPath = joinPath(path, segment);
     if (!isUnion || !isNonBoolean(member) || member.type !== 'string') {
       return generateValibotValidationSchemaDefinition(
         member,
@@ -507,6 +550,7 @@ export const generateValibotValidationSchemaDefinition = (
         {
           required: isRequired,
           urlEncoded,
+          path: memberPath,
         },
       );
     }
@@ -519,7 +563,7 @@ export const generateValibotValidationSchemaDefinition = (
       isUnmappedBinary ? { ...member, format: undefined } : member,
       memberContext,
       strict,
-      { required: isRequired, urlEncoded },
+      { required: isRequired, urlEncoded, path: memberPath },
     );
   };
 
@@ -535,11 +579,26 @@ export const generateValibotValidationSchemaDefinition = (
     );
   }
 
-  const base = generateBase(schema, child, strict, nullable, urlEncoded);
+  reportIgnoredKeywords(schema, path);
+  reportUncheckedFormat(
+    schema,
+    path,
+    getFormatTypeConfig(schema.format, context.output.override) !== undefined,
+  );
+  reportUncheckedEncoding(schema, path);
+  const base = generateBase(
+    schema,
+    child,
+    strict,
+    nullable,
+    urlEncoded,
+    path,
+    refResolver(context),
+  );
 
   return {
     schema: base.schema,
-    actions: generateActions(schema, base, context),
+    actions: generateActions(schema, base, context, path),
     nullable: nullable && !acceptsNull(base.schema),
     optional: !hasDefault && !required,
     defaultValue,

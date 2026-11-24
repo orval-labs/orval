@@ -9,7 +9,7 @@ import {
   type SchemaParsers,
 } from '@orval/core';
 
-import { startRun, warnOnce } from './logger';
+import { setUnsupportedMode, startRun, warnOnce } from './logger';
 import { plainNode, type ValibotNode } from './nodes';
 import {
   parseBodyAndResponse,
@@ -106,6 +106,7 @@ export const generateValibotSchemasModule = (
 ): string => {
   const context: ContextSpec = { spec, target, workspace, output };
   startRun(spec);
+  setUnsupportedMode(output.override.valibot.unsupported);
 
   // A constant is declared under another name only when its own would shadow
   // what generated code relies on; clients still import it by its own name.

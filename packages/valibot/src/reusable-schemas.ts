@@ -11,6 +11,7 @@ import {
 } from '@orval/core';
 
 import { dereference } from './dereference';
+import { setUnsupportedMode } from './logger';
 import type { ValibotNode } from './nodes';
 import { createRefPolicy, getComponentModes } from './ref-policy';
 import { collectRefNames, isSchemasOutput, RESERVED_NAMES } from './refs';
@@ -53,12 +54,13 @@ const generateComponent = (
     schema,
     { ...context, parents: [toComponentRef(key)] },
     createRefPolicy({ context, strict, exactOptional }),
+    { label: toComponentRef(key) },
   );
   return generateValibotValidationSchemaDefinition(
     isSchemasOutput(context) ? relaxWriteOnly(resolved, context) : resolved,
     context,
     strict,
-    { required: true },
+    { required: true, path: toComponentRef(key) },
   );
 };
 
@@ -94,6 +96,7 @@ export const generateValibotComponentConsts = (
   context: ContextSpec,
   typeNamesOf?: (name: string) => ComponentTypeNames,
 ): ValibotComponentConst[] => {
+  setUnsupportedMode(context.output.override.valibot.unsupported);
   const names = getComponentNames(context);
   const nodes = new Map(
     Object.entries(getComponents(context)).flatMap(([key, schema]) => {

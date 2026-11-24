@@ -4,6 +4,7 @@ import type { OpenApiSchemaObject } from '@orval/core';
 import * as v from 'valibot';
 
 import { createTestContextSpec } from '../../core/src/test-utils';
+import { setUnsupportedMode } from './logger';
 import { renderValibot } from './render';
 import { generateValibotValidationSchemaDefinition } from './schema';
 
@@ -16,20 +17,35 @@ export const gen = (
     strict?: boolean;
     exactOptional?: boolean;
     useDates?: boolean;
+    unsupported?: 'warn' | 'error';
+    // Where the schema sits, as named in what is reported about it.
+    path?: string;
   },
 ) => {
   const context = createTestContextSpec({
-    output: { override: { useDates: options?.useDates ?? false } },
+    output: {
+      override: {
+        useDates: options?.useDates ?? false,
+        valibot: { unsupported: options?.unsupported ?? 'warn' },
+      },
+    },
   });
-  const valibot = renderValibot(
-    generateValibotValidationSchemaDefinition(
-      schema,
-      context,
-      options?.strict ?? false,
-      { required: options?.required ?? true },
-    ),
-    { exactOptional: options?.exactOptional },
-  );
+  setUnsupportedMode(options?.unsupported ?? 'warn');
+  const valibot = (() => {
+    try {
+      return renderValibot(
+        generateValibotValidationSchemaDefinition(
+          schema,
+          context,
+          options?.strict ?? false,
+          { required: options?.required ?? true, path: options?.path },
+        ),
+        { exactOptional: options?.exactOptional },
+      );
+    } finally {
+      setUnsupportedMode('warn');
+    }
+  })();
   const instance = runInNewContext(valibot, {
     v,
     File,

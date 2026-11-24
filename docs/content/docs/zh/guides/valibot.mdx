@@ -62,6 +62,7 @@ export const CreatePetsBody = v.object({
 - `generate` - 按位置选择是否生成 schema。默认全部为 `true`。
 - `exactOptional` - 可选属性使用 `v.exactOptional`，适用于启用了 `exactOptionalPropertyTypes` 的项目。默认 `false`。也可以按 operation 或按 tag 设置。
 - `generateReusableSchemas` - 每个组件 schema 只生成一次并通过引用复用，而不是内联每个 `$ref`。默认 `false`。参见[可复用 Schema](#可复用-schema)。
+- `unsupported` - `'warn'`（默认）或 `'error'`。参见[不支持的 schema](#不支持的-schema)。
 
 ## 可复用 Schema
 
@@ -261,6 +262,12 @@ if (result.success) {
 - `oneOf` 不检查是否恰好只有一个备选项匹配。
 - query 和 path 参数不会被强制转换：从 URL 字符串读取的数字无法通过 `v.number()`。header 的键保持规范中的大小写。
 - 在 `allOf` 交叉类型中，`strict` 对象会生成为 `v.object`，多余的键会被去掉而不是报错。与对象成员并列的开放成员（`additionalProperties: true`）会被省略，多余的键同样会被去掉。
+- 没有 Valibot 对应项的关键字不会被校验，例如 `not`、`if`/`then`/`else`、`patternProperties`、`propertyNames`、`dependentRequired`、`dependentSchemas`、`unevaluatedProperties`、`contains`、`uniqueItems`、`minProperties` 和 `maxProperties`。没有 `type` 的 schema 上的约束同样不会被校验。`additionalProperties: false` 仅在设置 `strict` 时生效。
+- 只校验以下格式：`email`、`uri`、`uuid`、`ipv4`、`ipv6`、`byte`、`date`、`date-time` 和 `binary`，以及通过数字类型校验的 `int32`、`int64`、`float` 和 `double`。其他格式（例如 `format: phone`）不会被校验，`base64` 以外的 `contentEncoding` 也不会。
+
+### 不支持的 schema
+
+将 `override.valibot.unsupported` 设为 `'error'` 可让生成直接失败，而不是生成更宽松的 schema。错误会指出对应的 schema，例如 `getPet response > owner > tags`。上述警告、可能重叠的 `oneOf` 备选项、`allOf` 或其他交集中的 `strict` 对象、上面列出的关键字以及未被校验的格式或内容编码都会变为错误（`formatType` 映射的格式除外）。未开启 `generateReusableSchemas` 时被内联的循环 `$ref` 也会失败，错误会提示开启该选项。没有 `strict` 的 `additionalProperties: false` 不会报错。不适配的默认值仍为警告。
 
 ## 校验 HTTP Client 响应
 

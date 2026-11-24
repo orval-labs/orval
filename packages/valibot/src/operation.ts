@@ -14,6 +14,7 @@ import {
 
 import { dereference } from './dereference';
 import { withFileParts, type PartEncoding } from './form-data';
+import { useUnsupportedModeOf } from './logger';
 import { plainNode, type ValibotNode } from './nodes';
 import { createRefPolicy } from './ref-policy';
 import { generateValibotValidationSchemaDefinition } from './schema';
@@ -103,19 +104,24 @@ export const parseBodyAndResponse = ({
     MULTIPART_TYPE.test(media.contentType) ||
     URL_ENCODED_TYPE.test(media.contentType);
   const direction = isRequest ? 'readOnly' : 'writeOnly';
+  const site = describeSite(operation, isRequest ? 'request body' : 'response');
   const resolved = dereference(
     media.schema,
     context,
     isForm
       ? undefined
       : createRefPolicy({ context, direction, strict, exactOptional }),
-    { label: describeSite(operation, isRequest ? 'request body' : 'response') },
+    { label: site },
   );
   const node = generateValibotValidationSchemaDefinition(
     omitDirectional(resolved, direction),
     context,
     strict,
-    { required: true, urlEncoded: URL_ENCODED_TYPE.test(media.contentType) },
+    {
+      required: true,
+      urlEncoded: URL_ENCODED_TYPE.test(media.contentType),
+      path: site,
+    },
   );
   return MULTIPART_TYPE.test(media.contentType)
     ? withFileParts(node, resolved, media.encoding)
@@ -152,7 +158,7 @@ export const parseDirectionalSchema = ({
     ),
     context,
     strict,
-    { required: true },
+    { required: true, path: label },
   );
 
 const isSuccessWithBody = (code: string) =>
@@ -245,6 +251,7 @@ export const parseParameters = ({
   generate,
   operation,
 }: ParseParametersOptions): ParsedParameters => {
+  useUnsupportedModeOf(context);
   // Keyed by name: a repeated parameter keeps its position and last schema.
   const defs: Record<ParameterLocation, Map<string, ValibotNode>> = {
     param: new Map(),
@@ -259,16 +266,15 @@ export const parseParameters = ({
     const location = PARAMETER_LOCATIONS.get(parameter.in);
     if (!location || !generate[location]) continue;
 
+    const site = describeSite(
+      operation,
+      `${location} parameter "${parameter.name}"`,
+    );
     const resolvedSchema = dereference(
       parameter.schema,
       context,
       createRefPolicy({ context, strict: strict[location], exactOptional }),
-      {
-        label: describeSite(
-          operation,
-          `${location} parameter "${parameter.name}"`,
-        ),
-      },
+      { label: site },
     );
 
     defs[location].set(
@@ -280,7 +286,7 @@ export const parseParameters = ({
         },
         context,
         strict[location],
-        { required: parameter.required },
+        { required: parameter.required, path: site },
       ),
     );
   }
