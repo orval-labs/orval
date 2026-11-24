@@ -182,6 +182,33 @@ import * as zod from 'zod/mini';
 zod.config(zod.locales.en());
 ```
 
+## Unsupported Schemas
+
+Some schemas are validated more loosely than the spec says. By default Orval generates them without a message. Set [`override.zod.unsupported`](/docs/reference/configuration/output#unsupported) to `'error'` to fail the generation instead. The error names the schema, such as `getPetResponse > owner > tags`, and says how to turn the check off.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      target: './src/api/endpoints.ts',
+      override: { zod: { unsupported: 'error' } },
+    },
+  },
+});
+```
+
+These cases fail in `'error'` mode. When a setting fixes a case, the error names it. `additionalProperties: false` without [`strict`](/docs/reference/configuration/output#strict) does not fail.
+
+- Keywords with no Zod counterpart: `not` (except an empty one, or one that only forbids keys in a `oneOf`/`anyOf` branch next to sibling `properties`), `if`/`then`/`else`, `patternProperties`, `propertyNames`, `dependentSchemas`, `dependencies`, `unevaluatedProperties`, `unevaluatedItems`, `contains`, `minContains`, `maxContains`, `uniqueItems`, `minProperties`, `maxProperties`, `additionalItems` and `contentSchema`. `dependentRequired` fails where it cannot be rendered: on an object without properties, or next to a composition.
+- Constraints on a schema with no `type` (`minimum`, `minLength`, `pattern`, `items`, ...), an object or array `const`, and `items` given as a list.
+- A `oneOf` that renders as a plain union, unless its alternatives have distinct types, literals or discriminator values. Without [`generateXor`](/docs/reference/configuration/output#generatexor) the error says to turn it on. A coerced alternative also renders the `oneOf` as a plain union.
+- More than one composition keyword on the same schema, as only the first of `allOf`, `oneOf` and `anyOf` is rendered.
+- An `allOf` of objects merged into one object, with `strict` or in a discriminated union, that declares the same property, or `additionalProperties`, differently: the merge keeps one definition. A literal or enum that narrows an earlier type or enum is accepted.
+- An array at the root of a body or response with `prefixItems`, `null`, `enum`, `const`, a composition or a `format`: only its items and bounds are rendered.
+- An unresolvable `$ref` or `$dynamicRef`, and a circular `$ref` that is inlined, since all are validated as unknown. Without [`generateReusableSchemas`](/docs/reference/configuration/output#generatereusableschemas) the error says to turn it on.
+- A `format` zod does not check, such as `format: phone`, unless `formatType` maps it. The checked formats are `date`, `time`, `time-local`, `date-time`, `date-time-local`, `email`, `uri`, `hostname`, `uuid`, `ipv4`, `ipv6` and `binary`, plus the number formats `int32`, `int64`, `float` and `double` through the number type. A `contentEncoding`, such as `base64`, is not checked either.
+
 ## Scoping options per operation or tag
 
 Most `override.zod` settings can be applied to part of your API instead of globally, via `override.operations[operationId].zod` (a single operation) or `override.tags[tagName].zod` (every operation sharing a tag):
@@ -219,7 +246,7 @@ export default defineConfig({
 
 Per-operation and per-tag overrides accept the settings that apply to an individual schema: `strict`, `generate`, `coerce`, `preprocess`, `params`, `useBrandedTypes`, and `generateCompanionTypes`.
 
-Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, `generateMeta`, `generateDiscriminatedUnion`, `generateXor`, and `exactOptional` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
+Output-wide settings — `variant`, `version`, `dateTimeOptions`, `timeOptions`, `generateEachHttpStatus`, `generateReusableSchemas`, `generateMeta`, `generateDiscriminatedUnion`, `generateXor`, `exactOptional`, and `unsupported` — only make sense for the whole output and must stay on `override.zod`. If you place one on an operation or tag it is ignored — the value from `override.zod` still applies — and Orval prints a build warning:
 
 ```
 ⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.

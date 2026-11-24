@@ -166,6 +166,7 @@ export const generateReusableSchemaSet = (
       options.isZodV4,
       {
         required: true,
+        path: ref,
         useReusableSchemas: true,
         emitMeta: options.generateMeta,
         schemaExtension: options.schemaExtension,

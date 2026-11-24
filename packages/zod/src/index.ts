@@ -71,6 +71,7 @@ import {
   encodeJsonPointerSegment,
   tryResolveRefSchema as coreTryResolveRefSchema,
   unique,
+  unsupportedError,
 } from '@orval/core';
 import jsesc from 'jsesc';
 
@@ -97,6 +98,18 @@ import {
   zodMiniCall,
 } from './export-emitter';
 import { logger } from './logger';
+import {
+  areExclusive,
+  isUnsupportedError,
+  withoutUnsupportedError,
+  joinPath,
+  haveDistinctDiscriminators,
+  reportIgnoredKeywords,
+  reportUncheckedConstraints,
+  reportUncheckedEncoding,
+  reportUncheckedFormat,
+  reportUnsupported,
+} from './unsupported';
 
 export const getZodDependencies: ClientDependenciesBuilder = (
   _hasGlobalMutator,
@@ -695,6 +708,32 @@ const getForbiddenKeys = (
   return forbidden.size > 0 ? [...forbidden] : undefined;
 };
 
+const NOT_ANNOTATIONS = new Set(['title', 'description', '$comment']);
+
+// The keys of a schema other than annotations.
+const constraintKeys = (value: Record<string, unknown>): string[] =>
+  Object.keys(value).filter((key) => !NOT_ANNOTATIONS.has(key));
+
+// Whether a `not` holds nothing but the forbidden-keys form above. A branch
+// lists one key: `required: [a, b]` forbids only the pair, while the rewrite
+// forbids each key.
+const isForbiddenKeysForm = (not: unknown): boolean => {
+  if (not === false) return true;
+  const forbidsOneKey = (branch: unknown): boolean =>
+    isObject(branch) &&
+    constraintKeys(branch).length === 1 &&
+    Array.isArray(branch.required) &&
+    branch.required.length === 1;
+  if (!isObject(not)) return false;
+  if (forbidsOneKey(not)) return true;
+  return (
+    constraintKeys(not).length === 1 &&
+    Array.isArray(not.anyOf) &&
+    not.anyOf.length > 0 &&
+    not.anyOf.every(forbidsOneKey)
+  );
+};
+
 // --- Exclusive unions -----------------------------------------------------
 //
 // `zod.xor` rejects a value that matches more than one branch, so it is only
@@ -1011,6 +1050,11 @@ export const generateZodValidationSchemaDefinition = (
   rules?: {
     required?: boolean;
     /**
+     * Set on the members of a `type` array: the parent already checked its
+     * `format` and `contentEncoding` against every type.
+     */
+    formatChecked?: boolean;
+    /**
      * Required keys inherited from sibling `allOf` members. Per JSON Schema /
      * OpenAPI 3.1, a `required` array in one `allOf` member applies to
      * properties contributed by ANY member, so it is collected at the `allOf`
@@ -1061,8 +1105,14 @@ export const generateZodValidationSchemaDefinition = (
      * it, so nested schemas keep `.describe()` and never get a duplicate `id`.
      */
     emitMeta?: boolean;
+    /**
+     * Where the schema sits, named in `unsupported` errors: the place it is
+     * used (defaults to `name`), then the chain of properties down to it.
+     */
+    path?: string;
   },
 ): ZodValidationSchemaDefinition => {
+  const path = rules?.path ?? name;
   // Boolean schemas are real schemas: `true` ≡ `{}` (unknown) and
   // `false` ≡ `{ not: {} }` (never), matching the models core emits for them.
   // `false` takes the object form, so it gets the same modifiers and metadata.
@@ -1245,6 +1295,7 @@ export const generateZodValidationSchemaDefinition = (
       schema = dereference(
         schema as OpenApiSchemaObject | OpenApiReferenceObject,
         context,
+        path,
       );
     }
   }
@@ -1298,6 +1349,7 @@ export const generateZodValidationSchemaDefinition = (
     schema = dereference(
       schema as OpenApiSchemaObject | OpenApiReferenceObject,
       context,
+      path,
     );
   }
 
@@ -1375,6 +1427,12 @@ export const generateZodValidationSchemaDefinition = (
   };
 
   const type = resolveZodType(schema);
+  reportIgnoredKeywords(schema, context, path);
+  if (!rules?.formatChecked) {
+    reportUncheckedFormat(schema, context, path, predefinedZodFormats);
+    reportUncheckedEncoding(schema, context, path);
+  }
+  if (type === 'unknown') reportUncheckedConstraints(schema, context, path);
   const required = rules?.required ?? false;
   const hasDefault = schema.default !== undefined;
   // `never` rejects null too, so a `null` entry in `type` doesn't widen it.
@@ -1530,6 +1588,27 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       const forbidden = getForbiddenKeys(member as OpenApiSchemaObject);
+      // The rewrite keeps only forbidden keys, so any other part of `not` is
+      // dropped.
+      if (
+        concreteMember.not !== undefined &&
+        !isForbiddenKeysForm(concreteMember.not)
+      ) {
+        reportUnsupported(
+          context,
+          '`not` other than forbidden keys is not validated.',
+          path,
+        );
+      }
+      // A forbidden key without a sibling property gets no `never` override,
+      // so the object would accept it.
+      if (forbidden?.some((key) => !Object.hasOwn(properties, key))) {
+        reportUnsupported(
+          context,
+          '`not` forbids a key that has no sibling property, so it is not validated.',
+          path,
+        );
+      }
 
       // A `not` constraint forbids keys. When the member is rendered against the
       // sibling properties, forbidden keys must be emitted as `zod.never()`
@@ -1612,6 +1691,7 @@ export const generateZodValidationSchemaDefinition = (
         isZodV4,
         {
           required: true,
+          path: joinPath(path, `${separator}[${index}]`),
           additionalRequired: allOfRequired,
           inlinedRefs,
           propertyOverrides: (
@@ -1674,6 +1754,60 @@ export const generateZodValidationSchemaDefinition = (
           )
         : exclusiveSeparator;
 
+    // Only `zod.xor` and a discriminated union reject a value that matches
+    // several alternatives. Settings choose them (`generateXor`,
+    // `generateDiscriminatedUnion`), so with the setting off the error names
+    // it. Coercion is a setting too, and it only demotes `zod.xor` when the
+    // output is rendered. Only evaluated in error mode, so warn mode reads no
+    // extra settings.
+    const rendersExclusive = (): boolean =>
+      !!decodeDiscriminatorSeparator(unionSeparator) ||
+      (exclusiveSeparator === 'oneOf' &&
+        !!context.output.override.zod.generateXor &&
+        isZodV4 &&
+        supportsZodXor(context.output.packageJson));
+    // Whether turning `generateXor` on would make the union exclusive. A
+    // discriminated union only renders when the discriminator values are
+    // distinct, and those already pass, so it is never the fix here. A
+    // permissive or loosely rendered branch keeps the union either way.
+    const settingIsOff = (): boolean =>
+      schema.discriminator === undefined &&
+      !context.output.override.zod.generateXor &&
+      isZodV4 &&
+      supportsZodXor(context.output.packageJson) &&
+      !baseSchemas.some(isPermissiveDefinition) &&
+      schemas.every((member) =>
+        isFaithfullyRendered(
+          withSiblingProperties(withParentType(member)),
+          context,
+        ),
+      );
+    if (
+      isUnsupportedError(context) &&
+      separator === 'oneOf' &&
+      !rendersExclusive() &&
+      !areExclusive(
+        schemas.map((member) => resolveUnionMemberSchema(member, context)),
+      ) &&
+      !(
+        typeof schema.discriminator?.propertyName === 'string' &&
+        haveDistinctDiscriminators(
+          schemas,
+          schema.discriminator.propertyName,
+          (member) => resolveUnionMemberSchema(member, context),
+        )
+      )
+    ) {
+      reportUnsupported(
+        context,
+        '`oneOf` is validated like `anyOf` here, so a value that matches several alternatives is accepted.',
+        path,
+        settingIsOff()
+          ? 'Set `override.zod.generateXor` to check it.'
+          : undefined,
+      );
+    }
+
     // Handle allOf/oneOf/anyOf with additional properties - merge additional properties into the schema
     if ((schema.allOf || schema.oneOf || schema.anyOf) && schema.properties) {
       const additionalPropertiesSchema = {
@@ -1694,6 +1828,7 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            path,
             additionalRequired: allOfRequired,
             inlinedRefs,
             constNameRegistry,
@@ -1720,6 +1855,29 @@ export const generateZodValidationSchemaDefinition = (
       }
     } else {
       functions.push([unionSeparator, baseSchemas]);
+    }
+    if (isUnsupportedError(context)) {
+      // Strict mode and discriminated union members merge an `allOf` of
+      // objects into one object.
+      const merged = [
+        ...(strict && separator === 'allOf'
+          ? [
+              (functions.find(([fn]) => fn === 'allOf')?.[1] ??
+                []) as ZodValidationSchemaDefinition[],
+            ]
+          : []),
+        ...(decodeDiscriminatorSeparator(unionSeparator)
+          ? baseSchemas.flatMap((member) =>
+              member.functions[0]?.[0] === 'allOf'
+                ? [member.functions[0][1] as ZodValidationSchemaDefinition[]]
+                : [],
+            )
+          : []),
+      ];
+      for (const parts of merged) {
+        const reason = lossyAllOfMerge(parts);
+        if (reason) reportUnsupported(context, reason, path);
+      }
     }
     skipSwitchStatement = true;
   }
@@ -1965,6 +2123,8 @@ export const generateZodValidationSchemaDefinition = (
           isZodV4,
           {
             required: true,
+            path,
+            formatChecked: true,
             constNameRegistry,
             useReusableSchemas,
             schemaExtension: rules?.schemaExtension,
@@ -2015,13 +2175,18 @@ export const generateZodValidationSchemaDefinition = (
               'tuple',
               prefixItems.map((item, idx) =>
                 generateZodValidationSchemaDefinition(
-                  dereference(item, context),
+                  dereference(
+                    item,
+                    context,
+                    joinPath(path, `prefixItems[${idx}]`),
+                  ),
                   context,
                   camel(`${name}-${idx}-item`),
                   strict,
                   isZodV4,
                   {
                     required: true,
+                    path: joinPath(path, `prefixItems[${idx}]`),
                     constNameRegistry,
                     useReusableSchemas,
                     schemaExtension: rules?.schemaExtension,
@@ -2046,6 +2211,7 @@ export const generateZodValidationSchemaDefinition = (
                   isZodV4,
                   {
                     required: true,
+                    path: joinPath(path, 'items'),
                     constNameRegistry,
                     useReusableSchemas,
                     schemaExtension: rules?.schemaExtension,
@@ -2070,6 +2236,7 @@ export const generateZodValidationSchemaDefinition = (
             isZodV4,
             {
               required: true,
+              path: joinPath(path, 'items'),
               constNameRegistry,
               useReusableSchemas,
               schemaExtension: rules?.schemaExtension,
@@ -2329,6 +2496,7 @@ export const generateZodValidationSchemaDefinition = (
                     isZodV4,
                     {
                       required: requiredKeys.has(key),
+                      path: joinPath(path, key),
                       constNameRegistry,
                       useReusableSchemas,
                       schemaExtension: rules?.schemaExtension,
@@ -2354,6 +2522,7 @@ export const generateZodValidationSchemaDefinition = (
                 isZodV4,
                 {
                   required: true,
+                  path: joinPath(path, 'additionalProperties'),
                   constNameRegistry,
                   useReusableSchemas,
                   schemaExtension: rules?.schemaExtension,
@@ -2411,6 +2580,7 @@ export const generateZodValidationSchemaDefinition = (
               isZodV4,
               {
                 required: true,
+                path: joinPath(path, 'additionalProperties'),
                 constNameRegistry,
                 useReusableSchemas,
                 schemaExtension: rules?.schemaExtension,
@@ -2736,6 +2906,225 @@ const mergeAllOfObjectParts = (
   };
 };
 
+const CONST_DECLARATION = /^export const (\w+) = ([\s\S]*);$/;
+
+// A definition without its generated names: each reference to a constant it
+// declares is replaced by the constant's value, so equal schemas compare equal.
+const withoutConstNames = (
+  value: unknown,
+  names: ReadonlyMap<string, string> = new Map(),
+): unknown => {
+  if (typeof value === 'string') return names.get(value) ?? value;
+  if (Array.isArray(value)) {
+    return value.map((item) => withoutConstNames(item, names));
+  }
+  if (!isObject(value)) return value;
+  const scope = new Map(names);
+  if (Array.isArray(value.consts)) {
+    for (const declaration of value.consts as unknown[]) {
+      const match =
+        typeof declaration === 'string'
+          ? CONST_DECLARATION.exec(declaration.trim())
+          : null;
+      if (match) scope.set(match[1], `=${match[2]}`);
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== 'consts')
+      .map(([key, item]) => [
+        key,
+        withoutConstNames(
+          key === 'functions' && Array.isArray(item)
+            ? (item as unknown[]).filter(
+                (entry) =>
+                  !Array.isArray(entry) ||
+                  typeof entry[0] !== 'string' ||
+                  !ANNOTATION_FUNCTIONS.has(entry[0]),
+              )
+            : item,
+          scope,
+        ),
+      ]),
+  );
+};
+
+// Functions that describe a value without constraining it.
+const ANNOTATION_FUNCTIONS = new Set(['describe', 'meta']);
+
+// Functions that only allow or forbid a missing or null value.
+const PRESENCE_FUNCTIONS = new Set(['optional', 'nullable', 'nullish']);
+
+const PLAIN_TYPES = new Set(['string', 'number', 'int', 'boolean']);
+
+const QUOTED = /'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"/g;
+
+const SINGLE_QUOTED_ESCAPES: Record<string, string> = {
+  n: '\n',
+  r: '\r',
+  u2028: '\u2028',
+  u2029: '\u2029',
+};
+
+// The text of a single-quoted literal written by `jsStringLiteralEscape`.
+const unescapeSingleQuoted = (body: string): string =>
+  body.replaceAll(
+    /\\(u2028|u2029|[\s\S])/g,
+    (_, character: string) => SINGLE_QUOTED_ESCAPES[character] ?? character,
+  );
+
+// The text of a double-quoted literal written by `JSON.stringify`.
+const unescapeDoubleQuoted = (body: string): string => {
+  try {
+    return JSON.parse(`"${body}"`) as string;
+  } catch {
+    return body;
+  }
+};
+
+const literalKey = (value: unknown): string => {
+  if (typeof value !== 'string') return `v:${String(value)}`;
+  const quoted = /^(['"])([\s\S]*)\1$/.exec(value);
+  if (!quoted) return `v:${value}`;
+  return quoted[1] === "'"
+    ? `s:${unescapeSingleQuoted(quoted[2])}`
+    : `s:${unescapeDoubleQuoted(quoted[2])}`;
+};
+
+// The values a property definition allows when it is a literal, an enum or a
+// union of literals.
+const literalValuesOf = (
+  functions: readonly (readonly [string, unknown])[],
+): string[] | undefined => {
+  if (functions.length !== 1) return undefined;
+  const [fn, args] = functions[0];
+  if (fn === 'literal') return [literalKey(args)];
+  if (fn === 'enum' && typeof args === 'string') {
+    return [...args.matchAll(QUOTED)].map((match) => literalKey(match[0]));
+  }
+  if (fn === 'anyOf' && Array.isArray(args)) {
+    const values = (args as ZodValidationSchemaDefinition[]).map((member) =>
+      literalValuesOf(member.functions),
+    );
+    return values.every((list) => list !== undefined)
+      ? values.flat()
+      : undefined;
+  }
+  return undefined;
+};
+
+// Whether a literal key is a value of a bare zod type.
+const fitsType = (type: string, key: string): boolean => {
+  if (type === 'string') return key.startsWith('s:');
+  if (!key.startsWith('v:')) return false;
+  const text = key.slice(2);
+  if (type === 'boolean') return text === 'true' || text === 'false';
+  const value = Number(text);
+  return (
+    text !== '' &&
+    Number.isFinite(value) &&
+    (type !== 'int' || Number.isInteger(value))
+  );
+};
+
+const hasFunction = (
+  definition: ZodValidationSchemaDefinition,
+  names: readonly string[],
+): boolean => definition.functions.some(([fn]) => names.includes(fn));
+
+// Whether the later definition accepts a null or missing value the earlier one
+// rejects. The merge keeps the later one, so that would widen the property.
+const widensPresence = (
+  earlier: ZodValidationSchemaDefinition,
+  later: ZodValidationSchemaDefinition,
+): boolean =>
+  (hasFunction(later, ['nullable', 'nullish']) &&
+    !hasFunction(earlier, ['nullable', 'nullish'])) ||
+  (hasFunction(later, ['optional', 'nullish']) &&
+    !hasFunction(earlier, ['optional', 'nullish']));
+
+// A later literal or enum narrows the property when it allows only values of
+// the earlier one and no null or missing value the earlier one rejects, which
+// is what keeping the last definition does.
+const isNarrowing = (
+  earlier: ZodValidationSchemaDefinition,
+  later: ZodValidationSchemaDefinition,
+): boolean => {
+  const constraints = (definition: ZodValidationSchemaDefinition) =>
+    definition.functions.filter(
+      ([fn]) => !ANNOTATION_FUNCTIONS.has(fn) && !PRESENCE_FUNCTIONS.has(fn),
+    );
+  if (widensPresence(earlier, later)) return false;
+  const before = constraints(earlier);
+  const after = literalValuesOf(constraints(later));
+  if (!after) return false;
+  const allowed = literalValuesOf(before);
+  if (allowed) return after.every((value) => allowed.includes(value));
+  return (
+    before.length === 1 &&
+    PLAIN_TYPES.has(before[0][0]) &&
+    after.every((value) => fitsType(before[0][0], value))
+  );
+};
+
+// Why merging an `allOf` of objects into one object would loosen it, if it
+// would. The merge keeps one definition per property, so a property declared
+// differently by two parts loses all but the last definition.
+const lossyAllOfMerge = (
+  allOfArgs: ZodValidationSchemaDefinition[],
+): string | undefined => {
+  if (mergeAllOfObjectParts(allOfArgs) === null) return undefined;
+  const seen = new Map<
+    string,
+    { rendered: string; definition: ZodValidationSchemaDefinition }
+  >();
+  for (const { functions } of allOfArgs) {
+    const [, objectArgs] = functions[0];
+    for (const [key, definition] of Object.entries(
+      isObject(objectArgs)
+        ? (objectArgs as Record<string, ZodValidationSchemaDefinition>)
+        : {},
+    )) {
+      const rendered = JSON.stringify(withoutConstNames(definition));
+      const previous = seen.get(key);
+      if (
+        previous !== undefined &&
+        previous.rendered !== rendered &&
+        !isNarrowing(previous.definition, definition)
+      ) {
+        return `Property \`${key}\` is declared differently by several \`allOf\` members, and merging them keeps only the last one.`;
+      }
+      seen.set(key, { rendered, definition });
+    }
+  }
+  // The merge keeps one rule for extra keys: open if any member is open,
+  // otherwise the last `additionalProperties` schema. Members that set
+  // different rules lose all but that one. A closed member is not counted:
+  // with the `strict` option every plain member renders closed too, so the
+  // rendered parts cannot tell an explicit `additionalProperties: false` from
+  // a member that says nothing.
+  const extraKeyRules = new Set(
+    allOfArgs.flatMap(({ functions }): string[] => {
+      const [fn, objectArgs] = functions[0];
+      if (!isObject(objectArgs) || Object.keys(objectArgs).length === 0) {
+        return [];
+      }
+      if (
+        fn === 'looseObject' ||
+        functions.some(([f]) => f === 'passthrough')
+      ) {
+        return ['any'];
+      }
+      const catchall = functions.find(([f]) => f === 'catchall');
+      return catchall ? [JSON.stringify(withoutConstNames(catchall[1]))] : [];
+    }),
+  );
+  if (extraKeyRules.size > 1) {
+    return 'Several `allOf` members declare different `additionalProperties`, and merging them keeps only one.';
+  }
+  return undefined;
+};
+
 const PARAMS_MODIFIER_VALIDATORS = new Set([
   'optional',
   'nullable',
@@ -2983,8 +3372,20 @@ export const parseZodValidationSchemaDefinition = (
     }
     return Object.values(value).some(containsCoercion);
   };
-  const unionFn = (fn: string, members: ZodValidationSchemaDefinition[]) =>
-    fn === 'oneOf' && useXor && !containsCoercion(members) ? 'xor' : 'union';
+  const unionFn = (
+    fn: string,
+    members: ZodValidationSchemaDefinition[],
+    fieldPath: readonly string[],
+  ) => {
+    if (fn !== 'oneOf' || !useXor) return 'union';
+    if (!containsCoercion(members)) return 'xor';
+    reportUnsupported(
+      context,
+      '`oneOf` with a coerced alternative is validated like `anyOf`, so a value that matches several alternatives is accepted.',
+      fieldPath.length > 0 ? fieldPath.join(' > ') : 'the schema root',
+    );
+    return 'union';
+  };
 
   const buildCombinedArgs = (
     fn: string,
@@ -3221,7 +3622,7 @@ ${Object.entries(objectArgs)
         }
         current = {
           expr: zodMiniCall(
-            unionFn(fn, unionArgs),
+            unionFn(fn, unionArgs, fieldPath),
             `[${unionArgs
               .map((arg) => {
                 appendConstsChunk(arg.consts.join('\n'));
@@ -3680,7 +4081,7 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.${unionFn(fn, unionArgs)}([${union.join(',')}])`;
+      return `.${unionFn(fn, unionArgs, fieldPath)}([${union.join(',')}])`;
     }
 
     if (fn === 'additionalProperties') {
@@ -3899,6 +4300,55 @@ const dereferenceOptions: DereferenceOptions = {
   onResolveError: logResolveError,
 };
 
+// Names the schema being expanded in the paths that `unsupported: 'error'`
+// reports. The expansion is synchronous, so one slot is enough.
+let expandingPath = 'schema';
+
+const refPath = (ref: string, parents: readonly string[]): string =>
+  [expandingPath, ...parents, ref].join(' > ');
+
+// A cut ref is validated as unknown, which the default mode accepts without
+// a word. The expansion cache is keyed by the options object, so error mode
+// has its own: expansions cached by a default run would skip the callbacks.
+const strictDereferenceOptions: DereferenceOptions = {
+  ...dereferenceOptions,
+  onCircularRef: (ref, parents) => {
+    throw unsupportedError(
+      'zod',
+      `Circular $ref "${ref}" is validated as unknown.`,
+      refPath(ref, parents),
+    );
+  },
+  onUnresolvedRef: (ref, parents) => {
+    throw unsupportedError(
+      'zod',
+      `Unresolvable $ref "${ref}" is validated as unknown.`,
+      refPath(ref, parents),
+    );
+  },
+  onUnresolvedDynamicRef: (ref, parents) => {
+    throw unsupportedError(
+      'zod',
+      `$dynamicRef "${ref}" is validated as unknown.`,
+      refPath(ref, parents),
+    );
+  },
+};
+
+// Without reusable schemas a cycle is cut wherever it is inlined, which
+// turning them on avoids, so the error says so.
+const inlineDereferenceOptions: DereferenceOptions = {
+  ...strictDereferenceOptions,
+  onCircularRef: (ref, parents) => {
+    throw unsupportedError(
+      'zod',
+      `Circular $ref "${ref}" is validated as unknown.`,
+      refPath(ref, parents),
+      'Set `override.zod.generateReusableSchemas` to keep the cycle.',
+    );
+  },
+};
+
 /**
  * Attempts to resolve a `$ref` to its target schema. Returns `undefined`
  * instead of throwing when the ref cannot be found (e.g. external refs
@@ -3926,8 +4376,21 @@ const tryResolveRefSchema = ($ref: string, context: ContextSpec) =>
 export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): OpenApiNonBooleanSchemaObject =>
-  coreDereference(schema, context, dereferenceOptions);
+  path?: string,
+  { quiet = false }: { quiet?: boolean } = {},
+): OpenApiNonBooleanSchemaObject => {
+  if (quiet || !isUnsupportedError(context)) {
+    return coreDereference(schema, context, dereferenceOptions);
+  }
+  expandingPath = path ?? 'schema';
+  return coreDereference(
+    schema,
+    context,
+    context.output.override.zod.generateReusableSchemas
+      ? strictDereferenceOptions
+      : inlineDereferenceOptions,
+  );
+};
 
 /**
  * Generate zod schema for form-data request body.
@@ -3971,6 +4434,9 @@ export const generateFormDataZodSchema = (
         ? dereference(
             propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
             context,
+            joinPath(name, key),
+            // Only read for its file type; the property reports itself.
+            { quiet: true },
           )
         : undefined;
 
@@ -4166,10 +4632,45 @@ const parseBodyAndResponse = ({
     ? toObjectSchema(
         typeof schema === 'boolean' ? schema : resolveShallow(schema, context),
       )
-    : dereference(schema, context);
+    : dereference(schema, context, name);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
+    // Only the items and the bounds are rendered from the array itself.
+    reportIgnoredKeywords(resolvedJsonSchema, context, name);
+    if (resolvedJsonSchema.prefixItems !== undefined) {
+      reportUnsupported(
+        context,
+        'A tuple at the root of a body or response is validated as a plain array.',
+        name,
+      );
+    }
+    // The root array renders only its items and bounds.
+    const rootDropped = [
+      'enum',
+      'const',
+      'allOf',
+      'oneOf',
+      'anyOf',
+      'format',
+    ].filter(
+      (key) =>
+        (resolvedJsonSchema as Record<string, unknown>)[key] !== undefined,
+    );
+    if (
+      (Array.isArray(resolvedJsonSchema.type) &&
+        resolvedJsonSchema.type.includes('null')) ||
+      (resolvedJsonSchema as { nullable?: unknown }).nullable === true
+    ) {
+      rootDropped.push('null');
+    }
+    if (rootDropped.length > 0) {
+      reportUnsupported(
+        context,
+        `${rootDropped.map((key) => `\`${key}\``).join(', ')} on an array at the root of a body or response is not validated.`,
+        name,
+      );
+    }
     // These reach `renderArrayWithBounds` and are emitted as bare expressions
     // (`.min(${min})`), so they get the same finite-number assertion the scalar
     // constraint block applies — nothing upstream validates them.
@@ -4198,6 +4699,7 @@ const parseBodyAndResponse = ({
         isZodV4,
         {
           required: true,
+          path: joinPath(name, 'items'),
           useReusableSchemas,
           schemaExtension,
           urlEncoded: isFormUrlEncoded,
@@ -4502,21 +5004,13 @@ export const parseParameters = ({
         ? toObjectSchema(declaredSchema)
         : declaredSchema;
 
-    // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
-    // generator can take the namedRef path. We only shallow-clone to attach
-    // the parameter-level `description` without mutating the shared ref object.
-    // When off, fall back to dereferencing for backward compatibility.
-    const schemaForGen: OpenApiSchemaObject | OpenApiReferenceObject =
-      useReusableSchemas
-        ? parameter.description
-          ? Object.assign({}, parameterSchema, {
-              description: parameter.description,
-            })
-          : parameterSchema
-        : (() => {
-            const dereferenced = dereference(parameterSchema, context);
-            return { ...dereferenced, description: parameter.description };
-          })();
+    if (
+      parameter.in !== 'path' &&
+      parameter.in !== 'query' &&
+      parameter.in !== 'header'
+    ) {
+      return acc;
+    }
 
     const mapStrict = {
       path: strict.param,
@@ -4530,17 +5024,35 @@ export const parseParameters = ({
       header: generate.header,
     };
 
-    if (
-      parameter.in !== 'path' &&
-      parameter.in !== 'query' &&
-      parameter.in !== 'header'
-    ) {
-      return acc;
-    }
+    // A location that is not generated is still walked, which keeps the
+    // generated names stable, but it reports nothing.
+    const parameterContext = mapGenerate[parameter.in]
+      ? context
+      : withoutUnsupportedError(context);
+
+    // When useReusableSchemas is on, preserve `$ref` schemas verbatim so the
+    // generator can take the namedRef path. We only shallow-clone to attach
+    // the parameter-level `description` without mutating the shared ref object.
+    // When off, fall back to dereferencing for backward compatibility.
+    const schemaForGen: OpenApiSchemaObject | OpenApiReferenceObject =
+      useReusableSchemas
+        ? parameter.description
+          ? Object.assign({}, parameterSchema, {
+              description: parameter.description,
+            })
+          : parameterSchema
+        : (() => {
+            const dereferenced = dereference(
+              parameterSchema,
+              parameterContext,
+              camel(`${operationName}-${parameter.in}-${parameter.name}`),
+            );
+            return { ...dereferenced, description: parameter.description };
+          })();
 
     const definition = generateZodValidationSchemaDefinition(
       schemaForGen,
-      context,
+      parameterContext,
       camel(`${operationName}-${parameter.in}-${parameter.name}`),
       mapStrict[parameter.in],
       isZodV4,

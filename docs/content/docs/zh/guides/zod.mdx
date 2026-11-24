@@ -179,6 +179,33 @@ import * as zod from 'zod/mini';
 zod.config(zod.locales.en());
 ```
 
+## 不受支持的 Schema
+
+有些 schema 的校验会比规范更宽松。默认情况下 Orval 会不加提示地生成它们。将 [`override.zod.unsupported`](/docs/reference/configuration/output#unsupported) 设为 `'error'` 可让生成直接失败。错误会指出对应的 schema，例如 `getPetResponse > owner > tags`，并说明如何关闭该检查。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      target: './src/api/endpoints.ts',
+      override: { zod: { unsupported: 'error' } },
+    },
+  },
+});
+```
+
+`'error'` 模式下以下情形会失败。某个设置能解决的情形，错误会指出该设置。没有 [`strict`](/docs/reference/configuration/output#strict) 的 `additionalProperties: false` 不会报错。
+
+- 没有 Zod 对应项的关键字：`not`（空的除外，以及在与同级 `properties` 并列的 `oneOf`/`anyOf` 分支中只禁止某些键的 `not`）、`if`/`then`/`else`、`patternProperties`、`propertyNames`、`dependentSchemas`、`dependencies`、`unevaluatedProperties`、`unevaluatedItems`、`contains`、`minContains`、`maxContains`、`uniqueItems`、`minProperties`、`maxProperties`、`additionalItems` 和 `contentSchema`。`dependentRequired` 在无法生成的位置会失败：没有属性的对象，或与组合关键字并列。
+- 没有 `type` 的 schema 上的约束（`minimum`、`minLength`、`pattern`、`items` 等）、对象或数组的 `const`，以及写成列表的 `items`。
+- 生成为普通 union 的 `oneOf`，除非其备选项的类型、字面量或 discriminator 值互不相同。未开启 [`generateXor`](/docs/reference/configuration/output#generatexor) 时，错误会提示开启它。带有强制类型转换（coerce）的备选项同样会使 `oneOf` 生成为普通 union。
+- 同一 schema 上有多个组合关键字，因为只会生成 `allOf`、`oneOf`、`anyOf` 中的第一个。
+- 在 `strict` 或 discriminated union 中被合并为一个对象的 `allOf` 对象成员，以不同方式声明同一属性或 `additionalProperties`：合并只保留一个定义。收窄先前类型或枚举的字面量或枚举会被接受。
+- 请求体或响应根部的数组带有 `prefixItems`、`null`、`enum`、`const`、组合关键字或 `format`：只会生成其元素和长度限制。
+- 无法解析的 `$ref` 或 `$dynamicRef`，以及被内联的循环 `$ref`，因为它们会被当作 unknown 校验。未开启 [`generateReusableSchemas`](/docs/reference/configuration/output#generatereusableschemas) 时，错误会提示开启它。
+- zod 不校验的 `format`（例如 `format: phone`），`formatType` 映射的格式除外。受校验的格式为 `date`、`time`、`time-local`、`date-time`、`date-time-local`、`email`、`uri`、`hostname`、`uuid`、`ipv4`、`ipv6` 和 `binary`，以及通过数字类型校验的 `int32`、`int64`、`float` 和 `double`。`contentEncoding`（例如 `base64`）同样不会被校验。
+
 ## 按 operation 或 tag 作用域化配置
 
 大多数 `override.zod` 选项都可以只应用到 API 的一部分，而不是全局生效。可通过 `override.operations[operationId].zod` 为单个 operation 配置，或通过 `override.tags[tagName].zod` 为共享同一 tag 的所有 operation 配置：
@@ -216,7 +243,7 @@ export default defineConfig({
 
 按 operation 和按 tag 的 override 仅接受那些能作用于单个 schema 的选项：`strict`、`generate`、`coerce`、`preprocess`、`params`、`useBrandedTypes` 和 `generateCompanionTypes`。
 
-而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion`、`generateXor` 和 `exactOptional`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
+而面向整个输出的选项，如 `variant`、`version`、`dateTimeOptions`、`timeOptions`、`generateEachHttpStatus`、`generateReusableSchemas`、`generateMeta`、`generateDiscriminatedUnion`、`generateXor`、`exactOptional` 和 `unsupported`，只适用于整个输出，因此必须保留在 `override.zod` 下。如果你把这些选项写到 operation 或 tag 上，它们会被忽略，实际仍使用 `override.zod` 中的值，同时 Orval 会输出一条构建警告：
 
 ```
 ⚠️ override.operations.listPets.zod only supports strict, generate, coerce, preprocess, params, useBrandedTypes, and generateCompanionTypes. Ignoring unsupported field: zod.version.

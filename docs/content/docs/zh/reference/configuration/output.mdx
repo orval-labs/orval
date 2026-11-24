@@ -2153,6 +2153,13 @@ export const Pet = zod.object({ name: zod.string().exactOptional() });
 - **仅 zod 4.3 及更高版本。** zod v3 没有 `.exactOptional()`，因此在 v3 下该选项为 no-op，仍输出 `.optional()`。`.exactOptional()` 在 zod 4.3.0 中加入，因此在 zod 4.0 到 4.2 下开启该选项后生成的代码无法通过编译。
 - 同时适用于 classic 和 [`mini`](#variant) 变体中的可选属性。
 
+### unsupported
+
+**类型：** `'warn' | 'error'`
+**默认值：** `'warn'`
+
+当 Orval 对 schema 的校验会比规范更宽松时的处理方式。`'warn'` 会不加提示地生成更宽松的 schema。`'error'` 会中止生成并指出对应的 schema，例如 `getPetResponse > owner > tags`。具体情形参见[不受支持的 Schema](/docs/guides/zod#不受支持的-schema)。仅适用于整个输出：不能在 operation 或 tag 的 override 中设置。
+
 ### generateCompanionTypes
 
 **类型：** `boolean`
