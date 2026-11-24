@@ -775,9 +775,8 @@ async function loadSchemasModuleGenerator(type: 'valibot' | 'effect') {
       await loadGenerator('@orval/valibot', () => import('@orval/valibot'))
     ).generateValibotSchemasModule;
   }
-  return (
-    await loadGenerator('@orval/effect', () => import('@orval/effect'))
-  ).generateEffectSchemasModule;
+  return (await loadGenerator('@orval/effect', () => import('@orval/effect')))
+    .generateEffectSchemasModule;
 }
 
 async function writeSpecsInternal(
