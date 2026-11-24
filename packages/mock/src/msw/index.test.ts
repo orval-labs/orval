@@ -175,6 +175,34 @@ describe('generateMSW', () => {
       expect(result.implementation.function).not.toContain('ArrayBuffer');
     });
 
+    // Regression: issue #869 — a binary 200 next to a 204 No Content yields
+    // `Blob | void`, which `new HttpResponse()` does not accept.
+    it('should branch on undefined for binary responses unioned with void', () => {
+      const blobVoidVerbOptions = createTestGeneratorVerbOptions({
+        ...mockVerbOptions,
+        response: {
+          ...mockVerbOptions.response,
+          definition: { success: 'Blob | void' },
+          types: {
+            success: [
+              { key: '200', value: 'Blob' },
+              { key: '204', value: 'void' },
+            ],
+          },
+          contentTypes: ['application/octet-stream'],
+        },
+      });
+
+      const result = generateMSW(blobVoidVerbOptions, baseOptions);
+      const handler = result.implementation.handler;
+
+      expect(handler).toContain('const binaryBody =');
+      expect(handler).toContain('binaryBody === undefined');
+      expect(handler).toContain('new HttpResponse(null, { status: 204 })');
+      expect(handler).toContain('new HttpResponse(binaryBody');
+      expect(handler).toContain('application/octet-stream');
+    });
+
     it('should handle image content types as binary', () => {
       const imageVerbOptions = createTestGeneratorVerbOptions({
         ...mockVerbOptions,

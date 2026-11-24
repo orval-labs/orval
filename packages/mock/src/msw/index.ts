@@ -512,10 +512,17 @@ function generateDefinition(
       { status: ${statusCode}
       })`;
   } else if (isBinaryResponse) {
-    responseBody = `new HttpResponse(binaryBody,
+    const binaryResponse = `new HttpResponse(binaryBody,
       { status: ${statusCode},
         headers: { 'Content-Type': '${jsStringLiteralEscape(binaryContentType)}' }
       })`;
+    // A binary success next to a 204 No Content (e.g. `Blob | void`) must
+    // branch at runtime: `new HttpResponse()` does not accept void.
+    responseBody = isVoidUnionType
+      ? `binaryBody === undefined
+      ? new HttpResponse(null, { status: ${noContentStatusCode} })
+      : ${binaryResponse}`
+      : binaryResponse;
   } else if (isVoidUnionType) {
     // Runtime branching for void union types (e.g. 200 JSON + 204 No Content).
     // When the resolved body is undefined, return an empty response with the
