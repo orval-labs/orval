@@ -43,6 +43,7 @@ import {
   NamingConvention,
   type NormalizedEffectOptions,
   type NormalizedValibotOptions,
+  type UnsupportedSchemaMode,
   type NormalizedFactoryMethodsOptions,
   type NormalizedFormatTypeMap,
   type NormalizedModelTypeChecksOptions,
@@ -894,6 +895,18 @@ function normalizeModelTypeChecks(
   return { models: nodePath.resolve(workspace, models) };
 }
 
+function normalizeUnsupportedMode(
+  library: 'zod' | 'valibot',
+  mode: string = 'warn',
+): UnsupportedSchemaMode {
+  if (mode !== 'warn' && mode !== 'error') {
+    throw new Error(
+      `\`override.${library}.unsupported\` must be 'warn' or 'error'.`,
+    );
+  }
+  return mode;
+}
+
 function normalizeValibotOptions(
   valibot?: ValibotOptions,
 ): NormalizedValibotOptions {
@@ -914,6 +927,7 @@ function normalizeValibotOptions(
     },
     exactOptional: valibot?.exactOptional ?? false,
     generateReusableSchemas: valibot?.generateReusableSchemas ?? false,
+    unsupported: normalizeUnsupportedMode('valibot', valibot?.unsupported),
   };
 }
 
@@ -1501,6 +1515,10 @@ export async function normalizeOptions(
           generateDiscriminatedUnion:
             outputOptions.override?.zod?.generateDiscriminatedUnion ?? false,
           generateXor: outputOptions.override?.zod?.generateXor ?? false,
+          unsupported: normalizeUnsupportedMode(
+            'zod',
+            outputOptions.override?.zod?.unsupported,
+          ),
           exactOptional: outputOptions.override?.zod?.exactOptional ?? false,
           generateCompanionTypes:
             outputOptions.override?.zod?.generateCompanionTypes ?? false,
@@ -1977,6 +1995,7 @@ const unsupportedZodKeys = [
   'generateMeta',
   'generateDiscriminatedUnion',
   'generateXor',
+  'unsupported',
   'exactOptional',
 ] as const satisfies readonly Exclude<
   keyof ZodOptions,
@@ -2019,6 +2038,16 @@ function withoutReusableSchemasFlag<T extends object>(
   const { generateReusableSchemas: _ignored, ...rest } = {
     generateReusableSchemas: undefined,
     ...withoutUndefined(options),
+  };
+  return rest;
+}
+
+function withoutUnsupportedMode<T extends object>(
+  options: T,
+): Omit<T, 'unsupported'> {
+  const { unsupported: _ignored, ...rest } = {
+    unsupported: undefined,
+    ...options,
   };
   return rest;
 }
@@ -2103,6 +2132,16 @@ function normalizeOperationsAndTags(
         if (valibot && isReusableSchemasFlagSet(valibot)) {
           logger.warn(
             `override.${source}.${key}.valibot.generateReusableSchemas is not supported - it is output-wide and configured via \`override.valibot.generateReusableSchemas\`. Ignoring.`,
+          );
+        }
+
+        if (
+          valibot &&
+          'unsupported' in valibot &&
+          valibot.unsupported !== undefined
+        ) {
+          logger.warn(
+            `override.${source}.${key}.valibot.unsupported is not supported - it is output-wide and configured via \`override.valibot.unsupported\`. Ignoring.`,
           );
         }
 
@@ -2252,7 +2291,9 @@ function normalizeOperationsAndTags(
             ...(effect ? { effect: withoutReusableSchemasFlag(effect) } : {}),
             ...(valibot
               ? {
-                  valibot: withoutReusableSchemasFlag(valibot),
+                  valibot: withoutUnsupportedMode(
+                    withoutReusableSchemasFlag(valibot),
+                  ),
                 }
               : {}),
             ...(transformer

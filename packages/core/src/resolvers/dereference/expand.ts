@@ -266,7 +266,7 @@ function mergeWithTarget(
     !isObject(target) &&
     !(options.mergeArrayTargets && Array.isArray(target))
   ) {
-    options.onUnresolvedRef?.(ref);
+    options.onUnresolvedRef?.(ref, context.parents ?? []);
     return;
   }
   return { ...target, ...omitBy(schema, (_, key) => key === '$ref') };
@@ -310,7 +310,7 @@ function begin(
       ? schema.$ref
       : undefined;
   if (ref && context.parents?.includes(ref)) {
-    options.onCircularRef?.(ref);
+    options.onCircularRef?.(ref, context.parents ?? []);
     return done(emptyFor(ref, run, wantsRefs));
   }
 

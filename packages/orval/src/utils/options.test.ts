@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { mergeDeep, noopReporter, withReporter } from '@orval/core';
 import type {
+  OperationValibotOptions,
   FormatTypeMap,
   NormalizedSchemaOptions,
   OutputClientFunc,
@@ -3634,6 +3635,7 @@ describe('normalizeOptions', () => {
         generate: override.valibot.generate,
         exactOptional: true,
         generateReusableSchemas: false,
+        unsupported: 'warn',
       });
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -3785,6 +3787,87 @@ describe('normalizeOptions', () => {
         `schemas.type "${type}" cannot be combined with mock generators`,
       );
     });
+  });
+
+  describe.each(['zod', 'valibot'] as const)('%s unsupported', (library) => {
+    const normalizeUnsupported = async (unsupported?: unknown) => {
+      const workspace = await createTempWorkspace();
+      try {
+        return await normalizeOptions(
+          {
+            input: {
+              target: {
+                openapi: '3.1.0',
+                info: { title: 'Test', version: '1.0.0' },
+                paths: {},
+              },
+            },
+            output: {
+              client: library,
+              target: './generated.ts',
+              override: {
+                [library]: unsupported === undefined ? {} : { unsupported },
+              },
+            },
+          },
+          workspace,
+        );
+      } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    };
+
+    it('warns by default', async () => {
+      const normalized = await normalizeUnsupported();
+      expect(normalized.output.override[library].unsupported).toBe('warn');
+    });
+
+    it('can be set to error', async () => {
+      const normalized = await normalizeUnsupported('error');
+      expect(normalized.output.override[library].unsupported).toBe('error');
+    });
+
+    it('rejects any other value', async () => {
+      await expect(normalizeUnsupported('ignore')).rejects.toThrow(
+        `override.${library}.unsupported\` must be 'warn' or 'error'`,
+      );
+    });
+  });
+
+  it('drops valibot unsupported from operation overrides with a warning', async () => {
+    logWarningSpy.mockClear();
+    const workspace = await createTempWorkspace();
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
+            },
+          },
+          output: {
+            client: 'valibot',
+            target: './generated.ts',
+            override: {
+              operations: {
+                listPets: {
+                  valibot: { unsupported: 'error' } as OperationValibotOptions,
+                },
+              },
+            },
+          },
+        },
+        workspace,
+      );
+      expect(normalized.output.override.operations.listPets?.valibot).toEqual(
+        {},
+      );
+      expect(logWarningSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 
   describe('valibot generateReusableSchemas', () => {

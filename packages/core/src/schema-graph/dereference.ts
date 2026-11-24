@@ -6,6 +6,7 @@ import type {
   OpenApiNonBooleanSchemaObject,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
+  UnsupportedSchemaMode,
 } from '../types';
 import { isObject, isString } from '../utils/assertion';
 import { toObjectSchema } from '../utils/object-schema';
@@ -46,10 +47,43 @@ export const CIRCULAR_REF_WARNING = 'Circular $ref';
 export interface SchemaWalkReporter {
   // Package named in errors and options, such as `valibot`.
   library: string;
-  // Called for every warning; the library shows each message once.
-  warn: (message: string) => void;
+  // Called for every warning; the library shows each message once, or throws
+  // in `error` mode. `path` says where the schema is, and `hint` names a
+  // setting that avoids the problem.
+  warn: (message: string, path?: string, hint?: string) => void;
   verbose: (message: string) => void;
+  // Whether `warn` throws. Expansions are cached per mode, so a warn-mode
+  // run does not hide the findings of a later error-mode run.
+  mode?: () => UnsupportedSchemaMode;
 }
+
+// A cut circular `$ref` is validated as unknown. When reusable schemas are
+// off, turning them on keeps the cycle as a reference.
+const reportCircularRef = (
+  reporter: SchemaWalkReporter,
+  ref: string,
+  path: string,
+  suggestReusable: boolean,
+): void => {
+  reporter.warn(
+    `${CIRCULAR_REF_WARNING} "${ref}" is validated as unknown.`,
+    path,
+    suggestReusable
+      ? `Set \`override.${reporter.library}.generateReusableSchemas\` to keep the cycle.`
+      : undefined,
+  );
+};
+
+// Where a `$ref` sits: the schema's label and the refs expanded around it. A
+// component's own ref, first among the parents, is its label already.
+const refPath = (
+  label: string,
+  parents: readonly string[],
+  ref: string,
+): string =>
+  [label, ...(parents[0] === label ? parents.slice(1) : parents), ref].join(
+    ' > ',
+  );
 
 const tryResolveRefSchema = (
   $ref: string,
@@ -174,6 +208,10 @@ interface Walk {
   policy: RefPolicy;
   budget: InlineBudget;
   reporter: SchemaWalkReporter;
+  // Names the schema in paths.
+  label: string;
+  // Whether reusable schemas are off, so they would keep a cycle.
+  suggestReusable: boolean;
   // Whether a default fills the value being walked.
   underDefault: boolean;
 }
@@ -297,7 +335,7 @@ const dereferenceObject = (
   walk: Walk,
   site: RefSite,
 ): OpenApiNonBooleanSchemaObject => {
-  const { context, policy, budget, reporter } = walk;
+  const { context, policy, budget, reporter, label, suggestReusable } = walk;
   budget.spend(context.parents);
   const refName = isString(schema.$ref) ? schema.$ref : undefined;
 
@@ -319,8 +357,11 @@ const dereferenceObject = (
   }
 
   if (refName && context.parents?.includes(refName)) {
-    reporter.warn(
-      `${CIRCULAR_REF_WARNING} "${refName}" is validated as unknown.`,
+    reportCircularRef(
+      reporter,
+      refName,
+      refPath(label, context.parents ?? [], refName),
+      suggestReusable,
     );
     return {};
   }
@@ -337,7 +378,10 @@ const dereferenceObject = (
   ): Record<string, unknown> | undefined => {
     const referenced = tryResolveRefSchema(name, context, reporter);
     if (typeof referenced !== 'boolean' && !isObject(referenced)) {
-      reporter.warn(`Unresolvable $ref "${name}" is validated as unknown.`);
+      reporter.warn(
+        `Unresolvable $ref "${name}" is validated as unknown.`,
+        refPath(label, context.parents ?? [], name),
+      );
       return;
     }
     return { ...toObjectSchema(referenced), ...withoutRef(schema) };
@@ -373,32 +417,61 @@ export interface PolicyDereferenceOptions {
 
 const buildCoreOptions = (
   reporter: SchemaWalkReporter,
+  current: CoreOptionsEntry['current'],
 ): CoreDereferenceOptions => ({
   keepBooleanProperties: true,
   keepSiblingsOfBooleanTarget: true,
   keepProtoKey: true,
   ignoreEmptyRef: true,
   isVerbatimKey: isDataKey,
-  onCircularRef: (ref) =>
-    reporter.warn(`${CIRCULAR_REF_WARNING} "${ref}" is validated as unknown.`),
-  onUnresolvedRef: (ref) =>
-    reporter.warn(`Unresolvable $ref "${ref}" is validated as unknown.`),
+  onCircularRef: (ref, parents) =>
+    reportCircularRef(
+      reporter,
+      ref,
+      refPath(current.label, parents, ref),
+      current.suggestReusable,
+    ),
+  onUnresolvedRef: (ref, parents) =>
+    reporter.warn(
+      `Unresolvable $ref "${ref}" is validated as unknown.`,
+      refPath(current.label, parents, ref),
+    ),
   onResolveError: (message) => reporter.verbose(message),
 });
 
 // The core expansion cache is keyed by the options object, so each reporter
-// keeps one to share expansions between calls.
+// keeps one per mode to share expansions between calls. The label names the
+// schema being expanded in the paths its callbacks report.
+interface CoreOptionsEntry {
+  options: CoreDereferenceOptions;
+  current: { label: string; suggestReusable: boolean };
+}
+
 const optionsByReporter = new WeakMap<
   SchemaWalkReporter,
-  CoreDereferenceOptions
+  Map<UnsupportedSchemaMode, CoreOptionsEntry>
 >();
 
-const coreOptions = (reporter: SchemaWalkReporter): CoreDereferenceOptions => {
-  const known = optionsByReporter.get(reporter);
-  if (known) return known;
-  const created = buildCoreOptions(reporter);
-  optionsByReporter.set(reporter, created);
-  return created;
+const coreOptions = (
+  reporter: SchemaWalkReporter,
+  label: string,
+  suggestReusable: boolean,
+): CoreDereferenceOptions => {
+  const mode = reporter.mode?.() ?? 'warn';
+  const byMode =
+    optionsByReporter.get(reporter) ??
+    new Map<UnsupportedSchemaMode, CoreOptionsEntry>();
+  optionsByReporter.set(reporter, byMode);
+  const known = byMode.get(mode);
+  if (known) {
+    known.current.label = label;
+    known.current.suggestReusable = suggestReusable;
+    return known.options;
+  }
+  const current = { label, suggestReusable };
+  const created = { options: buildCoreOptions(reporter, current), current };
+  byMode.set(mode, created);
+  return created.options;
 };
 
 /**
@@ -426,7 +499,12 @@ export const dereferenceWithPolicy = (
     // what the cached expansions shared between uses hide from it.
     const expanded =
       typeof schema === 'boolean' || isObject(schema)
-        ? coreDereference(schema, context, coreOptions(reporter), budget.spend)
+        ? coreDereference(
+            schema,
+            context,
+            coreOptions(reporter, label, suggestReusable),
+            budget.spend,
+          )
         : {};
     if (countInlineNodes(expanded) > limit) {
       throw inlineLimitError({
@@ -444,7 +522,15 @@ export const dereferenceWithPolicy = (
   return isObject(schema)
     ? dereferenceObject(
         schema,
-        { context, policy, budget, reporter, underDefault: false },
+        {
+          context,
+          policy,
+          budget,
+          reporter,
+          label,
+          suggestReusable,
+          underDefault: false,
+        },
         PLAIN_SITE,
       )
     : {};

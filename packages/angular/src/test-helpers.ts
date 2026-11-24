@@ -104,6 +104,7 @@ export const createAngularOutput = (
         generateMeta: false,
         generateDiscriminatedUnion: false,
         generateXor: false,
+        unsupported: 'warn',
         exactOptional: false,
         generateCompanionTypes: false,
         dateTimeOptions: {},
@@ -147,6 +148,7 @@ export const createAngularOutput = (
         },
         exactOptional: false,
         generateReusableSchemas: false,
+        unsupported: 'warn',
       },
       axios: {
         includeHttpResponseReturnType: false,

@@ -22,10 +22,10 @@ export interface DereferenceOptions {
   falseTargetIsUnresolved?: boolean;
   /** Keys whose values are copied without being dereferenced. */
   isVerbatimKey?: (key: string) => boolean;
-  /** Called when a `$ref` is cut because it is already being expanded. */
-  onCircularRef?: (ref: string) => void;
+  /** Called when a `$ref` is cut because it is already being expanded. `parents` are the refs being expanded around it. */
+  onCircularRef?: (ref: string, parents: readonly string[]) => void;
   /** Called when a `$ref` target cannot be merged: missing, or not an object, boolean or (with `mergeArrayTargets`) array. A `false` target under `falseTargetIsUnresolved` is emptied without this call. */
-  onUnresolvedRef?: (ref: string) => void;
+  onUnresolvedRef?: (ref: string, parents: readonly string[]) => void;
   /** Called with a diagnostic message when resolving a `$ref` throws. */
   onResolveError?: (message: string) => void;
 }
