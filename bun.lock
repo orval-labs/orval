@@ -213,20 +213,18 @@
       "name": "@orval/mock",
       "version": "8.49.0",
       "dependencies": {
+        "@faker-js/faker": "^10.6.0",
         "@orval/core": "workspace:*",
       },
       "devDependencies": {
-        "@faker-js/faker": "10.6.0",
         "rimraf": "catalog:",
         "typescript": "catalog:",
         "vite-plus": "catalog:",
       },
       "peerDependencies": {
-        "@faker-js/faker": ">=8",
         "msw": ">=2",
       },
       "optionalPeers": [
-        "@faker-js/faker",
         "msw",
       ],
     },

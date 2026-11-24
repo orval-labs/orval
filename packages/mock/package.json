@@ -23,27 +23,20 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
-    "@faker-js/faker": "10.6.0",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@faker-js/faker": ">=8",
     "msw": ">=2"
   },
   "peerDependenciesMeta": {
     "msw": {
       "optional": true
-    },
-    "@faker-js/faker": {
-      "optional": true
     }
-  },
-  "inlinedDependencies": {
-    "@faker-js/faker": "10.6.0"
   }
 }
