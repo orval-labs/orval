@@ -1242,6 +1242,12 @@ interface ZodOptionsBase<
    */
   generateXor?: boolean;
   /**
+   * What to do when a schema construct is validated more loosely than the
+   * spec says. `'warn'` generates it anyway, without a message. `'error'`
+   * fails the generation with the schema path. Output-wide. Default `'warn'`.
+   */
+  unsupported?: UnsupportedSchemaMode;
+  /**
    * When true (zod v4 only), emits optional object properties with
    * `.exactOptional()` (classic) / `zod.exactOptional()` (mini) instead of
    * `.optional()`, so consumers with `exactOptionalPropertyTypes` infer
@@ -1362,6 +1368,13 @@ export interface ModelTypeChecksOptions {
   models: string;
 }
 
+/**
+ * What generation does when a schema construct would be validated more
+ * loosely than the spec says: `warn` generates it anyway, `error` fails the
+ * generation.
+ */
+export type UnsupportedSchemaMode = 'warn' | 'error';
+
 export interface ValibotOptions {
   strict?: ZodOptions['strict'];
   generate?: ZodOptions['generate'];
@@ -1375,12 +1388,19 @@ export interface ValibotOptions {
    * every `$ref`. Output-wide. Default `false`.
    */
   generateReusableSchemas?: boolean;
+  /**
+   * What to do when a schema construct is validated more loosely than the
+   * spec says. `'warn'` generates it anyway and logs the cases Orval already
+   * warns about. `'error'` fails the generation with the schema path.
+   * Output-wide. Default `'warn'`.
+   */
+  unsupported?: UnsupportedSchemaMode;
 }
 
 /** `override.valibot` keys that may also be set per operation or tag. */
 export type OperationValibotOptions = Omit<
   ValibotOptions,
-  'generateReusableSchemas'
+  'generateReusableSchemas' | 'unsupported'
 >;
 
 export type ZodCoerceType =
@@ -1646,6 +1666,7 @@ export interface NormalizedZodOptions {
   generateMeta: boolean;
   generateDiscriminatedUnion: boolean;
   generateXor: boolean;
+  unsupported: UnsupportedSchemaMode;
   exactOptional: boolean;
   generateCompanionTypes: boolean;
   dateTimeOptions: ZodDateTimeOptions;
@@ -1667,6 +1688,7 @@ export interface NormalizedValibotOptions {
   generate: NormalizedZodOptions['generate'];
   exactOptional: boolean;
   generateReusableSchemas: boolean;
+  unsupported: UnsupportedSchemaMode;
 }
 
 export interface NormalizedEffectOptions {

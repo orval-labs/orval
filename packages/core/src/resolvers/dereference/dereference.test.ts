@@ -480,7 +480,9 @@ describe('dereference', () => {
 
       dereference(ref('Node'), context, { onCircularRef });
 
-      expect(onCircularRef).toHaveBeenCalledWith('#/components/schemas/Node');
+      expect(onCircularRef).toHaveBeenCalledWith('#/components/schemas/Node', [
+        '#/components/schemas/Node',
+      ]);
     });
 
     it('calls onUnresolvedRef and onResolveError for a missing target', () => {
@@ -492,6 +494,7 @@ describe('dereference', () => {
 
       expect(onUnresolvedRef).toHaveBeenCalledWith(
         '#/components/schemas/Missing',
+        [],
       );
       expect(onResolveError).toHaveBeenCalledWith(
         expect.stringContaining('#/components/schemas/Missing'),

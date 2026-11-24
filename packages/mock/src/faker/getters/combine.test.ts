@@ -138,6 +138,7 @@ function createMockContext(): ContextSpec {
           generateMeta: false,
           generateDiscriminatedUnion: false,
           generateXor: false,
+          unsupported: 'warn',
           exactOptional: false,
           generateCompanionTypes: false,
           dateTimeOptions: {},
@@ -181,6 +182,7 @@ function createMockContext(): ContextSpec {
           },
           exactOptional: false,
           generateReusableSchemas: false,
+          unsupported: 'warn',
         },
         axios: {
           includeHttpResponseReturnType: false,

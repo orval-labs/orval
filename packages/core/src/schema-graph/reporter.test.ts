@@ -36,4 +36,23 @@ describe('createWarnOnceReporter', () => {
     warnOnce('x');
     expect(logger.warn).toHaveBeenCalledTimes(2);
   });
+
+  it('throws with the library, path and hint in error mode', () => {
+    const { logger, reporter, setUnsupportedMode } = setup();
+    setUnsupportedMode('error');
+    expect(() => reporter.warn('Odd schema.', 'pets body > Pet')).toThrow(
+      "[orval/effect] Odd schema. At pets body > Pet. Set `override.effect.unsupported` to 'warn' to generate it anyway.",
+    );
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('throws every time in error mode and warns again in warn mode', () => {
+    const { logger, reporter, setUnsupportedMode } = setup();
+    setUnsupportedMode('error');
+    expect(() => reporter.warn('x')).toThrow(/^\[orval\/effect\] x Set/);
+    expect(() => reporter.warn('x')).toThrow();
+    setUnsupportedMode('warn');
+    reporter.warn('x', 'a path');
+    expect(logger.warn).toHaveBeenCalledWith('x');
+  });
 });

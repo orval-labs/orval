@@ -123,6 +123,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
       generateMeta: false,
       generateDiscriminatedUnion: false,
       generateXor: false,
+      unsupported: 'warn',
       exactOptional: false,
       generateCompanionTypes: false,
       dateTimeOptions: {},
@@ -166,6 +167,7 @@ const createBaseOverride = (): NormalizedOverrideOutput =>
       },
       exactOptional: false,
       generateReusableSchemas: false,
+      unsupported: 'warn',
     },
     axios: {
       includeHttpResponseReturnType: false,
