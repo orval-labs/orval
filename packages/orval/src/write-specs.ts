@@ -288,7 +288,7 @@ function excludeFilePath(
     .map(({ filePath }) => filePath);
 }
 
-function getHeader(
+export function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
   info: OpenApiInfoObject,
 ): string {
