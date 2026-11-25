@@ -69,6 +69,7 @@ import {
   isFetchFactoryMode,
 } from './http-client-injection-factory';
 import {
+  getMixedBinaryJsonCondition,
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
   getParseTimeContentTypes,
@@ -911,10 +912,25 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     override.fetch.serializeResponseHeaders
       ? `Object.fromEntries([...${responseVarName}.headers.entries()].filter(([name]) => name !== 'set-cookie'))`
       : `${responseVarName}.headers`;
+  const blobJsonCondition = getMixedBinaryJsonCondition({
+    override,
+    response,
+  });
+  const blobResponseBody = blobJsonCondition
+    ? `let body: unknown = null;
+  if (![204, 205, 304].includes(res.status)) {
+    if (${blobJsonCondition}) {
+      const text = await res.text();
+      body = text ? JSON.parse(text${reviver}) : {};
+    } else {
+      body = await res.blob();
+    }
+  }`
+    : 'const body = [204, 205, 304].includes(res.status) ? null : await res.blob();';
   const blobFetchResponseImplementation = `const res = await ${fetchFnCall}(${fetchFnOptions})
 
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  ${blobResponseBody}
   const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body as ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}
   ${
     override.fetch.includeHttpResponseReturnType

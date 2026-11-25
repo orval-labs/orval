@@ -9,10 +9,12 @@ import {
   consoleReporter,
   createGeneratedFileCheck,
   createSuccessMessage,
+  dynamicImport,
   type FakerMockOptions,
   type GeneratorVerbOptions,
   noopReporter,
   type OpenApiDocument,
+  type OpenApiMediaTypeObject,
   type OpenApiRequestBodyObject,
   OutputMockType,
   type OutputMode,
@@ -437,6 +439,127 @@ describe('generateSpec - inline Fetch headers helper', () => {
         ).toHaveLength(2);
         expect(implementation).not.toContain('orval:fetch-headers');
       } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe('generateSpec - Fetch binary and JSON success responses', () => {
+  const jsonContent = {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['jobId'],
+        properties: { jobId: { type: 'string' } },
+      },
+    },
+  } satisfies Record<string, OpenApiMediaTypeObject>;
+  const spec = (jsonAlsoDeclaredFor200: boolean): OpenApiDocument => ({
+    openapi: '3.1.0',
+    info: { title: 'Downloads', version: '1.0.0' },
+    paths: {
+      '/download': {
+        get: {
+          operationId: 'download',
+          responses: {
+            '200': {
+              description: 'The file is ready',
+              content: {
+                'application/octet-stream': {
+                  schema: { type: 'string', format: 'binary' },
+                },
+                ...(jsonAlsoDeclaredFor200 ? jsonContent : {}),
+              },
+            },
+            '202': {
+              description: 'The file is being prepared',
+              content: jsonContent,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  it.each(
+    (
+      [
+        { runtimeImplementationStyle: 'inline', forceSuccessResponse: false },
+        { runtimeImplementationStyle: 'inline', forceSuccessResponse: true },
+        { runtimeImplementationStyle: 'shared', forceSuccessResponse: false },
+        { runtimeImplementationStyle: 'shared', forceSuccessResponse: true },
+      ] as const
+    ).flatMap((options) =>
+      [false, true].map((jsonAlsoDeclaredFor200) => ({
+        ...options,
+        jsonAlsoDeclaredFor200,
+      })),
+    ),
+  )(
+    'decodes $runtimeImplementationStyle responses with forceSuccessResponse $forceSuccessResponse and JSON 200 $jsonAlsoDeclaredFor200',
+    async ({
+      runtimeImplementationStyle,
+      forceSuccessResponse,
+      jsonAlsoDeclaredFor200,
+    }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec(jsonAlsoDeclaredFor200) },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              override: {
+                fetch: { runtimeImplementationStyle, forceSuccessResponse },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        const { download } = await dynamicImport<{
+          download: () => Promise<{ data: unknown; status: number }>;
+        }>('./endpoints.ts', workspace, false);
+
+        const bytes = new Uint8Array([0, 0xff, 0x80, 0x41]);
+        const pending = { jobId: 'job-1' };
+        const jsonResponse = (status: number) =>
+          new Response(JSON.stringify(pending), {
+            status,
+            headers: { 'Content-Type': 'Application/JSON; charset=UTF-8' },
+          });
+        const fetchMock = vi
+          .fn<typeof fetch>()
+          .mockResolvedValueOnce(
+            new Response(bytes, {
+              status: 200,
+              headers: { 'Content-Type': 'application/octet-stream' },
+            }),
+          )
+          .mockResolvedValueOnce(jsonResponse(202));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const binary = await download();
+        expect(binary.status).toBe(200);
+        expect(binary.data).toBeInstanceOf(Blob);
+        expect(
+          new Uint8Array(await (binary.data as Blob).arrayBuffer()),
+        ).toEqual(bytes);
+        await expect(download()).resolves.toMatchObject({
+          status: 202,
+          data: pending,
+        });
+        if (jsonAlsoDeclaredFor200) {
+          fetchMock.mockResolvedValueOnce(jsonResponse(200));
+          await expect(download()).resolves.toMatchObject({
+            status: 200,
+            data: pending,
+          });
+        }
+      } finally {
+        vi.unstubAllGlobals();
         await rm(workspace, { recursive: true, force: true });
       }
     },

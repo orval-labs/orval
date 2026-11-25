@@ -52,6 +52,7 @@ import {
   markFactoryOperation,
 } from './http-client-injection-factory';
 import {
+  getMixedBinaryJsonCondition,
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
   getParseTimeContentTypes,
@@ -450,6 +451,10 @@ export const generateSharedRequestFunction = (
       ? response.contentTypes[0]
       : undefined;
   const responseType = getResponseType(verbOptions);
+  const blobJsonCondition =
+    responseType === 'blob'
+      ? getMixedBinaryJsonCondition(verbOptions)
+      : undefined;
 
   // The runtime leaves multipart's Content-Type, boundary included, to the
   // browser, but recognizes only the lowercase spelling.
@@ -571,6 +576,9 @@ export const generateSharedRequestFunction = (
             : []),
         ]
       : [
+          ...(blobJsonCondition
+            ? [`isJsonResponse: (res) => ${blobJsonCondition}`]
+            : []),
           ...(fetchReviver ? [`reviver: ${fetchReviver.name}`] : []),
           ...(deserializeResponseDates
             ? [`deserializeResponseDates: ${deserializeResponseDates}`]
