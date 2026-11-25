@@ -122,6 +122,15 @@ export const reportIgnoredKeywords = (
   const record: Record<string, unknown> = schema;
   for (const key of IGNORED_KEYWORDS) {
     if (record[key] === undefined || isNoOp(key, record[key])) continue;
+    // `if` constrains only through `then` or `else`, and those only with `if`.
+    if (
+      key === 'if' &&
+      record.then === undefined &&
+      record.else === undefined
+    ) {
+      continue;
+    }
+    if ((key === 'then' || key === 'else') && record.if === undefined) continue;
     reportUnsupported(context, `\`${key}\` is not validated.`, path);
   }
   // The refinement is only built for an object that declares properties and
@@ -201,12 +210,18 @@ export const reportUncheckedFormat = (
 ): void => {
   if (!isUnsupportedError(context)) return;
   const { format } = schema;
+  // A composition renders its members, not the string checks of its parent.
+  const composed = COMPOSITION_KEYS.some((key) => {
+    const members: unknown = schema[key];
+    return Array.isArray(members) && members.length > 0;
+  });
   if (
     typeof format !== 'string' ||
     // String formats are checked only on a string, and a binary string
     // renders as a file.
     ((stringFormats.has(format) || format === 'binary') &&
-      hasType(schema.type, ['string'])) ||
+      hasType(schema.type, ['string']) &&
+      !composed) ||
     (NUMERIC_FORMATS.has(format) &&
       hasType(schema.type, ['integer', 'number'])) ||
     getFormatTypeConfig(format, context.output.override) !== undefined ||
@@ -252,9 +267,12 @@ const domainsOf = (
   if (!schema) return undefined;
   if (acceptsNothing(schema)) return [];
   if (schema.allOf || schema.oneOf || schema.anyOf) return undefined;
-  if ('const' in schema) return [{ literal: schema.const }];
+  // A nullable literal list renders with `.nullable()`, so it takes null too.
+  const withNull = (domains: Domain[]): Domain[] =>
+    acceptsNull(schema) ? [...domains, { type: 'null' }] : domains;
+  if ('const' in schema) return withNull([{ literal: schema.const }]);
   if (Array.isArray(schema.enum)) {
-    return schema.enum.map((literal: unknown) => ({ literal }));
+    return withNull(schema.enum.map((literal: unknown) => ({ literal })));
   }
   const types = (
     Array.isArray(schema.type) ? schema.type : [schema.type]

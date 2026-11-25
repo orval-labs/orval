@@ -1561,6 +1561,7 @@ export const generateZodValidationSchemaDefinition = (
     // `additionalRequired` above. (#3780)
     const withSiblingProperties = (
       member: OpenApiSchemaObject | OpenApiReferenceObject,
+      memberPath: string = path,
     ) => {
       const properties = schema.properties;
       if (
@@ -1597,7 +1598,7 @@ export const generateZodValidationSchemaDefinition = (
         reportUnsupported(
           context,
           '`not` other than forbidden keys is not validated.',
-          path,
+          memberPath,
         );
       }
       // A forbidden key without a sibling property gets no `never` override,
@@ -1606,7 +1607,7 @@ export const generateZodValidationSchemaDefinition = (
         reportUnsupported(
           context,
           '`not` forbids a key that has no sibling property, so it is not validated.',
-          path,
+          memberPath,
         );
       }
 
@@ -1682,21 +1683,25 @@ export const generateZodValidationSchemaDefinition = (
 
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
+    const pathOf = (index: number): string =>
+      joinPath(path, `${separator}[${index}]`);
     const baseSchemas = schemas.map((schema, index) =>
       generateZodValidationSchemaDefinition(
-        withSiblingProperties(withParentType(schema)),
+        withSiblingProperties(withParentType(schema), pathOf(index)),
         context,
         `${camel(name)}${pascal(getNumberWord(index + 1))}`,
         strict,
         isZodV4,
         {
           required: true,
-          path: joinPath(path, `${separator}[${index}]`),
+          path: pathOf(index),
           additionalRequired: allOfRequired,
           inlinedRefs,
           propertyOverrides: (
-            withSiblingProperties(schema) as OpenApiNonBooleanSchemaObject &
-              Record<string, unknown>
+            withSiblingProperties(
+              schema,
+              pathOf(index),
+            ) as OpenApiNonBooleanSchemaObject & Record<string, unknown>
           )['x-orval-property-overrides'] as
             | Record<string, ZodValidationSchemaDefinition>
             | undefined,
@@ -1735,9 +1740,9 @@ export const generateZodValidationSchemaDefinition = (
       context.output?.override?.zod?.generateXor &&
       (schema.discriminator !== undefined ||
         baseSchemas.some(isPermissiveDefinition) ||
-        !schemas.every((member) =>
+        !schemas.every((member, index) =>
           isFaithfullyRendered(
-            withSiblingProperties(withParentType(member)),
+            withSiblingProperties(withParentType(member), pathOf(index)),
             context,
           ),
         ))
@@ -1776,9 +1781,9 @@ export const generateZodValidationSchemaDefinition = (
       isZodV4 &&
       supportsZodXor(context.output.packageJson) &&
       !baseSchemas.some(isPermissiveDefinition) &&
-      schemas.every((member) =>
+      schemas.every((member, index) =>
         isFaithfullyRendered(
-          withSiblingProperties(withParentType(member)),
+          withSiblingProperties(withParentType(member), pathOf(index)),
           context,
         ),
       );
@@ -1874,8 +1879,19 @@ export const generateZodValidationSchemaDefinition = (
             )
           : []),
       ];
-      for (const parts of merged) {
-        const reason = lossyAllOfMerge(parts);
+      // An explicit `additionalProperties: false` on a top-level member is
+      // lost when an open member opens the merge.
+      const closed =
+        strict &&
+        separator === 'allOf' &&
+        (schema.allOf ?? []).some(
+          (member) =>
+            isObject(member) &&
+            (member as OpenApiNonBooleanSchemaObject).additionalProperties ===
+              false,
+        );
+      for (const [index, parts] of merged.entries()) {
+        const reason = lossyAllOfMerge(parts, closed && index === 0);
         if (reason) reportUnsupported(context, reason, path);
       }
     }
@@ -3067,25 +3083,63 @@ const isNarrowing = (
   );
 };
 
+// Object keys in a fixed order, so shapes that declare the same properties in
+// another order compare equal. Arrays keep their order.
+const withSortedKeys = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(withSortedKeys);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .toSorted()
+      .map((key) => [key, withSortedKeys(value[key])]),
+  );
+};
+
+const renderedForComparison = (value: unknown): string =>
+  JSON.stringify(withSortedKeys(withoutConstNames(value)));
+
+// The definition without the functions that only describe it or let the key
+// be missing, as an extra-key rule never applies to a missing key.
+const withoutOptional = (
+  definition: ZodValidationSchemaDefinition,
+): ZodValidationSchemaDefinition => ({
+  ...definition,
+  functions: definition.functions.filter(
+    ([fn]) => fn !== 'optional' && !ANNOTATION_FUNCTIONS.has(fn),
+  ),
+});
+
 // Why merging an `allOf` of objects into one object would loosen it, if it
 // would. The merge keeps one definition per property, so a property declared
-// differently by two parts loses all but the last definition.
+// differently by two parts loses all but the last definition. `closed` says
+// that a member sets `additionalProperties: false`.
 const lossyAllOfMerge = (
   allOfArgs: ZodValidationSchemaDefinition[],
+  closed = false,
 ): string | undefined => {
   if (mergeAllOfObjectParts(allOfArgs) === null) return undefined;
   const seen = new Map<
     string,
     { rendered: string; definition: ZodValidationSchemaDefinition }
   >();
+  const shapes: {
+    keys: Set<string>;
+    args: Record<string, ZodValidationSchemaDefinition>;
+    catchall?: ZodValidationSchemaDefinition;
+  }[] = [];
   for (const { functions } of allOfArgs) {
     const [, objectArgs] = functions[0];
-    for (const [key, definition] of Object.entries(
-      isObject(objectArgs)
-        ? (objectArgs as Record<string, ZodValidationSchemaDefinition>)
-        : {},
-    )) {
-      const rendered = JSON.stringify(withoutConstNames(definition));
+    const args = isObject(objectArgs)
+      ? (objectArgs as Record<string, ZodValidationSchemaDefinition>)
+      : {};
+    const catchall = functions.find(([fn]) => fn === 'catchall');
+    shapes.push({
+      keys: new Set(Object.keys(args)),
+      args,
+      catchall: catchall?.[1] as ZodValidationSchemaDefinition | undefined,
+    });
+    for (const [key, definition] of Object.entries(args)) {
+      const rendered = renderedForComparison(definition);
       const previous = seen.get(key);
       if (
         previous !== undefined &&
@@ -3116,11 +3170,32 @@ const lossyAllOfMerge = (
         return ['any'];
       }
       const catchall = functions.find(([f]) => f === 'catchall');
-      return catchall ? [JSON.stringify(withoutConstNames(catchall[1]))] : [];
+      return catchall ? [renderedForComparison(catchall[1])] : [];
     }),
   );
   if (extraKeyRules.size > 1) {
     return 'Several `allOf` members declare different `additionalProperties`, and merging them keeps only one.';
+  }
+  if (closed && extraKeyRules.size > 0) {
+    return 'An `allOf` member with `additionalProperties: false` is merged with one that allows extra keys, so the merge allows them.';
+  }
+  // A member's `additionalProperties` schema also applies to the properties
+  // other members declare, which the merged object checks only once.
+  for (const shape of shapes) {
+    if (!shape.catchall) continue;
+    const rule = withoutOptional(shape.catchall);
+    for (const other of shapes) {
+      for (const [key, definition] of Object.entries(other.args)) {
+        if (shape.keys.has(key)) continue;
+        const declared = withoutOptional(definition);
+        if (
+          renderedForComparison(declared) !== renderedForComparison(rule) &&
+          !isNarrowing(rule, declared)
+        ) {
+          return `The \`additionalProperties\` of an \`allOf\` member also applies to \`${key}\`, which another member declares differently, and the merge does not check it.`;
+        }
+      }
+    }
   }
   return undefined;
 };

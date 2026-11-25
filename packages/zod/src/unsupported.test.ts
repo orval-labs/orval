@@ -93,7 +93,11 @@ type Case = [name: string, schema: OpenApiSchemaObject, where: string];
 
 const IGNORED: Case[] = [
   ['not', { type: 'string', not: { const: 'a' } }, '`not`'],
-  ['if', { type: 'object', if: { type: 'object' } }, '`if`'],
+  [
+    'if',
+    { type: 'object', if: { type: 'object' }, else: { required: ['a'] } },
+    '`if`',
+  ],
   [
     'patternProperties',
     { type: 'object', patternProperties: { '^a': { type: 'string' } } },
@@ -1089,5 +1093,104 @@ describe('override.zod.unsupported edge cases', () => {
         }),
       );
     await expect(run()).rejects.toThrow('A tuple at the root');
+  });
+});
+
+describe('override.zod.unsupported review cases', () => {
+  it('fails on a format next to a composition, which renders only the members', () => {
+    expect(() =>
+      gen({
+        type: 'string',
+        format: 'email',
+        anyOf: [{ type: 'string' }, { type: 'string', minLength: 2 }],
+      }),
+    ).toThrow('`format: email` is not validated');
+  });
+
+  it('accepts an if without then or else', () => {
+    expect(() => gen({ type: 'object', if: { type: 'object' } })).not.toThrow();
+  });
+
+  it('fails on nullable enums that both take null', () => {
+    expect(() =>
+      gen({
+        oneOf: [
+          { type: ['string', 'null'], enum: ['a'] },
+          { type: ['string', 'null'], enum: ['b'] },
+        ],
+      }),
+    ).toThrow('validated like `anyOf`');
+  });
+
+  it('accepts a property declared alike in another key order', () => {
+    const shape = (keys: string[]): OpenApiSchemaObject => ({
+      type: 'object',
+      properties: {
+        x: {
+          type: 'object',
+          properties: Object.fromEntries(
+            keys.map((key) => [key, { type: 'string' }]),
+          ),
+        },
+      },
+    });
+    expect(() =>
+      gen({ allOf: [shape(['a', 'b']), shape(['b', 'a'])] }, { strict: true }),
+    ).not.toThrow();
+  });
+
+  it('fails on a closed member merged with an open one in strict mode', () => {
+    expect(() =>
+      gen(
+        {
+          allOf: [
+            {
+              type: 'object',
+              properties: { a: { type: 'string' } },
+              additionalProperties: false,
+            },
+            {
+              type: 'object',
+              properties: { b: { type: 'string' } },
+              additionalProperties: true,
+            },
+          ],
+        },
+        { strict: true },
+      ),
+    ).toThrow('`additionalProperties: false` is merged');
+  });
+
+  it('fails on an additionalProperties schema that also covers a key another member declares', () => {
+    expect(() =>
+      gen(
+        {
+          allOf: [
+            {
+              type: 'object',
+              properties: { a: { type: 'string' } },
+              additionalProperties: { type: 'string' },
+            },
+            { type: 'object', properties: { b: { type: 'integer' } } },
+          ],
+        },
+        { strict: true },
+      ),
+    ).toThrow('also applies to `b`');
+  });
+
+  it('names the member of a forbidden key without a sibling property', () => {
+    expect(() =>
+      gen({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        anyOf: [
+          { not: { required: ['zz'] }, required: ['a'] },
+          { required: ['a'] },
+        ],
+      }),
+    ).toThrow(
+      'has no sibling property, so it is not validated. At getPetResponse > anyOf[0]',
+    );
   });
 });
