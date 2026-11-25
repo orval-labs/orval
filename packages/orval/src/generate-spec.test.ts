@@ -26,7 +26,15 @@ import {
   withReporter,
   type WorkspaceExportsFn,
 } from '@orval/core';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vite-plus/test';
 
 const outputFile = async (file: string, content: string) => {
   await fs.promises.mkdir(path.dirname(file), { recursive: true });
@@ -641,6 +649,130 @@ describe('generateSpec - Fetch binary and JSON success responses', () => {
     },
   );
 });
+
+describe.each(['inline', 'shared'] as const)(
+  'generateSpec - Fetch forceSuccessResponse errors (%s runtime)',
+  (runtimeImplementationStyle) => {
+    const spec: OpenApiDocument = {
+      ...PETSTORE_SPEC,
+      paths: {
+        '/pets': {
+          get: {
+            operationId: 'listPets',
+            responses: {
+              ...PETSTORE_SPEC.paths?.['/pets']?.get?.responses,
+              '503': {
+                description: 'Service unavailable',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: { message: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    let workspace: string;
+    let listPets: () => Promise<unknown>;
+
+    beforeAll(async () => {
+      workspace = await createTempWorkspace();
+      const options = await normalizeOptions(
+        {
+          input: { target: spec },
+          output: {
+            target: './endpoints.ts',
+            client: 'fetch',
+            override: {
+              fetch: { runtimeImplementationStyle, forceSuccessResponse: true },
+            },
+          },
+        },
+        workspace,
+      );
+      await generateSpec(workspace, options);
+      ({ listPets } = await dynamicImport<{ listPets: typeof listPets }>(
+        './endpoints.ts',
+        workspace,
+        false,
+      ));
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+    afterAll(async () => {
+      if (workspace) await rm(workspace, { recursive: true, force: true });
+    });
+
+    const respondWith = (response: Response) => {
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response));
+    };
+
+    it.each([
+      [503, 'text/html', '<html>Service unavailable</html>'],
+      [502, 'application/json', '{"message":'],
+    ])(
+      'preserves HTTP status %s for an invalid JSON error body (%s)',
+      async (status, contentType, body) => {
+        respondWith(
+          new Response(body, {
+            status,
+            headers: { 'Content-Type': contentType },
+          }),
+        );
+
+        const failure = await listPets().catch((error: unknown) => error);
+        expect(failure).toBeInstanceOf(Error);
+        expect(failure).toHaveProperty('status', status);
+        const error = failure as Error & { info?: unknown };
+        expect(error.cause).toBeInstanceOf(SyntaxError);
+        expect(error.info).toBeUndefined();
+      },
+    );
+
+    it('preserves a structured HTTP error body', async () => {
+      const info = { message: 'Service unavailable' };
+      respondWith(Response.json(info, { status: 503 }));
+
+      await expect(listPets()).rejects.toMatchObject({ status: 503, info });
+    });
+
+    it('still rejects an invalid JSON success body with SyntaxError', async () => {
+      respondWith(
+        new Response('{"name":', {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await expect(listPets()).rejects.toThrow(SyntaxError);
+    });
+
+    it.each([
+      { name: 'read failure', error: new Error('Connection lost') },
+      { name: 'abort', error: new DOMException('Aborted', 'AbortError') },
+    ])('propagates a body $name unchanged', async ({ error }) => {
+      const body = new ReadableStream({
+        start(controller) {
+          controller.error(error);
+        },
+      });
+      respondWith(
+        new Response(body, {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      await expect(listPets()).rejects.toBe(error);
+    });
+  },
+);
 
 describe('generateSpec - async inferred Fetch mutators', () => {
   it.each([

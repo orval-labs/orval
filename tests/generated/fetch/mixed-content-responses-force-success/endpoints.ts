@@ -45,9 +45,16 @@ export const getData = async (
       info?: getDataResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: getDataResponseError['data'] = body !== null ? body : '';
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body !== null ? body : '';
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: getDataResponseSuccess['data'] = body ? JSON.parse(body) : {};
@@ -85,9 +92,16 @@ export const getText = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: getTextResponseSuccess['data'] = body !== null ? body : '';
@@ -128,9 +142,16 @@ export const getImage = async (
 
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = errorBody ? JSON.parse(errorBody) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = errorBody ? JSON.parse(errorBody) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
@@ -179,9 +200,16 @@ export const getMixedSuccess = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: getMixedSuccessResponseSuccess['data'] = body
