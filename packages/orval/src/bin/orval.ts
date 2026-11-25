@@ -9,8 +9,10 @@ import {
   getWarningCount,
   isString,
   LOG_LEVELS,
+  type LogLevel,
   OutputClient,
   OutputMode,
+  type OrvalReporter,
   resetWarnings,
   resolveLogLevel,
   setLogLevel,
@@ -23,6 +25,10 @@ import {
 
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
+import {
+  generateSpecContent,
+  loadProjectForSpec,
+} from '../generate-spec-content';
 import { logger } from '../logger';
 import {
   findConfigFile,
@@ -36,6 +42,73 @@ const orvalMessage = startMessage({
   version: pkg.version,
   description: pkg.description,
 });
+// `--print` writes the code to stdout, so diagnostics go to stderr.
+const stderrReporter: OrvalReporter = {
+  info: (event) => console.error(event.message),
+  warn: (event) => console.error(event.message),
+  error: (event) => console.error(event.message),
+  verbose: (event) => console.error(event.message),
+  debug: (event) => console.error(event.message),
+};
+
+async function printSpecContent(
+  specPath: string,
+  options: {
+    config?: string;
+    project?: string[];
+    verbose?: true;
+    quiet?: true;
+    logLevel?: LogLevel;
+    failOnWarnings?: true;
+  },
+) {
+  await withReporter(stderrReporter, async () => {
+    if (options.project && options.project.length > 1) {
+      logger.error('--print takes one project at most');
+      process.exit(1);
+    }
+
+    setLogLevel(
+      resolveLogLevel({
+        verbose: options.verbose,
+        quiet: options.quiet,
+        logLevel: options.logLevel,
+      }),
+    );
+
+    let content: string;
+    try {
+      const {
+        workspace,
+        projectName,
+        options: normalizedOptions,
+      } = await loadProjectForSpec(specPath, {
+        config: options.config,
+        project: options.project?.[0],
+      });
+      setProjectName(projectName);
+      content = await generateSpecContent(
+        workspace,
+        normalizedOptions,
+        projectName,
+      );
+      setProjectName();
+    } catch (error) {
+      logger.error(error);
+      process.exit(1);
+    }
+
+    if (options.failOnWarnings && getWarningCount() > 0) {
+      logger.error(
+        `Process exited with ${getWarningCount()} warning(s) due to --fail-on-warnings flag`,
+      );
+      process.exit(1);
+    }
+
+    process.stdout.write(content);
+  });
+}
+
 const cli = program
   .name('orval')
   .description(
@@ -114,11 +187,33 @@ cli
   )
   .addOption(
     new Option(
+      '--print <path>',
+      'Print the type definitions generated from a spec file to stdout without writing any file; the config project whose input is that file is used',
+    ).conflicts([
+      'input',
+      'output',
+      'mode',
+      'watch',
+      'client',
+      'mock',
+      'clean',
+      'formatter',
+      'tsconfig',
+      'outdated',
+    ]),
+  )
+  .addOption(
+    new Option(
       '--outdated',
       'Compare generated output with existing files without writing; list files that are missing, outdated or obsolete and exit with code 1 when any are found',
     ).conflicts(['watch']),
   )
   .action(async (options) => {
+    if (options.print !== undefined) {
+      await printSpecContent(options.print, options);
+      return;
+    }
+
     await withReporter(consoleReporter, async () => {
       const check = options.outdated ? createGeneratedFileCheck() : undefined;
       const run = async () => {

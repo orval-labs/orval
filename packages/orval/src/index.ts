@@ -9,4 +9,13 @@ export const generate = (
   ...args: Parameters<typeof import('./generate').generate>
 ) => import('./generate').then(({ generate }) => generate(...args));
 
+export const generateSpecContent = (
+  ...args: Parameters<
+    typeof import('./generate-spec-content').generateSpecContent
+  >
+) =>
+  import('./generate-spec-content').then(({ generateSpecContent }) =>
+    generateSpecContent(...args),
+  );
+
 export default generate;
