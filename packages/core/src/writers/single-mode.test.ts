@@ -24,7 +24,7 @@ import {
   OutputMode,
 } from '../types';
 import { createSchemaOutputPlanForOutput } from './schema-output-plan';
-import { writeSingleMode } from './single-mode';
+import { generateSingleMode, writeSingleMode } from './single-mode';
 
 describe('writeSingleMode — separated mocks import inline schemas from the target file', () => {
   let tmpDir: string;
@@ -504,5 +504,76 @@ describe('writeSingleMode — importing the client does not evaluate msw/faker (
 
     await import(pathToFileURL(fakerPath).href);
     expect(evaluated.faker).toBe(true);
+  });
+});
+
+describe('generateSingleMode', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-single-mode-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns the files writeSingleMode writes without writing them', async () => {
+    const target = path.join(tmpDir, 'petstore.ts');
+    const mockDir = path.join(tmpDir, 'mocks');
+    const baseProps = createSplitModeProps(target);
+    const props = {
+      ...baseProps,
+      builder: {
+        ...baseProps.builder,
+        operations: {
+          listPets: createSplitModeOperation({
+            implementation: 'export const listPets = () => 1;',
+            mockOutputs: [
+              {
+                type: OutputMockType.MSW,
+                implementation: {
+                  function: 'export const getListPetsMock = () => 1;',
+                  handler: '',
+                  handlerName: 'mockHandler',
+                },
+                imports: [],
+              },
+            ],
+          }),
+        },
+        importsMock: () => '',
+      },
+      output: createSplitModeOutput(target, {
+        mode: OutputMode.SINGLE,
+        schemas: undefined,
+        mock: {
+          indexMockFiles: true,
+          inline: false,
+          path: mockDir,
+          generators: [{ type: OutputMockType.MSW }],
+        },
+      }),
+      needSchema: false,
+    };
+
+    const files = await generateSingleMode(props);
+
+    expect(files.map((file) => file.path)).toEqual([
+      target,
+      path.join(mockDir, 'petstore.msw.ts'),
+      path.join(mockDir, 'index.msw.ts'),
+    ]);
+    expect(files[0]?.content).toContain('export const listPets = () => 1;');
+    expect(fs.readdirSync(tmpDir)).toEqual([]);
+
+    const writtenPaths = await writeSingleMode(props);
+
+    expect(writtenPaths).toEqual(files.map((file) => file.path));
+    for (const file of files) {
+      expect(fs.readFileSync(file.path, 'utf8')).toBe(
+        file.content.replaceAll(/[^\S\r\n]+$/gm, ''),
+      );
+    }
   });
 });
