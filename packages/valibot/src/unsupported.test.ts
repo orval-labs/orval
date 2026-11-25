@@ -136,6 +136,45 @@ const SILENT: Case[] = [
     { type: 'string', contentEncoding: 'base32' },
     '`contentEncoding: base32`',
   ],
+  [
+    'a string format on a schema without a type',
+    { format: 'email' },
+    '`format: email`',
+  ],
+  [
+    'a string format on a number',
+    { type: 'integer', format: 'email' },
+    '`format: email`',
+  ],
+  [
+    'an alternative of unknown type next to null',
+    { oneOf: [true, { type: 'null' }] },
+    '`oneOf`',
+  ],
+  [
+    'two nullable alternatives told apart by a discriminator',
+    {
+      oneOf: ['a', 'b'].map((kind) => ({
+        type: ['object', 'null'],
+        required: ['kind'],
+        properties: { kind: { const: kind } },
+      })),
+      discriminator: { propertyName: 'kind' },
+    },
+    '`oneOf`',
+  ],
+  [
+    'a variant whose options share a discriminator value',
+    {
+      oneOf: ['x', 'y'].map((name) => ({
+        type: 'object',
+        required: ['kind'],
+        properties: { kind: { const: 'a' }, [name]: { type: 'string' } },
+      })),
+      discriminator: { propertyName: 'kind' },
+    },
+    '`oneOf`',
+  ],
 ];
 
 const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);

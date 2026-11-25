@@ -41,7 +41,7 @@ const TYPED_CONSTRAINTS = [
   'items',
 ] as const;
 
-// Formats the generated schema checks, by an action or as a file.
+// Formats the generated schema checks on a string, by an action or as a file.
 const CHECKED_FORMATS = new Set([
   'email',
   'uri',
@@ -57,10 +57,10 @@ const CHECKED_FORMATS = new Set([
 // Formats checked only by the number type they sit on.
 const NUMERIC_FORMATS = new Set(['int32', 'int64', 'float', 'double']);
 
-const isNumericType = (type: unknown): boolean =>
-  (Array.isArray(type) ? type : [type]).some(
-    (item) => item === 'integer' || item === 'number',
-  );
+const hasType = (type: unknown, names: readonly string[]): boolean => {
+  const types: unknown[] = Array.isArray(type) ? type : [type];
+  return types.some((item) => typeof item === 'string' && names.includes(item));
+};
 
 // Values that constrain nothing: `false`, `0`, `true` where it allows all, and
 // an empty schema map.
@@ -118,8 +118,9 @@ export const reportUncheckedFormat = (
   const { format } = schema;
   if (
     typeof format !== 'string' ||
-    CHECKED_FORMATS.has(format) ||
-    (NUMERIC_FORMATS.has(format) && isNumericType(schema.type)) ||
+    (CHECKED_FORMATS.has(format) && hasType(schema.type, ['string'])) ||
+    (NUMERIC_FORMATS.has(format) &&
+      hasType(schema.type, ['integer', 'number'])) ||
     isMapped ||
     schema.enum !== undefined ||
     schema.const !== undefined

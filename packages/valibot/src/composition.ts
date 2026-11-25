@@ -395,7 +395,13 @@ const areExclusive = (members: ValibotNode[]): boolean => {
   const isNull = ({ schema }: ValibotNode) => schema.kind === 'null';
   const present = members.filter((member) => !isNull(member));
   const nulls = members.length - present.length;
-  if (nulls > 1 || (nulls === 1 && present.some((m) => m.nullable))) {
+  // A `null` alternative also matches a member that is nullable or of
+  // unknown type.
+  if (
+    nulls > 1 ||
+    (nulls === 1 &&
+      present.some((m) => m.nullable || domainsOf(m) === undefined))
+  ) {
     return false;
   }
   if (present.length <= 1) return true;
@@ -507,6 +513,10 @@ const isExclusiveOneOf = (
   if (areExclusive(comparable)) return true;
   const name = schema.discriminator?.propertyName;
   if (!isString(name)) return false;
+  // Discriminator values do not tell apart a `null` that two members accept.
+  const acceptsNull = ({ nullable, schema: node }: ValibotNode) =>
+    nullable || node.kind === 'null';
+  if (comparable.filter(acceptsNull).length > 1) return false;
   const values = resolved.map((member) =>
     discriminatorValues(member, name, resolve),
   );
@@ -558,6 +568,19 @@ const generateGroup = (
     ...(ownKeywords ? [ownKeywords] : []),
   ];
 
+  // A variant stops at the first option that matches, so it needs the
+  // exclusivity check as much as a union does.
+  if (
+    key === 'oneOf' &&
+    unsupportedMode() === 'error' &&
+    !isExclusiveOneOf(schema, members, child, resolveRef)
+  ) {
+    unsupportedOnly(
+      '`oneOf` is validated like `anyOf`, so a value that matches several alternatives is accepted.',
+      path,
+    );
+  }
+
   const discriminator = schema.discriminator?.propertyName;
   const variant =
     key !== 'allOf' && own.length === 0 && isString(discriminator)
@@ -569,16 +592,6 @@ const generateGroup = (
     const kept = allOfMembers([...members, ...own]);
     reportStrictInIntersection(kept, path);
     return plainBase({ kind: 'intersect', members: kept });
-  }
-  if (
-    key === 'oneOf' &&
-    unsupportedMode() === 'error' &&
-    !isExclusiveOneOf(schema, members, child, resolveRef)
-  ) {
-    unsupportedOnly(
-      '`oneOf` is validated like `anyOf`, so a value that matches several alternatives is accepted.',
-      path,
-    );
   }
   const union = plainNode({ kind: 'union', members });
   const coversOwn =
