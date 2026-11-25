@@ -310,6 +310,10 @@ describe('unsupported: error', () => {
         },
       },
     ],
+    [
+      'an alternative that accepts nothing next to null',
+      { oneOf: [false, { type: 'null' }] },
+    ],
   ])('accepts %s', (_name, schema) => {
     expect(() => gen(schema, { unsupported: 'error' })).not.toThrow();
   });

@@ -373,6 +373,10 @@ const baseDomainsOf = ({ schema }: ValibotNode): string[] | undefined => {
     case 'picklist': {
       return schema.values.map((value) => `=${value}`);
     }
+    // Accepts nothing, so it overlaps with no other alternative.
+    case 'never': {
+      return [];
+    }
     default: {
       return undefined;
     }
