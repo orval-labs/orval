@@ -112,6 +112,13 @@ export interface NormalizedOutputOptions {
   tagsSplitDeduplication: boolean;
   commonTypesFileName: string;
   operationManifest?: NormalizedOperationManifestOptions;
+  contentMapper?: NormalizedContentMapperOptions;
+}
+
+export interface NormalizedContentMapperOptions {
+  schemas: boolean;
+  /** Absolute path of the spec file that the content mapper serves. */
+  specPath: string;
 }
 
 export interface NormalizedOperationManifestOptions {
@@ -552,6 +559,20 @@ export interface OutputOptions {
    * `<target>.operations<ext>`.
    */
   operationManifest?: boolean | OperationManifestOptions;
+  /**
+   * Deliver outputs through Orval's TypeScript content mapper instead of
+   * writing them as files.
+   */
+  contentMapper?: ContentMapperOptions;
+}
+
+export interface ContentMapperOptions {
+  /**
+   * Write no model type files. Every generated file imports the models with
+   * `import type` from the input spec, which the content mapper serves as a
+   * module. Enums default to `union`, as the spec has no runtime values.
+   */
+  schemas?: boolean;
 }
 
 export interface OperationManifestOptions {
@@ -2375,6 +2396,13 @@ export interface Tsconfig {
     moduleResolution?: TsConfigModuleResolution;
     allowImportingTsExtensions?: boolean;
   };
+  /** TypeScript 7.1 content mappers. */
+  contentMappers?: TsconfigContentMapper[];
+}
+
+export interface TsconfigContentMapper {
+  package?: string;
+  extensions?: string[];
 }
 
 export type TsConfigTarget =

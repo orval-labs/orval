@@ -85,6 +85,9 @@ export function generateImportsForBuilder(
     relativeSchemasPath,
     { schemaTagMap, schemaOutputPlan },
   );
+  if (output.contentMapper?.schemas) {
+    assertNoContentMapperValueImports(schemaImports);
+  }
 
   // Operations contribute these independently, so the same binding can
   // arrive once as a type and once as a value (e.g. `HttpHeaders` from an
@@ -114,6 +117,25 @@ export function generateImportsForBuilder(
   );
 
   return [...schemaImports, ...schemaFactoryDeps, ...otherImports];
+}
+
+/**
+ * The content mapper serves the models as types only, so a value import of a
+ * model would fail at runtime.
+ */
+function assertNoContentMapperValueImports(
+  schemaImports: readonly GeneratorDependency[],
+): void {
+  const names = schemaImports.flatMap(({ exports }) =>
+    exports
+      .filter((schemaImport) => schemaImport.values || schemaImport.isConstant)
+      .map((schemaImport) => schemaImport.name),
+  );
+  if (names.length > 0) {
+    throw new Error(
+      `\`output.contentMapper.schemas\` imports the models as types only, but the generated code uses ${names.map((name) => `\`${name}\``).join(', ')} as a runtime value. Turn off the option that needs it, such as runtime validation.`,
+    );
+  }
 }
 
 /** The faker generator entry that emits schema factories (`schemas: true`). */

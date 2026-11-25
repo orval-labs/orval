@@ -25,6 +25,7 @@ import {
 } from '../types';
 import {
   conventionName,
+  getContentMapperSchemasImportPath,
   getFileInfo,
   getImportExtension,
   getOperationTagKey,
@@ -441,6 +442,12 @@ export function getSchemasImportPathFrom(
     extension,
   }: { filename: string; dirname: string; extension: string },
 ): string {
+  const contentMapperImportPath = getContentMapperSchemasImportPath(
+    output,
+    filePath,
+  );
+  if (contentMapperImportPath) return contentMapperImportPath;
+
   const schemasDir = output.schemas
     ? isString(output.schemas)
       ? output.schemas

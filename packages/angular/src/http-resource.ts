@@ -32,6 +32,7 @@ import {
   getFullRoute,
   GetterPropType,
   getOperationTagKey,
+  getContentMapperSchemasImportPath,
   getSchemasImportPath,
   getStandardSchemaHelper,
   getTagKey,
@@ -2148,6 +2149,12 @@ const getHttpResourceSchemasModule = (
   output: NormalizedOutputOptions,
   outputPath: string,
 ): string => {
+  const contentMapperImportPath = getContentMapperSchemasImportPath(
+    output,
+    outputPath,
+  );
+  if (contentMapperImportPath) return contentMapperImportPath;
+
   // `schemas.importPath` is a package specifier (e.g. `@acme/models`), not a
   // filesystem path, so emit it as it is. This mirrors the split-mode writers.
   const customImportPath = getSchemasImportPath(output.schemas);

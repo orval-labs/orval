@@ -1158,6 +1158,43 @@ export type OperationTypes = {
 
 The manifest isn't re-exported from the workspace `index.ts`.
 
+## contentMapper
+
+**Type:** `{ schemas?: Boolean }`
+**Default:** `undefined`
+
+Delivers outputs through Orval's TypeScript 7.1 content mapper instead of writing them as files.
+
+With `schemas: true`, no model type files are written. Every generated file (clients, mocks, the operation manifest and the workspace `index.ts`) imports the models with `import type` from the input spec, which the content mapper serves as a module. Since `import type` is erased at runtime, no bundler setup is needed.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.openapi.yaml',
+    output: {
+      target: './src/api/endpoints.ts',
+      client: 'react-query',
+      contentMapper: {
+        schemas: true,
+      },
+    },
+  },
+});
+```
+
+```ts title="src/api/endpoints.ts"
+import type { Pet, ListPetsParams } from '../../petstore.openapi.yaml';
+```
+
+The spec has no runtime values, so:
+
+- `override.enumGenerationType` defaults to `'union'`. `'const'` and `'enum'` are rejected.
+- `schemas`, `operationSchemas`, `factoryMethods` and the `zod`, `valibot` and `effect` clients are rejected.
+- The input must be one local spec file, not a URL, an inline document or a list of fallbacks.
+- `clean` is rejected when the spec is in the target's directory, as it would remove the spec.
+
+When the tsconfig registers Orval's content mapper (`contentMappers` with `package: 'orval'`), the spec must end with one of its `extensions`. Without such an entry, Orval warns, as TypeScript cannot resolve the imports.
+
 ## tagsSplitDeduplication
 
 **Type:** `Boolean`

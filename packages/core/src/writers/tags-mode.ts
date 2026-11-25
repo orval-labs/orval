@@ -3,6 +3,7 @@ import path from 'node:path';
 import { generateModelsInline } from '../generators';
 import { OutputMockType, type WriteModeProps } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -93,10 +94,11 @@ export async function writeTagsMode({
           { extension: output.fileExtension },
         ).dirname,
       ))
-    : './' +
-      filename +
-      '.schemas' +
-      getImportExtension(output.schemaFileExtension, output.tsconfig);
+    : (getContentMapperSchemasImportPath(output, targetPath) ??
+      './' +
+        filename +
+        '.schemas' +
+        getImportExtension(output.schemaFileExtension, output.tsconfig));
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -302,6 +304,7 @@ export async function writeTagsMode({
             );
 
             const mockRelativeSchemasPath =
+              getContentMapperSchemasImportPath(output, mockFilePath) ??
               schemaCustomImportPath ??
               resolveMockSchemasPath(mockFilePath, schemasTarget);
 

@@ -8,6 +8,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -131,10 +132,14 @@ export async function writeTagsOperationsMode({
         ).dirname,
         true,
       ))
-    : '../' +
-      filename +
-      '.schemas' +
-      getImportExtension(output.schemaFileExtension, output.tsconfig);
+    : (getContentMapperSchemasImportPath(
+        output,
+        path.join(dirname, 'tag', filename + extension),
+      ) ??
+      '../' +
+        filename +
+        '.schemas' +
+        getImportExtension(output.schemaFileExtension, output.tsconfig));
 
   const schemasTarget = output.schemas
     ? getFileInfo(

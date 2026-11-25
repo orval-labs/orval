@@ -7,6 +7,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   getImportExtension,
   hasSchemaDefinition,
   isFunction,
@@ -144,6 +145,7 @@ export async function writeTagsOperationsMockFiles({
     );
 
     const mockRelativeSchemasPath =
+      getContentMapperSchemasImportPath(output, mockFilePath) ??
       schemaCustomImportPath ??
       resolveMockSchemasPath(mockFilePath, schemasTarget);
 

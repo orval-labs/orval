@@ -3,7 +3,8 @@ import path from 'node:path';
 
 import { readGeneratedFile, writeGeneratedFile } from '@orval/core';
 
-const RE_EXPORT_LINE = /^\s*export\s+\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
+const RE_EXPORT_LINE =
+  /^\s*export\s+(?:type\s+)?\*\s+from\s*['"]([^'"]+)['"]\s*;?\s*$/;
 
 export function readReExportSpecifiers(content: string): Set<string> {
   const specifiers = new Set<string>();
@@ -42,18 +43,23 @@ export async function reExportSpecifierExists(
 // conditional write (#3675, #3756, #3763). `excluded` specifiers are dropped
 // from existing content even when they still resolve, so exports filtered out
 // by `workspaceExports` (#2044) don't survive from a previous run.
+// `typeOnly` specifiers are written as `export type *`, for modules with no
+// runtime values such as the spec under `contentMapper.schemas`.
 export async function reconcileWorkspaceBarrel(
   filePath: string,
   specifiers: string[],
   fileExtension: string,
   importExtension: string,
   excluded: ReadonlySet<string> = new Set(),
+  typeOnly: ReadonlySet<string> = new Set(),
 ): Promise<void> {
+  const formatExport = (s: string) =>
+    `export ${typeOnly.has(s) ? 'type ' : ''}* from '${s}';`;
   const existingContent = await readGeneratedFile(filePath);
   if (existingContent === undefined) {
     await writeGeneratedFile(
       filePath,
-      specifiers.map((s) => `export * from '${s}';`).join('\n') + '\n',
+      specifiers.map(formatExport).join('\n') + '\n',
     );
     return;
   }
@@ -83,7 +89,7 @@ export async function reconcileWorkspaceBarrel(
   }
 
   const retainedContent = retained.join(eol).trimEnd();
-  const appended = [...desired].map((s) => `export * from '${s}';`).join(eol);
+  const appended = [...desired].map(formatExport).join(eol);
   const nextContent =
     [retainedContent, appended].filter(Boolean).join(eol) + eol;
 
