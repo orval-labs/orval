@@ -450,11 +450,12 @@ export const generateSharedRequestFunction = (
     hasStream && response.contentTypes.length === 1
       ? response.contentTypes[0]
       : undefined;
-  const responseType = getResponseType(verbOptions);
-  const blobJsonCondition =
-    responseType === 'blob'
-      ? getMixedBinaryJsonCondition(verbOptions)
-      : undefined;
+  const blobJsonCondition = hasStream
+    ? undefined
+    : getMixedBinaryJsonCondition(verbOptions);
+  const responseType = blobJsonCondition
+    ? 'blob'
+    : getResponseType(verbOptions);
 
   // The runtime leaves multipart's Content-Type, boundary included, to the
   // browser, but recognizes only the lowercase spelling.

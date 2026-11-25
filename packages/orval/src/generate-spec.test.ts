@@ -16,6 +16,7 @@ import {
   type OpenApiDocument,
   type OpenApiMediaTypeObject,
   type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
   OutputMockType,
   type OutputMode,
   type OutputOptions,
@@ -451,36 +452,70 @@ describe('generateSpec - Fetch binary and JSON success responses', () => {
       schema: {
         type: 'object',
         required: ['jobId'],
-        properties: { jobId: { type: 'string' } },
+        properties: {
+          jobId: { type: 'string' },
+          readyAt: { type: 'string', format: 'date-time' },
+        },
       },
     },
   } satisfies Record<string, OpenApiMediaTypeObject>;
-  const spec = (jsonAlsoDeclaredFor200: boolean): OpenApiDocument => ({
-    openapi: '3.1.0',
-    info: { title: 'Downloads', version: '1.0.0' },
-    paths: {
-      '/download': {
-        get: {
-          operationId: 'download',
-          responses: {
-            '200': {
-              description: 'The file is ready',
-              content: {
-                'application/octet-stream': {
-                  schema: { type: 'string', format: 'binary' },
-                },
-                ...(jsonAlsoDeclaredFor200 ? jsonContent : {}),
-              },
-            },
-            '202': {
-              description: 'The file is being prepared',
-              content: jsonContent,
+  const binaryContent = {
+    'application/octet-stream': {
+      schema: { type: 'string', format: 'binary' },
+    },
+  } satisfies Record<string, OpenApiMediaTypeObject>;
+  const responses200 = {
+    'binary only': { content: binaryContent, reference: false },
+    'mixed inline': {
+      content: { ...binaryContent, ...jsonContent },
+      reference: false,
+    },
+    'mixed reference, binary first': {
+      content: { ...binaryContent, ...jsonContent },
+      reference: true,
+    },
+    'mixed reference, JSON first': {
+      content: { ...jsonContent, ...binaryContent },
+      reference: true,
+    },
+  };
+  const spec = (
+    response200: keyof typeof responses200,
+    include202 = true,
+  ): OpenApiDocument => {
+    const { content, reference } = responses200[response200];
+    const ready: OpenApiResponseObject = {
+      description: 'The file is ready',
+      content,
+    };
+    return {
+      openapi: '3.1.0',
+      info: { title: 'Downloads', version: '1.0.0' },
+      paths: {
+        '/download': {
+          get: {
+            operationId: 'download',
+            responses: {
+              '200': reference
+                ? { $ref: '#/components/responses/DownloadReady' }
+                : ready,
+              ...(include202
+                ? {
+                    '202': {
+                      description: 'The file is being prepared',
+                      content: jsonContent,
+                    },
+                  }
+                : {}),
             },
           },
         },
       },
-    },
-  });
+      ...(reference
+        ? { components: { responses: { DownloadReady: ready } } }
+        : {}),
+    };
+  };
 
   it.each(
     (
@@ -491,23 +526,22 @@ describe('generateSpec - Fetch binary and JSON success responses', () => {
         { runtimeImplementationStyle: 'shared', forceSuccessResponse: true },
       ] as const
     ).flatMap((options) =>
-      [false, true].map((jsonAlsoDeclaredFor200) => ({
-        ...options,
-        jsonAlsoDeclaredFor200,
-      })),
+      (Object.keys(responses200) as (keyof typeof responses200)[]).map(
+        (response200) => ({ ...options, response200 }),
+      ),
     ),
   )(
-    'decodes $runtimeImplementationStyle responses with forceSuccessResponse $forceSuccessResponse and JSON 200 $jsonAlsoDeclaredFor200',
+    'decodes $runtimeImplementationStyle responses with forceSuccessResponse $forceSuccessResponse and response 200 $response200',
     async ({
       runtimeImplementationStyle,
       forceSuccessResponse,
-      jsonAlsoDeclaredFor200,
+      response200,
     }) => {
       const workspace = await createTempWorkspace();
       try {
         const options = await normalizeOptions(
           {
-            input: { target: spec(jsonAlsoDeclaredFor200) },
+            input: { target: spec(response200) },
             output: {
               target: './endpoints.ts',
               client: 'fetch',
@@ -551,13 +585,55 @@ describe('generateSpec - Fetch binary and JSON success responses', () => {
           status: 202,
           data: pending,
         });
-        if (jsonAlsoDeclaredFor200) {
+        if (response200 !== 'binary only') {
           fetchMock.mockResolvedValueOnce(jsonResponse(200));
           await expect(download()).resolves.toMatchObject({
             status: 200,
             data: pending,
           });
         }
+      } finally {
+        vi.unstubAllGlobals();
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(['inline', 'shared'] as const)(
+    'converts dates on a negotiated JSON response in the %s runtime',
+    async (runtimeImplementationStyle) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec('mixed reference, JSON first', false) },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              override: {
+                useDatesTransform: true,
+                fetch: { runtimeImplementationStyle },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        const { download } = await dynamicImport<{
+          download: () => Promise<{ data: unknown; status: number }>;
+        }>('./endpoints.ts', workspace, false);
+        const readyAt = '2026-11-25T12:00:00Z';
+        vi.stubGlobal(
+          'fetch',
+          vi
+            .fn<typeof fetch>()
+            .mockResolvedValueOnce(Response.json({ jobId: 'job-1', readyAt })),
+        );
+
+        await expect(download()).resolves.toMatchObject({
+          status: 200,
+          data: { jobId: 'job-1', readyAt: new Date(readyAt) },
+        });
       } finally {
         vi.unstubAllGlobals();
         await rm(workspace, { recursive: true, force: true });

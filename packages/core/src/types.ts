@@ -3031,6 +3031,10 @@ export type ResReqTypesValue = ScalarValue & {
   key: string;
   contentType: string;
   originalSchema?: OpenApiSchemaObject;
+  additionalRepresentations?: {
+    contentType: string;
+    originalSchema?: OpenApiSchemaObject;
+  }[];
 };
 
 export interface FinalizeMockImplementationOptions {

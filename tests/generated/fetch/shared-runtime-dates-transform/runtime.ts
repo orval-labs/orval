@@ -298,7 +298,8 @@ const decodeResponseBody = async (
     if (noContent) return null;
     if (!isJsonResponse?.(res)) return await res.blob();
     const body = await res.text();
-    return body ? parseJson(body) : {};
+    const data = body ? parseJson(body) : {};
+    return validateResponse ? validateResponse(data, res.status) : data;
   }
 
   const body = noContent ? null : await res.text();

@@ -426,7 +426,10 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
-  const isBlob = response.isBlob;
+  const blobJsonCondition = isNdJson
+    ? undefined
+    : getMixedBinaryJsonCondition({ override, response });
+  const isBlob = response.isBlob || blobJsonCondition !== undefined;
 
   const isDatesTransformEnabled = getIsDatesTransformEnabled(override, context);
   const dateDeserializer = getResponseDateDeserializer(
@@ -459,11 +462,14 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   // `res.data = deserialize…(res.data)`.
   const convertParsedBody = (
     expression: string,
-    { checkContentType }: { checkContentType: boolean },
+    {
+      checkContentType,
+      bodyVariable = 'body',
+    }: { checkContentType: boolean; bodyVariable?: string },
   ) =>
     dateDeserializer
       ? `
-  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
+  if (${bodyVariable} && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
     ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
   }`
       : '';
@@ -912,16 +918,23 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     override.fetch.serializeResponseHeaders
       ? `Object.fromEntries([...${responseVarName}.headers.entries()].filter(([name]) => name !== 'set-cookie'))`
       : `${responseVarName}.headers`;
-  const blobJsonCondition = getMixedBinaryJsonCondition({
-    override,
-    response,
-  });
+  const validatedBlobJson = !isValidateResponse
+    ? 'parsedBody'
+    : validatesPrimitiveResponse
+      ? `res.ok ? ${responseValidationExpression} : parsedBody`
+      : responseValidationExpression;
+  const parsedBlobJson = `text ? JSON.parse(text${reviver}) : {}`;
+  const blobJsonBody =
+    dateDeserializer || isValidateResponse
+      ? `${parsedBodyBinding} parsedBody = ${parsedBlobJson};${convertParsedBody('parsedBody', { checkContentType: false, bodyVariable: 'text' })}
+      body = ${validatedBlobJson};`
+      : `body = ${parsedBlobJson};`;
   const blobResponseBody = blobJsonCondition
     ? `let body: unknown = null;
   if (![204, 205, 304].includes(res.status)) {
     if (${blobJsonCondition}) {
       const text = await res.text();
-      body = text ? JSON.parse(text${reviver}) : {};
+      ${blobJsonBody}
     } else {
       body = await res.blob();
     }

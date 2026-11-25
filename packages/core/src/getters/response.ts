@@ -28,7 +28,7 @@ interface GetResponseOptions {
 export const isBinaryResponseType = ({
   contentType,
   originalSchema,
-}: ResReqTypesValue): boolean =>
+}: Pick<ResReqTypesValue, 'contentType' | 'originalSchema'>): boolean =>
   (!!contentType && isBinaryContentType(contentType)) ||
   (originalSchema !== undefined &&
     !isBooleanJsonSchema(originalSchema) &&

@@ -41,15 +41,25 @@ export const getMixedBinaryJsonCondition = ({
   override,
   response,
 }: Pick<GeneratorVerbOptions, 'override' | 'response'>): string | undefined => {
-  const isJson = (variant: ResReqTypesValue) =>
+  const representations = (entry: ResReqTypesValue) => [
+    entry,
+    ...(entry.additionalRepresentations ?? []).map((representation) => ({
+      ...representation,
+      key: entry.key,
+    })),
+  ];
+  const isJson = (
+    variant: Pick<ResReqTypesValue, 'contentType' | 'originalSchema'>,
+  ) =>
     !isBinaryResponseType(variant) &&
     isContentTypeJson(normalizeMediaType(variant.contentType));
-  if (!response.isBlob || !response.types.success.some(isJson)) {
+  const successes = response.types.success.flatMap(representations);
+  if (!successes.some(isBinaryResponseType) || !successes.some(isJson)) {
     return undefined;
   }
 
   const byStatus = Map.groupBy(
-    [...response.types.success, ...response.types.errors],
+    [...successes, ...response.types.errors.flatMap(representations)],
     ({ key }) => key,
   );
   const declaredKeys = [...byStatus.keys()];
