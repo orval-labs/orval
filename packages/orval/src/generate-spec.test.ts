@@ -9,11 +9,14 @@ import {
   consoleReporter,
   createGeneratedFileCheck,
   createSuccessMessage,
+  dynamicImport,
   type FakerMockOptions,
   type GeneratorVerbOptions,
   noopReporter,
   type OpenApiDocument,
+  type OpenApiMediaTypeObject,
   type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
   OutputMockType,
   type OutputMode,
   type OutputOptions,
@@ -437,6 +440,202 @@ describe('generateSpec - inline Fetch headers helper', () => {
         ).toHaveLength(2);
         expect(implementation).not.toContain('orval:fetch-headers');
       } finally {
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe('generateSpec - Fetch binary and JSON success responses', () => {
+  const jsonContent = {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['jobId'],
+        properties: {
+          jobId: { type: 'string' },
+          readyAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  } satisfies Record<string, OpenApiMediaTypeObject>;
+  const binaryContent = {
+    'application/octet-stream': {
+      schema: { type: 'string', format: 'binary' },
+    },
+  } satisfies Record<string, OpenApiMediaTypeObject>;
+  const responses200 = {
+    'binary only': { content: binaryContent, reference: false },
+    'mixed inline': {
+      content: { ...binaryContent, ...jsonContent },
+      reference: false,
+    },
+    'mixed reference, binary first': {
+      content: { ...binaryContent, ...jsonContent },
+      reference: true,
+    },
+    'mixed reference, JSON first': {
+      content: { ...jsonContent, ...binaryContent },
+      reference: true,
+    },
+  };
+  const spec = (
+    response200: keyof typeof responses200,
+    include202 = true,
+  ): OpenApiDocument => {
+    const { content, reference } = responses200[response200];
+    const ready: OpenApiResponseObject = {
+      description: 'The file is ready',
+      content,
+    };
+    return {
+      openapi: '3.1.0',
+      info: { title: 'Downloads', version: '1.0.0' },
+      paths: {
+        '/download': {
+          get: {
+            operationId: 'download',
+            responses: {
+              '200': reference
+                ? { $ref: '#/components/responses/DownloadReady' }
+                : ready,
+              ...(include202
+                ? {
+                    '202': {
+                      description: 'The file is being prepared',
+                      content: jsonContent,
+                    },
+                  }
+                : {}),
+            },
+          },
+        },
+      },
+      ...(reference
+        ? { components: { responses: { DownloadReady: ready } } }
+        : {}),
+    };
+  };
+
+  it.each(
+    (
+      [
+        { runtimeImplementationStyle: 'inline', forceSuccessResponse: false },
+        { runtimeImplementationStyle: 'inline', forceSuccessResponse: true },
+        { runtimeImplementationStyle: 'shared', forceSuccessResponse: false },
+        { runtimeImplementationStyle: 'shared', forceSuccessResponse: true },
+      ] as const
+    ).flatMap((options) =>
+      (Object.keys(responses200) as (keyof typeof responses200)[]).map(
+        (response200) => ({ ...options, response200 }),
+      ),
+    ),
+  )(
+    'decodes $runtimeImplementationStyle responses with forceSuccessResponse $forceSuccessResponse and response 200 $response200',
+    async ({
+      runtimeImplementationStyle,
+      forceSuccessResponse,
+      response200,
+    }) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec(response200) },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              override: {
+                fetch: { runtimeImplementationStyle, forceSuccessResponse },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        const { download } = await dynamicImport<{
+          download: () => Promise<{ data: unknown; status: number }>;
+        }>('./endpoints.ts', workspace, false);
+
+        const bytes = new Uint8Array([0, 0xff, 0x80, 0x41]);
+        const pending = { jobId: 'job-1' };
+        const jsonResponse = (status: number) =>
+          new Response(JSON.stringify(pending), {
+            status,
+            headers: { 'Content-Type': 'Application/JSON; charset=UTF-8' },
+          });
+        const fetchMock = vi
+          .fn<typeof fetch>()
+          .mockResolvedValueOnce(
+            new Response(bytes, {
+              status: 200,
+              headers: { 'Content-Type': 'application/octet-stream' },
+            }),
+          )
+          .mockResolvedValueOnce(jsonResponse(202));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const binary = await download();
+        expect(binary.status).toBe(200);
+        expect(binary.data).toBeInstanceOf(Blob);
+        expect(
+          new Uint8Array(await (binary.data as Blob).arrayBuffer()),
+        ).toEqual(bytes);
+        await expect(download()).resolves.toMatchObject({
+          status: 202,
+          data: pending,
+        });
+        if (response200 !== 'binary only') {
+          fetchMock.mockResolvedValueOnce(jsonResponse(200));
+          await expect(download()).resolves.toMatchObject({
+            status: 200,
+            data: pending,
+          });
+        }
+      } finally {
+        vi.unstubAllGlobals();
+        await rm(workspace, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each(['inline', 'shared'] as const)(
+    'converts dates on a negotiated JSON response in the %s runtime',
+    async (runtimeImplementationStyle) => {
+      const workspace = await createTempWorkspace();
+      try {
+        const options = await normalizeOptions(
+          {
+            input: { target: spec('mixed reference, JSON first', false) },
+            output: {
+              target: './endpoints.ts',
+              client: 'fetch',
+              override: {
+                useDatesTransform: true,
+                fetch: { runtimeImplementationStyle },
+              },
+            },
+          },
+          workspace,
+        );
+        await generateSpec(workspace, options);
+        const { download } = await dynamicImport<{
+          download: () => Promise<{ data: unknown; status: number }>;
+        }>('./endpoints.ts', workspace, false);
+        const readyAt = '2026-11-25T12:00:00Z';
+        vi.stubGlobal(
+          'fetch',
+          vi
+            .fn<typeof fetch>()
+            .mockResolvedValueOnce(Response.json({ jobId: 'job-1', readyAt })),
+        );
+
+        await expect(download()).resolves.toMatchObject({
+          status: 200,
+          data: { jobId: 'job-1', readyAt: new Date(readyAt) },
+        });
+      } finally {
+        vi.unstubAllGlobals();
         await rm(workspace, { recursive: true, force: true });
       }
     },

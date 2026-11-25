@@ -3,14 +3,17 @@ import {
   filterByContentType,
   type GeneratedDateDeserializer,
   generateResponseDateDeserializer,
+  getResponseStatusCondition,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getSchemaLibrary,
   getStandardSchemaLibrary,
+  isBinaryResponseType,
   type OpenApiReferenceObject,
   type OpenApiResponseObject,
   OutputClient,
   resolveRef,
+  type ResReqTypesValue,
 } from '@orval/core';
 
 /**
@@ -26,6 +29,62 @@ export const isContentTypeNdJson = (contentType: string) => {
 
 export const isContentTypeJson = (contentType: string) =>
   contentType.toLowerCase().includes('json');
+
+const normalizeMediaType = (contentType: string) =>
+  contentType.split(';', 1)[0].trim().toLowerCase();
+
+/**
+ * Selects JSON responses on operations that also have a binary success.
+ * Only statuses with multiple representations need to inspect Content-Type.
+ */
+export const getMixedBinaryJsonCondition = ({
+  override,
+  response,
+}: Pick<GeneratorVerbOptions, 'override' | 'response'>): string | undefined => {
+  const representations = (entry: ResReqTypesValue) => [
+    entry,
+    ...(entry.additionalRepresentations ?? []).map((representation) => ({
+      ...representation,
+      key: entry.key,
+    })),
+  ];
+  const isJson = (
+    variant: Pick<ResReqTypesValue, 'contentType' | 'originalSchema'>,
+  ) =>
+    !isBinaryResponseType(variant) &&
+    isContentTypeJson(normalizeMediaType(variant.contentType));
+  const successes = response.types.success.flatMap(representations);
+  if (!successes.some(isBinaryResponseType) || !successes.some(isJson)) {
+    return undefined;
+  }
+
+  const byStatus = Map.groupBy(
+    [...successes, ...response.types.errors.flatMap(representations)],
+    ({ key }) => key,
+  );
+  const declaredKeys = [...byStatus.keys()];
+
+  return [...byStatus]
+    .flatMap(([key, variants]) => {
+      if (override.fetch.forceSuccessResponse && !key.startsWith('2'))
+        return [];
+
+      const jsonTypes = variants
+        .filter(isJson)
+        .map(({ contentType }) => normalizeMediaType(contentType));
+      if (jsonTypes.length === 0) return [];
+
+      const statusCondition = getResponseStatusCondition({
+        key,
+        declaredKeys,
+        accessor: 'res.status',
+      });
+      if (jsonTypes.length === variants.length) return `(${statusCondition})`;
+
+      return `(${statusCondition} && ${JSON.stringify(jsonTypes)}.includes(res.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase() ?? ''))`;
+    })
+    .join(' || ');
+};
 
 /**
  * The content types the generated response parse has to handle. With

@@ -25,6 +25,17 @@ interface GetResponseOptions {
   generatePrimitiveSchemas?: boolean;
 }
 
+export const isBinaryResponseType = ({
+  contentType,
+  originalSchema,
+}: Pick<ResReqTypesValue, 'contentType' | 'originalSchema'>): boolean =>
+  (!!contentType && isBinaryContentType(contentType)) ||
+  (originalSchema !== undefined &&
+    !isBooleanJsonSchema(originalSchema) &&
+    (originalSchema.format === 'binary' ||
+      (isOctetStreamContentType(originalSchema.contentMediaType) &&
+        !originalSchema.contentEncoding)));
+
 export function getResponse({
   responses,
   operationName,
@@ -81,15 +92,7 @@ export function getResponse({
       success: success || (defaultType ?? 'unknown'),
       errors: errors || (defaultType ?? 'unknown'),
     },
-    isBlob: groupedByStatus.success.some(
-      (t) =>
-        (!!t.contentType && isBinaryContentType(t.contentType)) ||
-        (t.originalSchema !== undefined &&
-          !isBooleanJsonSchema(t.originalSchema) &&
-          (t.originalSchema.format === 'binary' ||
-            (isOctetStreamContentType(t.originalSchema.contentMediaType) &&
-              !t.originalSchema.contentEncoding))),
-    ),
+    isBlob: groupedByStatus.success.some(isBinaryResponseType),
     types: groupedByStatus,
     contentTypes,
     schemas,

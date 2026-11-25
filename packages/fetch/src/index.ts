@@ -69,6 +69,7 @@ import {
   isFetchFactoryMode,
 } from './http-client-injection-factory';
 import {
+  getMixedBinaryJsonCondition,
   getIsDatesTransformEnabled,
   getMutatorErrorResponses,
   getParseTimeContentTypes,
@@ -425,7 +426,10 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   const isNdJson = response.contentTypes.some((contentType) =>
     isContentTypeNdJson(contentType),
   );
-  const isBlob = response.isBlob;
+  const blobJsonCondition = isNdJson
+    ? undefined
+    : getMixedBinaryJsonCondition({ override, response });
+  const isBlob = response.isBlob || blobJsonCondition !== undefined;
 
   const isDatesTransformEnabled = getIsDatesTransformEnabled(override, context);
   const dateDeserializer = getResponseDateDeserializer(
@@ -458,11 +462,14 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
   // `res.data = deserialize…(res.data)`.
   const convertParsedBody = (
     expression: string,
-    { checkContentType }: { checkContentType: boolean },
+    {
+      checkContentType,
+      bodyVariable = 'body',
+    }: { checkContentType: boolean; bodyVariable?: string },
   ) =>
     dateDeserializer
       ? `
-  if (body && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
+  if (${bodyVariable} && ${checkContentType ? "contentType.includes('json') && " : ''}(${successStatusCondition})) {
     ${expression} = ${dateDeserializer.name}(${expression} as ${response.definition.success});
   }`
       : '';
@@ -911,10 +918,32 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     override.fetch.serializeResponseHeaders
       ? `Object.fromEntries([...${responseVarName}.headers.entries()].filter(([name]) => name !== 'set-cookie'))`
       : `${responseVarName}.headers`;
+  const validatedBlobJson = !isValidateResponse
+    ? 'parsedBody'
+    : validatesPrimitiveResponse
+      ? `res.ok ? ${responseValidationExpression} : parsedBody`
+      : responseValidationExpression;
+  const parsedBlobJson = `text ? JSON.parse(text${reviver}) : {}`;
+  const blobJsonBody =
+    dateDeserializer || isValidateResponse
+      ? `${parsedBodyBinding} parsedBody = ${parsedBlobJson};${convertParsedBody('parsedBody', { checkContentType: false, bodyVariable: 'text' })}
+      body = ${validatedBlobJson};`
+      : `body = ${parsedBlobJson};`;
+  const blobResponseBody = blobJsonCondition
+    ? `let body: unknown = null;
+  if (![204, 205, 304].includes(res.status)) {
+    if (${blobJsonCondition}) {
+      const text = await res.text();
+      ${blobJsonBody}
+    } else {
+      body = await res.blob();
+    }
+  }`
+    : 'const body = [204, 205, 304].includes(res.status) ? null : await res.blob();';
   const blobFetchResponseImplementation = `const res = await ${fetchFnCall}(${fetchFnOptions})
 
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  ${blobResponseBody}
   const data: ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body as ${fetchResponseType}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}
   ${
     override.fetch.includeHttpResponseReturnType

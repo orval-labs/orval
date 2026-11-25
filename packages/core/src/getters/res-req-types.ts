@@ -201,17 +201,18 @@ export function getResReqTypes(
           imports: [{ name, schemaName }],
         } = resolveResponseOrRequestRef(res, context);
 
-        // Only one media type is built for a $ref, so take the first one the
-        // filter keeps rather than the first one listed.
+        // Keep one named type for the $ref. Its alias already covers every
+        // representation, but the runtime still needs their media types.
         const contentEntries = Object.entries(bodySchema.content ?? {});
-        const firstEntry = filterByContentType(
+        const representations = filterByContentType(
           contentEntries.map(([contentType, mediaType]) => ({
             contentType,
             mediaType,
           })),
           contentTypeFilter,
-        ).at(0);
+        );
 
+        const firstEntry = representations.at(0);
         if (!firstEntry && contentEntries.length > 0) {
           return [];
         }
@@ -237,6 +238,16 @@ export function getResReqTypes(
         }
 
         const { contentType, mediaType } = firstEntry;
+        const additionalRepresentations = representations
+          .slice(1)
+          .map(({ contentType, mediaType }) => ({
+            contentType,
+            originalSchema: mediaType.schema,
+          }));
+        const representationMetadata =
+          additionalRepresentations.length > 0
+            ? { additionalRepresentations }
+            : {};
 
         const isFormData = isFormDataContentType(contentType);
         const isFormUrlEncoded = isFormUrlEncodedContentType(contentType);
@@ -262,6 +273,7 @@ export function getResReqTypes(
               ),
               key,
               contentType,
+              ...representationMetadata,
             },
           ] as ResReqTypesValue[];
         }
@@ -324,6 +336,7 @@ export function getResReqTypes(
             examples: resolveExampleRefs(mediaType.examples, context),
             key,
             contentType,
+            ...representationMetadata,
           },
         ] as ResReqTypesValue[];
       }

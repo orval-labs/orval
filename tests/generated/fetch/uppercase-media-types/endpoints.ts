@@ -97,7 +97,24 @@ export const getItem = async (
     method: 'GET',
   });
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.blob();
+  let body: unknown = null;
+  if (![204, 205, 304].includes(res.status)) {
+    if (
+      res.status === 200 &&
+      ['application/json'].includes(
+        res.headers
+          .get('content-type')
+          ?.split(';', 1)[0]
+          ?.trim()
+          .toLowerCase() ?? '',
+      )
+    ) {
+      const text = await res.text();
+      body = text ? JSON.parse(text) : {};
+    } else {
+      body = await res.blob();
+    }
+  }
   const data: getItemResponse['data'] = body as getItemResponse['data'];
   return { data, status: res.status, headers: res.headers } as getItemResponse;
 };

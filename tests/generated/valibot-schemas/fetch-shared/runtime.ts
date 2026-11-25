@@ -43,6 +43,7 @@ export interface ExecuteArgs<Options extends object = CallOptions> {
         string | number | boolean | bigint | readonly string[] | undefined
       >;
   responseType?: 'void' | 'text' | 'auto' | 'blob' | 'stream';
+  isJsonResponse?: (res: Response) => boolean;
   encodeBody?: (body: never) => NonNullable<RequestInit['body']>;
   reviver?: (key: string, value: unknown) => unknown;
   deserializeResponseDates?: (data: unknown, status: number) => unknown;
@@ -279,6 +280,7 @@ const decodeResponseBody = async (
   res: Response,
   {
     responseType,
+    isJsonResponse,
     reviver,
     deserializeResponseDates,
     validateResponse,
@@ -292,7 +294,13 @@ const decodeResponseBody = async (
   };
 
   const noContent = [204, 205, 304].includes(res.status);
-  if (responseType === 'blob') return noContent ? null : await res.blob();
+  if (responseType === 'blob') {
+    if (noContent) return null;
+    if (!isJsonResponse?.(res)) return await res.blob();
+    const body = await res.text();
+    const data = body ? parseJson(body) : {};
+    return validateResponse ? validateResponse(data, res.status) : data;
+  }
 
   const body = noContent ? null : await res.text();
 
