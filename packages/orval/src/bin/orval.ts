@@ -24,11 +24,11 @@ import {
 } from '@orval/core';
 
 import pkg from '../../package.json';
-import { generateSpec } from '../generate-spec';
 import {
-  generateSpecContent,
+  generateContentMapperOutput,
   loadProjectForSpec,
-} from '../generate-spec-content';
+} from '../generate-content-mapper-output';
+import { generateSpec } from '../generate-spec';
 import { logger } from '../logger';
 import {
   findConfigFile,
@@ -42,7 +42,7 @@ const orvalMessage = startMessage({
   version: pkg.version,
   description: pkg.description,
 });
-// `--print` writes the code to stdout, so diagnostics go to stderr.
+// `--print-content-mapper` writes the code to stdout, so diagnostics go to stderr.
 const stderrReporter: OrvalReporter = {
   info: (event) => console.error(event.message),
   warn: (event) => console.error(event.message),
@@ -51,7 +51,7 @@ const stderrReporter: OrvalReporter = {
   debug: (event) => console.error(event.message),
 };
 
-async function printSpecContent(
+async function printContentMapperOutput(
   specPath: string,
   options: {
     config?: string;
@@ -64,7 +64,7 @@ async function printSpecContent(
 ) {
   await withReporter(stderrReporter, async () => {
     if (options.project && options.project.length > 1) {
-      logger.error('--print takes one project at most');
+      logger.error('--print-content-mapper takes one project at most');
       process.exit(1);
     }
 
@@ -87,7 +87,7 @@ async function printSpecContent(
         project: options.project?.[0],
       });
       setProjectName(projectName);
-      content = await generateSpecContent(
+      content = await generateContentMapperOutput(
         workspace,
         normalizedOptions,
         projectName,
@@ -187,8 +187,8 @@ cli
   )
   .addOption(
     new Option(
-      '--print <path>',
-      'Print the type definitions generated from a spec file to stdout without writing any file; the config project whose input is that file is used',
+      '--print-content-mapper <path>',
+      'Print what the content mapper returns for a spec file to stdout without writing any file; the config project whose input is that file is used',
     ).conflicts([
       'input',
       'output',
@@ -209,8 +209,8 @@ cli
     ).conflicts(['watch']),
   )
   .action(async (options) => {
-    if (options.print !== undefined) {
-      await printSpecContent(options.print, options);
+    if (options.printContentMapper !== undefined) {
+      await printContentMapperOutput(options.printContentMapper, options);
       return;
     }
 

@@ -9,13 +9,13 @@ export const generate = (
   ...args: Parameters<typeof import('./generate').generate>
 ) => import('./generate').then(({ generate }) => generate(...args));
 
-export const generateSpecContent = (
+export const generateContentMapperOutput = (
   ...args: Parameters<
-    typeof import('./generate-spec-content').generateSpecContent
+    typeof import('./generate-content-mapper-output').generateContentMapperOutput
   >
 ) =>
-  import('./generate-spec-content').then(({ generateSpecContent }) =>
-    generateSpecContent(...args),
+  import('./generate-content-mapper-output').then(
+    ({ generateContentMapperOutput }) => generateContentMapperOutput(...args),
   );
 
 export default generate;

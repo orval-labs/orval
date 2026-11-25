@@ -94,8 +94,9 @@ export async function loadProjectForSpec(
 }
 
 /**
- * Generate the type definitions of a single Orval project without writing any
- * file.
+ * Generate what the content mapper returns for a single Orval project, without
+ * writing any file. It differs from the files a normal run writes: it holds
+ * only types, and enums are unions.
  *
  * The content holds the models of `components` and the types derived from the
  * operations (parameters, request bodies and responses), after the imports of
@@ -110,9 +111,9 @@ export async function loadProjectForSpec(
  * @returns The generated content.
  *
  * @example
- * const content = await generateSpecContent(process.cwd(), normalizedOptions);
+ * const content = await generateContentMapperOutput(process.cwd(), normalizedOptions);
  */
-export async function generateSpecContent(
+export async function generateContentMapperOutput(
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
