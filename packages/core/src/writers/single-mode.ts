@@ -34,7 +34,35 @@ import { collapseInlineMockOutputs } from './mock-outputs';
 import { getMockDir, resolveMockSchemasPath } from './mock-utils';
 import { generateTarget } from './target';
 
-export async function writeSingleMode({
+export interface GeneratedFile {
+  path: string;
+  content: string;
+}
+
+export async function writeSingleMode(
+  props: WriteModeProps,
+): Promise<string[]> {
+  try {
+    const files = await generateSingleMode(props);
+
+    for (const file of files) {
+      await writeGeneratedFile(file.path, file.content);
+    }
+
+    return files.map((file) => file.path);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
+      { cause: error },
+    );
+  }
+}
+
+/**
+ * Builds the files of the `single` mode without writing them.
+ */
+export async function generateSingleMode({
   builder,
   output,
   projectName,
@@ -43,332 +71,320 @@ export async function writeSingleMode({
   generateSchemasInline,
   schemaTagMap,
   schemaOutputPlan,
-}: WriteModeProps): Promise<string[]> {
-  try {
-    const {
-      path: targetPath,
-      filename,
-      dirname,
-      extension,
-    } = getFileInfo(output.target, {
-      backupFilename: conventionName(
-        // oxlint-disable-next-line typescript/no-unnecessary-condition
-        builder.info.title ?? 'filename',
-        output.namingConvention,
-      ),
-      extension: output.fileExtension,
-    });
+}: WriteModeProps): Promise<GeneratedFile[]> {
+  const {
+    path: targetPath,
+    filename,
+    dirname,
+    extension,
+  } = getFileInfo(output.target, {
+    backupFilename: conventionName(
+      // oxlint-disable-next-line typescript/no-unnecessary-condition
+      builder.info.title ?? 'filename',
+      output.namingConvention,
+    ),
+    extension: output.fileExtension,
+  });
 
-    const target = await generateTarget(builder, output);
+  const target = await generateTarget(builder, output);
 
-    const { imports, mockOutputs: rawMockOutputs, implementation } = target;
+  const { imports, mockOutputs: rawMockOutputs, implementation } = target;
 
-    const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
-      output.tsconfig,
-    );
+  const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
+    output.tsconfig,
+  );
 
-    // Mock code lands in sibling `<target>.msw.ts` / `<target>.faker.ts`
-    // files by default, matching `split`/`tags-split`. `mock.inline: true`
-    // opts back into appending mock code to the implementation file.
-    const shouldDeinlineMocks = !output.mock.inline;
+  // Mock code lands in sibling `<target>.msw.ts` / `<target>.faker.ts`
+  // files by default, matching `split`/`tags-split`. `mock.inline: true`
+  // opts back into appending mock code to the implementation file.
+  const shouldDeinlineMocks = !output.mock.inline;
 
-    const schemaCustomImportPath = getSchemasImportPath(output.schemas);
-    const schemasPath = output.schemas
-      ? (schemaCustomImportPath ??
-        upath.getRelativeImportPath(
-          targetPath,
-          getFileInfo(
-            isString(output.schemas) ? output.schemas : output.schemas.path,
-            { extension: output.fileExtension },
-          ).dirname,
-        ))
-      : undefined;
-
-    const relativeSchemasPath =
-      schemasPath ??
-      './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
-
-    const schemasTarget = output.schemas
-      ? getFileInfo(
+  const schemaCustomImportPath = getSchemasImportPath(output.schemas);
+  const schemasPath = output.schemas
+    ? (schemaCustomImportPath ??
+      upath.getRelativeImportPath(
+        targetPath,
+        getFileInfo(
           isString(output.schemas) ? output.schemas : output.schemas.path,
           { extension: output.fileExtension },
-        ).dirname
-      : targetPath;
+        ).dirname,
+      ))
+    : undefined;
 
-    const implementationImports = filterImportsUsedInImplementation(
-      imports,
-      implementation,
-    );
+  const relativeSchemasPath =
+    schemasPath ??
+    './' + filename + '.schemas' + extension.replace(/\.ts$/, '');
 
-    const normalizedImports = implementationImports.map((imp) => ({ ...imp }));
+  const schemasTarget = output.schemas
+    ? getFileInfo(
+        isString(output.schemas) ? output.schemas : output.schemas.path,
+        { extension: output.fileExtension },
+      ).dirname
+    : targetPath;
 
-    const collapsedMockOutputs = shouldDeinlineMocks
-      ? []
-      : collapseInlineMockOutputs(rawMockOutputs);
+  const implementationImports = filterImportsUsedInImplementation(
+    imports,
+    implementation,
+  );
 
-    if (!shouldDeinlineMocks) {
-      const importsMock = collapsedMockOutputs.flatMap((m) => m.imports);
+  const normalizedImports = implementationImports.map((imp) => ({ ...imp }));
 
-      for (const mockImport of importsMock) {
-        const matchingImport = normalizedImports.find(
-          (imp) =>
-            imp.name === mockImport.name &&
-            (imp.alias ?? '') === (mockImport.alias ?? ''),
-        );
-        if (!matchingImport) continue;
+  const collapsedMockOutputs = shouldDeinlineMocks
+    ? []
+    : collapseInlineMockOutputs(rawMockOutputs);
 
-        const mockNeedsRuntimeValue =
-          !!mockImport.values ||
-          !!mockImport.isConstant ||
-          !!mockImport.default ||
-          !!mockImport.namespaceImport ||
-          !!mockImport.syntheticDefaultImport;
-        if (mockNeedsRuntimeValue) {
-          matchingImport.values = true;
-        }
+  if (!shouldDeinlineMocks) {
+    const importsMock = collapsedMockOutputs.flatMap((m) => m.imports);
+
+    for (const mockImport of importsMock) {
+      const matchingImport = normalizedImports.find(
+        (imp) =>
+          imp.name === mockImport.name &&
+          (imp.alias ?? '') === (mockImport.alias ?? ''),
+      );
+      if (!matchingImport) continue;
+
+      const mockNeedsRuntimeValue =
+        !!mockImport.values ||
+        !!mockImport.isConstant ||
+        !!mockImport.default ||
+        !!mockImport.namespaceImport ||
+        !!mockImport.syntheticDefaultImport;
+      if (mockNeedsRuntimeValue) {
+        matchingImport.values = true;
       }
     }
+  }
 
-    let data = header;
+  let data = header;
 
-    const importsForBuilder = schemasPath
-      ? generateImportsForBuilder(
-          output,
-          normalizedImports,
-          relativeSchemasPath,
-          schemaTagMap,
-          schemaOutputPlan,
-        )
-      : generateImportsForBuilder(
-          output,
-          normalizedImports.filter((imp) => !!imp.importPath),
-          '.',
-        );
+  const importsForBuilder = schemasPath
+    ? generateImportsForBuilder(
+        output,
+        normalizedImports,
+        relativeSchemasPath,
+        schemaTagMap,
+        schemaOutputPlan,
+      )
+    : generateImportsForBuilder(
+        output,
+        normalizedImports.filter((imp) => !!imp.importPath),
+        '.',
+      );
 
-    data += await generateClientImports({
-      builder,
-      output,
-      implementation,
-      imports: importsForBuilder,
-      projectName,
-      isAllowSyntheticDefaultImports,
-    });
+  data += await generateClientImports({
+    builder,
+    output,
+    implementation,
+    imports: importsForBuilder,
+    projectName,
+    isAllowSyntheticDefaultImports,
+  });
 
-    if (!shouldDeinlineMocks) {
-      for (const mockOutput of collapsedMockOutputs) {
-        const entry = output.mock.generators.find(
-          (g) => !isFunction(g) && g.type === mockOutput.type,
-        );
-        const finalizeMockOptions = getFinalizeMockImplementationOptions(
-          output,
-          mockOutput,
-        );
-        const finalizedMockImplementation = builder.finalizeMockImplementation
-          ? builder.finalizeMockImplementation(
-              mockOutput.implementation,
-              finalizeMockOptions,
+  if (!shouldDeinlineMocks) {
+    for (const mockOutput of collapsedMockOutputs) {
+      const entry = output.mock.generators.find(
+        (g) => !isFunction(g) && g.type === mockOutput.type,
+      );
+      const finalizeMockOptions = getFinalizeMockImplementationOptions(
+        output,
+        mockOutput,
+      );
+      const finalizedMockImplementation = builder.finalizeMockImplementation
+        ? builder.finalizeMockImplementation(
+            mockOutput.implementation,
+            finalizeMockOptions,
+          )
+        : mockOutput.implementation;
+      const usesSchemaFactories =
+        !!entry &&
+        !isFunction(entry) &&
+        entry.type === OutputMockType.FAKER &&
+        entry.schemas === true;
+      const recoveredSchemaFactoryImports =
+        usesSchemaFactories && output.schemas
+          ? collectRecoveredSchemaFactoryImports(
+              finalizedMockImplementation,
+              builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
             )
-          : mockOutput.implementation;
-        const usesSchemaFactories =
-          !!entry &&
-          !isFunction(entry) &&
-          entry.type === OutputMockType.FAKER &&
-          entry.schemas === true;
-        const recoveredSchemaFactoryImports =
-          usesSchemaFactories && output.schemas
-            ? collectRecoveredSchemaFactoryImports(
-                finalizedMockImplementation,
-                builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
-              )
-            : [];
-        const filteredMockImports = filterLocalStrictMockTypeImports(
+          : [];
+      const filteredMockImports = filterLocalStrictMockTypeImports(
+        mergeGeneratorImports(
+          mockOutput.imports,
+          recoveredSchemaFactoryImports,
+        ).filter(
+          (impMock) =>
+            !normalizedImports.some(
+              (imp) =>
+                imp.name === impMock.name &&
+                (imp.alias ?? '') === (impMock.alias ?? ''),
+            ),
+        ),
+        finalizeMockOptions.strictSchemaTypeNames,
+      );
+      const importsMockForBuilder = schemasPath
+        ? generateImportsForBuilder(
+            output,
+            filteredMockImports,
+            relativeSchemasPath,
+            schemaTagMap,
+            schemaOutputPlan,
+            targetPath,
+          )
+        : generateImportsForBuilder(
+            output,
+            filteredMockImports.filter((imp) => !!imp.importPath),
+            '.',
+          );
+      data += builder.importsMock({
+        implementation: finalizedMockImplementation,
+        imports: importsMockForBuilder,
+        projectName,
+        hasSchemaDir: !!output.schemas,
+        isAllowSyntheticDefaultImports,
+        options: entry && !isFunction(entry) ? entry : undefined,
+      });
+    }
+  }
+
+  data += generateTargetMutatorImports(target, implementation);
+
+  data += generateOrvalHelperTypes(
+    implementation,
+    output.override.useReadonlyArrays,
+  );
+
+  if (!output.schemas && needSchema) {
+    data += generateSchemasInline
+      ? generateSchemasInline(data, implementation)
+      : generateModelsInline(builder.schemas);
+  }
+
+  data += `${implementation.trim()}\n`;
+
+  if (!shouldDeinlineMocks) {
+    const implementationMock = collapsedMockOutputs
+      .map((m) => m.implementation)
+      .join('\n\n');
+    const finalizedImplementationMock = builder.finalizeMockImplementation
+      ? builder.finalizeMockImplementation(
+          implementationMock,
+          getFinalizeMockImplementationOptions(output, collapsedMockOutputs),
+        )
+      : implementationMock;
+
+    if (collapsedMockOutputs.length > 0) {
+      data += '\n\n';
+      data += finalizedImplementationMock;
+    }
+  }
+
+  const files: GeneratedFile[] = [{ path: targetPath, content: data }];
+
+  if (shouldDeinlineMocks) {
+    const seenMockIndexKeys = new Set<string>();
+    const generatedMockEntries: {
+      extension: OutputMockType;
+      mockDir: string;
+    }[] = [];
+
+    for (const mockOutput of rawMockOutputs) {
+      const rawEntry = output.mock.generators.find((g) => {
+        if (isFunction(g)) return mockOutput.type === OutputMockType.MSW;
+        return g.type === mockOutput.type;
+      });
+      if (!rawEntry) continue;
+
+      const mockExtension = isFunction(rawEntry)
+        ? OutputMockType.MSW
+        : getMockFileExtensionByTypeName(rawEntry);
+      const mockDir = getMockDir(rawEntry, output.mock) ?? dirname;
+
+      const mockFilePath = path.join(
+        mockDir,
+        filename + '.' + mockExtension + extension,
+      );
+
+      const mockRelativeSchemasPath =
+        schemaCustomImportPath ??
+        resolveMockSchemasPath(mockFilePath, schemasTarget);
+
+      const finalizeMockOptions = getFinalizeMockImplementationOptions(
+        output,
+        mockOutput,
+      );
+
+      const finalizedMockImplementation = builder.finalizeMockImplementation
+        ? builder.finalizeMockImplementation(
+            mockOutput.implementation,
+            finalizeMockOptions,
+          )
+        : mockOutput.implementation;
+
+      const usesSchemaFactories =
+        !isFunction(rawEntry) &&
+        rawEntry.type === OutputMockType.FAKER &&
+        rawEntry.schemas === true;
+      const recoveredSchemaFactoryImports =
+        usesSchemaFactories && output.schemas
+          ? collectRecoveredSchemaFactoryImports(
+              finalizedMockImplementation,
+              builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
+            )
+          : [];
+
+      const importsMockForBuilder = generateImportsForBuilder(
+        output,
+        filterLocalStrictMockTypeImports(
           mergeGeneratorImports(
             mockOutput.imports,
             recoveredSchemaFactoryImports,
-          ).filter(
-            (impMock) =>
-              !normalizedImports.some(
-                (imp) =>
-                  imp.name === impMock.name &&
-                  (imp.alias ?? '') === (impMock.alias ?? ''),
-              ),
           ),
           finalizeMockOptions.strictSchemaTypeNames,
-        );
-        const importsMockForBuilder = schemasPath
-          ? generateImportsForBuilder(
-              output,
-              filteredMockImports,
-              relativeSchemasPath,
-              schemaTagMap,
-              schemaOutputPlan,
-              targetPath,
-            )
-          : generateImportsForBuilder(
-              output,
-              filteredMockImports.filter((imp) => !!imp.importPath),
-              '.',
-            );
-        data += builder.importsMock({
-          implementation: finalizedMockImplementation,
-          imports: importsMockForBuilder,
-          projectName,
-          hasSchemaDir: !!output.schemas,
-          isAllowSyntheticDefaultImports,
-          options: entry && !isFunction(entry) ? entry : undefined,
-        });
+        ),
+        mockRelativeSchemasPath,
+        schemaTagMap,
+        schemaOutputPlan,
+        mockFilePath,
+      );
+
+      let mockData = header;
+      mockData += builder.importsMock({
+        implementation: finalizedMockImplementation,
+        imports: importsMockForBuilder,
+        projectName,
+        hasSchemaDir: !!output.schemas,
+        isAllowSyntheticDefaultImports,
+        options: isFunction(rawEntry) ? undefined : rawEntry,
+      });
+      mockData += `\n${finalizedMockImplementation}`;
+
+      files.push({ path: mockFilePath, content: mockData });
+
+      const indexKey = `${mockExtension}::${mockDir}`;
+      if (!seenMockIndexKeys.has(indexKey)) {
+        seenMockIndexKeys.add(indexKey);
+        generatedMockEntries.push({ extension: mockExtension, mockDir });
       }
     }
 
-    data += generateTargetMutatorImports(target, implementation);
-
-    data += generateOrvalHelperTypes(
-      implementation,
-      output.override.useReadonlyArrays,
-    );
-
-    if (!output.schemas && needSchema) {
-      data += generateSchemasInline
-        ? generateSchemasInline(data, implementation)
-        : generateModelsInline(builder.schemas);
-    }
-
-    data += `${implementation.trim()}\n`;
-
-    if (!shouldDeinlineMocks) {
-      const implementationMock = collapsedMockOutputs
-        .map((m) => m.implementation)
-        .join('\n\n');
-      const finalizedImplementationMock = builder.finalizeMockImplementation
-        ? builder.finalizeMockImplementation(
-            implementationMock,
-            getFinalizeMockImplementationOptions(output, collapsedMockOutputs),
-          )
-        : implementationMock;
-
-      if (collapsedMockOutputs.length > 0) {
-        data += '\n\n';
-        data += finalizedImplementationMock;
-      }
-    }
-
-    await writeGeneratedFile(targetPath, data);
-
-    const extraPaths: string[] = [];
-
-    if (shouldDeinlineMocks) {
-      const seenMockIndexKeys = new Set<string>();
-      const writtenMockEntries: {
-        extension: OutputMockType;
-        mockDir: string;
-      }[] = [];
-
-      for (const mockOutput of rawMockOutputs) {
-        const rawEntry = output.mock.generators.find((g) => {
-          if (isFunction(g)) return mockOutput.type === OutputMockType.MSW;
-          return g.type === mockOutput.type;
-        });
-        if (!rawEntry) continue;
-
-        const mockExtension = isFunction(rawEntry)
-          ? OutputMockType.MSW
-          : getMockFileExtensionByTypeName(rawEntry);
-        const mockDir = getMockDir(rawEntry, output.mock) ?? dirname;
-
-        const mockFilePath = path.join(
+    if (output.mock.indexMockFiles) {
+      const importExtension = getImportExtension(
+        output.fileExtension,
+        output.tsconfig,
+      );
+      for (const { extension: mockExt, mockDir } of generatedMockEntries) {
+        const indexMockPath = path.join(
           mockDir,
-          filename + '.' + mockExtension + extension,
+          `index.${mockExt}${extension}`,
         );
-
-        const mockRelativeSchemasPath =
-          schemaCustomImportPath ??
-          resolveMockSchemasPath(mockFilePath, schemasTarget);
-
-        const finalizeMockOptions = getFinalizeMockImplementationOptions(
-          output,
-          mockOutput,
-        );
-
-        const finalizedMockImplementation = builder.finalizeMockImplementation
-          ? builder.finalizeMockImplementation(
-              mockOutput.implementation,
-              finalizeMockOptions,
-            )
-          : mockOutput.implementation;
-
-        const usesSchemaFactories =
-          !isFunction(rawEntry) &&
-          rawEntry.type === OutputMockType.FAKER &&
-          rawEntry.schemas === true;
-        const recoveredSchemaFactoryImports =
-          usesSchemaFactories && output.schemas
-            ? collectRecoveredSchemaFactoryImports(
-                finalizedMockImplementation,
-                builder.schemas.filter(hasSchemaDefinition).map((s) => s.name),
-              )
-            : [];
-
-        const importsMockForBuilder = generateImportsForBuilder(
-          output,
-          filterLocalStrictMockTypeImports(
-            mergeGeneratorImports(
-              mockOutput.imports,
-              recoveredSchemaFactoryImports,
-            ),
-            finalizeMockOptions.strictSchemaTypeNames,
-          ),
-          mockRelativeSchemasPath,
-          schemaTagMap,
-          schemaOutputPlan,
-          mockFilePath,
-        );
-
-        let mockData = header;
-        mockData += builder.importsMock({
-          implementation: finalizedMockImplementation,
-          imports: importsMockForBuilder,
-          projectName,
-          hasSchemaDir: !!output.schemas,
-          isAllowSyntheticDefaultImports,
-          options: isFunction(rawEntry) ? undefined : rawEntry,
+        files.push({
+          path: indexMockPath,
+          content: `export * from './${filename}.${mockExt}${importExtension}'\n`,
         });
-        mockData += `\n${finalizedMockImplementation}`;
-
-        await writeGeneratedFile(mockFilePath, mockData);
-        extraPaths.push(mockFilePath);
-
-        const indexKey = `${mockExtension}::${mockDir}`;
-        if (!seenMockIndexKeys.has(indexKey)) {
-          seenMockIndexKeys.add(indexKey);
-          writtenMockEntries.push({ extension: mockExtension, mockDir });
-        }
-      }
-
-      if (output.mock.indexMockFiles) {
-        const importExtension = getImportExtension(
-          output.fileExtension,
-          output.tsconfig,
-        );
-        for (const { extension: mockExt, mockDir } of writtenMockEntries) {
-          const indexMockPath = path.join(
-            mockDir,
-            `index.${mockExt}${extension}`,
-          );
-          await writeGeneratedFile(
-            indexMockPath,
-            `export * from './${filename}.${mockExt}${importExtension}'\n`,
-          );
-          extraPaths.push(indexMockPath);
-        }
       }
     }
-
-    return [targetPath, ...extraPaths];
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'unknown error';
-    throw new Error(
-      `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
-      { cause: error },
-    );
   }
+
+  return files;
 }
