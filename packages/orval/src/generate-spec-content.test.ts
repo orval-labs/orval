@@ -1,11 +1,21 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 import type { OpenApiDocument, OutputOptions } from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { generateSpecContent } from './generate-spec-content';
+import {
+  generateSpecContent,
+  loadProjectForSpec,
+} from './generate-spec-content';
 import { normalizeOptions } from './utils';
 
 const SPEC: OpenApiDocument = {
@@ -17,6 +27,11 @@ const SPEC: OpenApiDocument = {
         operationId: 'listPets',
         parameters: [
           { name: 'limit', in: 'query', schema: { type: 'integer' } },
+          {
+            name: 'since',
+            in: 'query',
+            schema: { type: 'string', format: 'date-time' },
+          },
         ],
         responses: {
           '200': {
@@ -43,6 +58,7 @@ const SPEC: OpenApiDocument = {
           id: { type: 'integer' },
           name: { type: 'string' },
           status: { type: 'string', enum: ['available', 'sold'] },
+          bornAt: { type: 'string', format: 'date-time' },
         },
       },
     },
@@ -92,10 +108,12 @@ describe('generateSpecContent', () => {
         id: number;
         name: string;
         status?: PetStatus;
+        bornAt?: string;
       }
 
       export type ListPetsParams = {
         limit?: number;
+        since?: string;
       };
 
       "
@@ -107,6 +125,29 @@ describe('generateSpecContent', () => {
 
     expect(content).toContain("export type PetStatus = 'available' | 'sold';");
     expect(content).not.toMatch(/^export (const|enum) /m);
+  });
+
+  it('generates no factory methods', async () => {
+    const content = await generate({ factoryMethods: { mode: 'single' } });
+
+    expect(content).not.toContain('export function');
+  });
+
+  it('imports the types of other packages, and no model', async () => {
+    const content = await generate({
+      override: {
+        formatType: {
+          'date-time': {
+            type: 'Dayjs',
+            import: { name: 'Dayjs', importPath: 'dayjs' },
+          },
+        },
+      },
+    });
+
+    expect(content.match(/^import .*$/gm)).toEqual([
+      "import type { Dayjs } from 'dayjs';",
+    ]);
   });
 
   it('writes no file', async () => {
@@ -133,5 +174,174 @@ describe('generateSpecContent', () => {
     });
 
     expect(content.startsWith('// generated\n')).toBe(true);
+  });
+});
+
+const SPEC_FILE = JSON.stringify({
+  openapi: '3.1.0',
+  info: { title: 'Petstore', version: '1.0.0' },
+  paths: {},
+  components: {
+    schemas: {
+      Pet: { type: 'object', properties: { name: { type: 'string' } } },
+    },
+  },
+});
+
+describe('loadProjectForSpec', () => {
+  let workspace: string;
+  let configFile: string;
+
+  const writeConfig = (projects: Record<string, unknown>) =>
+    writeFile(configFile, `export default ${JSON.stringify(projects)};\n`);
+
+  beforeEach(async () => {
+    workspace = await realpath(
+      await mkdtemp(path.join(os.tmpdir(), 'orval-project-for-spec-')),
+    );
+    configFile = path.join(workspace, 'orval.config.mjs');
+    await mkdir(path.join(workspace, 'specs'));
+    await writeFile(path.join(workspace, 'specs/pets.json'), SPEC_FILE);
+    await writeFile(path.join(workspace, 'specs/users.json'), SPEC_FILE);
+  });
+
+  afterEach(async () => {
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  it('selects the project whose input is the spec', async () => {
+    await writeConfig({
+      users: { input: './specs/users.json', output: './users.ts' },
+      pets: { input: { target: './specs/pets.json' }, output: './pets.ts' },
+    });
+
+    const project = await loadProjectForSpec(
+      path.join(workspace, 'specs/pets.json'),
+      { config: configFile },
+    );
+
+    expect(project.projectName).toBe('pets');
+    expect(project.workspace).toBe(workspace);
+    expect(project.options.input.target).toBe(
+      path.join(workspace, 'specs/pets.json'),
+    );
+  });
+
+  it('matches a spec path relative to the current directory', async () => {
+    await writeConfig({
+      pets: { input: './specs/pets.json', output: './pets.ts' },
+    });
+
+    const project = await loadProjectForSpec(
+      path.relative(process.cwd(), path.join(workspace, 'specs/pets.json')),
+      { config: configFile },
+    );
+
+    expect(project.projectName).toBe('pets');
+  });
+
+  it('fails when no project reads the spec', async () => {
+    await writeConfig({
+      users: { input: './specs/users.json', output: './users.ts' },
+    });
+
+    await expect(
+      loadProjectForSpec(path.join(workspace, 'specs/pets.json'), {
+        config: configFile,
+      }),
+    ).rejects.toThrow(/No project in .* has .*pets\.json as its input/);
+  });
+
+  it('fails when several projects read the spec', async () => {
+    await writeConfig({
+      a: { input: './specs/pets.json', output: './a.ts' },
+      b: { input: './specs/pets.json', output: './b.ts' },
+    });
+
+    await expect(
+      loadProjectForSpec(path.join(workspace, 'specs/pets.json'), {
+        config: configFile,
+      }),
+    ).rejects.toThrow(/as their input: a, b\./);
+  });
+
+  it('selects one of several projects by name', async () => {
+    await writeConfig({
+      a: { input: './specs/pets.json', output: './a.ts' },
+      b: { input: './specs/pets.json', output: './b.ts' },
+    });
+
+    const project = await loadProjectForSpec(
+      path.join(workspace, 'specs/pets.json'),
+      { config: configFile, project: 'b' },
+    );
+
+    expect(project.projectName).toBe('b');
+  });
+
+  it.each([
+    ['is unknown', 'missing', /Project not found in .*: missing/],
+    ['reads another spec', 'users', /Project users in .* does not have/],
+  ])('fails when the named project %s', async (_name, project, error) => {
+    await writeConfig({
+      pets: { input: './specs/pets.json', output: './pets.ts' },
+      users: { input: './specs/users.json', output: './users.ts' },
+    });
+
+    await expect(
+      loadProjectForSpec(path.join(workspace, 'specs/pets.json'), {
+        config: configFile,
+        project,
+      }),
+    ).rejects.toThrow(error);
+  });
+
+  it('selects a project whose fallback list resolves to the spec', async () => {
+    await writeConfig({
+      pets: {
+        input: ['./specs/missing.json', './specs/pets.json'],
+        output: './pets.ts',
+      },
+    });
+
+    const project = await loadProjectForSpec(
+      path.join(workspace, 'specs/pets.json'),
+      { config: configFile },
+    );
+
+    expect(project.projectName).toBe('pets');
+  });
+
+  it('skips a project whose fallback list resolves to another spec', async () => {
+    await writeConfig({
+      users: {
+        input: ['./specs/users.json', './specs/pets.json'],
+        output: './users.ts',
+      },
+    });
+
+    await expect(
+      loadProjectForSpec(path.join(workspace, 'specs/pets.json'), {
+        config: configFile,
+      }),
+    ).rejects.toThrow(/No project in .* has .*pets\.json as its input/);
+  });
+
+  it('feeds generateSpecContent', async () => {
+    await writeConfig({
+      pets: { input: './specs/pets.json', output: './pets.ts' },
+    });
+
+    const {
+      workspace: projectWorkspace,
+      options,
+      projectName,
+    } = await loadProjectForSpec(path.join(workspace, 'specs/pets.json'), {
+      config: configFile,
+    });
+
+    expect(
+      await generateSpecContent(projectWorkspace, options, projectName),
+    ).toContain('export interface Pet {');
   });
 });

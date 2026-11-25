@@ -25,7 +25,10 @@ import {
 
 import pkg from '../../package.json';
 import { generateSpec } from '../generate-spec';
-import { generateSpecContent } from '../generate-spec-content';
+import {
+  generateSpecContent,
+  loadProjectForSpec,
+} from '../generate-spec-content';
 import { logger } from '../logger';
 import {
   findConfigFile,
@@ -33,7 +36,6 @@ import {
   loadConfigFile,
 } from '../utils/config';
 import { normalizeOptions } from '../utils/options';
-import { loadProjectForSpec } from '../utils/project-for-spec';
 import { startWatcher } from '../utils/watcher';
 const orvalMessage = startMessage({
   name: pkg.name,
@@ -61,6 +63,11 @@ async function printSpecContent(
   },
 ) {
   await withReporter(stderrReporter, async () => {
+    if (options.project && options.project.length > 1) {
+      logger.error('--print takes one project at most');
+      process.exit(1);
+    }
+
     setLogLevel(
       resolveLogLevel({
         verbose: options.verbose,
@@ -69,17 +76,12 @@ async function printSpecContent(
       }),
     );
 
-    if (options.project && options.project.length > 1) {
-      logger.error('--print takes one project at most');
-      process.exit(1);
-    }
-
     let content: string;
     try {
       const {
         workspace,
-        options: normalizedOptions,
         projectName,
+        options: normalizedOptions,
       } = await loadProjectForSpec(specPath, {
         config: options.config,
         project: options.project?.[0],
