@@ -2719,6 +2719,7 @@ export default defineConfig({
           generate: { header: false },
           exactOptional: true,
           generateReusableSchemas: true,
+          unsupported: 'error',
         },
       },
     },
@@ -2755,6 +2756,14 @@ Emit optional object properties with `v.exactOptional(schema)` instead of `v.opt
 Emit one exported Valibot constant per `#/components/schemas/*` entry instead of inlining every `$ref`. See [Reusable Schemas](/docs/guides/valibot#reusable-schemas) for the output and the limitations.
 
 With `client: 'valibot'`, this option and [`schemas`](#schemas) can't be set together. `schemas: { type: 'valibot' }` always writes reusable constants and does not need this option.
+
+### unsupported
+
+**Type:** `'warn' | 'error'`
+
+**Default:** `'warn'`
+
+What to do when Orval would validate a schema more loosely than the spec says. `'warn'` generates the looser schema and logs the cases Orval already warns about. `'error'` stops the generation and names the schema. Output-wide.
 
 ---
 

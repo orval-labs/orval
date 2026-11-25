@@ -36,6 +36,10 @@ export const createWarnOnceReporter = (
     warned.add(message);
     logger.warn(message);
   };
+  // A finding that is silent by default and fails only in `error` mode.
+  const unsupportedOnly = (message: string, path?: string): void => {
+    if (mode === 'error') throw unsupportedError(library, message, path);
+  };
   const reporter: SchemaWalkReporter = {
     library,
     warn: warnOnce,
@@ -47,6 +51,7 @@ export const createWarnOnceReporter = (
     reporter,
     warnOnce,
     noticeOnce,
+    unsupportedOnly,
     resetWarnings,
     setUnsupportedMode: (next: UnsupportedSchemaMode): void => {
       mode = next;

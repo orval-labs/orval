@@ -62,6 +62,7 @@ Options live under [`override.valibot`](/docs/reference/configuration/output#ove
 - `generate` - per location, choose which schemas are generated. All `true` by default.
 - `exactOptional` - use `v.exactOptional` for optional properties, for projects with `exactOptionalPropertyTypes`. `false` by default. Can also be set per operation or tag.
 - `generateReusableSchemas` - emit each component schema once and reference it, instead of inlining every `$ref`. `false` by default. See [Reusable Schemas](#reusable-schemas).
+- `unsupported` - `'warn'` (default) or `'error'`. See [Unsupported schemas](#unsupported-schemas).
 
 ## Reusable Schemas
 
@@ -261,6 +262,12 @@ if (result.success) {
 - `oneOf` does not check that exactly one alternative matches.
 - Query and path params are not coerced: a number read from a URL string fails `v.number()`. Header keys keep the casing of the spec.
 - Inside an `allOf` intersection, `strict` objects are emitted as `v.object`, so extra keys are stripped instead of rejected. An open member (`additionalProperties: true`) next to an object member is left out, so extra keys are stripped too.
+- Keywords with no Valibot counterpart are not validated: `not`, `if`/`then`/`else`, `patternProperties`, `propertyNames`, `dependentRequired`, `dependentSchemas`, `unevaluatedProperties`, `contains`, `uniqueItems`, `minProperties` and `maxProperties`, among others. Constraints on a schema without a `type` are not validated either. `additionalProperties: false` is only enforced with `strict`.
+- Only these formats are checked: `email`, `uri`, `uuid`, `ipv4`, `ipv6`, `byte`, `date`, `date-time` and `binary`, plus the number formats `int32`, `int64`, `float` and `double` through the number type. Others, such as `format: phone`, are not validated, and neither is a `contentEncoding` other than `base64`.
+
+### Unsupported schemas
+
+Set `override.valibot.unsupported` to `'error'` to fail the generation instead of generating a looser schema. The error names the schema, such as `getPet response > owner > tags`. The warnings above, `oneOf` alternatives that can overlap, `strict` objects inside `allOf` or another intersection, the keywords listed above and a format or content encoding that is not checked all become errors, unless `formatType` maps the format. A circular `$ref` inlined while `generateReusableSchemas` is off fails too, and the error says to turn it on. `additionalProperties: false` without `strict` does not fail. Unfit defaults stay warnings.
 
 ## Validating HTTP Client Responses
 

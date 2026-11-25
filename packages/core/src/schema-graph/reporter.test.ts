@@ -55,4 +55,18 @@ describe('createWarnOnceReporter', () => {
     reporter.warn('x', 'a path');
     expect(logger.warn).toHaveBeenCalledWith('x');
   });
+
+  it('keeps a notice as a warning and a silent finding quiet outside error mode', () => {
+    const { logger, noticeOnce, unsupportedOnly, setUnsupportedMode } = setup();
+    setUnsupportedMode('error');
+    noticeOnce('n');
+    noticeOnce('n');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(() => unsupportedOnly('s', 'a > b')).toThrow(
+      "[orval/effect] s At a > b. Set `override.effect.unsupported` to 'warn' to generate it anyway.",
+    );
+    setUnsupportedMode('warn');
+    unsupportedOnly('s', 'a > b');
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
 });

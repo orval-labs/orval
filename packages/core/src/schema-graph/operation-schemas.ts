@@ -91,7 +91,7 @@ export interface SchemaParsers<Node> {
   /** What core types without a schema of this library, such as `content` parameters. */
   anyKeys: Node;
   unknown: Node;
-  warn: (message: string) => void;
+  warn: (message: string, path?: string) => void;
 }
 
 interface NamedNode<Node> {
@@ -395,6 +395,7 @@ export const collectOperationSchemas = <Node>({
     if (model?.schema === undefined) {
       parsers.warn(
         `No schema found for "${name}", so it is validated as unknown.`,
+        name,
       );
       add(name, parsers.unknown, exactOptional);
       continue;

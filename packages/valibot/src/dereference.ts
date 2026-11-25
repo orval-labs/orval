@@ -7,7 +7,7 @@ import {
   type RefPolicy,
 } from '@orval/core';
 
-import { reporter } from './logger';
+import { reporter, useUnsupportedModeOf } from './logger';
 import { isReusableSchemasEnabled } from './refs';
 
 export interface DereferenceOptions {
@@ -30,9 +30,11 @@ export const dereference = (
   context: ContextSpec,
   policy?: RefPolicy,
   options: DereferenceOptions = {},
-): OpenApiNonBooleanSchemaObject =>
-  dereferenceWithPolicy(schema, context, policy, {
+): OpenApiNonBooleanSchemaObject => {
+  useUnsupportedModeOf(context);
+  return dereferenceWithPolicy(schema, context, policy, {
     ...options,
     suggestReusable: !isReusableSchemasEnabled(context),
     reporter,
   });
+};

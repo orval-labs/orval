@@ -9,7 +9,7 @@ import {
   pascal,
 } from '@orval/core';
 
-import { startRun } from './logger';
+import { setUnsupportedMode, startRun } from './logger';
 import {
   getSingleResponse,
   parseBodyAndResponse,
@@ -72,6 +72,7 @@ const generateValibotRoute = (
 
   const operation = verb === 'query' ? undefined : spec[verb];
   const options = override.valibot;
+  setUnsupportedMode(options.unsupported);
 
   const parameters = parseParameters({
     data: [...(spec.parameters ?? []), ...(operation?.parameters ?? [])],
