@@ -13,9 +13,9 @@ import type { OpenApiDocument, OutputOptions } from '@orval/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import {
-  generateSpecContent,
+  generateContentMapperOutput,
   loadProjectForSpec,
-} from './generate-spec-content';
+} from './generate-content-mapper-output';
 import { normalizeOptions } from './utils';
 
 const SPEC: OpenApiDocument = {
@@ -65,7 +65,7 @@ const SPEC: OpenApiDocument = {
   },
 };
 
-describe('generateSpecContent', () => {
+describe('generateContentMapperOutput', () => {
   let workspace: string;
 
   beforeEach(async () => {
@@ -77,7 +77,7 @@ describe('generateSpecContent', () => {
   });
 
   const generate = async (output: OutputOptions = {}) =>
-    generateSpecContent(
+    generateContentMapperOutput(
       workspace,
       await normalizeOptions(
         { input: { target: SPEC }, output: { target: './api.ts', ...output } },
@@ -327,7 +327,7 @@ describe('loadProjectForSpec', () => {
     ).rejects.toThrow(/No project in .* has .*pets\.json as its input/);
   });
 
-  it('feeds generateSpecContent', async () => {
+  it('feeds generateContentMapperOutput', async () => {
     await writeConfig({
       pets: { input: './specs/pets.json', output: './pets.ts' },
     });
@@ -341,7 +341,7 @@ describe('loadProjectForSpec', () => {
     });
 
     expect(
-      await generateSpecContent(projectWorkspace, options, projectName),
+      await generateContentMapperOutput(projectWorkspace, options, projectName),
     ).toContain('export interface Pet {');
   });
 });
