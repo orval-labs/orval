@@ -177,9 +177,16 @@ export const listPets = async (
       info?: listPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: listPetsResponseError['data'] = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: listPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
@@ -374,9 +381,16 @@ export const createPets = async (
       info?: createPetsResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: createPetsResponseError['data'] = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: createPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
@@ -502,9 +516,16 @@ export const showPetById = async (
       info?: showPetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetByIdResponseError['data'] = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: showPetByIdResponseSuccess['data'] = body ? JSON.parse(body) : {};
@@ -688,11 +709,16 @@ export const deletePetById = async (
       info?: deletePetByIdResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: deletePetByIdResponseError['data'] = body
-      ? JSON.parse(body)
-      : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: deletePetByIdResponseSuccess['data'] = body
@@ -817,11 +843,16 @@ export const showPetWithOwner = async (
       info?: showPetWithOwnerResponseError['data'];
       status?: number;
     } = new globalThis.Error();
-    const data: showPetWithOwnerResponseError['data'] = body
-      ? JSON.parse(body)
-      : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: showPetWithOwnerResponseSuccess['data'] = body

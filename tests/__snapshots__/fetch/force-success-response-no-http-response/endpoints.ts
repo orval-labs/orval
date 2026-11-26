@@ -81,9 +81,16 @@ export const listPets = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: Pets; status?: number } =
       new globalThis.Error();
-    const data: Pets = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: Pets = body ? JSON.parse(body) : {};
@@ -126,9 +133,16 @@ export const createPets = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: Pet; status?: number } =
       new globalThis.Error();
-    const data: Pet = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: Pet = body ? JSON.parse(body) : {};
@@ -155,9 +169,16 @@ export const showPetById = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: Pet; status?: number } =
       new globalThis.Error();
-    const data: Pet = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: Pet = body ? JSON.parse(body) : {};
@@ -184,9 +205,16 @@ export const deletePetById = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: void; status?: number } =
       new globalThis.Error();
-    const data: void = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: void = body ? JSON.parse(body) : undefined;
@@ -210,9 +238,16 @@ export const healthCheck = async (options?: RequestInit): Promise<string> => {
   if (!res.ok) {
     const err: globalThis.Error & { info?: string; status?: number } =
       new globalThis.Error();
-    const data: string = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: string = body !== null ? body : '';
@@ -239,9 +274,16 @@ export const showPetWithOwner = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: PetWithTag; status?: number } =
       new globalThis.Error();
-    const data: PetWithTag = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: PetWithTag = body ? JSON.parse(body) : {};

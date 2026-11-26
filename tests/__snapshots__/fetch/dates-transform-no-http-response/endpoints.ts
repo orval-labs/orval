@@ -74,9 +74,16 @@ export const getOrderDetails = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: OrderDetails = body ? JSON.parse(body) : {};
@@ -139,9 +146,16 @@ export const getPetProfile = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Cat | Dog = body ? JSON.parse(body) : {};
@@ -191,9 +205,16 @@ export const getAuditRecord = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: AuditRecord = body ? JSON.parse(body) : {};
@@ -267,9 +288,16 @@ export const listShelterPets = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Cat | Dog = body ? JSON.parse(body) : {};
@@ -319,9 +347,16 @@ export const getShelterLastInspection = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: LastInspection = body ? JSON.parse(body) : {};
@@ -355,9 +390,16 @@ export const listOrderNumbers = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   const data: string[] = body ? JSON.parse(body) : {};
@@ -386,9 +428,16 @@ export const updateAppointment = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Appointment = body ? JSON.parse(body) : {};
@@ -474,9 +523,16 @@ export const updateAppointmentDuplicateDate = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: AppointmentWithDuplicateDate = body ? JSON.parse(body) : {};
@@ -538,9 +594,16 @@ export const updateAppointmentReminder = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Appointment = body ? JSON.parse(body) : {};
@@ -610,9 +673,16 @@ export const updateShelterIntake = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: ShelterIntake = body ? JSON.parse(body) : {};
@@ -698,9 +768,16 @@ export const updateShelterRecords = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: ShelterRecords = body ? JSON.parse(body) : {};
@@ -801,9 +878,16 @@ export const updateAppointmentWindow = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: AppointmentWindow = body ? JSON.parse(body) : {};
@@ -859,9 +943,16 @@ export const getFolder = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Folder = body ? JSON.parse(body) : {};
@@ -949,9 +1040,16 @@ export const updateFolder = async (
   if (!res.ok) {
     const err: globalThis.Error & { info?: any; status?: number } =
       new globalThis.Error();
-    const data = body ? JSON.parse(body) : {};
-    err.info = data;
     err.status = res.status;
+    try {
+      err.info = body ? JSON.parse(body) : {};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', {
+        value: cause,
+        configurable: true,
+        writable: true,
+      });
+    }
     throw err;
   }
   let data: Folder = body ? JSON.parse(body) : {};

@@ -321,9 +321,10 @@ const decodeResponseBody = async (
     deserializeResponseDates,
     validateResponse,
   }: ExecuteArgs,
+  parse: typeof JSON.parse = JSON.parse,
 ): Promise<unknown> => {
   const parseJson = (body: string) => {
-    const data: unknown = JSON.parse(body, reviver);
+    const data: unknown = parse(body, reviver);
     return deserializeResponseDates
       ? deserializeResponseDates(data, res.status)
       : data;
@@ -410,11 +411,23 @@ export const execute = async <R>(
     } = args;
     const responseType =
       args.responseType === 'blob' ? args.errorResponseType : args.responseType;
-    const info = await decodeResponseBody(res, {
-      ...errorArgs,
-      ...(responseType !== undefined ? { responseType } : {}),
-    });
-    throw Object.assign(new globalThis.Error(), { info, status: res.status });
+    const err = Object.assign(new globalThis.Error(), { status: res.status });
+    const info = await decodeResponseBody(
+      res,
+      {
+        ...errorArgs,
+        ...(responseType !== undefined ? { responseType } : {}),
+      },
+      (body, reviver) => {
+        try {
+          return JSON.parse(body, reviver);
+        } catch (cause) {
+          Object.defineProperty(err, 'cause', { value: cause, configurable: true, writable: true });
+          throw err;
+        }
+      },
+    );
+    throw Object.assign(err, { info });
   }
 
   const headers = getResponseHeaders(res, args);

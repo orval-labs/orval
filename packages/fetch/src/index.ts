@@ -903,9 +903,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
     ${throwOnErrorInnerDeclarations}
     const err: globalThis.Error & {info?: ${hasError ? `${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${override.fetch.includeHttpResponseReturnType ? `${errorName}['data']` : responseTypeName}` : ''} = ${throwOnErrorDataExpression}
-    err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
+    try {
+      err.info = ${throwOnErrorDataExpression};
+    } catch (cause) {
+      Object.defineProperty(err, 'cause', { value: cause, configurable: true, writable: true });
+    }
     throw err;
   }`;
   const fetchFnCall = isFactoryMode
