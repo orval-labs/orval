@@ -6,6 +6,7 @@ await describeApiGenerationSnapshots({
   files: [
     path.resolve(import.meta.dirname, 'src', 'handlers.ts'),
     path.resolve(import.meta.dirname, 'src', 'server.ts'),
+    path.resolve(import.meta.dirname, 'src', 'skills.ts'),
   ],
   snapshotsDir: path.resolve(import.meta.dirname, '__snapshots__'),
   rootDir: path.resolve(import.meta.dirname, '..', '..', '..'),
