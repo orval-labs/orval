@@ -102,9 +102,10 @@ export const getOrderDetails = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeGetOrderDetailsResponse(parsedBody as OrderDetails);
   }
-  const data = contentType.includes('json')
-    ? OrderDetails.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? OrderDetails.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -241,9 +242,10 @@ export const getAuditRecord = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeGetAuditRecordResponse(parsedBody as AuditRecord);
   }
-  const data = contentType.includes('json')
-    ? AuditRecord.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? AuditRecord.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -378,9 +380,10 @@ export const getShelterLastInspection = async (
       parsedBody as LastInspection,
     );
   }
-  const data = contentType.includes('json')
-    ? LastInspection.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? LastInspection.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -469,9 +472,10 @@ export const updateAppointment = async (
       parsedBody as Appointment,
     );
   }
-  const data = contentType.includes('json')
-    ? Appointment.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Appointment.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -576,9 +580,10 @@ export const updateAppointmentDuplicateDate = async (
       parsedBody as AppointmentWithDuplicateDate,
     );
   }
-  const data = contentType.includes('json')
-    ? AppointmentWithDuplicateDate.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? AppointmentWithDuplicateDate.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -657,9 +662,10 @@ export const updateAppointmentReminder = async (
       parsedBody as Appointment,
     );
   }
-  const data = contentType.includes('json')
-    ? Appointment.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Appointment.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -747,9 +753,10 @@ export const updateShelterIntake = async (
       parsedBody as ShelterIntake,
     );
   }
-  const data = contentType.includes('json')
-    ? ShelterIntake.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? ShelterIntake.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -853,9 +860,10 @@ export const updateShelterRecords = async (
       parsedBody as ShelterRecords,
     );
   }
-  const data = contentType.includes('json')
-    ? ShelterRecords.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? ShelterRecords.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -975,9 +983,10 @@ export const updateAppointmentWindow = async (
       parsedBody as AppointmentWindow,
     );
   }
-  const data = contentType.includes('json')
-    ? AppointmentWindow.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? AppointmentWindow.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -1046,9 +1055,10 @@ export const getFolder = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeGetFolderResponse(parsedBody as Folder);
   }
-  const data = contentType.includes('json')
-    ? Folder.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Folder.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -1111,9 +1121,10 @@ export const updateFolder = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeUpdateFolderResponse(parsedBody as Folder);
   }
-  const data = contentType.includes('json')
-    ? Folder.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Folder.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

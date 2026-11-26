@@ -38,11 +38,12 @@ describe('validated output', () => {
     });
   });
 
-  it('throws for a JSON error body, which does not match the success schema', async () => {
+  it('returns a JSON error body without validating it against the success schema', async () => {
     respondWith({ message: 'Not found' }, { status: 404 });
 
-    await expect(showPetById('1')).rejects.toMatchObject({
-      name: 'StandardSchemaError',
+    await expect(showPetById('1')).resolves.toMatchObject({
+      status: 404,
+      data: { message: 'Not found' },
     });
   });
 });

@@ -116,9 +116,10 @@ export const listEvents = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeListEventsResponse(parsedBody as Event[]);
   }
-  const data = contentType.includes('json')
-    ? zod.array(Event).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(Event).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -175,9 +176,10 @@ export const createEvent = async (
   if (body && contentType.includes('json') && res.status === 201) {
     parsedBody = deserializeCreateEventResponse(parsedBody as Event);
   }
-  const data = contentType.includes('json')
-    ? Event.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Event.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -237,9 +239,10 @@ export const getEventAt = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeGetEventAtResponse(parsedBody as Event);
   }
-  const data = contentType.includes('json')
-    ? Event.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Event.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -287,9 +290,10 @@ export const getEventUntil = async (
   if (body && contentType.includes('json') && res.status === 200) {
     parsedBody = deserializeGetEventUntilResponse(parsedBody as Event);
   }
-  const data = contentType.includes('json')
-    ? Event.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Event.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

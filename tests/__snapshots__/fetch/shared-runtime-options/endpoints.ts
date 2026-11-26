@@ -39,7 +39,8 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
     url: getListPetsUrl(params),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validateResponse: (data) => Pets.parse(data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300 ? Pets.parse(data) : data,
     throwOnError: true,
     serializeResponseHeaders: true,
     ...(options !== undefined ? { options } : {}),
@@ -71,7 +72,8 @@ export const createPets = (
     body: createPetsBody,
     contentType: 'application/json',
     reviver: fetchReviverMutator,
-    validateResponse: (data) => Pet.parse(data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300 ? Pet.parse(data) : data,
     throwOnError: true,
     serializeResponseHeaders: true,
     ...(options !== undefined ? { options } : {}),
@@ -95,7 +97,8 @@ export const showPetById = (petId: string, options?: CallOptions) =>
     url: getShowPetByIdUrl(petId),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validateResponse: (data) => Pet.parse(data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300 ? Pet.parse(data) : data,
     throwOnError: true,
     serializeResponseHeaders: true,
     ...(options !== undefined ? { options } : {}),
@@ -167,7 +170,8 @@ export const showPetWithOwner = (petId: string, options?: CallOptions) =>
     url: getShowPetWithOwnerUrl(petId),
     method: 'GET',
     reviver: fetchReviverMutator,
-    validateResponse: (data) => PetWithTag.parse(data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300 ? PetWithTag.parse(data) : data,
     throwOnError: true,
     serializeResponseHeaders: true,
     ...(options !== undefined ? { options } : {}),

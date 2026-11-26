@@ -97,9 +97,10 @@ export const getWidget = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Widget.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Widget.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -144,9 +145,10 @@ export const updateWidget = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? WidgetDetails.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? WidgetDetails.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -184,9 +186,10 @@ export const getShapes = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(Shape).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(Shape).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -224,9 +227,10 @@ export const getCollision = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Collision.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Collision.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

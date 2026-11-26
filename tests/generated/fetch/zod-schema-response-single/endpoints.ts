@@ -148,9 +148,10 @@ export const listPets = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Pets.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Pets.parse(parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -215,9 +216,8 @@ export const createPets = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Pet.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json') ? Pet.parse(parsedBody) : parsedBody;
   return {
     data,
     status: res.status,
@@ -270,9 +270,8 @@ export const showPetById = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Pet.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json') ? Pet.parse(parsedBody) : parsedBody;
   return {
     data,
     status: res.status,
@@ -427,9 +426,10 @@ export const showPetWithOwner = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? PetWithTag.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? PetWithTag.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

@@ -71,9 +71,10 @@ export const createUser = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? UserId.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? UserId.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -176,9 +177,10 @@ export const getUser = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? User.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? User.parse(parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getUserResponse;
 };
 

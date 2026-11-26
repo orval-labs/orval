@@ -224,9 +224,10 @@ export const listPets = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(valibot.array(Pet), parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(valibot.array(Pet), parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -388,9 +389,10 @@ export const createPet = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Pet, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Pet, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -496,9 +498,10 @@ export const getPetStatus = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(PetStatus, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(PetStatus, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -819,9 +822,10 @@ export const getLastError = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(ErrorSchema, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(ErrorSchema, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -974,9 +978,10 @@ export const getTree = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Tree, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Tree, parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getTreeResponse;
 };
 

@@ -117,14 +117,15 @@ export const listS = async (options?: RequestInit): Promise<listSResponse> => {
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(
-        effectSchema.toStandardSchemaV1(
-          effectSchema.mutable(effectSchema.Array(S)),
-        ),
-        parsedBody,
-      )
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(
+          effectSchema.toStandardSchemaV1(
+            effectSchema.mutable(effectSchema.Array(S)),
+          ),
+          parsedBody,
+        )
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as listSResponse;
 };
 
@@ -158,14 +159,15 @@ export const listSchemas = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(
-        effectSchema.toStandardSchemaV1(
-          effectSchema.mutable(effectSchema.Array(Schema)),
-        ),
-        parsedBody,
-      )
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(
+          effectSchema.toStandardSchemaV1(
+            effectSchema.mutable(effectSchema.Array(Schema)),
+          ),
+          parsedBody,
+        )
+      : parsedBody;
   return {
     data,
     status: res.status,

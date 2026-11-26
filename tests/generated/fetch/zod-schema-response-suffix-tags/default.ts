@@ -37,9 +37,10 @@ export const getPortfolio = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? PortfolioResponseSchema.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? PortfolioResponseSchema.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

@@ -1038,7 +1038,10 @@ describe('shared runtime options', () => {
   });
 
   it.each([
-    ['throw', 'validateResponse: (data) => Pet.parse(data)'],
+    [
+      'throw',
+      'validateResponse: (data, status) => status >= 200 && status < 300 ? Pet.parse(data) : data',
+    ],
     ['both', 'const result = Pet.safeParse(data);'],
   ] as const)(
     'validates the response with the %s strategy as the zod output type',
@@ -1214,7 +1217,7 @@ describe('shared runtime options', () => {
     );
 
     expect(implementation).toContain(
-      'validateResponse: (data) => orvalParseStandardSchema(Pet, data)',
+      'validateResponse: (data, status) => status >= 200 && status < 300 ? orvalParseStandardSchema(Pet, data) : data',
     );
     expect(implementation).not.toContain('Pet.parse(');
   });
