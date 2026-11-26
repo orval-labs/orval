@@ -36,7 +36,7 @@ export default defineConfig({
 
 ## 环境要求
 
-生成的 server 面向 [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2。请安装 `@modelcontextprotocol/server` 2.x 以及 `zod` 4.2 或更高版本。SDK 需要 Node.js 20 或更高版本。
+生成的 server 面向 [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2。请安装 `@modelcontextprotocol/server` 2.x 以及 `zod` 4.2 或更高版本。SDK 需要 Node.js 20 或更高版本。使用 [Skills over MCP](#skills-over-mcp) 需要 `@modelcontextprotocol/server` 2.4.0 或更高版本。
 
 ```bash
 npm install @modelcontextprotocol/server zod
@@ -64,6 +64,7 @@ src/
 ├── handlers.ts         # 返回 MCP 格式的 handler 函数
 ├── http-client.ts      # 生成的 fetch client
 ├── server.ts           # MCP tools 和服务端配置
+├── skills.ts           # 内嵌的 skills 文件（仅在设置 `override.mcp.skills` 时生成）
 └── tool-schemas.zod.ts # 按 tool 分组的输入/输出 Zod schema
 ```
 
@@ -362,6 +363,90 @@ export const customServer = (
 
 <Callout type="info">
 请把自定义 server 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。
+</Callout>
+
+## Skills over MCP
+
+把 `override.mcp.skills` 指向一个 skills 文件夹，生成的 server 就会在 tools 之外，通过 MCP Skills 扩展（[SEP-2640](https://modelcontextprotocol.io/seps/2640-skills-extension)、`io.modelcontextprotocol/skills`）提供这些 skills。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'single',
+      client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### skills 文件夹结构
+
+`path` 下任何包含 `SKILL.md` 的文件夹都是一个 skill，不限层级，因此一个 `path` 可以容纳多个 skills，并可按需用文件夹分组。skill 文件夹下的所有内容（例如 `references/`、`assets/`），无论是文本还是二进制文件，都会作为该 skill 的文件提供：
+
+```
+skills/
+├── find-a-pet/
+│   ├── SKILL.md
+│   └── references/
+│       └── statuses.md
+└── store/
+    ├── place-order/
+    │   ├── SKILL.md
+    │   ├── assets/
+    │   │   └── flow.png
+    │   └── references/
+    │       └── payment/
+    │           └── cards.md
+    └── cancel-order/
+        └── SKILL.md
+```
+
+设置 `prefix: 'petstore'` 时，会提供以下三个 skills：
+
+| Skill | 一同提供的文件 |
+| --- | --- |
+| `skill://petstore/find-a-pet/SKILL.md` | `SKILL.md`、`references/statuses.md` |
+| `skill://petstore/store/place-order/SKILL.md` | `SKILL.md`、`assets/flow.png`、`references/payment/cards.md` |
+| `skill://petstore/store/cancel-order/SKILL.md` | `SKILL.md` |
+
+每个文件都是其 skill URI 下的一个 resource，例如 `skill://petstore/store/place-order/references/payment/cards.md`。
+
+<Callout type="info">
+不要在用于分组的文件夹（例如 `store/`）或 `path` 的正下方放置 `SKILL.md`。放在 `path` 正下方会导致 server 无法启动；放在分组文件夹中会把该文件夹变成一个 skill，其下的所有 skills 都会被当作该 skill 的文件。不属于任何 skill 文件夹的文件（例如 `path` 正下方的 `README.md`）不会被提供。
+</Callout>
+
+### skills 的提供方式
+
+orval 会把 skills 的所有文件复制到生成的 `skills.ts` 中，因此对 skills 文件夹的修改要在重新运行 orval 后才会生效。相应地，server 在运行时不读取任何文件：无需部署 skills 文件夹，只要 SDK 能运行的环境都可以运行。
+
+### skills 有问题时
+
+| 时机 | 原因 |
+| --- | --- |
+| 运行 orval 时 | `path` 不是文件夹、其中没有任何 `SKILL.md`，或包含符号链接 |
+| 启动 server 时 | 某个 skill 不符合 [Skills 扩展](https://modelcontextprotocol.io/seps/2640-skills-extension)（frontmatter、`name` 等） |
+
+有问题的 skill 不会被跳过，而是让 server 无法启动。因此，只要 server 正在运行，你编写的所有 skills 都已被提供。
+
+<Callout type="info">
+SDK 将扩展挂载到 server 的方式标记为实验性（experimental），因此 SDK 的 minor 版本更新可能会改变生成的代码。
 </Callout>
 
 ## 完整示例

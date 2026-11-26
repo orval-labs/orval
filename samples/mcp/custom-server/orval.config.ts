@@ -23,6 +23,10 @@ export default defineConfig({
             path: './custom-handler.ts',
             name: 'customHandler',
           },
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
         },
       },
     },

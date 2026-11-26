@@ -16,6 +16,12 @@
 import { McpServer, type RegisteredTool } from '@modelcontextprotocol/server';
 
 import { customServer } from '../custom-server';
+import {
+  memorySkillFiles,
+  type SkillCatalog,
+  SkillsExtension,
+} from '@modelcontextprotocol/server/ext/skills';
+import { skillFiles } from './skills';
 
 import {
   findPetsByStatusHandler,
@@ -53,6 +59,7 @@ import {
 } from './tool-schemas.zod';
 
 const createMcpServer = (
+  skills: SkillCatalog,
   options?: RequestInit,
 ): { server: McpServer; tools: Record<string, RegisteredTool> } => {
   const server = new McpServer(
@@ -65,6 +72,7 @@ const createMcpServer = (
         "This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about\nSwagger at [https://swagger.io](https://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!\nYou can now help us improve the API whether it's by making changes to the definition itself or to the code.\nThat way, with time, we can improve the API in general, and expose some of the new features in OAS3.\n\nSome useful links:\n- [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)\n- [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)",
     },
   );
+  skills.attach(server);
   const tools: Record<string, RegisteredTool> = {};
 
   tools.findPetsByStatus = server.registerTool(
@@ -342,4 +350,13 @@ const createMcpServer = (
   return { server, tools };
 };
 
-customServer(createMcpServer);
+const startMcpServer = async (): Promise<void> => {
+  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
+    prefix: 'petstore',
+    strict: true,
+  });
+
+  customServer((options?: RequestInit) => createMcpServer(skills, options));
+};
+
+void startMcpServer();

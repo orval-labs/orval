@@ -2642,6 +2642,10 @@ export default defineConfig({
           cacheHints: {
             'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
           },
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
         },
       },
     },
@@ -2760,6 +2764,35 @@ export default defineConfig({
         mcp: {
           cacheHints: {
             'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### skills
+
+**类型：** `Object`
+**默认值：** 无
+
+通过 MCP Skills 扩展提供一个 Agent Skills 文件夹。orval 会把该文件夹中的所有文件内嵌到与 `server.ts` 同目录生成的 `skills.ts` 中，server 会在开始提供服务前以 `strict: true` 加载 skill 目录。需要 `@modelcontextprotocol/server` 2.4.0 或更高版本。文件夹结构以及 skill 的检查方式请参阅 [MCP 指南](/docs/guides/mcp#skills-over-mcp)。
+
+- `path`（必填）：skills 文件夹，相对于配置文件。每个 skill 是一个包含 `SKILL.md` 的文件夹，也可以嵌套。
+- `prefix`：组织前缀：`'petstore'` 会以 `skill://petstore/<skill>/…` 提供。默认值：无。
+- `cacheHint`：skill 列表和文件的 `ttlMs` / `cacheScope`，仅对 MCP 2026-07-28 连接生效。默认值：无（使用 SDK 默认值 `ttlMs: 0` 和 `cacheScope: 'private'`）。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+            cacheHint: { ttlMs: 3_600_000, cacheScope: 'public' },
           },
         },
       },

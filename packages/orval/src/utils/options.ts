@@ -2533,6 +2533,13 @@ function normalizeMcpOptions(
       handler: normalizeMcpModuleOptions(mcp.handler, workspace),
     }),
     ...(mcp.cacheHints && { cacheHints: mcp.cacheHints }),
+    ...(mcp.skills && {
+      skills: {
+        path: nodePath.resolve(workspace, mcp.skills.path),
+        prefix: mcp.skills.prefix,
+        cacheHint: mcp.skills.cacheHint,
+      },
+    }),
   };
 }
 

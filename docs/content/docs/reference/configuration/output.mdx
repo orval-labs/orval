@@ -3256,6 +3256,10 @@ export default defineConfig({
           cacheHints: {
             'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
           },
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
         },
       },
     },
@@ -3374,6 +3378,35 @@ export default defineConfig({
         mcp: {
           cacheHints: {
             'tools/list': { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### skills
+
+**Type:** `Object`
+**Default:** none
+
+Serves a folder of Agent Skills through the MCP Skills extension. orval embeds every file of the folder into a generated `skills.ts` next to `server.ts`, and the server loads the catalog with `strict: true` before serving. Requires `@modelcontextprotocol/server` 2.4.0 or later. See the [MCP guide](/docs/guides/mcp#skills-over-mcp) for the folder layout and how skills are checked.
+
+- `path` (required): the folder of skills, relative to the config file. Each skill is a folder holding a `SKILL.md`; skills can be nested.
+- `prefix`: an organisational prefix: `'petstore'` serves `skill://petstore/<skill>/…`. Default: none.
+- `cacheHint`: `ttlMs` / `cacheScope` for skill listings and files. Only takes effect on MCP 2026-07-28 connections. Default: none (the SDK default of `ttlMs: 0` and `cacheScope: 'private'` applies).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+            cacheHint: { ttlMs: 3_600_000, cacheScope: 'public' },
           },
         },
       },

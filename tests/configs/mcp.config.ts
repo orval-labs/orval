@@ -131,4 +131,28 @@ export default defineConfig({
       },
     },
   },
+  skills: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/skills/handlers.ts',
+      schemas: '../generated/mcp/skills/http-schemas',
+      mode: 'single',
+      client: 'mcp',
+      clean: true,
+      formatter: 'prettier',
+      override: {
+        mcp: {
+          server: {
+            path: '../mutators/mcp-custom-server.ts',
+            name: 'customServer',
+          },
+          skills: {
+            path: '../specifications/mcp-skills',
+            prefix: 'petstore',
+            cacheHint: { ttlMs: 3_600_000, cacheScope: 'public' },
+          },
+        },
+      },
+    },
+  },
 });
