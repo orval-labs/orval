@@ -91,6 +91,22 @@ describe('reconcileWorkspaceBarrel', () => {
     );
   });
 
+  it('rewrites an `export *` of a type-only specifier', async () => {
+    // Another project's type-only export stays as it is.
+    await fs.promises.writeFile(path.join(dir, 'other.yaml'), '');
+    await fs.promises.writeFile(
+      path.join(dir, 'index.ts'),
+      "export * from './petstore.openapi.yaml';\nexport type * from './other.yaml';\n",
+    );
+    await reconcile();
+
+    await expect(
+      fs.promises.readFile(path.join(dir, 'index.ts'), 'utf8'),
+    ).resolves.toBe(
+      "export type * from './petstore.openapi.yaml';\nexport type * from './other.yaml';\nexport * from './api';\n",
+    );
+  });
+
   it('reads `export type *` lines', () => {
     expect(
       readReExportSpecifiers("export type * from './petstore.openapi.yaml';"),

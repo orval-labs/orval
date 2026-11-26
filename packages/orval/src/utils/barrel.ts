@@ -82,7 +82,8 @@ export async function reconcileWorkspaceBarrel(
     if (!m) {
       retained.push(line);
     } else if (desired.has(m) && !seen.has(m)) {
-      retained.push(line);
+      // A type-only specifier rewrites an earlier `export *` of it.
+      retained.push(typeOnly.has(m) ? formatExport(m) : line);
       seen.add(m);
       desired.delete(m);
     }

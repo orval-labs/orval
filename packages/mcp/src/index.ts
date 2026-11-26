@@ -195,12 +195,14 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     .values()
     .toArray();
 
-  const importSchemasImplementation = schemasPath
-    ? `import type {\n  ${importSchemaNames.join(
-        ',\n  ',
-      )}\n} from '${relativeSchemaImportPath}';
+  // Without either, the models are written into this file.
+  const importSchemasImplementation =
+    schemasPath || output.contentMapper?.schemas
+      ? `import type {\n  ${importSchemaNames.join(
+          ',\n  ',
+        )}\n} from '${relativeSchemaImportPath}';
 `
-    : '';
+      : '';
 
   const httpClientPath = path.join(
     targetInfo.dirname,

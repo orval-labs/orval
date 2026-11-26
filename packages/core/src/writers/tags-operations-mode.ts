@@ -132,14 +132,10 @@ export async function writeTagsOperationsMode({
         ).dirname,
         true,
       ))
-    : (getContentMapperSchemasImportPath(
-        output,
-        path.join(dirname, 'tag', filename + extension),
-      ) ??
-      '../' +
-        filename +
-        '.schemas' +
-        getImportExtension(output.schemaFileExtension, output.tsconfig));
+    : '../' +
+      filename +
+      '.schemas' +
+      getImportExtension(output.schemaFileExtension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -215,7 +211,9 @@ export async function writeTagsOperationsMode({
             const importsForBuilder = generateImportsForBuilder(
               output,
               implementationImports,
-              schemasPathRelative,
+              // From the operation file itself: the spec can sit anywhere.
+              getContentMapperSchemasImportPath(output, implementationPath) ??
+                schemasPathRelative,
               schemaTagMap,
               schemaOutputPlan,
             );

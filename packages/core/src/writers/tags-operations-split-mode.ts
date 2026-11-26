@@ -89,14 +89,10 @@ export async function writeTagsOperationsSplitMode({
         ).dirname,
         true,
       ))
-    : (getContentMapperSchemasImportPath(
-        output,
-        path.join(dirname, 'tag', filename + extension),
-      ) ??
-      '../' +
-        filename +
-        '.schemas' +
-        getImportExtension(output.schemaFileExtension, output.tsconfig));
+    : '../' +
+      filename +
+      '.schemas' +
+      getImportExtension(output.schemaFileExtension, output.tsconfig);
 
   const schemasTarget = output.schemas
     ? getFileInfo(
@@ -214,7 +210,9 @@ export async function writeTagsOperationsSplitMode({
             const importsForBuilder = generateImportsForBuilder(
               output,
               adjustedImports,
-              schemasPathRelative,
+              // From the operation file itself: the spec can sit anywhere.
+              getContentMapperSchemasImportPath(output, implementationPath) ??
+                schemasPathRelative,
               schemaTagMap,
               schemaOutputPlan,
             );

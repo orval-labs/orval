@@ -135,6 +135,15 @@ const SPEC_IMPORT =
 
 describe('output.contentMapper.schemas', () => {
   let workspace: string;
+  // Where the spec lies, relative to the workspace.
+  let specFile: string;
+
+  const writeSpec = async (file: string) => {
+    specFile = file;
+    await mkdir(path.dirname(path.join(workspace, file)), { recursive: true });
+    // JSON is YAML, so the spec keeps the extension the content mapper serves.
+    await writeFile(path.join(workspace, file), JSON.stringify(SPEC));
+  };
 
   beforeEach(async () => {
     // Under `tests/`, so the generated code resolves the client packages.
@@ -144,9 +153,7 @@ describe('output.contentMapper.schemas', () => {
         '../../../tests/.orval-content-mapper-',
       ),
     );
-    await mkdir(path.join(workspace, 'specs'));
-    // JSON is YAML, so the spec keeps the extension the content mapper serves.
-    await writeFile(path.join(workspace, SPEC_FILE), JSON.stringify(SPEC));
+    await writeSpec(SPEC_FILE);
   });
 
   afterEach(async () => {
@@ -156,7 +163,7 @@ describe('output.contentMapper.schemas', () => {
   const normalize = (output: OutputOptions) =>
     normalizeOptions(
       {
-        input: `./${SPEC_FILE}`,
+        input: `./${specFile}`,
         output: {
           target: './api/endpoints.ts',
           ...output,
@@ -196,7 +203,7 @@ describe('output.contentMapper.schemas', () => {
     output: OutputOptions = {},
   ) => {
     await writeFile(
-      path.join(workspace, 'specs/petstore.openapi.d.yaml.ts'),
+      path.join(workspace, specFile.replace(/\.yaml$/, '.d.yaml.ts')),
       await generateContentMapperOutput(workspace, await normalize(output)),
     );
     return typeCheck(
@@ -241,7 +248,7 @@ describe('output.contentMapper.schemas', () => {
     expect(imports.length).toBeGreaterThan(0);
     for (const { statement, target } of imports) {
       expect(statement).toMatch(/^(import|export) type$/);
-      expect(target).toBe(SPEC_FILE);
+      expect(target).toBe(specFile);
     }
   };
 
@@ -258,6 +265,20 @@ describe('output.contentMapper.schemas', () => {
     expectModelsFromSpec(files);
     expect(await diagnostics(files, output)).toEqual([]);
   });
+
+  it.each(['tags-operations', 'tags-operations-split'] as const)(
+    'imports the models from each operation file in %s mode',
+    async (mode) => {
+      // A spec in a directory beside the tag directories must be reached
+      // from each operation file, not from a sibling of them.
+      await writeSpec('api/tag/petstore.openapi.yaml');
+      const output: OutputOptions = { mode, client: 'fetch' };
+      const files = await generate(output);
+
+      expectModelsFromSpec(files);
+      expect(await diagnostics(files, output)).toEqual([]);
+    },
+  );
 
   it('needs the content mapper to resolve the models', async () => {
     const files = await generate({ client: 'fetch' });
@@ -380,6 +401,7 @@ describe('output.contentMapper.schemas', () => {
     const files = await generate(output);
 
     expectModelsFromSpec(files);
+    expect(await diagnostics(files, output)).toEqual([]);
   });
 
   it('re-exports the models type-only from the workspace barrel, once', async () => {
@@ -389,6 +411,24 @@ describe('output.contentMapper.schemas', () => {
     };
     await generate(output);
     const files = await generate(output);
+
+    expect(
+      files['api/index.ts']
+        .split('\n')
+        .filter((line) => line.includes('petstore.openapi.yaml')),
+    ).toEqual(["export type * from '../specs/petstore.openapi.yaml';"]);
+  });
+
+  it('rewrites an earlier runtime re-export of the spec as type-only', async () => {
+    await mkdir(path.join(workspace, 'api'));
+    await writeFile(
+      path.join(workspace, 'api/index.ts'),
+      "export * from '../specs/petstore.openapi.yaml';\n",
+    );
+    const files = await generate({
+      workspace: './api',
+      target: './endpoints.ts',
+    });
 
     expect(
       files['api/index.ts']
