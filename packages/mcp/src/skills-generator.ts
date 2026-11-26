@@ -1,3 +1,4 @@
+import { isUtf8 } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -7,8 +8,6 @@ import { jsStringLiteralEscape } from '@orval/core';
 // left to the SDK: the generated server loads the catalog with
 // `strict: true`. Only what the SDK cannot see once the files are embedded is
 // checked here.
-
-const utf8 = new TextDecoder('utf-8', { fatal: true });
 
 const listFiles = (root: string, dir = ''): string[] =>
   fs
@@ -29,19 +28,16 @@ const listFiles = (root: string, dir = ''): string[] =>
 /** Valid UTF-8 is embedded as a string, anything else as base64. */
 const renderFileContent = (
   bytes: Buffer,
-): { content: string; binary: boolean } => {
-  try {
-    return {
-      content: `'${jsStringLiteralEscape(utf8.decode(bytes))}'`,
-      binary: false,
-    };
-  } catch {
-    return {
-      content: `fromBase64('${bytes.toString('base64')}')`,
-      binary: true,
-    };
-  }
-};
+): { content: string; binary: boolean } =>
+  isUtf8(bytes)
+    ? {
+        content: `'${jsStringLiteralEscape(bytes.toString('utf8'))}'`,
+        binary: false,
+      }
+    : {
+        content: `fromBase64('${bytes.toString('base64')}')`,
+        binary: true,
+      };
 
 /**
  * Embeds every file under `skillsRoot`, keyed by its `/`-separated relative
