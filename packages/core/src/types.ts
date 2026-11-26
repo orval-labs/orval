@@ -1,5 +1,8 @@
 import type { allLocales } from '@faker-js/faker';
-import type { McpServerOptions as McpSdkServerOptions } from '@modelcontextprotocol/server';
+import type {
+  CacheHint as McpSdkCacheHint,
+  McpServerOptions as McpSdkServerOptions,
+} from '@modelcontextprotocol/server';
 
 // Type-only, so it is erased: no runtime `types` -> `constants` cycle.
 import type { OPERATION_METHODS } from './constants';
@@ -1771,12 +1774,33 @@ export interface McpOptions {
    * tools becomes visible only once the TTL expires.
    */
   cacheHints?: McpSdkServerOptions['cacheHints'];
+  /**
+   * Serves a folder of Agent Skills through the MCP Skills extension
+   * (SEP-2640). Requires `@modelcontextprotocol/server` 2.4.0 or later.
+   */
+  skills?: McpSkillsOptions;
+}
+
+export interface McpSkillsOptions {
+  /** Folder of skill folders, each holding a `SKILL.md`. */
+  path: string;
+  /** Organisational prefix: `'acme'` serves `skill://acme/<skill>/…`. */
+  prefix?: string;
+  /** `ttlMs` / `cacheScope` for skills/list, skills/get and skill files (2026-07-28). */
+  cacheHint?: McpSdkCacheHint;
+}
+
+export interface NormalizedMcpSkillsOptions {
+  path: string;
+  prefix?: string;
+  cacheHint?: McpSdkCacheHint;
 }
 
 export interface NormalizedMcpOptions {
   server?: NormalizedMcpServerOptions;
   handler?: NormalizedMcpHandlerOptions;
   cacheHints?: McpSdkServerOptions['cacheHints'];
+  skills?: NormalizedMcpSkillsOptions;
 }
 
 /**

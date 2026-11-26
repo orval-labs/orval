@@ -13,6 +13,14 @@ export default defineConfig({
       schemas: 'src/http-schemas',
       clean: true,
       formatter: 'prettier',
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
+        },
+      },
     },
   },
 });

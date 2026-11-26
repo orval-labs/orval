@@ -1,5 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { GetterPropType, type OpenApiInfoObject } from '@orval/core';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import {
   type CreateTestContextSpecOptions,
@@ -12,6 +16,7 @@ import {
   generateServer,
   getMcpHeader,
 } from './index';
+import { generateSkillsFileContent } from './skills';
 
 const spec: CreateTestContextSpecOptions['spec'] = {
   paths: {
@@ -579,6 +584,208 @@ describe('formatType', () => {
     expect(content).toContain('.transform((value) => dayjs(value))');
     expect(content).toContain(
       "import * as zod from 'zod';\nimport dayjs from 'dayjs';\n\n",
+    );
+  });
+});
+
+const skillsRoots: string[] = [];
+
+/** Writes `files` (keyed by `/`-separated paths) into a fresh skills folder. */
+const createSkillsRoot = (files: Record<string, string | Uint8Array>) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orval-mcp-skills-'));
+  skillsRoots.push(root);
+  for (const [file, content] of Object.entries(files)) {
+    const filePath = path.join(root, ...file.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  }
+  return root;
+};
+
+afterEach(() => {
+  for (const root of skillsRoots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+const skillMd = (name: string) =>
+  `---\nname: ${name}\ndescription: Use the ${name} tools\n---\n# ${name}\n`;
+
+describe('skills', () => {
+  const generate = (
+    skills: { path: string; prefix?: string; cacheHint?: object },
+    server?: { path: string; name?: string; default: boolean },
+  ) => {
+    const skillsContext = createTestContextSpec({
+      spec,
+      output: {
+        target: '/project/src/handlers.ts',
+        override: { mcp: { skills, ...(server && { server }) } },
+      },
+    });
+    return generateServer(verbOptions, skillsContext.output, skillsContext);
+  };
+
+  it('leaves the server untouched without skills', () => {
+    const [{ content }, ...rest] = generateServer(
+      verbOptions,
+      context.output,
+      context,
+    );
+
+    expect(rest).toHaveLength(0);
+    expect(content).not.toContain('ext/skills');
+    expect(content).not.toContain('startMcpServer');
+    expect(content).toContain(
+      'const createMcpServer = (options?: RequestInit):',
+    );
+    expect(content).toContain(
+      '\nserveStdio(() => createMcpServer().server);\n',
+    );
+  });
+
+  it('loads the catalog before serving stdio and attaches it to every server', () => {
+    const root = createSkillsRoot({ 'pets/SKILL.md': skillMd('pets') });
+    const [{ content }] = generate({ path: root });
+
+    expect(content).toContain(
+      "import {\n  memorySkillFiles,\n  type SkillCatalog,\n  SkillsExtension,\n} from '@modelcontextprotocol/server/ext/skills';\nimport { skillFiles } from './skills';\n",
+    );
+    expect(content).toContain(
+      'const createMcpServer = (skills: SkillCatalog, options?: RequestInit):',
+    );
+    expect(content).toContain('  });\n  skills.attach(server);\n');
+    expect(content).toContain(
+      `
+const startMcpServer = async (): Promise<void> => {
+  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
+    strict: true,
+  });
+
+  serveStdio(() => createMcpServer(skills).server);
+};
+
+void startMcpServer();
+`,
+    );
+    expect(content).not.toContain('await import');
+  });
+
+  it('hands the custom server a factory with the same signature', () => {
+    const root = createSkillsRoot({ 'pets/SKILL.md': skillMd('pets') });
+    const [{ content }] = generate(
+      { path: root },
+      {
+        path: '/project/custom-server.ts',
+        name: 'customServer',
+        default: false,
+      },
+    );
+
+    expect(content).toContain(
+      '  customServer((options?: RequestInit) => createMcpServer(skills, options));\n',
+    );
+    expect(content).not.toContain('serveStdio');
+  });
+
+  it('passes prefix and cacheHint to the catalog and always loads it strictly', () => {
+    const root = createSkillsRoot({ 'pets/SKILL.md': skillMd('pets') });
+    const [{ content }] = generate({
+      path: root,
+      prefix: "pet's",
+      cacheHint: { ttlMs: 60_000, cacheScope: 'public' },
+    });
+
+    expect(content).toContain(
+      "{\n    prefix: 'pet\\'s',\n    cacheHint: { ttlMs: 60000, cacheScope: 'public' },\n    strict: true,\n  });",
+    );
+  });
+
+  it('writes skills.ts next to server.ts', async () => {
+    const root = createSkillsRoot({ 'pets/SKILL.md': skillMd('pets') });
+    const skillsContext = createTestContextSpec({
+      spec,
+      output: {
+        target: '/project/src/handlers.ts',
+        override: { mcp: { skills: { path: root } } },
+      },
+    });
+    const files = await generateExtraFiles(
+      verbOptions,
+      skillsContext.output,
+      skillsContext,
+    );
+    const skillsFile = files.find((file) => file.path.endsWith('skills.ts'));
+
+    expect(skillsFile?.path).toBe(path.join('/project/src', 'skills.ts'));
+    expect(skillsFile?.content).toContain(
+      "export const skillFiles: Record<string, string | Uint8Array> = {\n  'pets/SKILL.md': ",
+    );
+  });
+});
+
+describe('generateSkillsFileContent', () => {
+  it('embeds text files as strings, sorted by path, nested folders included', () => {
+    const root = createSkillsRoot({
+      'group/pets/SKILL.md': skillMd('pets'),
+      'group/pets/references/flows.md': "it's a \\ path\nnext line",
+      'adopt/SKILL.md': skillMd('adopt'),
+    });
+
+    expect(generateSkillsFileContent(root)).toBe(
+      `export const skillFiles: Record<string, string | Uint8Array> = {
+  'adopt/SKILL.md': '---\\nname: adopt\\ndescription: Use the adopt tools\\n---\\n# adopt\\n',
+  'group/pets/SKILL.md': '---\\nname: pets\\ndescription: Use the pets tools\\n---\\n# pets\\n',
+  'group/pets/references/flows.md': 'it\\'s a \\\\ path\\nnext line',
+};
+`,
+    );
+  });
+
+  it('embeds binary files as base64 and emits the decoder only then', () => {
+    const root = createSkillsRoot({
+      'pets/SKILL.md': skillMd('pets'),
+      'pets/assets/logo.png': new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff]),
+    });
+    const content = generateSkillsFileContent(root);
+
+    expect(content).toContain(
+      'const fromBase64 = (value: string): Uint8Array =>\n  Uint8Array.from(atob(value), (character) => character.charCodeAt(0));\n\n',
+    );
+    expect(content).toContain(
+      `  'pets/assets/logo.png': fromBase64('${Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff]).toString('base64')}'),`,
+    );
+  });
+
+  it('fails when the path is missing or not a directory', () => {
+    const root = createSkillsRoot({ 'file.md': 'x' });
+
+    expect(() => generateSkillsFileContent(path.join(root, 'missing'))).toThrow(
+      'is not a directory',
+    );
+    expect(() => generateSkillsFileContent(path.join(root, 'file.md'))).toThrow(
+      'is not a directory',
+    );
+  });
+
+  it('fails when no SKILL.md is found, since the SDK would serve an empty catalog', () => {
+    const root = createSkillsRoot({ 'pets/README.md': 'x' });
+
+    expect(() => generateSkillsFileContent(root)).toThrow('holds no SKILL.md');
+  });
+
+  it('fails on a symlink instead of embedding what it points to', () => {
+    const root = createSkillsRoot({
+      'pets/SKILL.md': skillMd('pets'),
+      'outside.md': 'secret',
+    });
+    fs.symlinkSync(
+      path.join(root, 'outside.md'),
+      path.join(root, 'pets', 'link.md'),
+    );
+
+    expect(() => generateSkillsFileContent(root)).toThrow(
+      'is not a regular file',
     );
   });
 });

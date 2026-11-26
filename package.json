@@ -131,7 +131,7 @@
       "@tanstack/react-query": "5.62.16"
     },
     "mcp": {
-      "@modelcontextprotocol/server": "2.3.1",
+      "@modelcontextprotocol/server": "2.4.0",
       "@modelcontextprotocol/hono": "2.0.2"
     }
   },

@@ -36,7 +36,7 @@ The `mcp` client currently only works in `single` mode.
 
 ## Requirements
 
-The generated server targets the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2. Install `@modelcontextprotocol/server` 2.x and `zod` 4.2 or later. The SDK requires Node.js 20 or later.
+The generated server targets the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2. Install `@modelcontextprotocol/server` 2.x and `zod` 4.2 or later. The SDK requires Node.js 20 or later. [Skills](#skills) require `@modelcontextprotocol/server` 2.4.0 or later.
 
 ```bash
 npm install @modelcontextprotocol/server zod
@@ -64,6 +64,7 @@ src/
 ├── handlers.ts        # Handler functions returning MCP format
 ├── http-client.ts     # Generated fetch client
 ├── server.ts          # MCP tools and server configuration
+├── skills.ts          # Embedded skill files (only with `override.mcp.skills`)
 └── tool-schemas.zod.ts # Zod schemas for tool inputs and outputs, grouped per tool
 ```
 
@@ -362,6 +363,94 @@ export const customServer = (
 
 <Callout type="info">
 Place the custom server file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.
+</Callout>
+
+## Skills
+
+Tools tell an agent what the API can do; Agent Skills tell it how to use the API for a task, such as which tools to call in which order. Point `override.mcp.skills` at a folder of skills and the generated server serves them through the [MCP Skills extension](https://modelcontextprotocol.io/seps/2640-skills-extension) (`io.modelcontextprotocol/skills`) next to the tools.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'single',
+      client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+Each skill is a folder holding a `SKILL.md` whose frontmatter has a `name` matching the folder and a `description`, plus any files it refers to. Skills can be grouped in nested folders:
+
+```
+skills/
+└── find-a-pet/
+    ├── SKILL.md
+    └── references/
+        └── statuses.md
+```
+
+```md title="skills/find-a-pet/SKILL.md"
+---
+name: find-a-pet
+description: Find pets that match what the user is looking for and show their details.
+---
+
+# Find a pet
+
+1. Call `findPetsByStatus` with `status: available` unless the user asks for sold or pending pets.
+2. Call `getPetById` for each pet you present, so the details are current.
+```
+
+orval embeds every file of the folder into a generated `skills.ts`, so the server reads no files at runtime and runs wherever the SDK does. The generated `server.ts` loads the catalog before serving and attaches it to every server it creates:
+
+```ts title="src/server.ts (generated)"
+const createMcpServer = (
+  skills: SkillCatalog,
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
+  const server = new McpServer({ name: 'petstoreServer', version: '1.0.0' });
+  skills.attach(server);
+  // ...tool registrations
+};
+
+const startMcpServer = async (): Promise<void> => {
+  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
+    prefix: 'petstore',
+    strict: true,
+  });
+
+  serveStdio(() => createMcpServer(skills).server);
+};
+
+void startMcpServer();
+```
+
+A custom server needs no change: it still receives a `createMcpServer` factory that takes only the request options, called once the catalog has loaded.
+
+Skills are checked in two places:
+
+- **When generating**, orval fails if `path` is not a folder, if it holds no `SKILL.md`, or if it contains a symlink, which would embed a file from outside the folder.
+- **When the server starts**, the SDK checks every skill (frontmatter, name, and the limit of 512 files and 16 MiB per skill). The catalog is loaded with `strict: true`, so a broken skill stops the server instead of being skipped silently.
+
+<Callout type="info">
+Skills require `@modelcontextprotocol/server` 2.4.0 or later. The SDK marks the way an extension attaches to a server as experimental, so a minor SDK release may change the generated code.
 </Callout>
 
 ## Full Example

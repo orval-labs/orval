@@ -21,6 +21,7 @@ import {
   jsDoc,
   jsStringEscape,
   jsStringLiteralEscape,
+  type NormalizedMcpSkillsOptions,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   getKey,
@@ -36,6 +37,8 @@ import {
   hasResponseSchema,
   isObjectResponseSchema,
 } from '@orval/zod';
+
+import { generateSkillsFileContent } from './skills';
 
 // Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
 // which transitively references every locale table and cannot be tree-shaken. Matches
@@ -95,6 +98,22 @@ const getCustomModuleImport = (
 
   return `import ${specifier} from '${relativePath}';`;
 };
+
+const renderCacheHint = (hint: object) =>
+  `{ ${Object.entries(hint)
+    .map(([key, value]) => `${key}: ${isString(value) ? `'${value}'` : value}`)
+    .join(', ')} }`;
+
+const getSkillsLoadOptions = (skills: NormalizedMcpSkillsOptions) =>
+  [
+    skills.prefix ? `prefix: '${jsStringLiteralEscape(skills.prefix)}'` : '',
+    skills.cacheHint ? `cacheHint: ${renderCacheHint(skills.cacheHint)}` : '',
+    // Skills are embedded at generation time, so a problem cannot be fixed
+    // at runtime: fail instead of serving a catalog with the skill skipped.
+    'strict: true',
+  ]
+    .filter(Boolean)
+    .join(',\n    ');
 
 const getSpecInfo = (context: ContextSpec): OpenApiInfoObject =>
   // oxlint-disable-next-line typescript/no-unnecessary-condition
@@ -500,15 +519,7 @@ tools.${verbOption.operationName} = server.registerTool(
   // `ttlMs` is validated by the SDK (`RangeError`), so the hints are passed
   // through verbatim.
   const cacheHints = Object.entries(output.override.mcp.cacheHints ?? {})
-    .map(
-      ([method, hint]) =>
-        `'${method}': { ${Object.entries(hint)
-          .map(
-            ([key, value]) =>
-              `${key}: ${isString(value) ? `'${value}'` : value}`,
-          )
-          .join(', ')} }`,
-    )
+    .map(([method, hint]) => `'${method}': ${renderCacheHint(hint)}`)
     .join(', ');
   const serverOptions = [
     instructions
@@ -534,9 +545,20 @@ tools.${verbOption.operationName} = server.registerTool(
     version: '${serverVersion}',
   })`;
 
+  const skillsOptions = output.override.mcp.skills;
+  // The catalog is loaded once and shared: `attach` only registers handlers
+  // that read from it, so every server built per connection serves the same
+  // skills.
+  const createMcpServerParameters = skillsOptions
+    ? 'skills: SkillCatalog, options?: RequestInit'
+    : 'options?: RequestInit';
+  const attachSkillsImplementation = skillsOptions
+    ? '\n  skills.attach(server);'
+    : '';
+
   const createMcpServerImplementation = `
-const createMcpServer = (options?: RequestInit): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = ${newMcpServerImplementation};
+const createMcpServer = (${createMcpServerParameters}): { server: McpServer; tools: Record<string, RegisteredTool> } => {
+  const server = ${newMcpServerImplementation};${attachSkillsImplementation}
   const tools: Record<string, RegisteredTool> = {};
 ${toolImplementations}
 
@@ -553,21 +575,49 @@ ${toolImplementations}
     ? getCustomModuleImport(mcpServerOptions, 'customServer', serverPath)
     : `import { serveStdio } from '@modelcontextprotocol/server/stdio';`;
 
+  const skillsPath = path.join(dirname, `skills${extension}`);
+  const importSkills = skillsOptions
+    ? `import {
+  memorySkillFiles,
+  type SkillCatalog,
+  SkillsExtension,
+} from '@modelcontextprotocol/server/ext/skills';
+import { skillFiles } from '${upath.getRelativeImportPath(serverPath, skillsPath)}';
+`
+    : '';
+
   const importDependenciesImplementation = `${importMcpServer}
 ${importTransport}
-`;
+${importSkills}`;
 
-  const customServerConnectImplementation = `\n${serverFunctionName}(createMcpServer);\n`;
   // `serveStdio` calls the factory per connection (and per `server/discover`
   // probe) and pins one instance to the connection, so a pre-built server
   // cannot be shared across openings.
-  const stdioServerConnectImplementation = `
-serveStdio(() => createMcpServer().server);
-`;
+  const connectImplementation = skillsOptions
+    ? mcpServerOptions
+      ? `${serverFunctionName}((options?: RequestInit) => createMcpServer(skills, options));`
+      : `serveStdio(() => createMcpServer(skills).server);`
+    : mcpServerOptions
+      ? `${serverFunctionName}(createMcpServer);`
+      : `serveStdio(() => createMcpServer().server);`;
 
-  const serverConnectImplementation = mcpServerOptions
-    ? customServerConnectImplementation
-    : stdioServerConnectImplementation;
+  // Loading the catalog is asynchronous (it digests every file), and a
+  // top-level `await` would rule out CommonJS output, so the server starts
+  // from an async function instead. A rejection is left unhandled on purpose:
+  // Node exits with the `SkillCatalogError` before anything is served.
+  const serverConnectImplementation = skillsOptions
+    ? `
+const startMcpServer = async (): Promise<void> => {
+  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
+    ${getSkillsLoadOptions(skillsOptions)},
+  });
+
+  ${connectImplementation}
+};
+
+void startMcpServer();
+`
+    : `\n${connectImplementation}\n`;
 
   const content = [
     header,
@@ -578,11 +628,21 @@ serveStdio(() => createMcpServer().server);
     serverConnectImplementation,
   ].join('\n');
 
+  const skillsFile = skillsOptions
+    ? [
+        {
+          content: `${header}${generateSkillsFileContent(skillsOptions.path)}`,
+          path: skillsPath,
+        },
+      ]
+    : [];
+
   return [
     {
       content,
       path: serverPath,
     },
+    ...skillsFile,
   ];
 };
 

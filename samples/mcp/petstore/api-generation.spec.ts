@@ -3,7 +3,11 @@ import { describeApiGenerationSnapshots } from '../../../test-utils/snapshot-tes
 
 await describeApiGenerationSnapshots({
   dirs: [path.resolve(import.meta.dirname, 'src', 'http-schemas')],
-  files: [path.resolve(import.meta.dirname, 'src', 'handlers.ts')],
+  files: [
+    path.resolve(import.meta.dirname, 'src', 'handlers.ts'),
+    path.resolve(import.meta.dirname, 'src', 'server.ts'),
+    path.resolve(import.meta.dirname, 'src', 'skills.ts'),
+  ],
   snapshotsDir: path.resolve(import.meta.dirname, '__snapshots__'),
   rootDir: path.resolve(import.meta.dirname, '..', '..', '..'),
 });

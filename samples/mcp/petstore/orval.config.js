@@ -13,6 +13,14 @@ exports.default = (0, orval_1.defineConfig)({
       target: 'src/handlers.ts',
       schemas: 'src/http-schemas',
       clean: true,
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
+        },
+      },
     },
   },
 });

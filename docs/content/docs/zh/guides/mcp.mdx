@@ -36,7 +36,7 @@ export default defineConfig({
 
 ## 环境要求
 
-生成的 server 面向 [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2。请安装 `@modelcontextprotocol/server` 2.x 以及 `zod` 4.2 或更高版本。SDK 需要 Node.js 20 或更高版本。
+生成的 server 面向 [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2。请安装 `@modelcontextprotocol/server` 2.x 以及 `zod` 4.2 或更高版本。SDK 需要 Node.js 20 或更高版本。使用 [Skills](#skills) 需要 `@modelcontextprotocol/server` 2.4.0 或更高版本。
 
 ```bash
 npm install @modelcontextprotocol/server zod
@@ -64,6 +64,7 @@ src/
 ├── handlers.ts         # 返回 MCP 格式的 handler 函数
 ├── http-client.ts      # 生成的 fetch client
 ├── server.ts           # MCP tools 和服务端配置
+├── skills.ts           # 内嵌的 skill 文件（仅在设置 `override.mcp.skills` 时生成）
 └── tool-schemas.zod.ts # 按 tool 分组的输入/输出 Zod schema
 ```
 
@@ -362,6 +363,94 @@ export const customServer = (
 
 <Callout type="info">
 请把自定义 server 文件放在生成输出目录之外。如果设置了 `clean: true`，orval 每次运行都会删除输出目录，因此会移除其中的任何文件。
+</Callout>
+
+## Skills
+
+Tools 告诉 agent 这个 API 能做什么；Agent Skills 则告诉它如何用这个 API 完成某项任务，例如按什么顺序调用哪些 tool。把 `override.mcp.skills` 指向一个 skills 文件夹，生成的 server 就会在 tools 之外，通过 [MCP Skills 扩展](https://modelcontextprotocol.io/seps/2640-skills-extension)（`io.modelcontextprotocol/skills`）提供这些 skill。
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'single',
+      client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+      override: {
+        mcp: {
+          skills: {
+            path: './skills',
+            prefix: 'petstore',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+每个 skill 是一个文件夹，其中包含 `SKILL.md`（frontmatter 中的 `name` 必须与文件夹名一致，并且需要 `description`）以及它引用的其他文件。skill 也可以放在嵌套的文件夹中分组：
+
+```
+skills/
+└── find-a-pet/
+    ├── SKILL.md
+    └── references/
+        └── statuses.md
+```
+
+```md title="skills/find-a-pet/SKILL.md"
+---
+name: find-a-pet
+description: Find pets that match what the user is looking for and show their details.
+---
+
+# Find a pet
+
+1. Call `findPetsByStatus` with `status: available` unless the user asks for sold or pending pets.
+2. Call `getPetById` for each pet you present, so the details are current.
+```
+
+orval 会把该文件夹中的所有文件内嵌到生成的 `skills.ts` 中，因此 server 在运行时不读取任何文件，只要 SDK 能运行的环境都可以运行。生成的 `server.ts` 会在开始提供服务前加载 skill 目录，并把它挂载到创建的每个 server 上：
+
+```ts title="src/server.ts (generated)"
+const createMcpServer = (
+  skills: SkillCatalog,
+  options?: RequestInit,
+): { server: McpServer; tools: Record<string, RegisteredTool> } => {
+  const server = new McpServer({ name: 'petstoreServer', version: '1.0.0' });
+  skills.attach(server);
+  // ...tool registrations
+};
+
+const startMcpServer = async (): Promise<void> => {
+  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
+    prefix: 'petstore',
+    strict: true,
+  });
+
+  serveStdio(() => createMcpServer(skills).server);
+};
+
+void startMcpServer();
+```
+
+自定义 Server 无需修改：它收到的仍然是只接受请求选项的 `createMcpServer` 工厂，并会在 skill 目录加载完成后被调用。
+
+skill 会在两个阶段被检查：
+
+- **生成时**：如果 `path` 不是文件夹、其中没有任何 `SKILL.md`，或者包含符号链接（会把文件夹之外的文件内嵌进来），orval 会报错。
+- **server 启动时**：SDK 会检查每个 skill（frontmatter、名称，以及每个 skill 最多 512 个文件、16 MiB 的限制）。skill 目录以 `strict: true` 加载，因此损坏的 skill 会让 server 停止，而不是被静默跳过。
+
+<Callout type="info">
+使用 skills 需要 `@modelcontextprotocol/server` 2.4.0 或更高版本。SDK 将扩展挂载到 server 的方式标记为实验性（experimental），因此 SDK 的 minor 版本更新可能会改变生成的代码。
 </Callout>
 
 ## 完整示例
