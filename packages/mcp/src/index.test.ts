@@ -16,7 +16,7 @@ import {
   generateServer,
   getMcpHeader,
 } from './index';
-import { generateSkillsFileContent } from './skills';
+import { generateSkillsFileContent } from './skills-generator';
 
 const spec: CreateTestContextSpecOptions['spec'] = {
   paths: {

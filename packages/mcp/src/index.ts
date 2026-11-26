@@ -38,7 +38,7 @@ import {
   isObjectResponseSchema,
 } from '@orval/zod';
 
-import { generateSkillsFileContent } from './skills';
+import { generateSkillsFileContent } from './skills-generator';
 
 // Always a namespace import: `import { z as zod }` pulls in zod's assembled `z` object,
 // which transitively references every locale table and cannot be tree-shaken. Matches
