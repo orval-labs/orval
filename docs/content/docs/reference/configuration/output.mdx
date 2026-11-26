@@ -3354,7 +3354,7 @@ export default defineConfig({
 **Type:** `Object`
 **Default:** none
 
-Serves a folder of Agent Skills through the MCP Skills extension. orval embeds every file of the folder into a generated `skills.ts` next to `server.ts`, and the server loads the catalog with `strict: true` before serving. Requires `@modelcontextprotocol/server` 2.4.0 or later. See the [MCP guide](/docs/guides/mcp#skills) for the folder layout and how skills are checked.
+Serves a folder of Agent Skills through the MCP Skills extension. orval embeds every file of the folder into a generated `skills.ts` next to `server.ts`, and the server loads the catalog with `strict: true` before serving. Requires `@modelcontextprotocol/server` 2.4.0 or later. See the [MCP guide](/docs/guides/mcp#skills-over-mcp) for the folder layout and how skills are checked.
 
 - `path` (required): the folder of skills, relative to the config file. Each skill is a folder holding a `SKILL.md`; skills can be nested.
 - `prefix`: an organisational prefix: `'petstore'` serves `skill://petstore/<skill>/…`. Default: none.

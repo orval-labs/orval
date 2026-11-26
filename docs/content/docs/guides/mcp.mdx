@@ -36,7 +36,7 @@ The `mcp` client currently only works in `single` mode.
 
 ## Requirements
 
-The generated server targets the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2. Install `@modelcontextprotocol/server` 2.x and `zod` 4.2 or later. The SDK requires Node.js 20 or later. [Skills](#skills) require `@modelcontextprotocol/server` 2.4.0 or later.
+The generated server targets the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2. Install `@modelcontextprotocol/server` 2.x and `zod` 4.2 or later. The SDK requires Node.js 20 or later. [Skills over MCP](#skills-over-mcp) requires `@modelcontextprotocol/server` 2.4.0 or later.
 
 ```bash
 npm install @modelcontextprotocol/server zod
@@ -64,7 +64,7 @@ src/
 ├── handlers.ts        # Handler functions returning MCP format
 ├── http-client.ts     # Generated fetch client
 ├── server.ts          # MCP tools and server configuration
-├── skills.ts          # Embedded skill files (only with `override.mcp.skills`)
+├── skills.ts          # Embedded skills files (only with `override.mcp.skills`)
 └── tool-schemas.zod.ts # Zod schemas for tool inputs and outputs, grouped per tool
 ```
 
@@ -365,9 +365,9 @@ export const customServer = (
 Place the custom server file outside the generated output directory. If `clean: true` is set, orval deletes the output directory on each run and will remove any file inside it.
 </Callout>
 
-## Skills
+## Skills over MCP
 
-Tools tell an agent what the API can do; Agent Skills tell it how to use the API for a task, such as which tools to call in which order. Point `override.mcp.skills` at a folder of skills and the generated server serves them through the [MCP Skills extension](https://modelcontextprotocol.io/seps/2640-skills-extension) (`io.modelcontextprotocol/skills`) next to the tools.
+Tools tell an agent what the API can do; Agent Skills tell it how to use the API for a task, such as which tools to call in which order. Point `override.mcp.skills` at a folder of skills and the generated server serves them next to the tools through the MCP Skills extension ([SEP-2640](https://modelcontextprotocol.io/seps/2640-skills-extension), `io.modelcontextprotocol/skills`).
 
 ```ts title="orval.config.ts"
 import { defineConfig } from 'orval';
@@ -396,15 +396,45 @@ export default defineConfig({
 });
 ```
 
-Each skill is a folder holding a `SKILL.md` whose frontmatter has a `name` matching the folder and a `description`, plus any files it refers to. Skills can be grouped in nested folders:
+### Skills folder layout
+
+Every folder under `path` that holds a `SKILL.md` is a skill, at any depth, so one `path` can hold many skills, grouped in folders as you like. Everything below a skill's folder, such as `references/` or `assets/`, is served as part of that skill, whether text or binary:
 
 ```
 skills/
-└── find-a-pet/
-    ├── SKILL.md
-    └── references/
-        └── statuses.md
+├── find-a-pet/
+│   ├── SKILL.md
+│   └── references/
+│       └── statuses.md
+└── store/
+    ├── place-order/
+    │   ├── SKILL.md
+    │   ├── assets/
+    │   │   └── flow.png
+    │   └── references/
+    │       └── payment/
+    │           └── cards.md
+    └── cancel-order/
+        └── SKILL.md
 ```
+
+With `prefix: 'petstore'`, this serves three skills:
+
+| Skill | Files served with it |
+| --- | --- |
+| `skill://petstore/find-a-pet/SKILL.md` | `SKILL.md`, `references/statuses.md` |
+| `skill://petstore/store/place-order/SKILL.md` | `SKILL.md`, `assets/flow.png`, `references/payment/cards.md` |
+| `skill://petstore/store/cancel-order/SKILL.md` | `SKILL.md` |
+
+Each file is a resource under its skill's URI, such as `skill://petstore/store/place-order/references/payment/cards.md`. Link supporting files from `SKILL.md` with relative paths, such as `[cards](references/payment/cards.md)`, and the agent reads them when it needs them.
+
+<Callout type="info">
+Do not put a `SKILL.md` in a grouping folder such as `store/` or directly in `path`. One directly in `path` stops the server from starting. One in a grouping folder turns that folder into a skill, and every skill below it is treated as part of that skill's files. Files outside every skill's folder, such as a `README.md` directly in `path`, are not served.
+</Callout>
+
+### Writing SKILL.md
+
+`SKILL.md` begins with a frontmatter block holding `name` and `description`:
 
 ```md title="skills/find-a-pet/SKILL.md"
 ---
@@ -418,39 +448,31 @@ description: Find pets that match what the user is looking for and show their de
 2. Call `getPetById` for each pet you present, so the details are current.
 ```
 
-orval embeds every file of the folder into a generated `skills.ts`, so the server reads no files at runtime and runs wherever the SDK does. The generated `server.ts` loads the catalog before serving and attaches it to every server it creates:
+The server does not start unless every skill follows these rules:
 
-```ts title="src/server.ts (generated)"
-const createMcpServer = (
-  skills: SkillCatalog,
-  options?: RequestInit,
-): { server: McpServer; tools: Record<string, RegisteredTool> } => {
-  const server = new McpServer({ name: 'petstoreServer', version: '1.0.0' });
-  skills.attach(server);
-  // ...tool registrations
-};
+- The frontmatter is a block enclosed in `---` at the very top of the file.
+- `name` is 1 to 64 lowercase letters, digits and single hyphens, and matches the name of the skill's folder.
+- `description` is present.
+- A skill holds at most 512 files and 16 MiB.
 
-const startMcpServer = async (): Promise<void> => {
-  const skills = await SkillsExtension.load(memorySkillFiles(skillFiles), {
-    prefix: 'petstore',
-    strict: true,
-  });
+The file name is case-sensitive. A folder holding `skill.md` instead of `SKILL.md` is not a skill: the SDK skips it with a warning rather than an error.
 
-  serveStdio(() => createMcpServer(skills).server);
-};
+### How skills are served
 
-void startMcpServer();
-```
+- **Regenerate after editing skills.** orval copies every file of the skills into the generated `skills.ts`, so changes to the skills folder take effect only after you run orval again. In return, the server reads no files at runtime: you do not need to deploy the skills folder, and the server runs wherever the SDK does.
+- **A custom server needs no change.** It still receives the same `createMcpServer` factory. The generated `server.ts` calls it once the skills have loaded.
 
-A custom server needs no change: it still receives a `createMcpServer` factory that takes only the request options, called once the catalog has loaded.
+### When a skill is broken
 
-Skills are checked in two places:
+| When | Cause | Fix |
+| --- | --- | --- |
+| Running orval | `path` is not a folder, holds no `SKILL.md`, or contains a symlink | Fix the folder and run orval again |
+| Starting the server | A skill breaks a rule in [Writing SKILL.md](#writing-skillmd) | Fix the skill, run orval again, and restart the server |
 
-- **When generating**, orval fails if `path` is not a folder, if it holds no `SKILL.md`, or if it contains a symlink, which would embed a file from outside the folder.
-- **When the server starts**, the SDK checks every skill (frontmatter, name, and the limit of 512 files and 16 MiB per skill). The catalog is loaded with `strict: true`, so a broken skill stops the server instead of being skipped silently.
+A broken skill is not skipped: the server fails to start instead. So if the server is running, every skill you wrote is being served.
 
 <Callout type="info">
-Skills require `@modelcontextprotocol/server` 2.4.0 or later. The SDK marks the way an extension attaches to a server as experimental, so a minor SDK release may change the generated code.
+Skills over MCP requires `@modelcontextprotocol/server` 2.4.0 or later. The SDK marks the way an extension attaches to a server as experimental, so a minor SDK release may change the generated code.
 </Callout>
 
 ## Full Example
