@@ -49,9 +49,10 @@ export const listPlain = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(ListPlain200Item).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(ListPlain200Item).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -89,9 +90,10 @@ export const listAllOf = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(ListAllOf200Item).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(ListAllOf200Item).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -129,9 +131,10 @@ export const listOneOf = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(ListOneOf200Item).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(ListOneOf200Item).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -169,8 +172,9 @@ export const listRef = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(Base).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(Base).parse(parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as listRefResponse;
 };

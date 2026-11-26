@@ -175,9 +175,10 @@ export const getPattern = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(RegExp, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(RegExp, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -232,9 +233,10 @@ export const getThing = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Account, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Account, parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getThingResponse;
 };
 
@@ -269,14 +271,15 @@ export const listVersioned = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(
-        effectSchema.toStandardSchemaV1(
-          effectSchema.mutable(effectSchema.Array(Account)),
-        ),
-        parsedBody,
-      )
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(
+          effectSchema.toStandardSchemaV1(
+            effectSchema.mutable(effectSchema.Array(Account)),
+          ),
+          parsedBody,
+        )
+      : parsedBody;
   return {
     data,
     status: res.status,

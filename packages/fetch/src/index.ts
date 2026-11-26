@@ -37,7 +37,6 @@ import {
   resolveStandardSchema,
   hasSchemaImport,
   HTTP_STATUS_CODE_SHARED_TYPES,
-  isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   jsStringLiteralEscape,
   rewriteImportsForResponseValidation,
@@ -553,15 +552,6 @@ ${delimitedParameters.length > 0 ? `  const delimitedParameters = new Map<string
     isValidateResponse &&
     validatesSuccessBody({ override, response }) &&
     !mutator;
-  const validatesPrimitiveResponse = response.types.success.some(
-    ({ value, schemas }) =>
-      schemas.some(
-        ({ name, schema }) =>
-          name === value &&
-          schema !== undefined &&
-          isPrimitiveResponseSchema(schema),
-      ),
-  );
 
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
@@ -921,11 +911,11 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     override.fetch.serializeResponseHeaders
       ? `Object.fromEntries([...${responseVarName}.headers.entries()].filter(([name]) => name !== 'set-cookie'))`
       : `${responseVarName}.headers`;
-  const validatedBlobJson = !isValidateResponse
-    ? 'parsedBody'
-    : validatesPrimitiveResponse
-      ? `res.ok ? ${responseValidationExpression} : parsedBody`
-      : responseValidationExpression;
+  // Only a 2xx body is validated: the success schema rejects a declared error
+  // body, whatever its shape (#4609).
+  const validatedBlobJson = isValidateResponse
+    ? `res.ok ? ${responseValidationExpression} : parsedBody`
+    : 'parsedBody';
   const parsedBlobJson = `text ? JSON.parse(text${reviver}) : {}`;
   const blobJsonBody =
     dateDeserializer || isValidateResponse
@@ -974,7 +964,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
     isValidateResponse
       ? parsesJsonBody(parseTimeContentTypes)
         ? `${parsedBodyBinding} parsedBody = body ? (contentType.includes('json') ? JSON.parse(body${reviver}) : body) : ${hasMixedSuccessContentTypes ? emptyMixedBodyExpression : '{}'}${convertParsedBody('parsedBody', { checkContentType: true })}
-  const data = ${validatesPrimitiveResponse ? 'res.ok && ' : ''}contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
+  const data = res.ok && contentType.includes('json') ? ${responseValidationExpression} : parsedBody`
         : `const parsedBody = body !== null ? body : ''
   const data = parsedBody`
       : hasMixedSuccessContentTypes

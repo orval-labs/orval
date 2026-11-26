@@ -146,22 +146,23 @@ export const listItems = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(
-          zod.array(Item),
-          parsedBody,
-        );
-        if (!result.success) {
-          console.error(
-            '[orval] listItems response validation failed',
-            result.error,
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(
+            zod.array(Item),
+            parsedBody,
           );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+          if (!result.success) {
+            console.error(
+              '[orval] listItems response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -205,19 +206,20 @@ export const createItem = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(Item, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] createItem response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(Item, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] createItem response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -255,18 +257,19 @@ export const getItem = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(Item, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] getItem response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(Item, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] getItem response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getItemResponse;
 };

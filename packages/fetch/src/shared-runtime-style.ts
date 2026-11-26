@@ -32,7 +32,6 @@ import {
   GetterPropType,
   hasSchemaImport,
   isFormDataContentType,
-  isPrimitiveResponseSchema,
   isPrimitiveResponseType,
   jsDoc,
   jsStringLiteralEscape,
@@ -503,20 +502,9 @@ export const generateSharedRequestFunction = (
         override.fetch.runtimeValidation,
       ),
     });
-    // A primitive schema would reject an error body, so only a 2xx one is
-    // validated, as inline does.
-    const validatesPrimitive = response.types.success.some(
-      ({ value, schemas }) =>
-        schemas.some(
-          ({ name, schema }) =>
-            name === value &&
-            schema !== undefined &&
-            isPrimitiveResponseSchema(schema),
-        ),
-    );
-    return validatesPrimitive
-      ? `(data, status) => status >= 200 && status < 300 ? ${validated} : data`
-      : `(data) => ${validated}`;
+    // The success schema rejects a declared error body, whatever its shape,
+    // so only a 2xx one is validated, as inline does (#4609).
+    return `(data, status) => status >= 200 && status < 300 ? ${validated} : data`;
   })();
 
   const mutatorSchemaRef =

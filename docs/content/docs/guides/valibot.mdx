@@ -301,7 +301,6 @@ The following fail with a configuration error: `schemas.mode: 'split'`, `schemas
 
 Known limits:
 
-- With the fetch clients and the default [`forceSuccessResponse: false`](/docs/reference/configuration/output#forcesuccessresponse), a JSON error response is validated against the success schema, whatever its status. A `404` body that does not fit the schema throws a `StandardSchemaError`, and one that fits passes. Zod does the same. With `forceSuccessResponse: true`, and in the Angular clients, an error status is not validated.
 - Requests and responses share a component schema, so a required `writeOnly` property is optional in it, and a required `readOnly` property is still required in request body types.
 - `format: binary` maps to `v.file()` also in JSON, so a JSON response with such a property fails validation. A binary value is typed `File`, not `Blob`.
 

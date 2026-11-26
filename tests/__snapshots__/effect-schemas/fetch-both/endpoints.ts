@@ -181,24 +181,25 @@ export const listPets = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(
-          effectSchema.toStandardSchemaV1(
-            effectSchema.mutable(effectSchema.Array(Pet)),
-          ),
-          parsedBody,
-        );
-        if (!result.success) {
-          console.error(
-            '[orval] listPets response validation failed',
-            result.error,
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(
+            effectSchema.toStandardSchemaV1(
+              effectSchema.mutable(effectSchema.Array(Pet)),
+            ),
+            parsedBody,
           );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+          if (!result.success) {
+            console.error(
+              '[orval] listPets response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -238,19 +239,20 @@ export const createPet = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(Pet, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] createPet response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(Pet, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] createPet response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -289,19 +291,20 @@ export const getPetStatus = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(PetStatus, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] getPetStatus response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(PetStatus, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] getPetStatus response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -390,19 +393,20 @@ export const getLastError = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(ErrorSchema, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] getLastError response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(ErrorSchema, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] getLastError response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -440,18 +444,19 @@ export const getTree = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? (() => {
-        const result = orvalSafeParseStandardSchema(Tree, parsedBody);
-        if (!result.success) {
-          console.error(
-            '[orval] getTree response validation failed',
-            result.error,
-          );
-          throw result.error;
-        }
-        return result.data;
-      })()
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? (() => {
+          const result = orvalSafeParseStandardSchema(Tree, parsedBody);
+          if (!result.success) {
+            console.error(
+              '[orval] getTree response validation failed',
+              result.error,
+            );
+            throw result.error;
+          }
+          return result.data;
+        })()
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getTreeResponse;
 };

@@ -155,9 +155,10 @@ export const listItems = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(zod.array(Item), parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(zod.array(Item), parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -201,9 +202,10 @@ export const createItem = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Item, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Item, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -241,8 +243,9 @@ export const getItem = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Item, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Item, parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getItemResponse;
 };

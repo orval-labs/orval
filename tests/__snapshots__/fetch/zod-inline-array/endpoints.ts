@@ -39,9 +39,10 @@ export const listItems = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? zod.array(Item).parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? zod.array(Item).parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -79,9 +80,10 @@ export const listNamedItems = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Items.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Items.parse(parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -151,9 +153,10 @@ export const getItem = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? Item.parse(parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? Item.parse(parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getItemResponse;
 };
 

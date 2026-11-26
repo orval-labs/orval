@@ -117,13 +117,15 @@ export const listPets = (params: ListPetsParams, options?: CallOptions) =>
   execute<listPetsResponse>({
     url: getListPetsUrl(params),
     method: 'GET',
-    validateResponse: (data) =>
-      orvalParseStandardSchema(
-        effectSchema.toStandardSchemaV1(
-          effectSchema.mutable(effectSchema.Array(Pet)),
-        ),
-        data,
-      ),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300
+        ? orvalParseStandardSchema(
+            effectSchema.toStandardSchemaV1(
+              effectSchema.mutable(effectSchema.Array(Pet)),
+            ),
+            data,
+          )
+        : data,
     ...(options !== undefined ? { options } : {}),
   });
 
@@ -142,7 +144,10 @@ export const createPet = (
     method: 'POST',
     body: createPetBody,
     contentType: 'application/json',
-    validateResponse: (data) => orvalParseStandardSchema(Pet, data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300
+        ? orvalParseStandardSchema(Pet, data)
+        : data,
     ...(options !== undefined ? { options } : {}),
   });
 
@@ -156,7 +161,10 @@ export const getPetStatus = (petId: string, options?: CallOptions) =>
   execute<getPetStatusResponse>({
     url: getGetPetStatusUrl(petId),
     method: 'GET',
-    validateResponse: (data) => orvalParseStandardSchema(PetStatus, data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300
+        ? orvalParseStandardSchema(PetStatus, data)
+        : data,
     ...(options !== undefined ? { options } : {}),
   });
 
@@ -187,7 +195,10 @@ export const getLastError = (options?: CallOptions) =>
   execute<getLastErrorResponse>({
     url: getGetLastErrorUrl(),
     method: 'GET',
-    validateResponse: (data) => orvalParseStandardSchema(ErrorSchema, data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300
+        ? orvalParseStandardSchema(ErrorSchema, data)
+        : data,
     ...(options !== undefined ? { options } : {}),
   });
 
@@ -201,6 +212,9 @@ export const getTree = (options?: CallOptions) =>
   execute<getTreeResponse>({
     url: getGetTreeUrl(),
     method: 'GET',
-    validateResponse: (data) => orvalParseStandardSchema(Tree, data),
+    validateResponse: (data, status) =>
+      status >= 200 && status < 300
+        ? orvalParseStandardSchema(Tree, data)
+        : data,
     ...(options !== undefined ? { options } : {}),
   });

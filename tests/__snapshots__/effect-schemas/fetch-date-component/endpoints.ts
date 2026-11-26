@@ -115,9 +115,10 @@ export const getHolder = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Holder, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Holder, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,
@@ -155,9 +156,10 @@ export const getDateComponent = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Date, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Date, parsedBody)
+      : parsedBody;
   return {
     data,
     status: res.status,

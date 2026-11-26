@@ -118,9 +118,10 @@ export const getPet = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Pet, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Pet, parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getPetResponse;
 };
 
@@ -154,8 +155,9 @@ export const getLink = async (
       ? JSON.parse(body)
       : body
     : {};
-  const data = contentType.includes('json')
-    ? orvalParseStandardSchema(Link, parsedBody)
-    : parsedBody;
+  const data =
+    res.ok && contentType.includes('json')
+      ? orvalParseStandardSchema(Link, parsedBody)
+      : parsedBody;
   return { data, status: res.status, headers: res.headers } as getLinkResponse;
 };
