@@ -35,6 +35,7 @@ import {
   sanitizePathParamName,
   stripFileExtension,
   getImportExtension,
+  SOURCE_FILE_EXTENSIONS,
   type Tsconfig,
   upath,
 } from '@orval/core';
@@ -128,8 +129,13 @@ const generateModuleSpecifier = (
   if (to.startsWith('.') || nodePath.isAbsolute(to)) {
     const resolvedFrom = nodePath.resolve(from);
     const resolvedTo = nodePath.resolve(to);
-    const relative = upath.getRelativeImportPath(resolvedFrom, resolvedTo);
     const sourceExt = nodePath.extname(to);
+    // A module that is not source, such as the spec that the content mapper
+    // serves, is imported by its own file name.
+    if (sourceExt && !SOURCE_FILE_EXTENSIONS.has(sourceExt.toLowerCase())) {
+      return upath.getRelativeImportPath(resolvedFrom, resolvedTo, true);
+    }
+    const relative = upath.getRelativeImportPath(resolvedFrom, resolvedTo);
     return `${relative}${sourceExt ? getImportExtension(sourceExt, tsconfig) : ''}`;
   }
 
@@ -1140,6 +1146,11 @@ export const resolveDefaultSchemaModule = (
   const { path, extension } = getFileInfo(output.target, {
     extension: output.fileExtension,
   });
+
+  // The content mapper serves the models from the spec.
+  if (output.contentMapper?.schemas) {
+    return upath.toUnix(output.contentMapper.specPath);
+  }
 
   if (output.schemas != undefined) {
     const schemasPath = (

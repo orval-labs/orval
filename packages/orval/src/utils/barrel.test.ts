@@ -5,7 +5,11 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { reExportSpecifierExists } from './barrel';
+import {
+  readReExportSpecifiers,
+  reconcileWorkspaceBarrel,
+  reExportSpecifierExists,
+} from './barrel';
 
 describe('reExportSpecifierExists', () => {
   let dir: string;
@@ -50,5 +54,62 @@ describe('reExportSpecifierExists', () => {
 
   it('short-circuits for bare package specifiers without a filesystem probe', async () => {
     await expect(probe('some-external-package')).resolves.toBe(true);
+  });
+});
+
+describe('reconcileWorkspaceBarrel', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(os.tmpdir(), 'orval-barrel-'));
+    await fs.promises.writeFile(path.join(dir, 'api.ts'), '');
+    await fs.promises.writeFile(path.join(dir, 'petstore.openapi.yaml'), '');
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const reconcile = () =>
+    reconcileWorkspaceBarrel(
+      path.join(dir, 'index.ts'),
+      ['./api', './petstore.openapi.yaml'],
+      '.ts',
+      '',
+      new Set(),
+      new Set(['./petstore.openapi.yaml']),
+    );
+
+  it('writes type-only specifiers as `export type *`, once', async () => {
+    await reconcile();
+    await reconcile();
+
+    await expect(
+      fs.promises.readFile(path.join(dir, 'index.ts'), 'utf8'),
+    ).resolves.toBe(
+      "export * from './api';\nexport type * from './petstore.openapi.yaml';\n",
+    );
+  });
+
+  it('rewrites an `export *` of a type-only specifier', async () => {
+    // Another project's type-only export stays as it is.
+    await fs.promises.writeFile(path.join(dir, 'other.yaml'), '');
+    await fs.promises.writeFile(
+      path.join(dir, 'index.ts'),
+      "export * from './petstore.openapi.yaml';\nexport type * from './other.yaml';\n",
+    );
+    await reconcile();
+
+    await expect(
+      fs.promises.readFile(path.join(dir, 'index.ts'), 'utf8'),
+    ).resolves.toBe(
+      "export type * from './petstore.openapi.yaml';\nexport type * from './other.yaml';\nexport * from './api';\n",
+    );
+  });
+
+  it('reads `export type *` lines', () => {
+    expect(
+      readReExportSpecifiers("export type * from './petstore.openapi.yaml';"),
+    ).toEqual(new Set(['./petstore.openapi.yaml']));
   });
 });

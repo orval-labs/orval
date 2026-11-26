@@ -9,6 +9,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   buildBarrelReExports,
   conventionName,
   getFileInfo,
@@ -213,10 +214,11 @@ export async function writeSplitTagsMode({
               isString(output.schemas) ? output.schemas : output.schemas.path,
               true,
             ))
-          : '../' +
-            filename +
-            '.schemas' +
-            getImportExtension(output.schemaFileExtension, output.tsconfig);
+          : (getContentMapperSchemasImportPath(output, importerPath) ??
+            '../' +
+              filename +
+              '.schemas' +
+              getImportExtension(output.schemaFileExtension, output.tsconfig));
 
         const tagNames = new Set(tagEntries.map(([t]) => t));
         const serviceSuffix =
@@ -339,6 +341,7 @@ export async function writeSplitTagsMode({
           );
 
           const mockRelativeSchemasPath =
+            getContentMapperSchemasImportPath(output, mockFilePath) ??
             schemaCustomImportPath ??
             resolveMockSchemasPath(mockFilePath, schemasTarget);
 

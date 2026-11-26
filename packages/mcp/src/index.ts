@@ -12,6 +12,7 @@ import {
   generateMutatorImports,
   type GeneratorVerbOptions,
   getFileInfo,
+  getContentMapperSchemasImportPath,
   getImportExtension,
   getFullRoute,
   getParamsInPath,
@@ -161,11 +162,12 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     ? isZodSchemaOutput && output.indexFiles
       ? upath.getRelativeImportPath(targetInfo.path, basePath, true)
       : upath.getRelativeImportPath(targetInfo.path, basePath)
-    : './' +
-      targetInfo.filename +
-      '.schemas' +
-      // Custom part of `schemaFileExtension` only (`.types.ts` → `.types`).
-      getImportExtension(output.schemaFileExtension);
+    : (getContentMapperSchemasImportPath(output, targetInfo.path) ??
+      './' +
+        targetInfo.filename +
+        '.schemas' +
+        // Custom part of `schemaFileExtension` only (`.types.ts` → `.types`).
+        getImportExtension(output.schemaFileExtension));
 
   const importSchemaNames = new Set(
     Object.values(verbOptions).flatMap((verbOption) => {
@@ -193,12 +195,14 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     .values()
     .toArray();
 
-  const importSchemasImplementation = schemasPath
-    ? `import type {\n  ${importSchemaNames.join(
-        ',\n  ',
-      )}\n} from '${relativeSchemaImportPath}';
+  // Without either, the models are written into this file.
+  const importSchemasImplementation =
+    schemasPath || output.contentMapper?.schemas
+      ? `import type {\n  ${importSchemaNames.join(
+          ',\n  ',
+        )}\n} from '${relativeSchemaImportPath}';
 `
-    : '';
+      : '';
 
   const httpClientPath = path.join(
     targetInfo.dirname,
@@ -713,7 +717,8 @@ const generateHttpClientFiles = async (
     ? isZodSchemaOutput && output.indexFiles
       ? upath.getRelativeImportPath(targetPath, basePath, true)
       : upath.getRelativeImportPath(targetPath, basePath)
-    : upath.getRelativeImportPath(outputPath, targetPath);
+    : (getContentMapperSchemasImportPath(output, outputPath) ??
+      upath.getRelativeImportPath(outputPath, targetPath));
 
   const importNames = clients
     .flatMap((client) => client.imports)

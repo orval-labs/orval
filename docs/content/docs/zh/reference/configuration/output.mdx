@@ -880,6 +880,43 @@ export default defineConfig({
 
 manifest 不会从 workspace 的 `index.ts` 重新导出。
 
+## contentMapper
+
+**类型：** `{ schemas?: Boolean }`
+**默认值：** `undefined`
+
+通过 Orval 的 TypeScript 7.1 content mapper 提供输出，而不是将其写入文件。
+
+设为 `schemas: true` 时，不会写入模型类型文件。所有生成的文件（客户端、mock、operation manifest 和 workspace 的 `index.ts`）都使用 `import type` 从输入的 spec 导入模型，由 content mapper 将 spec 作为模块提供。由于 `import type` 在运行时会被移除，因此无需配置打包工具。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.openapi.yaml',
+    output: {
+      target: './src/api/endpoints.ts',
+      client: 'react-query',
+      contentMapper: {
+        schemas: true,
+      },
+    },
+  },
+});
+```
+
+```ts title="src/api/endpoints.ts"
+import type { Pet, ListPetsParams } from '../../petstore.openapi.yaml';
+```
+
+spec 没有运行时的值，因此：
+
+- `override.enumGenerationType` 默认为 `'union'`，`'const'` 和 `'enum'` 会被拒绝。
+- `schemas`、`operationSchemas`、`factoryMethods` 以及 `zod`、`valibot`、`effect` 客户端会被拒绝。
+- 输入必须是一个本地 spec 文件，而不是 URL、内联文档或备选列表。
+- 当 spec 位于 target 所在目录时，`clean` 会被拒绝，因为它会删除 spec。
+
+当 tsconfig 注册了 Orval 的 content mapper（`contentMappers` 中 `package: 'orval'` 的条目）时，spec 必须以其 `extensions` 之一结尾。如果没有这样的条目，Orval 会发出警告，因为 TypeScript 无法解析这些导入。
+
 ## tagsSplitDeduplication
 
 **类型：** `Boolean`

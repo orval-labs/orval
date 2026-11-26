@@ -8,6 +8,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -210,7 +211,9 @@ export async function writeTagsOperationsMode({
             const importsForBuilder = generateImportsForBuilder(
               output,
               implementationImports,
-              schemasPathRelative,
+              // From the operation file itself: the spec can sit anywhere.
+              getContentMapperSchemasImportPath(output, implementationPath) ??
+                schemasPathRelative,
               schemaTagMap,
               schemaOutputPlan,
             );

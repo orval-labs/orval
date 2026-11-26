@@ -13,6 +13,7 @@ import {
   generateDependencyImports,
   generateModelsInline,
   generateMutator,
+  getContentMapperSchemasImportPath,
   getFileInfo,
   getGeneratedFileCheck,
   getImportExtension,
@@ -429,14 +430,17 @@ async function writeFakerSchemaMocks(
     filePath = path.join(dir, `schemas.faker${fileExtension}`);
     // Without a dedicated schemas dir we have no separate types file to
     // import from; the factories will reference inline types declared in
-    // the main output target. Append `getImportExtension` so NodeNext /
-    // Node16 module resolution gets the required local-file extension.
-    schemaImportPath = targetInfo
-      ? `./${targetInfo.filename}${getImportExtension(
-          fileExtension,
-          output.tsconfig,
-        )}`
-      : undefined;
+    // the main output target, or the spec under `contentMapper.schemas`.
+    // Append `getImportExtension` so NodeNext / Node16 module resolution gets
+    // the required local-file extension.
+    schemaImportPath =
+      getContentMapperSchemasImportPath(output, filePath) ??
+      (targetInfo
+        ? `./${targetInfo.filename}${getImportExtension(
+            fileExtension,
+            output.tsconfig,
+          )}`
+        : undefined);
   }
 
   // Route every schema-related import (both type-only and runtime value
@@ -659,6 +663,8 @@ function shouldGenerateSchemas(
   hasOperations: boolean,
   builder: WriteSpecBuilder,
 ): boolean {
+  // The content mapper serves the models from the spec.
+  if (output.contentMapper?.schemas) return false;
   return (
     (!output.schemas && !isSchemaValidatorClient(output.client)) ||
     shouldGenerateZodSchemasInline(output, hasOperations) ||
@@ -1325,6 +1331,18 @@ async function writeSpecsInternal(
       }
     }
 
+    // The spec has no runtime values, so its models are re-exported as types.
+    const typeOnlyExports = new Set<string>();
+    if (output.contentMapper?.schemas) {
+      const specExport = upath.getRelativeImportPath(
+        indexFile,
+        output.contentMapper.specPath,
+        true,
+      );
+      imports.push(specExport);
+      typeOnlyExports.add(specExport);
+    }
+
     if (output.operationSchemas) {
       imports.push(
         upath.getRelativeImportPath(
@@ -1353,6 +1371,7 @@ async function writeSpecsInternal(
         output.fileExtension,
         importExtension,
         new Set(generatedExports.filter((s) => !keptExports.has(s))),
+        typeOnlyExports,
       );
 
       // Use the full (unfiltered) implementation paths here, not

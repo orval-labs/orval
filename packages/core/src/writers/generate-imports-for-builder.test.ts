@@ -959,4 +959,41 @@ describe('generateImportsForBuilder', () => {
       ]);
     });
   });
+
+  describe('with contentMapper.schemas', () => {
+    const output = createMockOutput({
+      schemas: undefined,
+      contentMapper: { schemas: true, specPath: '/app/petstore.openapi.yaml' },
+    });
+
+    it('imports every model from the spec', () => {
+      expect(
+        generateImportsForBuilder(
+          output,
+          [createMockImport('Pet'), createMockImport('PetStatus')],
+          '../petstore.openapi.yaml',
+        ),
+      ).toEqual([
+        {
+          exports: [createMockImport('Pet'), createMockImport('PetStatus')],
+          dependency: '../petstore.openapi.yaml',
+        },
+      ]);
+    });
+
+    it.each([
+      ['a value', { name: 'PetStatus', values: true }],
+      ['a constant', { name: 'PetStatus', isConstant: true }],
+    ])('rejects a model imported as %s', (_kind, schemaImport) => {
+      expect(() =>
+        generateImportsForBuilder(
+          output,
+          [schemaImport],
+          '../petstore.openapi.yaml',
+        ),
+      ).toThrow(
+        '`output.contentMapper.schemas` imports the models as types only, but the generated code uses `PetStatus` as a runtime value.',
+      );
+    });
+  });
 });

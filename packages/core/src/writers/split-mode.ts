@@ -8,6 +8,7 @@ import {
   type WriteModeProps,
 } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -100,10 +101,11 @@ export async function writeSplitMode({
           isString(output.schemas) ? output.schemas : output.schemas.path,
           true,
         ))
-      : './' +
-        filename +
-        '.schemas' +
-        getImportExtension(output.schemaFileExtension, output.tsconfig);
+      : (getContentMapperSchemasImportPath(output, targetPath) ??
+        './' +
+          filename +
+          '.schemas' +
+          getImportExtension(output.schemaFileExtension, output.tsconfig));
 
     const schemasTarget = output.schemas
       ? // `output.schemas(.path)` already *is* the schemas directory. Use it
@@ -220,6 +222,7 @@ export async function writeSplitMode({
       );
 
       const mockRelativeSchemasPath =
+        getContentMapperSchemasImportPath(output, mockFilePath) ??
         schemaCustomImportPath ??
         resolveMockSchemasPath(mockFilePath, schemasTarget);
 

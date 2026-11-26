@@ -52,6 +52,8 @@ import {
   type NormalizedJsDocOptions,
   type NormalizedMcpOptions,
   type NormalizedOperationManifestOptions,
+  type NormalizedContentMapperOptions,
+  type EnumGeneration,
   type NormalizedMcpHandlerOptions,
   type NormalizedMcpServerOptions,
   type NormalizedMocksConfig,
@@ -712,6 +714,97 @@ function getRuntimeValidationKey(
  * responses with the client, and about ones that need Zod, Valibot or Effect
  * schemas. Per-tag and per-operation overrides are not checked.
  */
+/**
+ * The content mapper serves the models from one local spec file, so the input
+ * must name that file.
+ */
+function normalizeContentMapperOption(
+  input: unknown,
+  normalizedTarget: NormalizedOptions['input']['target'],
+): NormalizedContentMapperOptions {
+  if (Array.isArray(input)) {
+    throw new Error(
+      '`output.contentMapper.schemas` requires a single input file, not a list of fallbacks: the models are imported from that file.',
+    );
+  }
+  if (!isString(normalizedTarget) || isUrl(normalizedTarget)) {
+    throw new Error(
+      '`output.contentMapper.schemas` requires the input to be a local spec file: the models are imported from that file.',
+    );
+  }
+  return { schemas: true, specPath: normalizedTarget };
+}
+
+// Clients whose models are runtime schemas, which a spec module cannot provide.
+const RUNTIME_MODEL_CLIENTS = new Set<string>([
+  OutputClient.ZOD,
+  OutputClient.VALIBOT,
+  OutputClient.EFFECT,
+]);
+
+/**
+ * Rejects what `contentMapper.schemas` cannot serve, and checks the input
+ * against the extensions of Orval's content mapper in the tsconfig.
+ */
+function validateContentMapper(
+  output: NormalizedOutputOptions,
+  enumGenerationType: EnumGeneration | undefined,
+): void {
+  const { contentMapper } = output;
+  if (!contentMapper) return;
+
+  const conflicts = [
+    output.schemas && '`output.schemas` (the models are not written)',
+    output.operationSchemas &&
+      '`output.operationSchemas` (the models are not written)',
+    output.factoryMethods &&
+      '`output.factoryMethods` (factories are runtime values)',
+    enumGenerationType &&
+      enumGenerationType !== 'union' &&
+      `\`override.enumGenerationType: '${enumGenerationType}'\` (it emits runtime values)`,
+    isString(output.client) &&
+      RUNTIME_MODEL_CLIENTS.has(output.client) &&
+      `\`client: '${output.client}'\` (its models are runtime schemas)`,
+  ].filter(isString);
+  if (conflicts.length > 0) {
+    throw new Error(
+      `\`output.contentMapper.schemas\` cannot be combined with ${conflicts.join('; ')}: the models are imported as types from the spec, which has no runtime values.`,
+    );
+  }
+
+  if (output.clean && output.target) {
+    const targetDirectory = getFileInfo(output.target).dirname;
+    if (
+      !nodePath
+        .relative(targetDirectory, contentMapper.specPath)
+        .startsWith('..')
+    ) {
+      throw new Error(
+        `\`output.clean\` would remove the spec \`${contentMapper.specPath}\`, which \`output.contentMapper.schemas\` imports the models from. Move the spec out of \`${targetDirectory}\` or turn \`clean\` off.`,
+      );
+    }
+  }
+
+  const mappers = (output.tsconfig?.contentMappers ?? []).filter(
+    (mapper) => mapper.package === 'orval',
+  );
+  if (!output.tsconfig) return;
+  if (mappers.length === 0) {
+    logger.warn(
+      "`output.contentMapper.schemas` imports the models from the spec, but the tsconfig registers no `contentMappers` entry with `package: 'orval'`. TypeScript cannot resolve those imports without it.",
+    );
+    return;
+  }
+  const extensions = mappers.flatMap((mapper) => mapper.extensions ?? []);
+  if (
+    !extensions.some((extension) => contentMapper.specPath.endsWith(extension))
+  ) {
+    throw new Error(
+      `The spec \`${contentMapper.specPath}\` does not end with an extension of Orval's content mapper in the tsconfig (${extensions.map((extension) => `\`${extension}\``).join(', ')}), so TypeScript cannot resolve the models imported from it.`,
+    );
+  }
+}
+
 function validateRuntimeValidation(output: NormalizedOutputOptions): void {
   const { client, httpClient, override } = output;
   // A custom client or the mcp generator may read any of them.
@@ -1633,8 +1726,11 @@ export async function normalizeOptions(
           : {}),
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
+        // The content mapper's spec has no runtime values for `const` or
+        // `enum` to import.
         enumGenerationType:
-          outputOptions.override?.enumGenerationType ?? 'const',
+          outputOptions.override?.enumGenerationType ??
+          (outputOptions.contentMapper?.schemas ? 'union' : 'const'),
         useReadonlyArrays: outputOptions.override?.useReadonlyArrays ?? false,
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier ?? false,
@@ -1662,6 +1758,17 @@ export async function normalizeOptions(
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
     throw new Error(
       styleText('red', `Config requires an output target or schemas.`),
+    );
+  }
+
+  if (outputOptions.contentMapper?.schemas) {
+    normalizedOptions.output.contentMapper = normalizeContentMapperOption(
+      globalOptions.input ?? inputOptions.target,
+      normalizedOptions.input.target,
+    );
+    validateContentMapper(
+      normalizedOptions.output,
+      outputOptions.override?.enumGenerationType,
     );
   }
 

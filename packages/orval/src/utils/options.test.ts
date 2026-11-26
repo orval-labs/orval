@@ -7,6 +7,8 @@ import type {
   OperationValibotOptions,
   FormatTypeMap,
   NormalizedSchemaOptions,
+  OpenApiDocument,
+  Options,
   OutputClientFunc,
   OutputMocksConfig,
   OutputOptions,
@@ -5470,6 +5472,155 @@ describe('single-file schema output combinations', () => {
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
+    });
+  });
+});
+
+describe('output.contentMapper', () => {
+  const SPEC = JSON.stringify({
+    openapi: '3.1.0',
+    info: { title: 'Test', version: '1.0.0' },
+    paths: {},
+  });
+
+  let workspace: string;
+  let specPath: string;
+
+  beforeEach(async () => {
+    workspace = await createTempWorkspace();
+    await mkdir(path.join(workspace, 'specs'));
+    specPath = path.join(workspace, 'specs/petstore.openapi.yaml');
+    await writeFile(specPath, SPEC);
+    logWarningSpy.mockClear();
+  });
+
+  afterEach(async () => {
+    await rm(workspace, { recursive: true, force: true });
+  });
+
+  const normalize = (
+    output: OutputOptions = {},
+    input: Options['input'] = './specs/petstore.openapi.yaml',
+  ) =>
+    normalizeOptions(
+      {
+        input,
+        output: {
+          target: './api/endpoints.ts',
+          contentMapper: { schemas: true },
+          ...output,
+        },
+      },
+      workspace,
+    );
+
+  it('keeps the spec path and defaults enums to unions', async () => {
+    const { output } = await normalize();
+
+    expect(output.contentMapper).toEqual({ schemas: true, specPath });
+    expect(output.override.enumGenerationType).toBe('union');
+  });
+
+  it('leaves enums as consts without it', async () => {
+    const { output } = await normalize({ contentMapper: undefined });
+
+    expect(output.contentMapper).toBeUndefined();
+    expect(output.override.enumGenerationType).toBe('const');
+  });
+
+  it('accepts enums set to unions', async () => {
+    const { output } = await normalize({
+      override: { enumGenerationType: 'union' },
+    });
+
+    expect(output.override.enumGenerationType).toBe('union');
+  });
+
+  it.each<[string, Options['input'], RegExp]>([
+    [
+      'a list of fallbacks',
+      ['./specs/petstore.openapi.yaml'],
+      /requires a single input file/,
+    ],
+    [
+      'a URL',
+      'https://example.com/petstore.openapi.yaml',
+      /requires the input to be a local spec file/,
+    ],
+    [
+      'an inline document',
+      { target: JSON.parse(SPEC) as OpenApiDocument },
+      /requires the input to be a local spec file/,
+    ],
+  ])('rejects %s as the input', async (_name, input, error) => {
+    await expect(normalize({}, input)).rejects.toThrow(error);
+  });
+
+  it.each<[string, OutputOptions, string]>([
+    ['schemas', { schemas: './model' }, '`output.schemas`'],
+    [
+      'operationSchemas',
+      { operationSchemas: './operations' },
+      '`output.operationSchemas`',
+    ],
+    ['factoryMethods', { factoryMethods: {} }, '`output.factoryMethods`'],
+    [
+      'const enums',
+      { override: { enumGenerationType: 'const' } },
+      "`override.enumGenerationType: 'const'`",
+    ],
+    [
+      'enum declarations',
+      { override: { enumGenerationType: 'enum' } },
+      "`override.enumGenerationType: 'enum'`",
+    ],
+    ['a zod client', { client: 'zod' }, "`client: 'zod'`"],
+  ])('rejects %s', async (_name, output, option) => {
+    await expect(normalize(output)).rejects.toThrow(
+      `\`output.contentMapper.schemas\` cannot be combined with ${option}`,
+    );
+  });
+
+  it('rejects cleaning the directory that holds the spec', async () => {
+    await expect(
+      normalize({ target: './specs/endpoints.ts', clean: true }),
+    ).rejects.toThrow(/`output.clean` would remove the spec/);
+    await expect(normalize({ clean: true })).resolves.toBeDefined();
+  });
+
+  describe('tsconfig', () => {
+    const writeTsconfig = (contentMappers?: unknown) =>
+      writeFile(
+        path.join(workspace, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: {}, contentMappers }),
+      );
+
+    it('accepts a spec that Orval content mapper serves', async () => {
+      await writeTsconfig([
+        { package: 'orval', extensions: ['.openapi.yaml', '.openapi.yml'] },
+      ]);
+
+      await expect(normalize()).resolves.toBeDefined();
+      expect(logWarningSpy).not.toHaveBeenCalled();
+    });
+
+    it('rejects a spec that Orval content mapper does not serve', async () => {
+      await writeTsconfig([{ package: 'orval', extensions: ['.api.yaml'] }]);
+
+      await expect(normalize()).rejects.toThrow(
+        /does not end with an extension of Orval's content mapper in the tsconfig \(`\.api\.yaml`\)/,
+      );
+    });
+
+    it('warns when Orval content mapper is not registered', async () => {
+      await writeTsconfig([{ package: 'other', extensions: ['.yaml'] }]);
+
+      await expect(normalize()).resolves.toBeDefined();
+      expect(logWarningSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "no `contentMappers` entry with `package: 'orval'`",
+        ),
+      );
     });
   });
 });

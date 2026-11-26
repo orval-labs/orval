@@ -4,6 +4,7 @@ import { generateModelsInline } from '../generators';
 import { OutputMockType, type WriteModeProps } from '../types';
 import {
   conventionName,
+  getContentMapperSchemasImportPath,
   getFileInfo,
   getImportExtension,
   getSchemasImportPath,
@@ -109,7 +110,7 @@ export async function generateSingleMode({
           { extension: output.fileExtension },
         ).dirname,
       ))
-    : undefined;
+    : getContentMapperSchemasImportPath(output, targetPath);
 
   const relativeSchemasPath =
     schemasPath ??
@@ -306,6 +307,7 @@ export async function generateSingleMode({
       );
 
       const mockRelativeSchemasPath =
+        getContentMapperSchemasImportPath(output, mockFilePath) ??
         schemaCustomImportPath ??
         resolveMockSchemasPath(mockFilePath, schemasTarget);
 

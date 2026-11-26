@@ -3,6 +3,7 @@ import path from 'node:path';
 import { generateModelsInline } from '../generators';
 import { type WriteModeProps } from '../types';
 import {
+  getContentMapperSchemasImportPath,
   conventionName,
   getFileInfo,
   getImportExtension,
@@ -182,10 +183,10 @@ export async function writeTagsOperationsSplitMode({
             const directSchemaNames = implementationImports
               .filter((imp) => !imp.importPath)
               .map((imp) => imp.name);
-            const operationSchemas = resolveTransitiveSchemas(
-              directSchemaNames,
-              builder.schemas,
-            );
+            // The content mapper serves the models, so none are written here.
+            const operationSchemas = output.contentMapper?.schemas
+              ? []
+              : resolveTransitiveSchemas(directSchemaNames, builder.schemas);
             const referencedSchemaNames = new Set(
               operationSchemas.map((s) => s.name),
             );
@@ -209,7 +210,9 @@ export async function writeTagsOperationsSplitMode({
             const importsForBuilder = generateImportsForBuilder(
               output,
               adjustedImports,
-              schemasPathRelative,
+              // From the operation file itself: the spec can sit anywhere.
+              getContentMapperSchemasImportPath(output, implementationPath) ??
+                schemasPathRelative,
               schemaTagMap,
               schemaOutputPlan,
             );
