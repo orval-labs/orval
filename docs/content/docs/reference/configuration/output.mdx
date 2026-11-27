@@ -2652,6 +2652,14 @@ Behavior:
 - **zod 4.3 or later only.** zod v3 has no `.exactOptional()`, so the option is a no-op there and `.optional()` is emitted. `.exactOptional()` was added in zod 4.3.0, so the output of zod 4.0 to 4.2 does not compile with the option on.
 - Applies to optional properties in both the classic and [`mini`](#variant) variants.
 
+### unsupported
+
+**Type:** `'warn' | 'error'`
+
+**Default:** `'warn'`
+
+What to do when Orval would validate a schema more loosely than the spec says. `'warn'` generates the looser schema without a message. `'error'` stops the generation and names the schema, such as `getPetResponse > owner > tags`. See [Unsupported Schemas](/docs/guides/zod#unsupported-schemas) for what counts. Output-wide: an operation or tag override cannot set it.
+
 ### generateCompanionTypes
 
 **Type:** `boolean`

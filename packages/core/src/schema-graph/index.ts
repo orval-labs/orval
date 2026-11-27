@@ -36,7 +36,7 @@ export {
   renderModelTypeChecks,
 } from './model-type-checks';
 export { omitDirectional, relaxWriteOnly } from './read-only';
-export { createWarnOnceReporter } from './reporter';
+export { createWarnOnceReporter, unsupportedError } from './reporter';
 export {
   carriesSiblings,
   type ComponentFacts,

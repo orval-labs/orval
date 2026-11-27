@@ -405,6 +405,7 @@ function beginDynamicRef(
   const plan = planDynamicRef(schema, context);
   // Dynamic resolution depends on the scope, so it is never reused.
   if (plan.kind === 'empty') {
+    options.onUnresolvedDynamicRef?.(schema.$dynamicRef, context.parents ?? []);
     return done({
       value: {},
       refs:

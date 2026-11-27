@@ -26,6 +26,8 @@ export interface DereferenceOptions {
   onCircularRef?: (ref: string, parents: readonly string[]) => void;
   /** Called when a `$ref` target cannot be merged: missing, or not an object, boolean or (with `mergeArrayTargets`) array. A `false` target under `falseTargetIsUnresolved` is emptied without this call. */
   onUnresolvedRef?: (ref: string, parents: readonly string[]) => void;
+  /** Called when a `$dynamicRef` is emptied: it resolves to nothing in its dynamic scope, or closes a cycle. */
+  onUnresolvedDynamicRef?: (ref: string, parents: readonly string[]) => void;
   /** Called with a diagnostic message when resolving a `$ref` throws. */
   onResolveError?: (message: string) => void;
 }

@@ -1017,7 +1017,8 @@ export function generateZodSchemasInline(
       output: output as ContextSpec['output'],
     };
 
-    const dereferencedSchema = dereference(schemaObject, context);
+    const schemaPath = name;
+    const dereferencedSchema = dereference(schemaObject, context, schemaPath);
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       dereferencedSchema,
@@ -1027,6 +1028,7 @@ export function generateZodSchemasInline(
       isZodV4,
       {
         required: true,
+        path: schemaPath,
         emitMeta: output.override.zod.generateMeta,
         schemaExtension: output.override.zod.schemaExtension,
         constNameRegistry,
@@ -1252,7 +1254,8 @@ export async function writeZodSchemas(
     };
 
     // Dereference the schema to resolve $ref
-    const dereferencedSchema = dereference(schemaObject, context);
+    const schemaPath = name;
+    const dereferencedSchema = dereference(schemaObject, context, schemaPath);
 
     const zodDefinition = generateZodValidationSchemaDefinition(
       dereferencedSchema,
@@ -1262,6 +1265,7 @@ export async function writeZodSchemas(
       isZodV4,
       {
         required: true,
+        path: schemaPath,
         emitMeta: output.override.zod.generateMeta,
         schemaExtension: output.override.zod.schemaExtension,
         constNameRegistry,
@@ -1594,7 +1598,11 @@ function generateZodSchemasFromVerbs(
               name: `${pascal(verbOption.typeName)}Body`,
               schema: useReusableSchemas
                 ? bodySchema
-                : dereference(bodySchema, zodContext),
+                : dereference(
+                    bodySchema,
+                    zodContext,
+                    `${pascal(verbOption.typeName)}Body`,
+                  ),
               bodyContentType,
               encoding: bodyMedia?.encoding,
             },
@@ -1637,7 +1645,11 @@ function generateZodSchemasFromVerbs(
                       p.name,
                       useReusableSchemas
                         ? p.schema
-                        : dereference(p.schema, zodContext),
+                        : dereference(
+                            p.schema,
+                            zodContext,
+                            `${pascal(verbOption.typeName)}PathParameters > ${p.name}`,
+                          ),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: pathParams
@@ -1672,7 +1684,11 @@ function generateZodSchemasFromVerbs(
                       p.name,
                       useReusableSchemas
                         ? p.schema
-                        : dereference(p.schema, zodContext),
+                        : dereference(
+                            p.schema,
+                            zodContext,
+                            `${pascal(verbOption.typeName)}Params > ${p.name}`,
+                          ),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: queryParams
@@ -1707,7 +1723,11 @@ function generateZodSchemasFromVerbs(
                       p.name,
                       useReusableSchemas
                         ? p.schema
-                        : dereference(p.schema, zodContext),
+                        : dereference(
+                            p.schema,
+                            zodContext,
+                            `${pascal(verbOption.typeName)}Headers > ${p.name}`,
+                          ),
                     ]),
                 ) as Record<string, OpenApiSchemaObject>,
                 required: headerParams
@@ -1790,7 +1810,7 @@ function generateZodSchemasFromVerbs(
             name: entry.cleanName,
             schema: useReusableSchemas
               ? entry.cleanSchema
-              : dereference(entry.cleanSchema, zodContext),
+              : dereference(entry.cleanSchema, zodContext, entry.cleanName),
           }))
       : [];
 
