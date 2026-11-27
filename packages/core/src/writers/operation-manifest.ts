@@ -12,13 +12,14 @@ import {
   parseRoutePath,
   toColonRoutePath,
 } from '../getters';
+import { resolveRef } from '../resolvers/ref';
 import {
   type ContextSpec,
   type GeneratorImport,
   type GeneratorOperation,
   type GeneratorVerbOptions,
-  type GetterResponse,
   type NormalizedOutputOptions,
+  type OpenApiResponseObject,
   OutputClient,
   OutputHttpClient,
   OutputMode,
@@ -27,14 +28,17 @@ import {
 import {
   conventionName,
   dedupeUnionType,
+  filterByContentType,
   getContentMapperSchemasImportPath,
   getFileInfo,
   getImportExtension,
   getOperationTagKey,
   getSchemasImportPath,
+  isObject,
   isString,
   logger,
   pascal,
+  upath,
 } from '../utils';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
@@ -221,7 +225,10 @@ export function getOperationManifestEntry(
   };
 }
 
-const renderResponsesByStatus = (response: GetterResponse): string => {
+const renderResponsesByStatus = (
+  { response, override }: GeneratorVerbOptions,
+  context: ContextSpec,
+): string => {
   const byStatus = new Map<string, string[]>();
   for (const { key, value } of [
     ...response.types.success,
@@ -230,6 +237,28 @@ const renderResponsesByStatus = (response: GetterResponse): string => {
     const payloads = byStatus.get(key) ?? [];
     payloads.push(value || 'unknown');
     byStatus.set(key, payloads);
+  }
+
+  // The response getter skips media types without schemas. Keep the status
+  // when no other representation supplied a type and the content filter
+  // would have kept at least one media type.
+  const filter = override.contentType;
+  for (const [key, entry] of Object.entries(response.originalSchema ?? {})) {
+    if (byStatus.has(key) || !isObject(entry)) continue;
+    if (filter?.include || filter?.exclude?.length) {
+      const originalResponse =
+        typeof entry.$ref === 'string'
+          ? resolveRef<OpenApiResponseObject>({ $ref: entry.$ref }, context)
+              .schema
+          : entry;
+      const mediaTypes = isObject(originalResponse.content)
+        ? Object.keys(originalResponse.content).map((contentType) => ({
+            contentType,
+          }))
+        : [];
+      if (filterByContentType(mediaTypes, filter).length === 0) continue;
+    }
+    byStatus.set(key, ['unknown']);
   }
 
   const members = [...byStatus].map(([key, payloads]) => {
@@ -246,7 +275,6 @@ const renderResponsesByStatus = (response: GetterResponse): string => {
  */
 export function getOperationManifestTypes(
   verbOptions: GeneratorVerbOptions,
-  responsesByStatus = false,
 ): OperationManifestTypes {
   const { params, queryParams, headers, body, response } = verbOptions;
   const typeImport = (name: string): GeneratorImport => ({ name });
@@ -257,11 +285,8 @@ export function getOperationManifestTypes(
     ...body.imports,
     ...response.imports,
   ]
-    // The status map can also refer directly to external response format types.
+    // Only component and operation types, which live with the schemas.
     .filter((imp) => !imp.importPath)
-    .concat(
-      responsesByStatus ? response.imports.filter((imp) => imp.importPath) : [],
-    )
     .map((imp) => ({ ...imp, values: false }));
 
   return {
@@ -274,9 +299,6 @@ export function getOperationManifestTypes(
     headers: headers?.schema.name ?? 'never',
     response: response.definition.success || 'unknown',
     error: response.definition.errors || 'unknown',
-    ...(responsesByStatus
-      ? { responsesByStatus: renderResponsesByStatus(response) }
-      : {}),
     imports,
   };
 }
@@ -395,6 +417,10 @@ export function buildOperationManifest(
     output.operationManifest?.types !== false &&
     getSchemaLibrary(output) === undefined &&
     !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
+  const targetDir =
+    withTypes && output.operationManifest?.responsesByStatus
+      ? getFileInfo(output.target).dirname
+      : undefined;
 
   const entries: Record<string, OperationManifestEntry> = {};
   const types: Record<string, OperationManifestTypes> = {};
@@ -407,12 +433,27 @@ export function buildOperationManifest(
       operation,
       context,
     );
-    if (withTypes) {
-      types[verbOptions.operationName] = getOperationManifestTypes(
+    if (!withTypes) continue;
+
+    const operationTypes = getOperationManifestTypes(verbOptions);
+    if (targetDir !== undefined) {
+      operationTypes.responsesByStatus = renderResponsesByStatus(
         verbOptions,
-        output.operationManifest?.responsesByStatus,
+        context,
       );
+      for (const imp of verbOptions.response.imports) {
+        if (!imp.importPath) continue;
+        const importPath = /^\.{1,2}(?:\/|$)/.test(imp.importPath)
+          ? upath.getRelativeImportPath(
+              filePath,
+              upath.resolve(targetDir, imp.importPath),
+              true,
+            )
+          : imp.importPath;
+        operationTypes.imports.push({ ...imp, importPath, values: false });
+      }
     }
+    types[verbOptions.operationName] = operationTypes;
   }
 
   let implementation = renderEntries(entries);

@@ -306,7 +306,10 @@ describe('buildOperationManifest', () => {
       ...context.output,
       operationManifest: { types: true, responsesByStatus: true },
     };
-    const content = build(output, verbOptions({ response }));
+    const content = build(
+      output,
+      verbOptions({ response, override: context.output.override }),
+    );
 
     expect(content).toContain(`    responsesByStatus: {
       200: number | string;
