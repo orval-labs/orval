@@ -12,12 +12,14 @@ import {
   parseRoutePath,
   toColonRoutePath,
 } from '../getters';
+import { resolveRef } from '../resolvers/ref';
 import {
   type ContextSpec,
   type GeneratorImport,
   type GeneratorOperation,
   type GeneratorVerbOptions,
   type NormalizedOutputOptions,
+  type OpenApiResponseObject,
   OutputClient,
   OutputHttpClient,
   OutputMode,
@@ -25,14 +27,18 @@ import {
 } from '../types';
 import {
   conventionName,
+  dedupeUnionType,
+  filterByContentType,
   getContentMapperSchemasImportPath,
   getFileInfo,
   getImportExtension,
   getOperationTagKey,
   getSchemasImportPath,
+  isObject,
   isString,
   logger,
   pascal,
+  upath,
 } from '../utils';
 import { writeGeneratedFile } from './file';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
@@ -83,6 +89,7 @@ export interface OperationManifestTypes {
   headers: string;
   response: string;
   error: string;
+  responsesByStatus?: string;
   imports: GeneratorImport[];
 }
 
@@ -218,6 +225,49 @@ export function getOperationManifestEntry(
   };
 }
 
+const renderResponsesByStatus = (
+  { response, override }: GeneratorVerbOptions,
+  context: ContextSpec,
+): string => {
+  const byStatus = new Map<string, string[]>();
+  for (const { key, value } of [
+    ...response.types.success,
+    ...response.types.errors,
+  ]) {
+    const payloads = byStatus.get(key) ?? [];
+    payloads.push(value || 'unknown');
+    byStatus.set(key, payloads);
+  }
+
+  // The response getter skips media types without schemas. Keep the status
+  // when no other representation supplied a type and the content filter
+  // would have kept at least one media type.
+  const filter = override.contentType;
+  for (const [key, entry] of Object.entries(response.originalSchema ?? {})) {
+    if (byStatus.has(key) || !isObject(entry)) continue;
+    if (filter?.include || filter?.exclude?.length) {
+      const originalResponse =
+        typeof entry.$ref === 'string'
+          ? resolveRef<OpenApiResponseObject>({ $ref: entry.$ref }, context)
+              .schema
+          : entry;
+      const mediaTypes = isObject(originalResponse.content)
+        ? Object.keys(originalResponse.content).map((contentType) => ({
+            contentType,
+          }))
+        : [];
+      if (filterByContentType(mediaTypes, filter).length === 0) continue;
+    }
+    byStatus.set(key, ['unknown']);
+  }
+
+  const members = [...byStatus].map(([key, payloads]) => {
+    const status = /^[1-5]\d{2}$/.test(key) ? key : JSON.stringify(key);
+    return `      ${status}: ${dedupeUnionType(payloads.join(' | '))};\n`;
+  });
+  return members.length ? `{\n${members.join('')}    }` : '{}';
+};
+
 /**
  * The request and response types of one operation, as references to the types
  * orval already generates. `response` is the payload type, not the client's
@@ -315,6 +365,9 @@ const renderTypes = (types: Record<string, OperationManifestTypes>) => {
       `    headers: ${t.headers};\n` +
       `    response: ${t.response};\n` +
       `    error: ${t.error};\n` +
+      (t.responsesByStatus
+        ? `    responsesByStatus: ${t.responsesByStatus};\n`
+        : '') +
       `  };`,
   );
   return `/** The request and response types of every operation. \`response\` is the payload type. */
@@ -360,6 +413,14 @@ export function buildOperationManifest(
     workspace: '',
     output,
   };
+  const withTypes =
+    output.operationManifest?.types !== false &&
+    getSchemaLibrary(output) === undefined &&
+    !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
+  const targetDir =
+    withTypes && output.operationManifest?.responsesByStatus
+      ? getFileInfo(output.target).dirname
+      : undefined;
 
   const entries: Record<string, OperationManifestEntry> = {};
   const types: Record<string, OperationManifestTypes> = {};
@@ -372,13 +433,28 @@ export function buildOperationManifest(
       operation,
       context,
     );
-    types[verbOptions.operationName] = getOperationManifestTypes(verbOptions);
-  }
+    if (!withTypes) continue;
 
-  const withTypes =
-    output.operationManifest?.types !== false &&
-    getSchemaLibrary(output) === undefined &&
-    !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
+    const operationTypes = getOperationManifestTypes(verbOptions);
+    if (targetDir !== undefined) {
+      operationTypes.responsesByStatus = renderResponsesByStatus(
+        verbOptions,
+        context,
+      );
+      for (const imp of verbOptions.response.imports) {
+        if (!imp.importPath) continue;
+        const importPath = /^\.{1,2}(?:\/|$)/.test(imp.importPath)
+          ? upath.getRelativeImportPath(
+              filePath,
+              upath.resolve(targetDir, imp.importPath),
+              true,
+            )
+          : imp.importPath;
+        operationTypes.imports.push({ ...imp, importPath, values: false });
+      }
+    }
+    types[verbOptions.operationName] = operationTypes;
+  }
 
   let implementation = renderEntries(entries);
   implementation += '\nexport type OperationName = keyof typeof operations;\n';

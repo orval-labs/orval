@@ -295,6 +295,7 @@ function normalizeOperationManifestOption(
       ? normalizePath(operationManifest.path, workspace)
       : undefined,
     types: operationManifest.types ?? true,
+    ...(operationManifest.responsesByStatus && { responsesByStatus: true }),
   };
 }
 

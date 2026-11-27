@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { getResponse } from '../getters';
 import { createTestContextSpec } from '../test-utils/context';
 import {
   type GeneratorOperation,
@@ -277,6 +278,48 @@ describe('buildOperationManifest', () => {
     );
     expect(content).toContain('export type OperationTypes = {');
     expect(content).toContain('    response: Pet;');
+    expect(content).not.toContain('responsesByStatus');
+  });
+
+  it('adds a type-only payload map grouped by response status', () => {
+    const response = getResponse({
+      operationName: 'ShowPet',
+      context,
+      responses: {
+        200: {
+          description: 'Pet',
+          content: {
+            'application/json': { schema: { type: 'integer' } },
+            'application/vnd.pet+json': { schema: { type: 'integer' } },
+            'text/plain': { schema: { type: 'string' } },
+          },
+        },
+        204: { description: 'No content' },
+        '4XX': {
+          description: 'Client error',
+          content: { 'application/json': { schema: true } },
+        },
+        default: { description: 'Other response' },
+      },
+    });
+    const output = {
+      ...context.output,
+      operationManifest: { types: true, responsesByStatus: true },
+    };
+    const content = build(
+      output,
+      verbOptions({ response, override: context.output.override }),
+    );
+
+    expect(content).toContain(`    responsesByStatus: {
+      200: number | string;
+      204: void;
+      "4XX": unknown;
+      "default": void;
+    };`);
+    expect(content.split('export type OperationTypes')[0]).not.toContain(
+      'responsesByStatus',
+    );
   });
 
   it('declares NonReadonly when a body type uses it', () => {
@@ -310,11 +353,12 @@ describe('buildOperationManifest', () => {
   it('writes the data only when types are off', () => {
     const content = build({
       ...context.output,
-      operationManifest: { types: false },
+      operationManifest: { types: false, responsesByStatus: true },
     });
 
     expect(content).not.toContain('import type');
     expect(content).not.toContain('OperationTypes');
+    expect(content).not.toContain('responsesByStatus');
     expect(content).toContain('export const operations = {');
   });
 
