@@ -239,26 +239,38 @@ const renderResponsesByStatus = (
     byStatus.set(key, payloads);
   }
 
-  // The response getter skips media types without schemas. Keep the status
-  // when no other representation supplied a type and the content filter
-  // would have kept at least one media type.
+  // Check the original media types because the getter can skip those without
+  // schemas. Any retained media type without a schema makes the status unknown.
   const filter = override.contentType;
+  const hasContentTypeFilter = Boolean(
+    filter?.include || filter?.exclude?.length,
+  );
   for (const [key, entry] of Object.entries(response.originalSchema ?? {})) {
-    if (byStatus.has(key) || !isObject(entry)) continue;
-    if (filter?.include || filter?.exclude?.length) {
-      const originalResponse =
-        typeof entry.$ref === 'string'
-          ? resolveRef<OpenApiResponseObject>({ $ref: entry.$ref }, context)
-              .schema
-          : entry;
-      const mediaTypes = isObject(originalResponse.content)
-        ? Object.keys(originalResponse.content).map((contentType) => ({
+    if (!isObject(entry)) continue;
+    const originalResponse =
+      typeof entry.$ref === 'string'
+        ? resolveRef<OpenApiResponseObject>({ $ref: entry.$ref }, context)
+            .schema
+        : entry;
+    const content = originalResponse.content;
+    const mediaTypes = filterByContentType(
+      isObject(content)
+        ? Object.entries(content).map(([contentType, mediaType]) => ({
             contentType,
+            schema: isObject(mediaType) ? mediaType.schema : undefined,
           }))
-        : [];
-      if (filterByContentType(mediaTypes, filter).length === 0) continue;
+        : [],
+      filter,
+    );
+    const hasUntypedBody = mediaTypes.some(
+      ({ schema }) => schema === undefined || schema === null,
+    );
+    if (
+      hasUntypedBody ||
+      (!byStatus.has(key) && (!hasContentTypeFilter || mediaTypes.length > 0))
+    ) {
+      byStatus.set(key, ['unknown']);
     }
-    byStatus.set(key, ['unknown']);
   }
 
   const members = [...byStatus].map(([key, payloads]) => {
