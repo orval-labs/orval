@@ -8,6 +8,7 @@ import type {
   FormatTypeMap,
   NormalizedSchemaOptions,
   OpenApiDocument,
+  OperationManifestOptions,
   Options,
   OutputClientFunc,
   OutputMocksConfig,
@@ -897,9 +898,7 @@ describe('normalizeOptions', () => {
 
   it('normalizes output.operationManifest', async () => {
     const workspace = await createTempWorkspace();
-    const normalize = (
-      operationManifest: boolean | { path?: string; types?: boolean },
-    ) =>
+    const normalize = (operationManifest: boolean | OperationManifestOptions) =>
       normalizeOptions(
         {
           input: {
@@ -919,6 +918,9 @@ describe('normalizeOptions', () => {
       expect((await normalize(true)).output.operationManifest).toEqual({
         types: true,
       });
+      expect(
+        (await normalize({ responsesByStatus: true })).output.operationManifest,
+      ).toEqual({ types: true, responsesByStatus: true });
       expect(
         (await normalize({ path: './operations.ts', types: false })).output
           .operationManifest,

@@ -850,7 +850,7 @@ import { getPetMock } from '@acme/data-layer/sdk/fakers';
 
 ## operationManifest
 
-**类型：** `Boolean | { path?: String; types?: Boolean }`
+**类型：** `Boolean | { path?: String; types?: Boolean; responsesByStatus?: Boolean }`
 **默认值：** `false`
 
 生成一个描述所有已生成 operation 的文件，供测试辅助工具和其他工具使用，例如路由匹配、缓存预填充和类型化的 mock 工厂，无需解析生成的代码。
@@ -877,6 +877,8 @@ export default defineConfig({
 - `serialization` 列出 query 参数写入 URL 的方式，与 fetch client 的 `get<Op>Url` 一致。`override.fetch.arrayFormat` 仅对由 fetch client 生成 URL 的客户端生效：`fetch`、`mcp`，以及 `httpClient: 'fetch'` 下的 query、SWR 和 Pinia Colada 客户端。
 - `mock` 是 [mock generator](#mock) 为该 operation 生成的 `get<Op>ResponseMock` 工厂名称，没有则为 `null`。manifest 只记录名称，不会导入 mock 代码。
 - `OperationTypes` 引用 orval 已生成的类型。`response` 是响应体类型，而不是 client 的返回类型。`zod`、`effect`、`valibot` client 以及 Zod、Valibot、Effect schemas 不生成整个类型映射，请求类型也不例外。
+
+设置 `operationManifest: { responsesByStatus: true }` 后，可按状态码查找已生成的响应体类型，例如 `OperationTypes['showPetById']['responsesByStatus'][200]`。具体状态码使用数字键，`'4XX'` 等状态码范围和 `'default'` 响应使用字符串键。同一状态码有多个响应体类型时，使用这些类型的联合类型。此选项要求启用 `OperationTypes`。
 
 manifest 不会从 workspace 的 `index.ts` 重新导出。
 

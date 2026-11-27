@@ -130,6 +130,7 @@ export interface NormalizedOperationManifestOptions {
   /** Absolute path of the manifest file. Unset: next to the target. */
   path?: string;
   types: boolean;
+  responsesByStatus?: boolean;
 }
 
 export interface NormalizedParamsSerializerOptions {
@@ -593,6 +594,8 @@ export interface OperationManifestOptions {
   path?: string;
   /** Emit the `OperationTypes` type map. Defaults to `true`. */
   types?: boolean;
+  /** Add response payload types by HTTP status to `OperationTypes`. Defaults to `false`. */
+  responsesByStatus?: boolean;
 }
 
 export interface InputFiltersOptions {

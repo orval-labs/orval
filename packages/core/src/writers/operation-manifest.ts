@@ -17,6 +17,7 @@ import {
   type GeneratorImport,
   type GeneratorOperation,
   type GeneratorVerbOptions,
+  type GetterResponse,
   type NormalizedOutputOptions,
   OutputClient,
   OutputHttpClient,
@@ -25,6 +26,7 @@ import {
 } from '../types';
 import {
   conventionName,
+  dedupeUnionType,
   getContentMapperSchemasImportPath,
   getFileInfo,
   getImportExtension,
@@ -83,6 +85,7 @@ export interface OperationManifestTypes {
   headers: string;
   response: string;
   error: string;
+  responsesByStatus?: string;
   imports: GeneratorImport[];
 }
 
@@ -218,6 +221,24 @@ export function getOperationManifestEntry(
   };
 }
 
+const renderResponsesByStatus = (response: GetterResponse): string => {
+  const byStatus = new Map<string, string[]>();
+  for (const { key, value } of [
+    ...response.types.success,
+    ...response.types.errors,
+  ]) {
+    const payloads = byStatus.get(key) ?? [];
+    payloads.push(value || 'unknown');
+    byStatus.set(key, payloads);
+  }
+
+  const members = [...byStatus].map(([key, payloads]) => {
+    const status = /^[1-5]\d{2}$/.test(key) ? key : JSON.stringify(key);
+    return `      ${status}: ${dedupeUnionType(payloads.join(' | '))};\n`;
+  });
+  return members.length ? `{\n${members.join('')}    }` : '{}';
+};
+
 /**
  * The request and response types of one operation, as references to the types
  * orval already generates. `response` is the payload type, not the client's
@@ -225,6 +246,7 @@ export function getOperationManifestEntry(
  */
 export function getOperationManifestTypes(
   verbOptions: GeneratorVerbOptions,
+  responsesByStatus = false,
 ): OperationManifestTypes {
   const { params, queryParams, headers, body, response } = verbOptions;
   const typeImport = (name: string): GeneratorImport => ({ name });
@@ -235,8 +257,11 @@ export function getOperationManifestTypes(
     ...body.imports,
     ...response.imports,
   ]
-    // Only component and operation types, which live with the schemas.
+    // The status map can also refer directly to external response format types.
     .filter((imp) => !imp.importPath)
+    .concat(
+      responsesByStatus ? response.imports.filter((imp) => imp.importPath) : [],
+    )
     .map((imp) => ({ ...imp, values: false }));
 
   return {
@@ -249,6 +274,9 @@ export function getOperationManifestTypes(
     headers: headers?.schema.name ?? 'never',
     response: response.definition.success || 'unknown',
     error: response.definition.errors || 'unknown',
+    ...(responsesByStatus
+      ? { responsesByStatus: renderResponsesByStatus(response) }
+      : {}),
     imports,
   };
 }
@@ -315,6 +343,9 @@ const renderTypes = (types: Record<string, OperationManifestTypes>) => {
       `    headers: ${t.headers};\n` +
       `    response: ${t.response};\n` +
       `    error: ${t.error};\n` +
+      (t.responsesByStatus
+        ? `    responsesByStatus: ${t.responsesByStatus};\n`
+        : '') +
       `  };`,
   );
   return `/** The request and response types of every operation. \`response\` is the payload type. */
@@ -360,6 +391,10 @@ export function buildOperationManifest(
     workspace: '',
     output,
   };
+  const withTypes =
+    output.operationManifest?.types !== false &&
+    getSchemaLibrary(output) === undefined &&
+    !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
 
   const entries: Record<string, OperationManifestEntry> = {};
   const types: Record<string, OperationManifestTypes> = {};
@@ -372,13 +407,13 @@ export function buildOperationManifest(
       operation,
       context,
     );
-    types[verbOptions.operationName] = getOperationManifestTypes(verbOptions);
+    if (withTypes) {
+      types[verbOptions.operationName] = getOperationManifestTypes(
+        verbOptions,
+        output.operationManifest?.responsesByStatus,
+      );
+    }
   }
-
-  const withTypes =
-    output.operationManifest?.types !== false &&
-    getSchemaLibrary(output) === undefined &&
-    !(isString(output.client) && UNTYPED_CLIENTS.has(output.client));
 
   let implementation = renderEntries(entries);
   implementation += '\nexport type OperationName = keyof typeof operations;\n';

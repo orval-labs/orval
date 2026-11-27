@@ -1092,7 +1092,7 @@ Generate `index.ts` files for schemas.
 
 ## operationManifest
 
-**Type:** `Boolean | { path?: String; types?: Boolean }`
+**Type:** `Boolean | { path?: String; types?: Boolean; responsesByStatus?: Boolean }`
 **Default:** `false`
 
 Writes one file that describes every generated operation, for test helpers and tooling that need to know an API's operations without parsing the generated code: route matchers, cache seeding, typed mock factories.
@@ -1155,6 +1155,8 @@ export type OperationTypes = {
 - `serialization` lists how query params are written to the URL, as the fetch client's `get<Op>Url` does: `explode` arrays repeat their key, `arrayFormat` arrays follow `override.fetch.arrayFormat` (only for clients whose URLs are built by the fetch client: `fetch`, `mcp`, and the query, SWR and Pinia Colada clients over `httpClient: 'fetch'`), and `deepObject` params use `name[key]`. `explodeOnly` means every query param is in one of those lists.
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
 - `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. The whole map, request types included, is left out for the `zod`, `effect` and `valibot` clients and for Zod, Valibot and Effect schemas.
+
+Set `operationManifest: { responsesByStatus: true }` to look up generated response payloads by status, for example `OperationTypes['showPetById']['responsesByStatus'][200]`. Exact codes use numeric keys, while ranges such as `'4XX'` and the `'default'` response use string keys. A status with multiple payload types gets their union. This option requires `OperationTypes` to be enabled.
 
 The manifest isn't re-exported from the workspace `index.ts`.
 
