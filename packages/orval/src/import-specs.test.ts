@@ -16,7 +16,6 @@ import {
   dereferenceExternalRef,
   fillMissingResponseDescriptions,
   importSpecs,
-  maskPropertiesNamedRef,
   normalizeNullableRefs,
   normalizeToOpenApi31,
   preserveBinarySchemas,
@@ -392,6 +391,43 @@ describe('validation', () => {
     expect(groupMember?.model).not.toContain('x-orval-ref-property');
   });
 
+  it('should resolve a JSON Pointer to a property named $ref', async () => {
+    const workspace = 'test';
+    const normalizedOptions = await normalizeOptions(
+      {
+        output: { target: '' },
+        input: {
+          target: {
+            openapi: '3.1.0',
+            info: { title: 'SCIM', version: '1.0.0' },
+            paths: {},
+            components: {
+              schemas: {
+                GroupMember: {
+                  type: 'object',
+                  properties: { $ref: { type: 'string', format: 'uri' } },
+                },
+                MemberReference: {
+                  $ref: '#/components/schemas/GroupMember/properties/$ref',
+                },
+              },
+            },
+          },
+        },
+      },
+      workspace,
+      {},
+    );
+
+    const spec = await importSpecs(workspace, normalizedOptions);
+    const memberReference = spec.schemas.find(
+      (schema) => schema.name === 'MemberReference',
+    );
+    expect(memberReference?.model).toContain(
+      'export type MemberReference = string;',
+    );
+  });
+
   it('should skip validation when input.unsafeDisableValidation is true', async () => {
     const workspace = 'test';
     const normalizedOptions = await normalizeOptions(
@@ -745,90 +781,6 @@ describe('validation', () => {
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
-  });
-});
-
-describe('maskPropertiesNamedRef', () => {
-  it('renames a properties entry named $ref without touching the input (#4318)', () => {
-    const spec = {
-      components: {
-        schemas: {
-          GroupMember: {
-            type: 'object',
-            properties: {
-              value: { type: 'string' },
-              $ref: { type: 'string', format: 'uri' },
-            },
-          },
-          Other: { type: 'string' },
-        },
-      },
-    };
-    const original = structuredClone(spec);
-
-    const masked = maskPropertiesNamedRef(spec);
-
-    expect(spec).toEqual(original);
-    expect(masked.components.schemas.GroupMember.properties).toEqual({
-      value: { type: 'string' },
-      'x-orval-ref-property': { type: 'string', format: 'uri' },
-    });
-    // Untouched branches are shared, not copied.
-    expect(masked.components.schemas.Other).toBe(spec.components.schemas.Other);
-  });
-
-  it('masks nested properties and picks an unused placeholder', () => {
-    const spec = {
-      items: [
-        {
-          properties: {
-            'x-orval-ref-property': { type: 'integer' },
-            $ref: { $ref: '#/components/schemas/Uri' },
-          },
-        },
-      ],
-    };
-
-    const masked = maskPropertiesNamedRef(spec);
-
-    expect(masked.items[0].properties).toEqual({
-      'x-orval-ref-property': { type: 'integer' },
-      'x-orval-ref-property_': { $ref: '#/components/schemas/Uri' },
-    });
-  });
-
-  it('keeps a property named __proto__ as an own entry', () => {
-    // Parsed specs carry `__proto__` as an ordinary own key.
-    const spec = JSON.parse(
-      '{"properties":{"__proto__":{"properties":{"$ref":{"type":"string"}}},"$ref":{"type":"string"}}}',
-    ) as Record<string, Record<string, unknown>>;
-
-    const masked = maskPropertiesNamedRef(spec);
-    const properties = masked.properties;
-
-    expect(Object.getPrototypeOf(properties)).toBe(Object.prototype);
-    expect(Object.keys(properties)).toEqual([
-      '__proto__',
-      'x-orval-ref-property',
-    ]);
-    expect(
-      Object.getOwnPropertyDescriptor(properties, '__proto__')?.value,
-    ).toEqual({
-      properties: { 'x-orval-ref-property': { type: 'string' } },
-    });
-  });
-
-  it('returns the input unchanged when there is no property named $ref', () => {
-    // A property named `properties` whose schema is a real reference must not
-    // be mistaken for a properties map with a `$ref` entry.
-    const spec = {
-      type: 'object',
-      properties: {
-        properties: { $ref: '#/components/schemas/Props' },
-      },
-    };
-
-    expect(maskPropertiesNamedRef(spec)).toBe(spec);
   });
 });
 
