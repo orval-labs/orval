@@ -721,6 +721,8 @@ function getRuntimeValidationKey(
 function normalizeContentMapperOption(
   input: unknown,
   normalizedTarget: NormalizedOptions['input']['target'],
+  debugOutputPath: string | undefined,
+  workspace: string,
 ): NormalizedContentMapperOptions {
   if (Array.isArray(input)) {
     throw new Error(
@@ -732,7 +734,13 @@ function normalizeContentMapperOption(
       '`output.contentMapper.schemas` requires the input to be a local spec file: the models are imported from that file.',
     );
   }
-  return { schemas: true, specPath: normalizedTarget };
+  return {
+    schemas: true,
+    specPath: normalizedTarget,
+    ...(debugOutputPath
+      ? { debugOutputPath: normalizePath(debugOutputPath, workspace) }
+      : {}),
+  };
 }
 
 // Clients whose models are runtime schemas, which a spec module cannot provide.
@@ -1761,10 +1769,23 @@ export async function normalizeOptions(
     );
   }
 
+  // Only `schemas` is served by the content mapper so far. Outputs added later
+  // join this check, as `debugOutputPath` writes what they serve.
+  if (
+    outputOptions.contentMapper?.debugOutputPath &&
+    !outputOptions.contentMapper.schemas
+  ) {
+    throw new Error(
+      '`output.contentMapper.debugOutputPath` has nothing to show: enable an output that the content mapper serves, such as `output.contentMapper.schemas`.',
+    );
+  }
+
   if (outputOptions.contentMapper?.schemas) {
     normalizedOptions.output.contentMapper = normalizeContentMapperOption(
       globalOptions.input ?? inputOptions.target,
       normalizedOptions.input.target,
+      outputOptions.contentMapper.debugOutputPath,
+      outputWorkspace,
     );
     validateContentMapper(
       normalizedOptions.output,

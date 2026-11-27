@@ -5528,6 +5528,26 @@ describe('output.contentMapper', () => {
     expect(output.override.enumGenerationType).toBe('const');
   });
 
+  it('resolves the debug output path from the workspace', async () => {
+    const { output } = await normalize({
+      contentMapper: { schemas: true, debugOutputPath: './.orval' },
+    });
+
+    expect(output.contentMapper).toEqual({
+      schemas: true,
+      specPath,
+      debugOutputPath: path.join(workspace, '.orval'),
+    });
+  });
+
+  it('rejects a debug output path without an output to show', async () => {
+    await expect(
+      normalize({ contentMapper: { debugOutputPath: './.orval' } }),
+    ).rejects.toThrow(
+      '`output.contentMapper.debugOutputPath` has nothing to show',
+    );
+  });
+
   it('accepts enums set to unions', async () => {
     const { output } = await normalize({
       override: { enumGenerationType: 'union' },

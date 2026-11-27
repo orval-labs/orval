@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   escapePath,
   getConfiguredMockDirectories,
+  getContentMapperDebugFileName,
   getFileInfo,
   getGeneratedFileCheck,
   isString,
@@ -16,6 +18,7 @@ import {
   withMutatorSourceCache,
 } from '@orval/core';
 
+import { generateContentMapperOutput } from './generate-content-mapper-output';
 import { importSpecs } from './import-specs';
 import { logger } from './logger';
 import { namesAFile } from './utils/options';
@@ -241,4 +244,42 @@ async function generateSpecFiles(
   }
 
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
+
+  // Debug output is for reading, not committing, so a check leaves it out.
+  if (options.output.contentMapper?.debugOutputPath && !check) {
+    await writeContentMapperDebugOutput(workspace, options, projectName);
+  }
+}
+
+/**
+ * Write what the content mapper serves for the spec to
+ * `contentMapper.debugOutputPath`. The content is written as generated,
+ * without the formatter, the hooks or the trailing whitespace removal of
+ * `writeGeneratedFile`, so it matches what TypeScript sees.
+ */
+async function writeContentMapperDebugOutput(
+  workspace: string,
+  options: NormalizedOptions,
+  projectName?: string,
+) {
+  const contentMapper = options.output.contentMapper;
+  if (!contentMapper?.debugOutputPath) return;
+
+  const filePath = path.join(
+    contentMapper.debugOutputPath,
+    getContentMapperDebugFileName(contentMapper.specPath, 'schemas'),
+  );
+  const content = await generateContentMapperOutput(
+    workspace,
+    options,
+    projectName,
+  );
+
+  // An unchanged file is not rewritten, so watchers are not woken (#3787).
+  const existing = await fs.readFile(filePath, 'utf8').catch(() => undefined);
+  if (existing !== content) {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content);
+  }
+  logger.info(`Wrote the content mapper output to ${filePath}`);
 }
