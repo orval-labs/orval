@@ -19,6 +19,7 @@ import {
   type OutputHttpClient,
   pascal,
   type Verbs,
+  getMutationInvalidatesRules,
 } from '@orval/core';
 import { isSharedRuntimeStyle } from '@orval/fetch';
 
@@ -623,7 +624,9 @@ export const generateMutationHook = async ({
     adapter,
   });
 
-  const invalidatesConfig = (query.mutationInvalidates ?? [])
+  const invalidatesConfig = getMutationInvalidatesRules(
+    query.mutationInvalidates,
+  )
     .filter((rule) => rule.onMutations.includes(operationName))
     .flatMap((rule) => rule.invalidates)
     .map((t) => normalizeTarget(t));

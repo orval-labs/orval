@@ -1762,6 +1762,37 @@ export interface MutationInvalidatesRule {
 
 export type MutationInvalidatesConfig = MutationInvalidatesRule[];
 
+export interface MutationInvalidatesOperation {
+  /** The document's `operationId`, or the one orval derives when it has none. */
+  operationId: string;
+  /** The name rules use in `onMutations` and `invalidates`. */
+  operationName: string;
+  verb: Verbs;
+  /** The path as written in the document, e.g. `/pets/{petId}`. */
+  path: string;
+  /** The names a target's `params` refer to. */
+  pathParams: string[];
+  tags: string[];
+}
+
+export interface MutationInvalidatesQuery extends MutationInvalidatesOperation {
+  /** Target names of the generated query keys, e.g. `listPets`, `listPetsInfinite`. */
+  queryKeys: string[];
+}
+
+export interface MutationInvalidatesContext {
+  mutations: MutationInvalidatesOperation[];
+  queries: MutationInvalidatesQuery[];
+}
+
+export type MutationInvalidatesFn = (
+  context: MutationInvalidatesContext,
+) => MutationInvalidatesConfig;
+
+export type MutationInvalidatesOption =
+  | MutationInvalidatesConfig
+  | MutationInvalidatesFn;
+
 export interface HonoOptions {
   handlers?: string;
   handlerGenerationStrategy?: HonoHandlerStrategy;
@@ -1963,7 +1994,7 @@ export interface NormalizedQueryOptions {
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
-  mutationInvalidates?: MutationInvalidatesConfig;
+  mutationInvalidates?: MutationInvalidatesOption;
   runtimeValidation?: NormalizedRuntimeValidation;
 }
 
@@ -2014,7 +2045,7 @@ export interface QueryOptions {
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
-  mutationInvalidates?: MutationInvalidatesConfig;
+  mutationInvalidates?: MutationInvalidatesOption;
   runtimeValidation?: RuntimeValidation;
 }
 

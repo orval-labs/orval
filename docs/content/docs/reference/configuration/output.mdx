@@ -1928,7 +1928,7 @@ export function useShowPetById<...>(...)
 
 ### mutationInvalidates
 
-**Type:** `Array`
+**Type:** `Array | Function`
 
 Automatically invalidate or reset queries on mutation success (Angular Query, React Query, Svelte Query & Vue Query v5):
 
@@ -1998,6 +1998,55 @@ const deletePet = injectDeletePet({
   skipInvalidation: true,
 });
 ```
+
+#### Building rules with a function
+
+`mutationInvalidates` can also be a function. orval calls it once per output
+with every mutation and query it generates, and uses the rules it returns as if
+they were written out. This suits APIs whose invalidation follows the paths:
+
+```ts title="orval.config.ts"
+// The collection a path belongs to: '/pets/{petId}/photos' -> '/pets'.
+const collection = (path: string) => path.split('/').slice(0, 2).join('/');
+
+mutationInvalidates: ({ mutations, queries }) =>
+  mutations.map((mutation) => ({
+    onMutations: [mutation.operationName],
+    invalidates: queries
+      .filter((query) => collection(query.path) === collection(mutation.path))
+      .filter((query) =>
+        query.pathParams.every((param) => mutation.pathParams.includes(param)),
+      )
+      .flatMap((query) =>
+        query.queryKeys.map((name) => ({
+          query: name,
+          params: query.pathParams,
+        })),
+      ),
+  })),
+```
+
+Each mutation and query has:
+
+| Field | Example |
+|---|---|
+| `operationId` | `'DeletePet'`, from the document, or the one orval derives when it has none |
+| `operationName` | `'deletePet'`, the generated name rules refer to |
+| `verb` | `'delete'` |
+| `path` | `'/pets/{petId}'` |
+| `pathParams` | `['petId']`, the names `params` refers to |
+| `tags` | `['pets']` |
+
+Each query also has `queryKeys`, the `invalidates` target names of the query key functions generated for it: `operationName` for the plain key and `<operationName>Infinite` for the infinite one, listed only when generated. Query options set through a custom client builder are not reflected here.
+
+The function must be synchronous. Its rules are checked for unknown operations
+like a static array, and combine with rules from tag or operation overrides the
+same way two arrays do.
+
+In `tags` and `tags-split` mode, a target generated under another tag than the
+mutation is imported from that tag's file, so neither form needs a `file` for
+it. A `file` you set yourself is kept. The `tags-operations` modes put each
+operation in its own file and are not filled in, so set `file` there.
 
 #### Operation names
 

@@ -13,11 +13,17 @@ import {
   getRoute,
   GetterPropType,
   isObject,
+  createMutationInvalidatesFileFiller,
+  createMutationInvalidatesResolver,
+  getMutationInvalidatesContext,
+  type GeneratorVerbOptions,
   type MutationInvalidatesConfig,
+  type MutationInvalidatesContext,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
   type GeneratorVerbsOptions,
+  isFunction,
   isInlineSchema,
   OutputClient,
   OutputMode,
@@ -41,22 +47,10 @@ let mockModuleCache: Promise<typeof import('@orval/mock')> | undefined;
 
 const loadMockModule = () => (mockModuleCache ??= import('@orval/mock'));
 
-/**
- * Every `mutationInvalidates` list that reaches this output: the top-level one
- * plus whatever a tag or operation override merged in. `mergeDeep` replaces the
- * array rather than concatenating, so a per-operation rule set is invisible in
- * `output.override` and has to be read off the verb options.
- */
+/** Tag and operation overrides only reach the verb options, not `output.override`. */
 const collectMutationInvalidates = (
-  output: NormalizedOutputOptions,
-  pathEntries: ReadonlyArray<{ verbsOptions: GeneratorVerbsOptions }>,
-): MutationInvalidatesConfig =>
-  [
-    output.override.query.mutationInvalidates,
-    ...pathEntries.flatMap(({ verbsOptions }) =>
-      verbsOptions.map(({ override }) => override.query.mutationInvalidates),
-    ),
-  ].flatMap((rules) => rules ?? []);
+  rules: ReadonlyArray<MutationInvalidatesConfig | undefined>,
+): MutationInvalidatesConfig => rules.flatMap((list) => list ?? []);
 
 export async function getApiBuilder({
   input,
@@ -133,8 +127,66 @@ export async function getApiBuilder({
     pathEntries.push({ pathRoute, route, resolvedVerbs, verbsOptions });
   }
 
-  const allOperationNames = pathEntries.flatMap(({ verbsOptions }) =>
-    verbsOptions.map(({ operationName }) => operationName),
+  // `asyncReduce` returns array-likes that `flatMap` does not spread.
+  const allVerbOptions = pathEntries.flatMap(({ verbsOptions }) => [
+    ...verbsOptions,
+  ]);
+  const allOperationNames = allVerbOptions.map(
+    ({ operationName }) => operationName,
+  );
+
+  // A function needs every operation, so it is resolved here into static rules.
+  const topLevelInvalidates = output.override.query.mutationInvalidates;
+  const hasInvalidatesFunction = [
+    topLevelInvalidates,
+    ...allVerbOptions.map(({ override }) => override.query.mutationInvalidates),
+  ].some((option) => isFunction(option));
+  const queryModule = hasInvalidatesFunction
+    ? await import('@orval/query')
+    : undefined;
+  let invalidatesContext: MutationInvalidatesContext | undefined;
+  const resolveRules = createMutationInvalidatesResolver(() => {
+    if (!queryModule) {
+      throw new Error(
+        'mutationInvalidates context requested without a function',
+      );
+    }
+    invalidatesContext ??= getMutationInvalidatesContext(
+      allVerbOptions,
+      ({ verb, override, operationId, queryParams, body, props }) => {
+        const {
+          isQuery,
+          isMutation,
+          effectiveUseQuery,
+          effectiveUseSuspenseQuery,
+          effectiveUseInfinite,
+          effectiveUseSuspenseInfiniteQuery,
+        } = queryModule.resolveQueryHookKinds({
+          verb,
+          query: override.query,
+          operationQueryOptions: output.override.operations[operationId]?.query,
+          queryParams,
+          body,
+          props,
+          context,
+        });
+        if (isMutation) return 'mutation';
+        if (!isQuery) return undefined;
+        return {
+          plainKey: effectiveUseQuery || effectiveUseSuspenseQuery,
+          infiniteKey:
+            effectiveUseInfinite || effectiveUseSuspenseInfiniteQuery,
+        };
+      },
+    );
+    return invalidatesContext;
+  });
+  const topLevelRules = resolveRules(topLevelInvalidates);
+  const verbRules = new Map(
+    allVerbOptions.map((verbOption) => [
+      verbOption,
+      resolveRules(verbOption.override.query.mutationInvalidates),
+    ]),
   );
 
   // Checked here because it is the only point that holds every operation of the
@@ -146,13 +198,40 @@ export async function getApiBuilder({
   // or operation override, which replaces rather than extends the top-level
   // array, so every merged list is collected and the warnings deduped.
   for (const warning of getUnknownMutationInvalidatesWarnings({
-    mutationInvalidates: collectMutationInvalidates(output, pathEntries),
+    mutationInvalidates: collectMutationInvalidates([
+      ...new Set([topLevelRules, ...verbRules.values()]),
+    ]),
     operationNames: allOperationNames,
   })) {
     logger.warn(warning);
   }
 
-  const helperOptions = pathEntries.flatMap(({ verbsOptions }) =>
+  const fillFiles = createMutationInvalidatesFileFiller({
+    operations: allVerbOptions,
+    output,
+  });
+  const withResolvedInvalidates = (
+    verbOption: GeneratorVerbOptions,
+  ): GeneratorVerbOptions => {
+    const rules = verbRules.get(verbOption);
+    const filled = rules && fillFiles(rules);
+    if (filled === verbOption.override.query.mutationInvalidates) {
+      return verbOption;
+    }
+    return {
+      ...verbOption,
+      override: {
+        ...verbOption.override,
+        query: { ...verbOption.override.query, mutationInvalidates: filled },
+      },
+    };
+  };
+  const resolvedPathEntries = pathEntries.map((entry) => ({
+    ...entry,
+    verbsOptions: [...entry.verbsOptions].map(withResolvedInvalidates),
+  }));
+
+  const helperOptions = resolvedPathEntries.flatMap(({ verbsOptions }) =>
     verbsOptions.filter(({ mutator }) => !mutator),
   );
   const helperNames = getOperationUrlHelperNames(
@@ -164,7 +243,7 @@ export async function getApiBuilder({
   );
 
   const api = await asyncReduce(
-    pathEntries,
+    resolvedPathEntries,
     async (acc, { pathRoute, route, resolvedVerbs, verbsOptions }) => {
       const resolvedVerbOptions = verbsOptions.map((verbOption) => {
         const urlHelperName = helperNamesByOption.get(verbOption);

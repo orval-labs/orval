@@ -12,6 +12,7 @@ import {
   type GetterProps,
   GetterPropType,
   type GetterQueryParam,
+  type NormalizedQueryOptions,
   type GetterResponse,
   type InfiniteQueryParamLocation,
   isObject,
@@ -26,6 +27,8 @@ import {
   resolveRef,
   toObjectString,
   Verbs,
+  getMutationInvalidatesRules,
+  type MutationInvalidatesConfig,
 } from '@orval/core';
 import { isSharedRuntimeStyle } from '@orval/fetch';
 
@@ -103,11 +106,7 @@ export const getMutationInvalidatesConflictWarning = ({
   operationName: string;
   isMutation: boolean | undefined;
   isQuery: boolean;
-  mutationInvalidates:
-    | NonNullable<
-        GeneratorVerbOptions['override']['query']['mutationInvalidates']
-      >
-    | undefined;
+  mutationInvalidates: MutationInvalidatesConfig | undefined;
 }): string | undefined => {
   if (isMutation) return undefined;
   if (!mutationInvalidates?.length) return undefined;
@@ -233,6 +232,110 @@ export const getInfiniteQueryBody = (
   } catch {
     return {};
   }
+};
+
+export interface QueryHookKinds {
+  effectiveUseQuery: boolean;
+  effectiveUseSuspenseQuery: boolean;
+  effectiveUseInfinite: boolean;
+  effectiveUseSuspenseInfiniteQuery: boolean;
+  configuredInfiniteQueryParam: string | string[] | undefined;
+  infiniteQueryParamLocation: InfiniteQueryParamLocation;
+  infiniteQueryBody: InfiniteQueryBody | undefined;
+  infiniteQueryParam: string | undefined;
+  infiniteHookAllowed: boolean;
+  isQuery: boolean;
+  isMutation: boolean;
+}
+
+/** Shared with the `mutationInvalidates` function context so both agree on query vs mutation. */
+export const resolveQueryHookKinds = ({
+  verb,
+  query,
+  operationQueryOptions,
+  queryParams,
+  body,
+  props,
+  context,
+}: {
+  verb: Verbs;
+  query: NormalizedQueryOptions;
+  operationQueryOptions: NormalizedQueryOptions | undefined;
+  queryParams: GetterQueryParam | undefined;
+  body: GetterBody;
+  props: GetterProps;
+  context: ContextSpec;
+}): QueryHookKinds => {
+  // Precedence: per-operation override > global > per-verb default.
+  const effectiveUseQuery =
+    operationQueryOptions?.useQuery ?? query.useQuery ?? verb === Verbs.GET;
+  const effectiveUseMutation =
+    operationQueryOptions?.useMutation ??
+    query.useMutation ??
+    verb !== Verbs.GET;
+
+  // Global suspense/infinite flags apply to GET only.
+  const globalSuspenseOrInfiniteOnlyForGet = (
+    flag: boolean | undefined,
+  ): boolean => flag === true && verb === Verbs.GET;
+  const effectiveUseSuspenseQuery =
+    operationQueryOptions?.useSuspenseQuery ??
+    globalSuspenseOrInfiniteOnlyForGet(query.useSuspenseQuery);
+  // Read per-operation first: `mergeDeep` would append the op array after the global one.
+  const configuredInfiniteQueryParam =
+    operationQueryOptions?.useInfiniteQueryParam ?? query.useInfiniteQueryParam;
+  const infiniteQueryParamLocation =
+    operationQueryOptions?.useInfiniteQueryParamLocation ??
+    query.useInfiniteQueryParamLocation ??
+    'query';
+  const infiniteQueryBody =
+    infiniteQueryParamLocation === 'body'
+      ? getInfiniteQueryBody(body, props, context)
+      : undefined;
+  const { queryParam: infiniteQueryParam, infiniteHookAllowed } =
+    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam, {
+      location: infiniteQueryParamLocation,
+      body: infiniteQueryBody,
+    });
+  const effectiveUseInfinite =
+    (operationQueryOptions?.useInfinite ??
+      globalSuspenseOrInfiniteOnlyForGet(query.useInfinite)) &&
+    infiniteHookAllowed;
+  const effectiveUseSuspenseInfiniteQuery =
+    (operationQueryOptions?.useSuspenseInfiniteQuery ??
+      globalSuspenseOrInfiniteOnlyForGet(query.useSuspenseInfiniteQuery)) &&
+    infiniteHookAllowed;
+
+  let isQuery: boolean =
+    effectiveUseQuery ||
+    effectiveUseSuspenseQuery ||
+    effectiveUseInfinite ||
+    effectiveUseSuspenseInfiniteQuery;
+
+  let isMutation = effectiveUseMutation;
+
+  // Both set: query wins for non-GET, mutation wins for GET.
+  if (verb !== Verbs.GET && isQuery) {
+    isMutation = false;
+  }
+
+  if (verb === Verbs.GET && isMutation) {
+    isQuery = false;
+  }
+
+  return {
+    effectiveUseQuery,
+    effectiveUseSuspenseQuery,
+    effectiveUseInfinite,
+    effectiveUseSuspenseInfiniteQuery,
+    configuredInfiniteQueryParam,
+    infiniteQueryParamLocation,
+    infiniteQueryBody,
+    infiniteQueryParam,
+    infiniteHookAllowed,
+    isQuery,
+    isMutation,
+  };
 };
 
 /** `TPageParam` for an infinite query, indexed off the type the param lives in. */
@@ -1440,54 +1543,27 @@ export const generateQueryHook = async (
   let implementation = '';
   let mutators: GeneratorMutator[] | undefined;
 
-  // Precedence: per-operation override > global > per-verb default.
-  // `?? false` lets per-op `false` actually disable a globally enabled
-  // hook (the previous `[…].some(Boolean)` masked op-level false).
-  const effectiveUseQuery =
-    operationQueryOptions?.useQuery ??
-    override.query.useQuery ??
-    verb === Verbs.GET;
-  const effectiveUseMutation =
-    operationQueryOptions?.useMutation ??
-    override.query.useMutation ??
-    verb !== Verbs.GET;
-
-  // Suspense / Infinite have no per-verb default; global is GET-only,
-  // per-op overrides bypass that restriction in either direction.
-  const globalSuspenseOrInfiniteOnlyForGet = (
-    flag: boolean | undefined,
-  ): boolean => flag === true && verb === Verbs.GET;
-  const effectiveUseSuspenseQuery =
-    operationQueryOptions?.useSuspenseQuery ??
-    globalSuspenseOrInfiniteOnlyForGet(override.query.useSuspenseQuery);
-  // Read the per-operation value directly instead of trusting the merged
-  // `query`: `mergeDeep` concatenates arrays, so an op-level candidate array
-  // would be appended after the global one and lose first-match resolution.
-  const configuredInfiniteQueryParam =
-    operationQueryOptions?.useInfiniteQueryParam ?? query.useInfiniteQueryParam;
-  const infiniteQueryParamLocation =
-    operationQueryOptions?.useInfiniteQueryParamLocation ??
-    query.useInfiniteQueryParamLocation ??
-    'query';
-  const infiniteQueryBody =
-    infiniteQueryParamLocation === 'body'
-      ? getInfiniteQueryBody(body, props, context)
-      : undefined;
-  const { queryParam: infiniteQueryParam, infiniteHookAllowed } =
-    resolveInfiniteQueryParam(queryParams, configuredInfiniteQueryParam, {
-      location: infiniteQueryParamLocation,
-      body: infiniteQueryBody,
-    });
-  const effectiveUseInfinite =
-    (operationQueryOptions?.useInfinite ??
-      globalSuspenseOrInfiniteOnlyForGet(override.query.useInfinite)) &&
-    infiniteHookAllowed;
-  const effectiveUseSuspenseInfiniteQuery =
-    (operationQueryOptions?.useSuspenseInfiniteQuery ??
-      globalSuspenseOrInfiniteOnlyForGet(
-        override.query.useSuspenseInfiniteQuery,
-      )) &&
-    infiniteHookAllowed;
+  const {
+    effectiveUseQuery,
+    effectiveUseSuspenseQuery,
+    effectiveUseInfinite,
+    effectiveUseSuspenseInfiniteQuery,
+    configuredInfiniteQueryParam,
+    infiniteQueryParamLocation,
+    infiniteQueryBody,
+    infiniteQueryParam,
+    infiniteHookAllowed,
+    isQuery,
+    isMutation,
+  } = resolveQueryHookKinds({
+    verb,
+    query,
+    operationQueryOptions,
+    queryParams,
+    body,
+    props,
+    context,
+  });
 
   const suppressedInfiniteWarning = getSuppressedInfiniteQueryWarning({
     operationName,
@@ -1504,29 +1580,6 @@ export const generateQueryHook = async (
     logger.warn(suppressedInfiniteWarning);
   }
 
-  let isQuery =
-    effectiveUseQuery ||
-    effectiveUseSuspenseQuery ||
-    effectiveUseInfinite ||
-    effectiveUseSuspenseInfiniteQuery;
-
-  // No verb gate here: `effectiveUseMutation` already encodes the
-  // per-verb default (`verb !== Verbs.GET`), so an explicit
-  // `useMutation: true` — global or per-operation — must be honoured for
-  // GET operations too, mirroring how `isQuery` honours `useQuery: true`
-  // for non-GET verbs (#3358).
-  let isMutation = effectiveUseMutation;
-
-  // If both query and mutation are true for a non-GET operation, prioritize query
-  if (verb !== Verbs.GET && isQuery) {
-    isMutation = false;
-  }
-
-  // If both query and mutation are true for a GET operation, prioritize mutation
-  if (verb === Verbs.GET && isMutation) {
-    isQuery = false;
-  }
-
   const useSkipToken = resolveUseSkipToken(
     override.query.useSkipToken,
     adapter,
@@ -1541,7 +1594,9 @@ export const generateQueryHook = async (
     operationName,
     isMutation,
     isQuery,
-    mutationInvalidates: override.query.mutationInvalidates,
+    mutationInvalidates: getMutationInvalidatesRules(
+      override.query.mutationInvalidates,
+    ),
   });
   if (conflictWarning) {
     logger.warn(conflictWarning);

@@ -28,10 +28,12 @@ import type {
 import {
   asyncReduce,
   camel,
+  combineMutationInvalidates,
   dynamicImport,
   escapeRegExp,
   getOperationTagKey,
   getUniqueName,
+  isFunction,
   isObject,
   isString,
   isVerb,
@@ -407,9 +409,11 @@ export async function generateVerbOptions({
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operationId];
   let overrideTag: NormalizedOperationOptions = {};
+  const tagInvalidates: NormalizedOperationOptions[] = [];
   for (const [tag, options] of Object.entries(output.override.tags)) {
     if (tags.includes(tag) && options) {
       overrideTag = mergeDeep(overrideTag, options);
+      tagInvalidates.push(options);
     }
   }
 
@@ -417,6 +421,19 @@ export async function generateVerbOptions({
     mergeDeep(output.override, overrideTag),
     overrideOperation ?? {},
   ) as NormalizedOverrideOutput;
+
+  // `mergeDeep` lets a function replace an array, so combine the levels here.
+  const invalidatesLevels = [
+    output.override.query.mutationInvalidates,
+    ...tagInvalidates.map(({ query }) => query?.mutationInvalidates),
+    overrideOperation?.query?.mutationInvalidates,
+  ];
+  if (invalidatesLevels.some((level) => isFunction(level))) {
+    override.query = {
+      ...override.query,
+      mutationInvalidates: combineMutationInvalidates(invalidatesLevels),
+    };
+  }
   if (overrideOperation?.zod?.schemaExtension !== undefined) {
     override.zod.schemaExtension = overrideOperation.zod.schemaExtension;
   }
