@@ -3099,14 +3099,17 @@ const renderedForComparison = (value: unknown): string =>
   JSON.stringify(withSortedKeys(withoutConstNames(value)));
 
 // The definition without the functions that only describe it or let the key
-// be missing, as an extra-key rule never applies to a missing key.
+// be missing, as an extra-key rule never applies to a missing key. `nullish`
+// keeps its `null` and drops only the missing key.
 const withoutOptional = (
   definition: ZodValidationSchemaDefinition,
 ): ZodValidationSchemaDefinition => ({
   ...definition,
-  functions: definition.functions.filter(
-    ([fn]) => fn !== 'optional' && !ANNOTATION_FUNCTIONS.has(fn),
-  ),
+  functions: definition.functions
+    .filter(([fn]) => fn !== 'optional' && !ANNOTATION_FUNCTIONS.has(fn))
+    .map((entry): (typeof definition.functions)[number] =>
+      entry[0] === 'nullish' ? ['nullable', undefined] : entry,
+    ),
 });
 
 // Why merging an `allOf` of objects into one object would loosen it, if it

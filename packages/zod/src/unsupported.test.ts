@@ -1179,6 +1179,27 @@ describe('override.zod.unsupported review cases', () => {
     ).toThrow('also applies to `b`');
   });
 
+  it('accepts a nullable additionalProperties schema that matches an optional nullable key', () => {
+    expect(() =>
+      gen(
+        {
+          allOf: [
+            {
+              type: 'object',
+              properties: { a: { type: 'string' } },
+              additionalProperties: { type: ['string', 'null'] },
+            },
+            {
+              type: 'object',
+              properties: { b: { type: ['string', 'null'] } },
+            },
+          ],
+        },
+        { strict: true },
+      ),
+    ).not.toThrow();
+  });
+
   it('names the member of a forbidden key without a sibling property', () => {
     expect(() =>
       gen({
