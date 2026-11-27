@@ -1156,7 +1156,7 @@ export type OperationTypes = {
 - `mock` is the `get<Op>ResponseMock` factory a [mock generator](#mock) emits for the operation, or `null`. The manifest only names it and never imports mock code.
 - `OperationTypes` references the types orval already generates. `response` is the payload type, not the client's return type, which a mutator or `includeHttpResponseReturnType` can wrap. The whole map, request types included, is left out for the `zod`, `effect` and `valibot` clients and for Zod, Valibot and Effect schemas.
 
-Set `operationManifest: { responsesByStatus: true }` to look up generated response payloads by status, for example `OperationTypes['showPetById']['responsesByStatus'][200]`. Exact codes use numeric keys, while ranges such as `'4XX'` and the `'default'` response use string keys. A status with multiple payload types gets their union. This option requires `OperationTypes` to be enabled.
+Set `operationManifest: { responsesByStatus: true }` to look up generated response payloads by status, for example `OperationTypes['showPetById']['responsesByStatus'][200]`. Exact codes use numeric keys, while ranges such as `'4XX'` and the `'default'` response use string keys. A status with multiple payload types gets their union. If any media type kept by `override.contentType` has no schema, the status gets `unknown`. This option requires `OperationTypes` to be enabled.
 
 The manifest isn't re-exported from the workspace `index.ts`.
 
