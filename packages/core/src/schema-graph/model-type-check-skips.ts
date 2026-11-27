@@ -1,6 +1,6 @@
 import { getFormDataComponentContexts } from '../getters/form-data-components';
 import type { ContextSpec } from '../types';
-import { isObject, isString } from '../utils/assertion';
+import { isEmptySchemaObject, isObject, isString } from '../utils/assertion';
 import {
   getFormDataFieldFileType,
   isOctetStreamContentType,
@@ -99,6 +99,7 @@ const TYPING_KEYS = [
 ] as const;
 
 const isUntyped = (schema: Record<string, unknown>): boolean =>
+  !isEmptySchemaObject(schema.not) &&
   TYPING_KEYS.every((key) => schema[key] === undefined);
 
 // The keys that describe an object without giving the schema a type.
@@ -818,12 +819,6 @@ const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
     libraries: ['zod'],
     isIn: (schema) =>
       schema.items === false && schema.prefixItems === undefined,
-  },
-  {
-    reason:
-      'a not of an empty schema is validated as never, which the model types as unknown',
-    libraries: ['zod'],
-    isIn: ({ not }) => isObject(not) && !hasKeys(not),
   },
   {
     reason:

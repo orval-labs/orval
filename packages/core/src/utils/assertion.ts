@@ -72,6 +72,11 @@ export function isObject(x: unknown): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
 }
 
+/** Whether a schema value is the unconstrained empty object. */
+export function isEmptySchemaObject(schema: unknown): boolean {
+  return isObject(schema) && Object.keys(schema).length === 0;
+}
+
 /**
  * Type guard for ES module namespace objects.
  *

@@ -5,4 +5,4 @@
  * OpenAPI spec version: 0.0.0
  */
 
-export type NeverItems = unknown[];
+export type NeverItems = never[];
