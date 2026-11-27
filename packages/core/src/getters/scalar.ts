@@ -20,7 +20,11 @@ import {
   sanitize,
   toJsLiteral,
 } from '../utils';
-import { isNullOnlyEnum, isStringLikeSchema } from '../utils/assertion';
+import {
+  isEmptySchemaObject,
+  isNullOnlyEnum,
+  isStringLikeSchema,
+} from '../utils/assertion';
 import {
   getFormDataFieldFileType,
   isOctetStreamContentType,
@@ -422,7 +426,8 @@ export function getScalar({
   if (item === true) {
     return booleanSchemaScalar('unknown');
   }
-  if (item === false) {
+  // Negating the empty schema rejects every value, like boolean false.
+  if (item === false || isEmptySchemaObject(item.not)) {
     return booleanSchemaScalar('never');
   }
 

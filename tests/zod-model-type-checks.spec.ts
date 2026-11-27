@@ -178,7 +178,7 @@ describe.each(['model-type-checks', 'model-type-checks-mini'])(
         /\/\/ EmailConst: skipped, a const next to a string format/,
       );
       expect(schemas).toMatch(/\/\/ NoItems: skipped, items of false/);
-      expect(schemas).toMatch(/\/\/ NeverItems: skipped, a not of an empty/);
+      expect(schemas).toContain('Models.NeverItems>');
       expect(schemas).toMatch(
         /\/\/ UnevaluatedRecord: skipped, unevaluatedProperties/,
       );

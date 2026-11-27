@@ -2119,22 +2119,20 @@ describe('getModelTypeCheckSkips', () => {
   });
 
   describe('a not of an empty schema', () => {
-    const reason =
-      'a not of an empty schema is validated as never, which the model types as unknown';
     const schemas: Record<string, OpenApiSchemaObject> = {
+      Impossible: { not: {} },
       Prop: { type: 'object', properties: { a: { not: {} } } },
       Items: { type: 'array', items: { not: {} } },
       Record: { type: 'object', additionalProperties: { not: {} } },
       Typed: { type: 'object', properties: { a: { not: { type: 'string' } } } },
     };
 
-    it('is skipped for Zod, which validates it as never', () => {
-      expect(skipsOf(schemas, 'zod')).toEqual({
-        Prop: reason,
-        Items: reason,
-        Record: reason,
-      });
-    });
+    it.each(['zod', 'valibot'] as const)(
+      'is checked for %s, which validates it as never',
+      (library) => {
+        expect(skipsOf(schemas, library)).toEqual({});
+      },
+    );
   });
 
   describe('an enum without a primitive member, in the Zod 3 output', () => {

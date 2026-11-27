@@ -117,6 +117,40 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].name).toBe('TestSchemaSuffix');
   });
 
+  it('types an optional property with not: {} as never in a union', () => {
+    const result = generateSchemasDefinition(
+      {
+        ConnectionAction: {
+          anyOf: [
+            {
+              type: 'object',
+              required: ['action'],
+              properties: {
+                action: { const: 'START' },
+                channelId: { not: {} },
+                metadata: { not: { type: 'number' } },
+              },
+            },
+            {
+              type: 'object',
+              required: ['action', 'channelId'],
+              properties: {
+                action: { const: 'UPDATE' },
+                channelId: { type: 'string' },
+              },
+            },
+          ],
+        },
+      },
+      context,
+      '',
+    );
+
+    expect(result[0].model).toBe(
+      "export type ConnectionAction = {\n  action: 'START';\n  channelId?: never;\n  metadata?: unknown;\n} | {\n  action: 'UPDATE';\n  channelId: string;\n};\n",
+    );
+  });
+
   it('should preserve enum and schema kinds on generated entries', () => {
     const result = generateSchemasDefinition(
       {

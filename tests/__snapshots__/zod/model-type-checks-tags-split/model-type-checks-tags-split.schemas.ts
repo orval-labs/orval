@@ -487,7 +487,10 @@ type SchemaModelTypeChecks = {
   // NullAnyOf: skipped, a null type next to allOf, oneOf or anyOf is validated without the null
   // EmailConst: skipped, a const next to a string format is validated as the format, not as the literal
   // NoItems: skipped, items of false is typed unknown[] by the model and never[] by the schema
-  // NeverItems: skipped, a not of an empty schema is validated as never, which the model types as unknown
+  NeverItems: [
+    Assert<Extends<zod.output<typeof NeverItems>, Models.NeverItems>>,
+    Assert<Extends<Models.NeverItems, zod.output<typeof NeverItems>>>,
+  ];
   // UnevaluatedRecord: skipped, unevaluatedProperties of a schema is typed by the model and not by the schema
   // Upload: skipped, the media type of a multipart part widens the model to a file, which the schema does not
   // ImageUpload: skipped, the media type of a multipart part widens the model to a file, which the schema does not
