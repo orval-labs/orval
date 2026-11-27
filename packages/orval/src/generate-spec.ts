@@ -177,6 +177,12 @@ async function generateSpecFiles(
       }
     }
 
+    // The debug output is rewritten after the wipe and is never compared, so
+    // the wipe leaves it alone: a check would report it as obsolete, and a run
+    // would rewrite it every time.
+    const debugFile = getContentMapperDebugFile(options);
+    const comparableDebugFile = debugFile && toComparablePath(debugFile);
+
     const mockDirectories = getConfiguredMockDirectories(
       options.output.mock,
     ).map(toComparablePath);
@@ -194,8 +200,19 @@ async function generateSpecFiles(
             `!${escapePath(relativeToParent(directory, mockDirectory))}/**`,
         );
 
+      const debugFilePatterns =
+        comparableDebugFile && isBelow(directory, comparableDebugFile)
+          ? [`!${escapePath(relativeToParent(directory, comparableDebugFile))}`]
+          : [];
+
       await removeOrRecord(
-        ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
+        [
+          '**/*',
+          '!**/*.d.ts',
+          ...extraPatterns,
+          ...nestedMockPatterns,
+          ...debugFilePatterns,
+        ],
         directory,
       );
     }
@@ -251,6 +268,19 @@ async function generateSpecFiles(
   }
 }
 
+/** The file `contentMapper.debugOutputPath` writes the models to, if any. */
+function getContentMapperDebugFile(
+  options: NormalizedOptions,
+): string | undefined {
+  const contentMapper = options.output.contentMapper;
+  return contentMapper?.debugOutputPath
+    ? path.join(
+        contentMapper.debugOutputPath,
+        getContentMapperDebugFileName(contentMapper.specPath, 'schemas'),
+      )
+    : undefined;
+}
+
 /**
  * Write what the content mapper serves for the spec to
  * `contentMapper.debugOutputPath`. The content is written as generated,
@@ -262,13 +292,9 @@ async function writeContentMapperDebugOutput(
   options: NormalizedOptions,
   projectName?: string,
 ) {
-  const contentMapper = options.output.contentMapper;
-  if (!contentMapper?.debugOutputPath) return;
+  const filePath = getContentMapperDebugFile(options);
+  if (!filePath) return;
 
-  const filePath = path.join(
-    contentMapper.debugOutputPath,
-    getContentMapperDebugFileName(contentMapper.specPath, 'schemas'),
-  );
   const content = await generateContentMapperOutput(
     workspace,
     options,

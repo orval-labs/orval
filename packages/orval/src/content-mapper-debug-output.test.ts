@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  collectOutdatedGeneratedFiles,
   createGeneratedFileCheck,
   type OpenApiDocument,
   type OutputOptions,
@@ -130,5 +131,41 @@ describe('output.contentMapper.debugOutputPath', () => {
     await generateSpec(workspace, options);
 
     expect((await stat(debugFile)).mtimeMs).toBe(mtimeMs);
+  });
+
+  describe('below the target directory, with clean', () => {
+    // Not a dot directory, which the wipe's glob would skip anyway.
+    const normalizeNested = () =>
+      normalize({
+        clean: true,
+        contentMapper: { schemas: true, debugOutputPath: './api/debug' },
+      });
+
+    beforeEach(() => {
+      debugFile = path.join(workspace, 'api/debug/petstore.schemas.ts');
+    });
+
+    it('is not reported as obsolete by a check', async () => {
+      const options = await normalizeNested();
+      await generateSpec(workspace, options);
+
+      const check = createGeneratedFileCheck();
+      await withGeneratedFileCheck(check, () =>
+        generateSpec(workspace, options),
+      );
+
+      expect(await collectOutdatedGeneratedFiles(check)).toEqual([]);
+    });
+
+    it('is not removed and rewritten by a run', async () => {
+      const options = await normalizeNested();
+      await generateSpec(workspace, options);
+      const { mtimeMs } = await stat(debugFile);
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await generateSpec(workspace, options);
+
+      expect((await stat(debugFile)).mtimeMs).toBe(mtimeMs);
+    });
   });
 });
