@@ -187,6 +187,7 @@ export function resolveObject({
     propName,
     combined,
     projectName: context.projectName ?? context.output.target,
+    useArrayLengthTuples: context.output.override.useArrayLengthTuples === true,
     formDataContext,
     dynamicScope: context.dynamicScope,
   });

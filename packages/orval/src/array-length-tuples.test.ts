@@ -187,6 +187,24 @@ describe('array length tuples in generated types', () => {
     expect(await readFile(model, 'utf8')).toBe(baseline);
   });
 
+  it('regenerates nested array types when toggled in the same process', async () => {
+    await generate({ override: { useArrayLengthTuples: false } });
+    expect(diagnostics(consumer())).toEqual([]);
+
+    await generate({ override: { useArrayLengthTuples: true } });
+    expect(
+      diagnostics(
+        consumer(
+          '// @ts-expect-error At least one arrangement is required.',
+          '// @ts-expect-error At most four arrangements are allowed.',
+        ),
+      ),
+    ).toEqual([]);
+
+    await generate({ override: { useArrayLengthTuples: false } });
+    expect(diagnostics(consumer())).toEqual([]);
+  });
+
   it('checks both bounds through split models and an inline request', async () => {
     await generate({ override: { useArrayLengthTuples: true } });
     expect(
