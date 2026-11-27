@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   escapePath,
   getConfiguredMockDirectories,
+  getContentMapperDebugFileName,
   getFileInfo,
   getGeneratedFileCheck,
   isString,
@@ -16,6 +18,7 @@ import {
   withMutatorSourceCache,
 } from '@orval/core';
 
+import { generateContentMapperOutput } from './generate-content-mapper-output';
 import { importSpecs } from './import-specs';
 import { logger } from './logger';
 import { namesAFile } from './utils/options';
@@ -174,6 +177,12 @@ async function generateSpecFiles(
       }
     }
 
+    // The debug output is rewritten after the wipe and is never compared, so
+    // the wipe leaves it alone: a check would report it as obsolete, and a run
+    // would rewrite it every time.
+    const debugFile = getContentMapperDebugFile(options);
+    const comparableDebugFile = debugFile && toComparablePath(debugFile);
+
     const mockDirectories = getConfiguredMockDirectories(
       options.output.mock,
     ).map(toComparablePath);
@@ -191,8 +200,19 @@ async function generateSpecFiles(
             `!${escapePath(relativeToParent(directory, mockDirectory))}/**`,
         );
 
+      const debugFilePatterns =
+        comparableDebugFile && isBelow(directory, comparableDebugFile)
+          ? [`!${escapePath(relativeToParent(directory, comparableDebugFile))}`]
+          : [];
+
       await removeOrRecord(
-        ['**/*', '!**/*.d.ts', ...extraPatterns, ...nestedMockPatterns],
+        [
+          '**/*',
+          '!**/*.d.ts',
+          ...extraPatterns,
+          ...nestedMockPatterns,
+          ...debugFilePatterns,
+        ],
         directory,
       );
     }
@@ -241,4 +261,51 @@ async function generateSpecFiles(
   }
 
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
+
+  // Debug output is for reading, not committing, so a check leaves it out.
+  if (options.output.contentMapper?.debugOutputPath && !check) {
+    await writeContentMapperDebugOutput(workspace, options, projectName);
+  }
+}
+
+/** The file `contentMapper.debugOutputPath` writes the models to, if any. */
+function getContentMapperDebugFile(
+  options: NormalizedOptions,
+): string | undefined {
+  const contentMapper = options.output.contentMapper;
+  return contentMapper?.debugOutputPath
+    ? path.join(
+        contentMapper.debugOutputPath,
+        getContentMapperDebugFileName(contentMapper.specPath, 'schemas'),
+      )
+    : undefined;
+}
+
+/**
+ * Write what the content mapper serves for the spec to
+ * `contentMapper.debugOutputPath`. The content is written as generated,
+ * without the formatter, the hooks or the trailing whitespace removal of
+ * `writeGeneratedFile`, so it matches what TypeScript sees.
+ */
+async function writeContentMapperDebugOutput(
+  workspace: string,
+  options: NormalizedOptions,
+  projectName?: string,
+) {
+  const filePath = getContentMapperDebugFile(options);
+  if (!filePath) return;
+
+  const content = await generateContentMapperOutput(
+    workspace,
+    options,
+    projectName,
+  );
+
+  // An unchanged file is not rewritten, so watchers are not woken (#3787).
+  const existing = await fs.readFile(filePath, 'utf8').catch(() => undefined);
+  if (existing !== content) {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content);
+  }
+  logger.info(`Wrote the content mapper output to ${filePath}`);
 }

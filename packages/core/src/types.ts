@@ -122,6 +122,8 @@ export interface NormalizedContentMapperOptions {
   schemas: boolean;
   /** Absolute path of the spec file that the content mapper serves. */
   specPath: string;
+  /** Absolute directory that the content mapper's output is written to. */
+  debugOutputPath?: string;
 }
 
 export interface NormalizedOperationManifestOptions {
@@ -576,6 +578,14 @@ export interface ContentMapperOptions {
    * module. Enums default to `union`, as the spec has no runtime values.
    */
   schemas?: boolean;
+  /**
+   * Directory to write what the content mapper serves for the spec, so the
+   * types TypeScript sees can be checked. Each run writes one file per output
+   * the content mapper serves, such as `<spec>.schemas.ts`. Requires an output
+   * served by the content mapper, such as `schemas`. Add the directory to
+   * `.gitignore`, and do not import from it.
+   */
+  debugOutputPath?: string;
 }
 
 export interface OperationManifestOptions {

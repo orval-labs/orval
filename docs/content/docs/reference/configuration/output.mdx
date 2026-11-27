@@ -1160,7 +1160,7 @@ The manifest isn't re-exported from the workspace `index.ts`.
 
 ## contentMapper
 
-**Type:** `{ schemas?: Boolean }`
+**Type:** `{ schemas?: Boolean; debugOutputPath?: String }`
 **Default:** `undefined`
 
 Delivers outputs through Orval's TypeScript 7.1 content mapper instead of writing them as files.
@@ -1194,6 +1194,32 @@ The spec has no runtime values, so:
 - `clean` is rejected when the spec is in the target's directory, as it would remove the spec.
 
 When the tsconfig registers Orval's content mapper (`contentMappers` with `package: 'orval'`), the spec must end with one of its `extensions`. Without such an entry, Orval warns, as TypeScript cannot resolve the imports.
+
+### debugOutputPath
+
+The code the content mapper returns isn't kept as a file, so its content can't be read as is. With `debugOutputPath`, the same content the content mapper returns is written to that directory, so you can check the types TypeScript sees in the editor.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.openapi.yaml',
+    output: {
+      target: './src/api/endpoints.ts',
+      client: 'react-query',
+      contentMapper: {
+        schemas: true,
+        debugOutputPath: './.orval',
+      },
+    },
+  },
+});
+```
+
+- It is written on every run of `orval`, including `--watch`.
+- The file name is the spec's file name without any of its extensions, followed by `.schemas.ts`. For example, `petstore.openapi.yaml` is written to `.orval/petstore.schemas.ts`.
+- The content is the same as the output of `--print-content-mapper`. The formatter and `hooks` are not applied, and `--outdated` does not compare it.
+- It needs an output served by the content mapper. For now, it is only available with `schemas: true`.
+- Add the directory to `.gitignore`, and don't import from the written files.
 
 ## tagsSplitDeduplication
 

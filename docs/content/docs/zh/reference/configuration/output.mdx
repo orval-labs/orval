@@ -882,7 +882,7 @@ manifest 不会从 workspace 的 `index.ts` 重新导出。
 
 ## contentMapper
 
-**类型：** `{ schemas?: Boolean }`
+**类型：** `{ schemas?: Boolean; debugOutputPath?: String }`
 **默认值：** `undefined`
 
 通过 Orval 的 TypeScript 7.1 content mapper 提供输出，而不是将其写入文件。
@@ -916,6 +916,32 @@ spec 没有运行时的值，因此：
 - 当 spec 位于 target 所在目录时，`clean` 会被拒绝，因为它会删除 spec。
 
 当 tsconfig 注册了 Orval 的 content mapper（`contentMappers` 中 `package: 'orval'` 的条目）时，spec 必须以其 `extensions` 之一结尾。如果没有这样的条目，Orval 会发出警告，因为 TypeScript 无法解析这些导入。
+
+### debugOutputPath
+
+content mapper 返回的代码不会保存为文件，因此无法直接查看其内容。设置 `debugOutputPath` 后，与 content mapper 返回内容相同的代码会写入该目录，从而可以查看 TypeScript 在编辑器中看到的类型。
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    input: './petstore.openapi.yaml',
+    output: {
+      target: './src/api/endpoints.ts',
+      client: 'react-query',
+      contentMapper: {
+        schemas: true,
+        debugOutputPath: './.orval',
+      },
+    },
+  },
+});
+```
+
+- 每次运行 `orval`（包括 `--watch`）时都会写入。
+- 文件名是去掉 spec 文件名的所有扩展名后加上 `.schemas.ts`。例如，`petstore.openapi.yaml` 会写入 `.orval/petstore.schemas.ts`。
+- 内容与 `--print-content-mapper` 的输出相同。不会应用 formatter 和 `hooks`，`--outdated` 也不会比较它。
+- 需要有由 content mapper 提供的输出。目前仅在 `schemas: true` 时可用。
+- 请将该目录添加到 `.gitignore`，并且不要从写入的文件导入。
 
 ## tagsSplitDeduplication
 
