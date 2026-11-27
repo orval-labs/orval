@@ -1,5 +1,5 @@
-export function getOrvalGeneratedTypes(useReadonlyArrays = false) {
-  // Filtering response-only fields must preserve readonly collection identity;
+export function getOrvalGeneratedTypes(preserveArrayTypes = false) {
+  // Filtering response-only fields must preserve array and tuple identity;
   // mapping through WritableKeys alone turns arrays into objects with methods.
   return `
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
@@ -23,7 +23,7 @@ type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
 
 type Writable<T> = Pick<T, WritableKeys<T>>;
 type NonReadonly<T> = ${
-    useReadonlyArrays
+    preserveArrayTypes
       ? `T extends string | number | boolean | bigint | symbol | null | undefined ? T
 : T extends (...args: never[]) => unknown ? T
 : T extends readonly unknown[] ? { [P in keyof T]: NonReadonly<T[P]> }
@@ -33,7 +33,7 @@ type NonReadonly<T> = ${
   [P in keyof Writable<T>]: T[P] extends object
     ? NonReadonly<NonNullable<T[P]>>
     : T[P];
-} : DistributeReadOnlyOverUnions<T>${useReadonlyArrays ? ' : T' : ''};
+} : DistributeReadOnlyOverUnions<T>${preserveArrayTypes ? ' : T' : ''};
 `;
 }
 

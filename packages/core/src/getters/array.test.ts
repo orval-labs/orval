@@ -16,6 +16,171 @@ describe('getArray', () => {
     },
   });
 
+  describe('useArrayLengthTuples', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 1,
+      maxItems: 3,
+    };
+    const enabled = createTestContextSpec({
+      override: { useArrayLengthTuples: true },
+    });
+
+    it('emits one tuple for each length in the inclusive range', () => {
+      expect(getArray({ schema, context: enabled }).value).toBe(
+        '[string] | [string, string] | [string, string, string]',
+      );
+    });
+
+    it('keeps the array type by default and when explicitly disabled', () => {
+      expect(getArray({ schema, context }).value).toBe('string[]');
+      expect(
+        getArray({
+          schema,
+          context: createTestContextSpec({
+            override: { useArrayLengthTuples: false },
+          }),
+        }).value,
+      ).toBe('string[]');
+    });
+
+    it('uses zero for an omitted minimum and supports an empty tuple', () => {
+      expect(
+        getArray({
+          schema: { ...schema, minItems: undefined, maxItems: 2 },
+          context: enabled,
+        }).value,
+      ).toBe('[] | [string] | [string, string]');
+      expect(
+        getArray({
+          schema: { ...schema, minItems: 0, maxItems: 0 },
+          context: enabled,
+        }).value,
+      ).toBe('[]');
+    });
+
+    it('includes the supported upper boundary for a fixed length', () => {
+      expect(
+        getArray({
+          schema: { ...schema, minItems: 8, maxItems: 8 },
+          context: enabled,
+        }).value,
+      ).toBe(
+        '[string, string, string, string, string, string, string, string]',
+      );
+    });
+
+    it.each([
+      [1, undefined],
+      [1, 9],
+      [1, Number.POSITIVE_INFINITY],
+      [1, 2.5],
+      [0.5, 2],
+      [-1, 2],
+      [0, -1],
+      [2, 1],
+    ])('keeps an array for unsupported bounds %s..%s', (minItems, maxItems) => {
+      expect(
+        getArray({
+          schema: { ...schema, minItems, maxItems },
+          context: enabled,
+        }).value,
+      ).toBe('string[]');
+    });
+
+    it('keeps the existing prefixItems path', () => {
+      expect(
+        getArray({
+          schema: {
+            ...schema,
+            prefixItems: [{ type: 'boolean' }],
+          },
+          context: enabled,
+        }).value,
+      ).toBe('[boolean, ...string[]]');
+    });
+
+    it.each([
+      [true, false, false, 'readonly '],
+      [true, true, false, ''],
+      [false, false, true, 'readonly '],
+    ])(
+      'preserves readOnly=%s, suppressReadonlyModifier=%s and useReadonlyArrays=%s',
+      (readOnly, suppressReadonlyModifier, useReadonlyArrays, prefix) => {
+        expect(
+          getArray({
+            schema: { ...schema, readOnly, maxItems: 2 },
+            context: createTestContextSpec({
+              override: {
+                useArrayLengthTuples: true,
+                suppressReadonlyModifier,
+                useReadonlyArrays,
+              },
+            }),
+          }).value,
+        ).toBe(`${prefix}[string] | ${prefix}[string, string]`);
+      },
+    );
+
+    it('keeps a readonly tuple as the element of a mutable array', () => {
+      expect(
+        getArray({
+          schema: {
+            type: 'array',
+            items: { ...schema, minItems: 1, maxItems: 1, readOnly: true },
+          },
+          context: enabled,
+        }).value,
+      ).toBe('(readonly [string])[]');
+    });
+
+    it('groups a new tuple union when it is used as a rest element', () => {
+      expect(
+        getArray({
+          schema: {
+            type: 'array',
+            prefixItems: [{ type: 'boolean' }],
+            items: { ...schema, maxItems: 2 },
+          },
+          context: enabled,
+        }).value,
+      ).toBe('[boolean, ...([string] | [string, string])[]]');
+    });
+
+    it('does not repeatedly expand a large inline tuple union', () => {
+      const inner = { ...schema, minItems: 0, maxItems: 8 };
+      const nested = getArray({
+        schema: { ...inner, items: inner },
+        context: enabled,
+      }).value;
+      expect(nested).toBe(
+        `(${getArray({ schema: inner, context: enabled }).value})[]`,
+      );
+    });
+
+    it('resolves a referenced item once for all lengths', () => {
+      const items = { $ref: '#/components/schemas/Item' };
+      const spec = {
+        components: { schemas: { Item: { type: 'string' } } },
+      } as const;
+      const config = createTestContextSpec({ spec });
+      const boundedSchema = { ...schema, items };
+      const original = getArray({ schema: boundedSchema, context: config });
+      const result = getArray({
+        schema: boundedSchema,
+        context: createTestContextSpec({
+          spec,
+          override: { useArrayLengthTuples: true },
+        }),
+      });
+      expect(result.value).toBe('[Item] | [Item, Item] | [Item, Item, Item]');
+      expect(result.imports).toEqual(original.imports);
+      expect(result.dependencies).toEqual(original.dependencies);
+      expect(result.schemas).toEqual(original.schemas);
+    });
+  });
+
   it('should inline types when name is undefined (no schemas generated)', () => {
     // When name is undefined, types should be inlined, not declared as schemas.
     // Previously `undefined + "Item"` became "undefinedItem" via JS coercion.

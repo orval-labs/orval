@@ -388,7 +388,7 @@ export function buildOperationManifest(
     // generated file declares locally rather than exports, so declare it here too.
     const helperTypes = generateOrvalHelperTypes(
       renderedTypes,
-      output.override.useReadonlyArrays,
+      output.override.useReadonlyArrays || output.override.useArrayLengthTuples,
     );
     implementation += `${helperTypes ? `\n${helperTypes.trimEnd()}\n` : ''}\n${renderedTypes}`;
   }

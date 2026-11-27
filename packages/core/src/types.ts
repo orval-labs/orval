@@ -224,6 +224,8 @@ export interface NormalizedOverrideOutput {
   suppressReadonlyModifier?: boolean;
   /** Emit readonly array and tuple types for schemas. @default false */
   useReadonlyArrays?: boolean;
+  /** Emit tuple unions for small, bounded homogeneous arrays. @default false */
+  useArrayLengthTuples?: boolean;
   /**
    * Controls how readonly properties are handled for generated request-body types.
    *
@@ -1057,6 +1059,8 @@ export interface OverrideOutput {
   suppressReadonlyModifier?: boolean;
   /** Emit readonly array and tuple types for schemas. @default false */
   useReadonlyArrays?: boolean;
+  /** Emit tuple unions for small, bounded homogeneous arrays. @default false */
+  useArrayLengthTuples?: boolean;
   /**
    * Controls how readonly properties are handled for generated request-body types.
    *
@@ -3067,6 +3071,7 @@ export const SchemaType = {
 
 export interface ScalarValue {
   value: string;
+  isArrayLengthTuple?: true;
   useTypeAlias?: boolean;
   isEnum: boolean;
   hasReadonlyProps: boolean;

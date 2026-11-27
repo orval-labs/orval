@@ -252,7 +252,7 @@ export async function generateSingleMode({
 
   data += generateOrvalHelperTypes(
     implementation,
-    output.override.useReadonlyArrays,
+    output.override.useReadonlyArrays || output.override.useArrayLengthTuples,
   );
 
   if (!output.schemas && needSchema) {
