@@ -24,6 +24,22 @@ components:
       properties:
         id:
           description: not defined type schema
+    RequiredAnyOfSearch:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          readOnly: true
+        firstName:
+          type: string
+        lastName:
+          type: string
+        page:
+          type: integer
+      anyOf:
+        - required: [email]
+        - required: [firstName, lastName]
     UnionBase:
       type: object
       properties:

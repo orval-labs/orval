@@ -2,6 +2,7 @@ import { isBooleanJsonSchema } from '@scalar/openapi-types/helpers';
 
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
+import { getRequiredOnlyAnyOf } from '../schema-graph/schema-keys';
 import type { SchemaType } from '../types';
 import {
   type ContextSpec,
@@ -284,8 +285,9 @@ export function getObject({
   const itemOneOf = schemaItem.oneOf;
   const itemAnyOf = schemaItem.anyOf;
   const itemType = schemaItem.type as string | string[] | undefined;
+  const requiredAlternatives = itemAnyOf && getRequiredOnlyAnyOf(schemaItem);
 
-  if (itemAllOf || itemOneOf || itemAnyOf) {
+  if ((itemAllOf || itemOneOf || itemAnyOf) && !requiredAlternatives) {
     const separator = itemAllOf ? 'allOf' : itemOneOf ? 'oneOf' : 'anyOf';
 
     // A nullable object spelled as the explicit OAS 3.1 composition
@@ -459,6 +461,9 @@ export function getObject({
       ),
     };
     const itemRequired = schemaItem.required;
+    const requiredPropertyTypes = requiredAlternatives
+      ? new Map<string, string>()
+      : undefined;
     for (const [index, [key, schema]] of entries.entries()) {
       const isRequired = (
         Array.isArray(itemRequired) ? itemRequired : []
@@ -568,17 +573,19 @@ export function getObject({
           ? `${propValue} | null`
           : propValue;
 
-      acc.value += `\n${propertyDoc}${
+      const propertyKey = `${
         isReadOnly && !context.output.override.suppressReadonlyModifier
-          ? '  readonly '
-          : '  '
+          ? 'readonly '
+          : ''
       }${getKey(
         propertyConvention
           ? collisionKeys.has(key)
             ? key // collision: fall back to the original (unique) schema key
             : conventionName(key, propertyConvention)
           : key,
-      )}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      )}`;
+      acc.value += `\n${propertyDoc}  ${propertyKey}${isRequired ? '' : '?'}: ${finalPropValue};`;
+      requiredPropertyTypes?.set(key, `${propertyKey}: ${propValue};`);
       if (usedResolvedValue) {
         acc.schemas.push(...resolvedValue.schemas);
         acc.dependencies.push(...resolvedValue.dependencies);
@@ -650,10 +657,20 @@ export function getObject({
         } else {
           acc.value += '\n}';
         }
-
-        acc.value += nullable;
       }
     }
+    if (requiredAlternatives && requiredPropertyTypes) {
+      // The base shape owns the property types and their declarations. Reuse
+      // the rendered keys and types to require each entire alternative, without
+      // forbidding keys from another alternative that may also match.
+      const branches = requiredAlternatives.map(
+        (keys) =>
+          `{ ${keys.map((key) => requiredPropertyTypes.get(key)).join(' ')} }`,
+      );
+      acc.value += ` & (${branches.join(' | ')})`;
+      acc.useTypeAlias = true;
+    }
+    acc.value += nullable;
     return acc;
   }
 
