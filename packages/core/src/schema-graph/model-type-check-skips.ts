@@ -22,6 +22,7 @@ import {
   ALTERNATIVE_KEYS,
   type CompositionKey,
   COMPOSITION_KEYS,
+  getRequiredOnlyAnyOf,
   hasOnlyAnnotations,
   membersOf,
   stringList,
@@ -150,13 +151,15 @@ const isRequiredOnly = (member: unknown): boolean =>
 
 // Next to the own properties of an object, an alternative that only requires
 // keys is validated as an object with those keys required, which the model
-// leaves untyped. Valibot does so next to an `object` type too.
+// leaves untyped unless all anyOf alternatives only require declared keys.
+// Valibot does so next to an `object` type too.
 const holdsRequiredOnlyAlternative = (
   schema: Record<string, unknown>,
   site: ConstructSite,
 ): boolean =>
   (hasKeys(schema.properties) ||
     (site.library === 'valibot' && isObjectType(schema))) &&
+  !getRequiredOnlyAnyOf(schema) &&
   alternativesOf(schema).some(isRequiredOnly);
 
 // Whether the schema is a numeric 64-bit integer, which `useBigInt` types as
@@ -532,7 +535,8 @@ const partsOfMember = (
 
 // Whether a required property accepts any value. Zod 3 makes the key of an
 // `unknown` property optional in the output type, while the model requires it.
-// The property and the requirement may sit in different `allOf` members.
+// The property and the requirement may sit in different `allOf` members, or
+// the requirement may come from a required-only `anyOf` alternative.
 const requiresUnknownProperty = (
   schema: Record<string, unknown>,
   { context, isZodV4 }: ConstructSite,
@@ -544,7 +548,7 @@ const requiresUnknownProperty = (
     new Set(),
   );
   const walk: UnknownWalk = { answers: new Map(), cuts: 0 };
-  return [...required].some(
+  return [...required, ...(getRequiredOnlyAnyOf(schema)?.flat() ?? [])].some(
     (key) =>
       Object.hasOwn(properties, key) &&
       isUnknownValued(properties[key], context, new Set(), walk),

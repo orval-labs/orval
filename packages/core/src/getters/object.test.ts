@@ -128,6 +128,84 @@ describe('getObject', () => {
     );
   });
 
+  it.each([false, true])(
+    'keeps required-only anyOf branches with legacy aliasing and union filling set to %s',
+    (legacyOptions) => {
+      const context = createTestContextSpec({
+        output: { unionAddMissingProperties: legacyOptions },
+        override: {
+          aliasCombinedTypes: legacyOptions,
+          enumGenerationType: 'enum',
+          namingConvention: { properties: 'camelCase' },
+          useNullForOptional: true,
+        },
+      });
+
+      const result = getObject({
+        item: {
+          type: 'object',
+          properties: {
+            external_id: { type: 'string', enum: ['external'], readOnly: true },
+            first_name: { type: 'string' },
+            firstName: { type: 'integer' },
+          },
+          anyOf: [
+            { required: ['external_id'] },
+            { required: ['first_name', 'firstName'] },
+          ],
+        },
+        name: 'Lookup',
+        context,
+        nullable: '',
+      });
+
+      expect(result.value).toContain(
+        'readonly externalId?: LookupExternalId | null;',
+      );
+      expect(result.value).toContain(
+        '& ({ readonly externalId: LookupExternalId; } | { first_name: string; firstName: number; })',
+      );
+      expect(result.schemas.map((schema) => schema.name)).toEqual([
+        'LookupExternalId',
+      ]);
+    },
+  );
+
+  it('leaves mixed anyOf alternatives on the general composition path', () => {
+    const result = getObject({
+      item: {
+        type: 'object',
+        properties: { email: { type: 'string' } },
+        anyOf: [
+          { required: ['email'] },
+          { type: 'object', properties: { externalId: { type: 'string' } } },
+        ],
+      },
+      context: createTestContextSpec({}),
+      nullable: '',
+    });
+
+    expect(result.value).toBe(
+      '(unknown & {\n  email?: string;\n}) | ({\n  externalId?: string;\n} & {\n  email?: string;\n})',
+    );
+  });
+
+  it('leaves nullable objects on the general composition path', () => {
+    const result = getObject({
+      item: {
+        type: ['object', 'null'],
+        properties: { email: { type: 'string' } },
+        anyOf: [{ required: ['email'] }],
+      },
+      context: createTestContextSpec({}),
+      nullable: ' | null',
+    });
+
+    expect(result.value).toBe(
+      '(unknown & ({\n  email?: string;\n} | null)) | null',
+    );
+  });
+
   it('renders unevaluatedProperties as an index signature like additionalProperties', () => {
     const context = createTestContextSpec({ spec: {} });
 

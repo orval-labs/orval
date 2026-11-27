@@ -9,6 +9,7 @@ import type { NestedUnionItem } from '../generated/default/regressions/model/nes
 import type { NullableAllOfMemberItem } from '../generated/default/regressions/model/nullableAllOfMemberItem';
 import type { NullableParentItem } from '../generated/default/regressions/model/nullableParentItem';
 import type { RefMemberUnionItem } from '../generated/default/regressions/model/refMemberUnionItem';
+import type { RequiredAnyOfSearch } from '../generated/default/regressions/model/requiredAnyOfSearch';
 import type { ScalarItem } from '../generated/default/regressions/model/scalarItem';
 import type { SiblingEnumItem } from '../generated/default/regressions/model/siblingEnumItem';
 import type { UnionItem } from '../generated/default/regressions/model/unionItem';
@@ -106,6 +107,25 @@ const nullableParentItemWithoutId: NullableParentItem = {
   marker: 'value',
 };
 
+const searchByEmail: RequiredAnyOfSearch = { email: 'guest@example.com' };
+const searchByName: RequiredAnyOfSearch = {
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+};
+const searchByEmailAndName: RequiredAnyOfSearch = {
+  ...searchByEmail,
+  ...searchByName,
+};
+
+// @ts-expect-error - at least one alternative must be satisfied.
+const searchByPage: RequiredAnyOfSearch = { page: 1 };
+// @ts-expect-error - the name alternative requires both keys.
+const searchByFirstName: RequiredAnyOfSearch = { firstName: 'Ada' };
+// @ts-expect-error - the email must be a string.
+const searchByUndefinedEmail: RequiredAnyOfSearch = { email: undefined };
+// @ts-expect-error - matching both alternatives preserves readonly email.
+searchByEmailAndName.email = 'another@example.com';
+
 void unionItem;
 void unionItemWithoutId;
 void scalarItem;
@@ -123,3 +143,6 @@ void nullableAllOfMemberItem;
 void nullableAllOfMemberItemWithoutId;
 void nullableParentItem;
 void nullableParentItemWithoutId;
+void searchByPage;
+void searchByFirstName;
+void searchByUndefinedEmail;

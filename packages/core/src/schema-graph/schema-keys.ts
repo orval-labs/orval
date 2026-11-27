@@ -1,4 +1,4 @@
-import { isString } from '../utils/assertion';
+import { isObject, isString } from '../utils/assertion';
 
 /** The strings of a list, or none when the value is not a list. */
 export const stringList = (value: unknown): string[] =>
@@ -13,6 +13,43 @@ export const ALTERNATIVE_KEYS = ['oneOf', 'anyOf'] as const;
 /** The members of a composition keyword, none when it is not a list. */
 export const membersOf = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
+
+/** The required keys of each alternative when the parent defines their shape. */
+export function getRequiredOnlyAnyOf(
+  schema: Record<string, unknown>,
+): string[][] | undefined {
+  const { type, properties } = schema;
+  const members = membersOf(schema.anyOf);
+  if (
+    (type !== undefined && type !== 'object') ||
+    !isObject(properties) ||
+    members.length === 0 ||
+    schema.allOf !== undefined ||
+    schema.oneOf !== undefined ||
+    schema.discriminator !== undefined ||
+    schema.$ref !== undefined ||
+    schema.enum !== undefined ||
+    schema.const !== undefined
+  ) {
+    return undefined;
+  }
+
+  const alternatives: string[][] = [];
+  for (const member of members) {
+    if (
+      !isObject(member) ||
+      Object.keys(member).length !== 1 ||
+      !Array.isArray(member.required) ||
+      member.required.length === 0 ||
+      !member.required.every(isString) ||
+      !member.required.every((key) => Object.hasOwn(properties, key))
+    ) {
+      return undefined;
+    }
+    alternatives.push(member.required);
+  }
+  return alternatives;
+}
 
 /** The members of every composition keyword of a schema. */
 export const compositionMembers = (

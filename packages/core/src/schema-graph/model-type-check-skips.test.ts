@@ -653,6 +653,11 @@ describe('getModelTypeCheckSkips', () => {
     const reason =
       'an alternative that only requires keys is validated as an object with them, which the model types as unknown';
     const schemas: Record<string, OpenApiSchemaObject> = {
+      SupportedAnyOf: {
+        type: 'object',
+        properties: { a: { type: 'string' }, b: { type: 'string' } },
+        anyOf: [{ required: ['a'] }, { required: ['b'] }],
+      },
       WithProperties: {
         properties: { a: { type: 'string' }, b: { type: 'string' } },
         oneOf: [{ required: ['a'] }, { required: ['b'] }],
@@ -695,6 +700,27 @@ describe('getModelTypeCheckSkips', () => {
       expect(skipsOf(schemas, 'zod')).toEqual({
         WithProperties: reason,
         Described: reason,
+      });
+    });
+
+    it('still skips an unknown key required by an anyOf alternative in Zod 3', () => {
+      expect(
+        skipsOf(
+          {
+            Choice: {
+              type: 'object',
+              properties: { a: {}, b: { type: 'string' } },
+              anyOf: [{ required: ['a'] }, { required: ['b'] }],
+            },
+          },
+          'zod',
+          undefined,
+          {},
+          { isZodV4: false },
+        ),
+      ).toEqual({
+        Choice:
+          'a required property without a type is optional in the Zod 3 output',
       });
     });
   });

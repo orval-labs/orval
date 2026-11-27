@@ -42,6 +42,7 @@ export * from './refMemberUnionBase';
 export * from './refMemberUnionItem';
 export * from './refMemberUnionWrapper';
 export * from './refNullableBase';
+export * from './requiredAnyOfSearch';
 export * from './scalarBase';
 export * from './scalarItem';
 export * from './scalarWrapper';
