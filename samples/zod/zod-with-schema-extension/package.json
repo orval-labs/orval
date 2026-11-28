@@ -1,6 +1,6 @@
 {
   "name": "zod-with-schema-extensions",
-  "version": "8.49.0",
+  "version": "8.50.0",
   "type": "module",
   "private": true,
   "scripts": {
