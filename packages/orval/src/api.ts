@@ -218,7 +218,6 @@ export async function getApiBuilder({
     logger.warn(warning);
   }
 
-  const unexportedTargets = new Set<string>();
   const fillFiles = createMutationInvalidatesFileFiller({
     operations: allVerbOptions.map((verbOption) => {
       const kind = kindOf(verbOption);
@@ -239,7 +238,6 @@ export async function getApiBuilder({
       };
     }),
     output,
-    onUnexportedTarget: (query) => unexportedTargets.add(query),
   });
   const withResolvedInvalidates = (
     verbOption: GeneratorVerbOptions,
@@ -261,12 +259,6 @@ export async function getApiBuilder({
     ...entry,
     verbsOptions: [...entry.verbsOptions].map(withResolvedInvalidates),
   }));
-  for (const query of unexportedTargets) {
-    logger.warn(
-      `mutationInvalidates target '${query}' is in another tag's file, but its ` +
-        `query keys are not exported. Set query.shouldExportKeys to invalidate it.`,
-    );
-  }
 
   const helperOptions = resolvedPathEntries.flatMap(({ verbsOptions }) =>
     verbsOptions.filter(({ mutator }) => !mutator),

@@ -323,7 +323,6 @@ export const resolveMutationInvalidates = (
 export const createMutationInvalidatesFileFiller = ({
   operations,
   output,
-  onUnexportedTarget,
 }: {
   operations: readonly (Pick<
     MutationInvalidatesOperation,
@@ -334,7 +333,6 @@ export const createMutationInvalidatesFileFiller = ({
     exportsQueryKeys?: boolean;
   })[];
   output: Pick<NormalizedOutputOptions, 'mode' | 'fileExtension' | 'tsconfig'>;
-  onUnexportedTarget?: (query: string) => void;
 }): ((rules: MutationInvalidatesConfig) => MutationInvalidatesConfig) => {
   if (
     output.mode !== OutputMode.TAGS &&
@@ -368,28 +366,47 @@ export const createMutationInvalidatesFileFiller = ({
       );
     }
   }
+  const emittedTags = new Map<string, Set<string>>();
   for (const operation of operations) {
     const owner = {
       tag: getOperationTagKey(operation),
       exported: operation.exportsQueryKeys ?? true,
     };
     for (const name of operation.queryKeys ?? [operation.operationName]) {
-      ownerByQueryKeyFn.set(queryKeyFnNameFor(name), owner);
+      const keyFn = queryKeyFnNameFor(name);
+      ownerByQueryKeyFn.set(keyFn, owner);
+      emittedTags.set(
+        keyFn,
+        (emittedTags.get(keyFn) ?? new Set()).add(owner.tag),
+      );
     }
   }
 
   const fillTarget = (
     target: InvalidateTarget,
     mutationTag: string,
+    onMutations: readonly string[],
   ): InvalidateTarget => {
     if (!isString(target) && target.file) return target;
 
     const query = isString(target) ? target : target.query;
-    const owner = ownerByQueryKeyFn.get(queryKeyFnNameFor(query));
+    const keyFn = queryKeyFnNameFor(query);
+    const tags = emittedTags.get(keyFn);
+    if (tags?.has(mutationTag)) return target;
+    if (tags && tags.size > 1) {
+      throw new Error(
+        `mutationInvalidates target '${query}' matches '${keyFn}' in several tag files ` +
+          `(${[...tags].join(', ')}). Set its 'file' to pick one.`,
+      );
+    }
+    const owner = ownerByQueryKeyFn.get(keyFn);
     if (!owner || owner.tag === mutationTag) return target;
     if (!owner.exported) {
-      onUnexportedTarget?.(query);
-      return target;
+      throw new Error(
+        `mutationInvalidates: '${onMutations.join("', '")}' (tag '${mutationTag}') ` +
+          `invalidates '${query}' from tag '${owner.tag}', whose query keys are not ` +
+          `exported. Set query.shouldExportKeys to import it.`,
+      );
     }
 
     const file = `./${owner.tag}${importExtension}`;
@@ -412,7 +429,9 @@ export const createMutationInvalidatesFileFiller = ({
       invalidates:
         tag === undefined
           ? rule.invalidates
-          : rule.invalidates.map((target) => fillTarget(target, tag)),
+          : rule.invalidates.map((target) =>
+              fillTarget(target, tag, onMutations),
+            ),
     }));
   };
 

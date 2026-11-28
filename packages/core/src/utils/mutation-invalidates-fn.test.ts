@@ -384,8 +384,13 @@ describe('createMutationInvalidatesFileFiller', () => {
     ]);
   });
 
-  it('reports a target whose keys are not exported instead of importing it', () => {
-    const unexported: string[] = [];
+  const tagsSplit = {
+    mode: OutputMode.TAGS_SPLIT,
+    fileExtension: '.ts',
+    tsconfig: undefined,
+  };
+
+  it('fails on a cross-tag target whose keys are not exported', () => {
     const filler = createMutationInvalidatesFileFiller({
       operations: [
         {
@@ -395,19 +400,53 @@ describe('createMutationInvalidatesFileFiller', () => {
         },
         { operationName: 'createPets', tags: ['pets'] },
       ],
-      output: {
-        mode: OutputMode.TAGS_SPLIT,
-        fileExtension: '.ts',
-        tsconfig: undefined,
-      },
-      onUnexportedTarget: (query) => unexported.push(query),
+      output: tagsSplit,
     });
-    expect(
+    expect(() =>
       filler([{ onMutations: ['createPets'], invalidates: ['healthCheck'] }]),
+    ).toThrow('whose query keys are not exported');
+    expect(
+      filler([
+        {
+          onMutations: ['createPets'],
+          invalidates: [{ query: 'healthCheck', file: './health' }],
+        },
+      ]),
+    ).toHaveLength(1);
+  });
+
+  it('asks for a file when one key name is emitted by several tags', () => {
+    const filler = createMutationInvalidatesFileFiller({
+      operations: [
+        { operationName: 'foo', tags: ['a'], queryKeys: ['fooInfinite'] },
+        {
+          operationName: 'fooInfinite',
+          tags: ['b'],
+          queryKeys: ['fooInfinite'],
+        },
+        { operationName: 'createC', tags: ['c'], queryKeys: [] },
+      ],
+      output: tagsSplit,
+    });
+    expect(() =>
+      filler([{ onMutations: ['createC'], invalidates: ['fooInfinite'] }]),
+    ).toThrow('in several tag files (a, b)');
+    expect(
+      filler([{ onMutations: ['foo'], invalidates: ['fooInfinite'] }]),
+    ).toStrictEqual([{ onMutations: ['foo'], invalidates: ['fooInfinite'] }]);
+    expect(
+      filler([
+        {
+          onMutations: ['createC'],
+          invalidates: [{ query: 'fooInfinite', file: './b' }],
+        },
+      ]),
     ).toStrictEqual([
-      { onMutations: ['createPets'], invalidates: ['healthCheck'] },
+      {
+        onMutations: ['createC'],
+        invalidates: [{ query: 'fooInfinite', file: './b' }],
+      },
     ]);
-    expect(unexported).toStrictEqual(['healthCheck']);
   });
 
   it('returns the same filled list for the same rules', () => {
