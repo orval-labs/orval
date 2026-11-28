@@ -7,6 +7,7 @@ import type {
   ScalarValue,
 } from '../types';
 import { compareVersions, toObjectSchema } from '../utils';
+import { getArrayLengthTupleBounds } from '../utils/array-length';
 import type { FormDataContext } from './object';
 
 interface GetArrayOptions {
@@ -15,6 +16,9 @@ interface GetArrayOptions {
   context: ContextSpec;
   formDataContext?: FormDataContext;
 }
+
+// Nested inline item types can grow even when every individual length is small.
+const MAX_REPEATED_ITEM_TYPE_LENGTH = 4096;
 
 /**
  * Return the output type from an array
@@ -64,7 +68,7 @@ export function getArray({
       resolvedObjects.push({
         ...additional,
         value: `...${
-          useReadonlyArrays &&
+          (useReadonlyArrays || additional.isArrayLengthTuple) &&
           (additional.value.includes('|') ||
             additional.value.includes('&') ||
             additional.value.startsWith('readonly '))
@@ -87,33 +91,60 @@ export function getArray({
     };
   }
   if (schemaItems) {
-    const resolvedObject = resolveObject({
-      schema: schemaItems,
-      propName: name ? itemPrefix + name + itemSuffix : undefined,
-      context,
-      formDataContext,
-    });
+    const readOnly =
+      useReadonlyArrays ||
+      (schema.readOnly === true &&
+        !context.output.override.suppressReadonlyModifier)
+        ? 'readonly '
+        : '';
+    const bounds = context.output.override.useArrayLengthTuples
+      ? getArrayLengthTupleBounds(schema)
+      : undefined;
+    const resolvedObject =
+      bounds?.max === 0
+        ? undefined
+        : resolveObject({
+            schema: schemaItems,
+            propName: name ? itemPrefix + name + itemSuffix : undefined,
+            context,
+            formDataContext,
+          });
+    const itemType = resolvedObject?.value ?? 'never';
+    const tupleBounds =
+      bounds &&
+      itemType.length * bounds.max * (bounds.max - bounds.min + 1) <=
+        MAX_REPEATED_ITEM_TYPE_LENGTH
+        ? bounds
+        : undefined;
+    const value = tupleBounds
+      ? Array.from(
+          { length: tupleBounds.max - tupleBounds.min + 1 },
+          (_, index) => {
+            const items = Array.from(
+              { length: tupleBounds.min + index },
+              () => itemType,
+            );
+            return `${readOnly}[${items.join(', ')}]`;
+          },
+        ).join(' | ')
+      : `${readOnly}${
+          itemType.includes('|') ||
+          itemType.includes('&') ||
+          ((useReadonlyArrays || resolvedObject?.isArrayLengthTuple) &&
+            itemType.startsWith('readonly '))
+            ? `(${itemType})`
+            : itemType
+        }[]`;
     return {
-      value: `${
-        useReadonlyArrays ||
-        (schema.readOnly === true &&
-          !context.output.override.suppressReadonlyModifier)
-          ? 'readonly '
-          : ''
-      }${
-        resolvedObject.value.includes('|') ||
-        resolvedObject.value.includes('&') ||
-        (useReadonlyArrays && resolvedObject.value.startsWith('readonly '))
-          ? `(${resolvedObject.value})[]`
-          : `${resolvedObject.value}[]`
-      }`,
-      imports: resolvedObject.imports,
-      schemas: resolvedObject.schemas,
-      dependencies: resolvedObject.dependencies,
+      value,
+      ...(tupleBounds && { isArrayLengthTuple: true }),
+      imports: resolvedObject?.imports ?? [],
+      schemas: resolvedObject?.schemas ?? [],
+      dependencies: resolvedObject?.dependencies ?? [],
       isEnum: false,
       type: 'array',
       isRef: false,
-      hasReadonlyProps: resolvedObject.hasReadonlyProps,
+      hasReadonlyProps: resolvedObject?.hasReadonlyProps ?? false,
       example: schemaExample,
       examples: resolveExampleRefs(schemaExamples, context),
     };

@@ -1,5 +1,6 @@
 import { getFormDataComponentContexts } from '../getters/form-data-components';
 import type { ContextSpec } from '../types';
+import { getArrayLengthTupleBounds } from '../utils/array-length';
 import { isEmptySchemaObject, isObject, isString } from '../utils/assertion';
 import {
   getFormDataFieldFileType,
@@ -630,6 +631,14 @@ const holdsUnknownCompositionUnderType = (
  * components that hold one, and the documentation lists the same constructs.
  */
 const LOOSE_CONSTRUCTS: readonly LooseConstruct[] = [
+  {
+    reason:
+      'with useArrayLengthTuples a bounded array is a tuple in the model, which the schema output is not',
+    libraries: ['valibot', 'zod'],
+    isIn: (schema, site) =>
+      site.context.output.override.useArrayLengthTuples === true &&
+      getArrayLengthTupleBounds(schema) !== undefined,
+  },
   {
     reason: 'prefixItems is validated as an array of unknown',
     libraries: ['valibot'],

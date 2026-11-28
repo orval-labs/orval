@@ -32,6 +32,7 @@ import {
   pascal,
   toObjectSchema,
 } from '../utils';
+import { getArrayLengthTupleBounds } from '../utils/array-length';
 
 type SchemaOrRef = OpenApiSchemaObject | OpenApiReferenceObject;
 
@@ -773,17 +774,22 @@ const buildResolvedStatements = ({
       mode,
     });
 
-    const itemsResult = schema.items
-      ? mode.arrayStatements({
-          items: schema.items,
-          accessor,
-          context,
-          visitedRefs,
-          depth,
-          mode,
-          typePath: typePath && `NonNullable<${typePath}>[number]`,
-        })
-      : emptyResult();
+    const tupleBounds = context.output.override.useArrayLengthTuples
+      ? getArrayLengthTupleBounds(schema)
+      : undefined;
+    const itemsResult =
+      schema.items && tupleBounds?.max !== 0
+        ? mode.arrayStatements({
+            items: schema.items,
+            accessor,
+            context,
+            visitedRefs,
+            depth,
+            mode,
+            preserveLength: tupleBounds !== undefined,
+            typePath: typePath && `NonNullable<${typePath}>[number]`,
+          })
+        : emptyResult();
 
     const mapResult = mapValue
       ? mode.mapStatements({
@@ -985,6 +991,7 @@ interface ArrayStatementsParams {
   visitedRefs: Set<string>;
   depth: number;
   mode: DateTransformMode;
+  preserveLength: boolean;
   /** The type of an element, see `BuildParams.typePath`. */
   typePath?: string;
 }
@@ -2025,6 +2032,7 @@ const buildCopyingItemsStatements = ({
   visitedRefs,
   depth,
   mode,
+  preserveLength,
   typePath,
 }: ArrayStatementsParams): BuildResult => {
   const element = `item${depth}`;
@@ -2042,9 +2050,11 @@ const buildCopyingItemsStatements = ({
     nullGuarded: nullable,
   });
   if (inner.statements.length === 0) return inner;
+  // Array.map preserves the tuple's length, which TypeScript does not infer.
+  const cast = preserveLength ? ` as typeof ${accessor}` : '';
   if (inner.converter && !nullable) {
     return {
-      statements: [`${accessor} = ${accessor}.map(${inner.converter});`],
+      statements: [`${accessor} = ${accessor}.map(${inner.converter})${cast};`],
       cyclicRefs: inner.cyclicRefs,
     };
   }
@@ -2066,7 +2076,7 @@ const buildCopyingItemsStatements = ({
     statements: [
       `${accessor} = ${accessor}.map((${element}) => {`,
       ...indent(body),
-      '});',
+      `})${cast};`,
     ],
     cyclicRefs: inner.cyclicRefs,
   };

@@ -278,7 +278,8 @@ export async function writeSplitTagsMode({
 
         implementationData += generateOrvalHelperTypes(
           implementation,
-          output.override.useReadonlyArrays,
+          output.override.useReadonlyArrays ||
+            output.override.useArrayLengthTuples,
         );
 
         implementationData += `\n${implementation}`;

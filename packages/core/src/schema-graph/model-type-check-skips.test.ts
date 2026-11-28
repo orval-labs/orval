@@ -86,6 +86,37 @@ describe('getModelTypeCheckSkips', () => {
     });
   });
 
+  it.each(['valibot', 'zod'] as const)(
+    'only skips opted-in small bounded arrays and their owners for %s',
+    (library) => {
+      const schemas = {
+        Bounded: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 4,
+          items: { type: 'string' },
+        },
+        Owner: { type: 'object', properties: { values: ref('Bounded') } },
+        Large: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 9,
+          items: { type: 'string' },
+        },
+        Unbounded: { type: 'array', minItems: 1, items: { type: 'string' } },
+      } satisfies Record<string, OpenApiSchemaObject>;
+      const reason =
+        'with useArrayLengthTuples a bounded array is a tuple in the model, which the schema output is not';
+      expect(skipsOf(schemas, library)).toEqual({});
+      expect(skipsOf(schemas, library, { useArrayLengthTuples: true })).toEqual(
+        {
+          Bounded: reason,
+          Owner: 'it references Bounded, which is skipped',
+        },
+      );
+    },
+  );
+
   describe('a binary string', () => {
     const schemas = {
       Upload: {

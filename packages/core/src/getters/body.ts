@@ -52,7 +52,9 @@ function buildBody(
         ? definition.replace(/^readonly /, '')
         : definition
       ).toLowerCase(),
-    ) || filteredBodyTypes.length > 1
+    ) ||
+    filteredBodyTypes.length > 1 ||
+    filteredBodyTypes.some(({ isArrayLengthTuple }) => isArrayLengthTuple)
       ? camel(operationName) +
         context.output.override.components.requestBodies.suffix
       : camel(definition);

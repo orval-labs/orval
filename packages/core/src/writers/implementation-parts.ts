@@ -141,12 +141,12 @@ export function generateTargetMutatorImports(
  */
 export function generateOrvalHelperTypes(
   implementation: string,
-  useReadonlyArrays = false,
+  preserveArrayTypes = false,
 ): string {
   let data = '';
 
   if (implementation.includes('NonReadonly<')) {
-    data += getOrvalGeneratedTypes(useReadonlyArrays);
+    data += getOrvalGeneratedTypes(preserveArrayTypes);
     data += '\n';
   }
 

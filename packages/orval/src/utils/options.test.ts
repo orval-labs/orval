@@ -4915,32 +4915,34 @@ describe('normalizeOptions', () => {
     }
   });
 
-  it.each([undefined, false, true])(
-    'normalizes useReadonlyArrays=%s',
-    async (useReadonlyArrays) => {
-      const workspace = await createTempWorkspace();
-      try {
-        const normalized = await normalizeOptions(
-          {
-            input: {
-              target: {
-                openapi: '3.1.0',
-                info: { title: 'Test', version: '1.0.0' },
-                paths: {},
-              },
+  it.each([
+    ['useReadonlyArrays', undefined],
+    ['useReadonlyArrays', false],
+    ['useReadonlyArrays', true],
+    ['useArrayLengthTuples', undefined],
+    ['useArrayLengthTuples', false],
+    ['useArrayLengthTuples', true],
+  ] as const)('normalizes %s=%s', async (option, value) => {
+    const workspace = await createTempWorkspace();
+    try {
+      const normalized = await normalizeOptions(
+        {
+          input: {
+            target: {
+              openapi: '3.1.0',
+              info: { title: 'Test', version: '1.0.0' },
+              paths: {},
             },
-            output: { target: 'gen.ts', override: { useReadonlyArrays } },
           },
-          workspace,
-        );
-        expect(normalized.output.override.useReadonlyArrays).toBe(
-          useReadonlyArrays ?? false,
-        );
-      } finally {
-        await rm(workspace, { recursive: true, force: true });
-      }
-    },
-  );
+          output: { target: 'gen.ts', override: { [option]: value } },
+        },
+        workspace,
+      );
+      expect(normalized.output.override[option]).toBe(value ?? false);
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 
   describe('runtimeValidation settings', () => {
     const zod = { path: './model', type: 'zod' } as const;

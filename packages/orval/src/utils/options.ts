@@ -1741,6 +1741,8 @@ export async function normalizeOptions(
           outputOptions.override?.enumGenerationType ??
           (outputOptions.contentMapper?.schemas ? 'union' : 'const'),
         useReadonlyArrays: outputOptions.override?.useReadonlyArrays ?? false,
+        useArrayLengthTuples:
+          outputOptions.override?.useArrayLengthTuples ?? false,
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier ?? false,
         preserveReadonlyRequestBodies:
@@ -1836,6 +1838,16 @@ export async function normalizeOptions(
 
   validateFakerSchemasPath(normalizedOptions.output);
   validateMockFixtures(normalizedOptions.output);
+  if (
+    normalizedOptions.output.override.useArrayLengthTuples &&
+    normalizedOptions.output.mock.generators.some(
+      (generator) => !isFunction(generator),
+    )
+  ) {
+    throw new Error(
+      '`override.useArrayLengthTuples` cannot be combined with built-in mocks: their output types do not preserve array lengths.',
+    );
+  }
 
   // `paramsFilter` is only consumed by the Angular generator. That runs for
   // the `angular` client (regardless of `httpClient`, which stays at its

@@ -4364,6 +4364,29 @@ override: {
 }
 ```
 
+### useArrayLengthTuples
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate a TypeScript tuple for each allowed length of a homogeneous array
+with `items` and an integer `maxItems` of at most 8. For example,
+`minItems: 1` and `maxItems: 2` with string items produce
+`[string] | [string, string]`. An omitted `minItems` means zero. Invalid or
+larger ranges and large inline item types keep their array types.
+
+This does not change `prefixItems` handling or runtime validation. Built-in
+Faker and MSW mocks are incompatible with this option. When using
+[`modelTypeChecks`](#modeltypechecks), set this option in both outputs so the
+checks can skip models with bounded arrays, whose schema output types remain
+ordinary arrays.
+
+```ts
+override: {
+  useArrayLengthTuples: true,
+}
+```
+
 ### preserveReadonlyRequestBodies
 
 **Type:** `'strip' | 'preserve'`

@@ -255,7 +255,8 @@ export async function writeTagsMode({
 
         data += generateOrvalHelperTypes(
           implementation,
-          output.override.useReadonlyArrays,
+          output.override.useReadonlyArrays ||
+            output.override.useArrayLengthTuples,
         );
 
         data += implementation;
