@@ -46,3 +46,18 @@ export function getImportExtension(
 
   return fileExtension.replace(/\.ts$/, '') || '';
 }
+
+/** Like `getImportExtension`, but never leaves a `.ts`-family extension TypeScript rejects. */
+export function getModuleImportExtension(
+  fileExtension: string,
+  tsconfig?: Tsconfig,
+): string {
+  const importExtension = getImportExtension(fileExtension, tsconfig);
+  if (tsconfig?.compilerOptions?.allowImportingTsExtensions) {
+    return importExtension;
+  }
+  return importExtension
+    .replace(/\.mts$/, '.mjs')
+    .replace(/\.cts$/, '.cjs')
+    .replace(/\.tsx?$/, '');
+}

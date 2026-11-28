@@ -14,6 +14,7 @@ import {
   conventionName,
   getFileInfo,
   getImportExtension,
+  getModuleImportExtension,
   getSchemasImportPath,
   isFunction,
   isString,
@@ -232,18 +233,22 @@ export async function writeSplitTagsMode({
           const resolvedPath = path.resolve(dirname, imp.importPath);
           const targetBasename = path.basename(resolvedPath);
 
-          let targetFile: string;
-          if (tagNames.has(targetBasename)) {
-            const tagFilename = targetBasename + serviceSuffix + extension;
-            targetFile = path.join(resolvedPath, tagFilename);
-          } else {
-            targetFile = resolvedPath + extension;
-          }
-
-          const adjustedPath = upath.getRelativeImportPath(
-            importerPath,
-            targetFile,
-          );
+          // Keeps the extension NodeNext needs.
+          const adjustedPath = tagNames.has(targetBasename)
+            ? upath.getRelativeImportPath(
+                importerPath,
+                path.join(
+                  resolvedPath,
+                  targetBasename +
+                    serviceSuffix +
+                    getModuleImportExtension(extension, output.tsconfig),
+                ),
+                true,
+              )
+            : upath.getRelativeImportPath(
+                importerPath,
+                resolvedPath + extension,
+              );
 
           return { ...imp, importPath: adjustedPath };
         });

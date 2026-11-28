@@ -1531,7 +1531,7 @@ export function useShowPetById<...>(...)
 
 ### mutationInvalidates
 
-**类型：** `Array`
+**类型：** `Array | Function`
 
 在 mutation 成功后自动失效或重置相关 queries（Angular Query、React Query、Svelte Query 与 Vue Query v5）：
 
@@ -1601,6 +1601,48 @@ const deletePet = injectDeletePet({
   skipInvalidation: true,
 });
 ```
+
+#### 用函数生成规则
+
+`mutationInvalidates` 也可以是一个函数。orval 会对每个 output 调用一次，传入它生成的所有 mutation 和 query，并把返回的规则当作直接写出的规则使用。这适合失效关系跟随路径的 API：
+
+```ts title="orval.config.ts"
+// 路径所属的集合：'/pets/{petId}/photos' -> '/pets'
+const collection = (path: string) => path.split('/').slice(0, 2).join('/');
+
+mutationInvalidates: ({ mutations, queries }) =>
+  mutations.map((mutation) => ({
+    onMutations: [mutation.operationName],
+    invalidates: queries
+      .filter((query) => collection(query.path) === collection(mutation.path))
+      .filter((query) =>
+        query.pathParams.every((param) => mutation.pathParams.includes(param)),
+      )
+      .flatMap((query) =>
+        query.queryKeys.map((name) => ({
+          query: name,
+          params: query.pathParams,
+        })),
+      ),
+  })),
+```
+
+每个 mutation 和 query 包含：
+
+| 字段 | 示例 |
+|---|---|
+| `operationId` | `'DeletePet'`，来自文档；文档没有时为 orval 推导出的值 |
+| `operationName` | `'deletePet'`，规则引用的生成名称 |
+| `verb` | `'delete'` |
+| `path` | `'/pets/{petId}'` |
+| `pathParams` | `['petId']`，即 `params` 引用的名称 |
+| `tags` | `['pets']` |
+
+每个 query 还有 `queryKeys`：为它生成的 query key 函数对应的 `invalidates` 目标名称。普通 key 为 `operationName`，infinite key 为 `<operationName>Infinite`，只列出实际生成的那些。通过自定义 client builder 设置的 query 选项不会反映在这里。
+
+函数必须是同步的。它返回的规则会像静态数组一样检查未知操作，并与 tag 或 operation 覆盖中的规则按两个数组的方式合并。
+
+在 `tags` 和 `tags-split` 模式下，位于与 mutation 不同 tag 的目标会从该 tag 的文件导入，因此两种形式都不需要为它设置 `file`。你自己设置的 `file` 会被保留。`tags-operations` 模式把每个操作放在单独的文件中，不会自动填写，请在那里设置 `file`。
 
 #### 操作名称
 

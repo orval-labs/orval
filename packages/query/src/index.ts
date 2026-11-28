@@ -30,6 +30,7 @@ import {
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './dependencies';
+export { resolveQueryHookKinds } from './query-generator';
 import { createFrameworkAdapter } from './frameworks';
 import {
   SOLID_MAYBE_ACCESSOR,
