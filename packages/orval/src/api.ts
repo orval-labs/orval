@@ -234,7 +234,6 @@ export async function getApiBuilder({
               ]
             : []
           : undefined,
-        exportsQueryKeys: !!verbOption.override.query.shouldExportKeys,
       };
     }),
     output,

@@ -390,31 +390,6 @@ describe('createMutationInvalidatesFileFiller', () => {
     tsconfig: undefined,
   };
 
-  it('fails on a cross-tag target whose keys are not exported', () => {
-    const filler = createMutationInvalidatesFileFiller({
-      operations: [
-        {
-          operationName: 'healthCheck',
-          tags: ['health'],
-          exportsQueryKeys: false,
-        },
-        { operationName: 'createPets', tags: ['pets'] },
-      ],
-      output: tagsSplit,
-    });
-    expect(() =>
-      filler([{ onMutations: ['createPets'], invalidates: ['healthCheck'] }]),
-    ).toThrow('whose query keys are not exported');
-    expect(
-      filler([
-        {
-          onMutations: ['createPets'],
-          invalidates: [{ query: 'healthCheck', file: './health' }],
-        },
-      ]),
-    ).toHaveLength(1);
-  });
-
   it('asks for a file when one key name is emitted by several tags', () => {
     const filler = createMutationInvalidatesFileFiller({
       operations: [

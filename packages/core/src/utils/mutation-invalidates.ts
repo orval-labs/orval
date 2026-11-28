@@ -330,7 +330,6 @@ export const createMutationInvalidatesFileFiller = ({
   > & {
     /** Target names of the emitted query keys; all names are assumed when absent. */
     queryKeys?: readonly string[];
-    exportsQueryKeys?: boolean;
   })[];
   output: Pick<NormalizedOutputOptions, 'mode' | 'fileExtension' | 'tsconfig'>;
 }): ((rules: MutationInvalidatesConfig) => MutationInvalidatesConfig) => {
@@ -348,44 +347,31 @@ export const createMutationInvalidatesFileFiller = ({
       : '';
 
   const tagByOperationName = new Map<string, string>();
-  const ownerByQueryKeyFn = new Map<
-    string,
-    { tag: string; exported: boolean }
-  >();
+  const tagByQueryKeyFn = new Map<string, string>();
   // Real operation names win over another operation's `Infinite` alias.
   for (const operation of operations) {
-    const owner = {
-      tag: getOperationTagKey(operation),
-      exported: operation.exportsQueryKeys ?? true,
-    };
-    tagByOperationName.set(operation.operationName, owner.tag);
+    const tag = getOperationTagKey(operation);
+    tagByOperationName.set(operation.operationName, tag);
     if (!operation.queryKeys) {
-      ownerByQueryKeyFn.set(
+      tagByQueryKeyFn.set(
         infiniteQueryKeyFnNameFor(operation.operationName),
-        owner,
+        tag,
       );
     }
   }
   const emittedTags = new Map<string, Set<string>>();
   for (const operation of operations) {
-    const owner = {
-      tag: getOperationTagKey(operation),
-      exported: operation.exportsQueryKeys ?? true,
-    };
+    const tag = getOperationTagKey(operation);
     for (const name of operation.queryKeys ?? [operation.operationName]) {
       const keyFn = queryKeyFnNameFor(name);
-      ownerByQueryKeyFn.set(keyFn, owner);
-      emittedTags.set(
-        keyFn,
-        (emittedTags.get(keyFn) ?? new Set()).add(owner.tag),
-      );
+      tagByQueryKeyFn.set(keyFn, tag);
+      emittedTags.set(keyFn, (emittedTags.get(keyFn) ?? new Set()).add(tag));
     }
   }
 
   const fillTarget = (
     target: InvalidateTarget,
     mutationTag: string,
-    onMutations: readonly string[],
   ): InvalidateTarget => {
     if (!isString(target) && target.file) return target;
 
@@ -399,17 +385,10 @@ export const createMutationInvalidatesFileFiller = ({
           `(${[...tags].join(', ')}). Set its 'file' to pick one.`,
       );
     }
-    const owner = ownerByQueryKeyFn.get(keyFn);
-    if (!owner || owner.tag === mutationTag) return target;
-    if (!owner.exported) {
-      throw new Error(
-        `mutationInvalidates: '${onMutations.join("', '")}' (tag '${mutationTag}') ` +
-          `invalidates '${query}' from tag '${owner.tag}', whose query keys are not ` +
-          `exported. Set query.shouldExportKeys to import it.`,
-      );
-    }
+    const queryTag = tagByQueryKeyFn.get(keyFn);
+    if (!queryTag || queryTag === mutationTag) return target;
 
-    const file = `./${owner.tag}${importExtension}`;
+    const file = `./${queryTag}${importExtension}`;
     return isString(target) ? { query, file } : { ...target, file };
   };
 
@@ -429,9 +408,7 @@ export const createMutationInvalidatesFileFiller = ({
       invalidates:
         tag === undefined
           ? rule.invalidates
-          : rule.invalidates.map((target) =>
-              fillTarget(target, tag, onMutations),
-            ),
+          : rule.invalidates.map((target) => fillTarget(target, tag)),
     }));
   };
 
