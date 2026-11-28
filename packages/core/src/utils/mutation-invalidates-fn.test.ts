@@ -126,6 +126,10 @@ describe('resolveMutationInvalidates', () => {
       onMutations: ['createPets'],
       invalidates: [{ query: 'x', invalidateMode: 'Reset' }],
     },
+    {
+      onMutations: ['createPets'],
+      invalidates: Object.assign([], { length: 1 }),
+    },
   ])('names a malformed rule by its index (%#)', (bad) => {
     expect(() =>
       resolveMutationInvalidates(
@@ -351,6 +355,59 @@ describe('createMutationInvalidatesFileFiller', () => {
         invalidates: [{ query: 'listPets', file: './pets' }, 'healthCheck'],
       },
     ]);
+  });
+
+  it('uses only the query keys an operation emits', () => {
+    const filler = createMutationInvalidatesFileFiller({
+      operations: [
+        {
+          operationName: 'foo',
+          tags: ['a'],
+          queryKeys: ['foo', 'fooInfinite'],
+        },
+        { operationName: 'fooInfinite', tags: ['b'], queryKeys: [] },
+        { operationName: 'createC', tags: ['c'], queryKeys: [] },
+      ],
+      output: {
+        mode: OutputMode.TAGS_SPLIT,
+        fileExtension: '.ts',
+        tsconfig: undefined,
+      },
+    });
+    expect(
+      filler([{ onMutations: ['createC'], invalidates: ['fooInfinite'] }]),
+    ).toStrictEqual([
+      {
+        onMutations: ['createC'],
+        invalidates: [{ query: 'fooInfinite', file: './a' }],
+      },
+    ]);
+  });
+
+  it('reports a target whose keys are not exported instead of importing it', () => {
+    const unexported: string[] = [];
+    const filler = createMutationInvalidatesFileFiller({
+      operations: [
+        {
+          operationName: 'healthCheck',
+          tags: ['health'],
+          exportsQueryKeys: false,
+        },
+        { operationName: 'createPets', tags: ['pets'] },
+      ],
+      output: {
+        mode: OutputMode.TAGS_SPLIT,
+        fileExtension: '.ts',
+        tsconfig: undefined,
+      },
+      onUnexportedTarget: (query) => unexported.push(query),
+    });
+    expect(
+      filler([{ onMutations: ['createPets'], invalidates: ['healthCheck'] }]),
+    ).toStrictEqual([
+      { onMutations: ['createPets'], invalidates: ['healthCheck'] },
+    ]);
+    expect(unexported).toStrictEqual(['healthCheck']);
   });
 
   it('returns the same filled list for the same rules', () => {

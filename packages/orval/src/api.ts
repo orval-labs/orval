@@ -19,11 +19,11 @@ import {
   type GeneratorVerbOptions,
   type MutationInvalidatesConfig,
   type MutationInvalidatesContext,
+  type MutationInvalidatesOperationKind,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   type OpenApiPathItemObject,
   type GeneratorVerbsOptions,
-  isFunction,
   isInlineSchema,
   OutputClient,
   OutputMode,
@@ -137,47 +137,59 @@ export async function getApiBuilder({
 
   // A function needs every operation, so it is resolved here into static rules.
   const topLevelInvalidates = output.override.query.mutationInvalidates;
-  const hasInvalidatesFunction = [
+  const hasInvalidates = [
     topLevelInvalidates,
     ...allVerbOptions.map(({ override }) => override.query.mutationInvalidates),
-  ].some((option) => isFunction(option));
-  const queryModule = hasInvalidatesFunction
-    ? await import('@orval/query')
-    : undefined;
+  ].some(Boolean);
+  const queryModule = hasInvalidates ? await import('@orval/query') : undefined;
+  const kindCache = new Map<
+    GeneratorVerbOptions,
+    MutationInvalidatesOperationKind
+  >();
+  const kindOf = (verbOption: GeneratorVerbOptions) => {
+    if (!queryModule) return undefined;
+    if (kindCache.has(verbOption)) return kindCache.get(verbOption);
+
+    const { verb, override, operationId, queryParams, body, props } =
+      verbOption;
+    const {
+      isQuery,
+      isMutation,
+      effectiveUseQuery,
+      effectiveUseSuspenseQuery,
+      effectiveUseInfinite,
+      effectiveUseSuspenseInfiniteQuery,
+    } = queryModule.resolveQueryHookKinds({
+      verb,
+      query: override.query,
+      operationQueryOptions: output.override.operations[operationId]?.query,
+      queryParams,
+      body,
+      props,
+      context,
+    });
+    // With a `queryKey` mutator, key functions are only emitted when exported.
+    const hasKeyFns =
+      !override.query.queryKey || !!override.query.shouldExportKeys;
+    const kind: MutationInvalidatesOperationKind = isMutation
+      ? 'mutation'
+      : isQuery
+        ? {
+            plainKey:
+              hasKeyFns && (effectiveUseQuery || effectiveUseSuspenseQuery),
+            infiniteKey:
+              hasKeyFns &&
+              (effectiveUseInfinite || effectiveUseSuspenseInfiniteQuery),
+          }
+        : undefined;
+    kindCache.set(verbOption, kind);
+    return kind;
+  };
   let invalidatesContext: MutationInvalidatesContext | undefined;
   const resolveRules = createMutationInvalidatesResolver(() => {
-    if (!queryModule) {
-      throw new Error(
-        'mutationInvalidates context requested without a function',
-      );
-    }
     invalidatesContext ??= getMutationInvalidatesContext(
       allVerbOptions,
-      ({ verb, override, operationId, queryParams, body, props }) => {
-        const {
-          isQuery,
-          isMutation,
-          effectiveUseQuery,
-          effectiveUseSuspenseQuery,
-          effectiveUseInfinite,
-          effectiveUseSuspenseInfiniteQuery,
-        } = queryModule.resolveQueryHookKinds({
-          verb,
-          query: override.query,
-          operationQueryOptions: output.override.operations[operationId]?.query,
-          queryParams,
-          body,
-          props,
-          context,
-        });
-        if (isMutation) return 'mutation';
-        if (!isQuery) return undefined;
-        return {
-          plainKey: effectiveUseQuery || effectiveUseSuspenseQuery,
-          infiniteKey:
-            effectiveUseInfinite || effectiveUseSuspenseInfiniteQuery,
-        };
-      },
+      kindOf,
     );
     return invalidatesContext;
   });
@@ -206,9 +218,28 @@ export async function getApiBuilder({
     logger.warn(warning);
   }
 
+  const unexportedTargets = new Set<string>();
   const fillFiles = createMutationInvalidatesFileFiller({
-    operations: allVerbOptions,
+    operations: allVerbOptions.map((verbOption) => {
+      const kind = kindOf(verbOption);
+      return {
+        operationName: verbOption.operationName,
+        tags: verbOption.tags,
+        queryKeys: queryModule
+          ? typeof kind === 'object'
+            ? [
+                ...(kind.plainKey ? [verbOption.operationName] : []),
+                ...(kind.infiniteKey
+                  ? [`${verbOption.operationName}Infinite`]
+                  : []),
+              ]
+            : []
+          : undefined,
+        exportsQueryKeys: !!verbOption.override.query.shouldExportKeys,
+      };
+    }),
     output,
+    onUnexportedTarget: (query) => unexportedTargets.add(query),
   });
   const withResolvedInvalidates = (
     verbOption: GeneratorVerbOptions,
@@ -230,6 +261,12 @@ export async function getApiBuilder({
     ...entry,
     verbsOptions: [...entry.verbsOptions].map(withResolvedInvalidates),
   }));
+  for (const query of unexportedTargets) {
+    logger.warn(
+      `mutationInvalidates target '${query}' is in another tag's file, but its ` +
+        `query keys are not exported. Set query.shouldExportKeys to invalidate it.`,
+    );
+  }
 
   const helperOptions = resolvedPathEntries.flatMap(({ verbsOptions }) =>
     verbsOptions.filter(({ mutator }) => !mutator),

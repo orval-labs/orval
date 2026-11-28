@@ -206,7 +206,8 @@ const isInvalidateTarget = (target: unknown) => {
   >;
   const paramsValid =
     params === undefined ||
-    (Array.isArray(params) && params.every((param) => isTargetParam(param))) ||
+    (Array.isArray(params) &&
+      Array.from(params as unknown[]).every((param) => isTargetParam(param))) ||
     (typeof params === 'object' &&
       params !== null &&
       !Array.isArray(params) &&
@@ -241,9 +242,11 @@ const assertRules: (
     >;
     if (
       !Array.isArray(onMutations) ||
-      !onMutations.every((name) => isString(name)) ||
+      !Array.from(onMutations as unknown[]).every((name) => isString(name)) ||
       !Array.isArray(invalidates) ||
-      !invalidates.every((target) => isInvalidateTarget(target))
+      !Array.from(invalidates as unknown[]).every((target) =>
+        isInvalidateTarget(target),
+      )
     ) {
       throw new TypeError(
         `mutationInvalidates function returned an invalid rule at index ${index}: ` +
@@ -320,12 +323,18 @@ export const resolveMutationInvalidates = (
 export const createMutationInvalidatesFileFiller = ({
   operations,
   output,
+  onUnexportedTarget,
 }: {
-  operations: readonly Pick<
+  operations: readonly (Pick<
     MutationInvalidatesOperation,
     'operationName' | 'tags'
-  >[];
+  > & {
+    /** Target names of the emitted query keys; all names are assumed when absent. */
+    queryKeys?: readonly string[];
+    exportsQueryKeys?: boolean;
+  })[];
   output: Pick<NormalizedOutputOptions, 'mode' | 'fileExtension' | 'tsconfig'>;
+  onUnexportedTarget?: (query: string) => void;
 }): ((rules: MutationInvalidatesConfig) => MutationInvalidatesConfig) => {
   if (
     output.mode !== OutputMode.TAGS &&
@@ -341,21 +350,32 @@ export const createMutationInvalidatesFileFiller = ({
       : '';
 
   const tagByOperationName = new Map<string, string>();
-  const tagByQueryKeyFn = new Map<string, string>();
+  const ownerByQueryKeyFn = new Map<
+    string,
+    { tag: string; exported: boolean }
+  >();
   // Real operation names win over another operation's `Infinite` alias.
   for (const operation of operations) {
-    const tag = getOperationTagKey(operation);
-    tagByOperationName.set(operation.operationName, tag);
-    tagByQueryKeyFn.set(
-      infiniteQueryKeyFnNameFor(operation.operationName),
-      tag,
-    );
+    const owner = {
+      tag: getOperationTagKey(operation),
+      exported: operation.exportsQueryKeys ?? true,
+    };
+    tagByOperationName.set(operation.operationName, owner.tag);
+    if (!operation.queryKeys) {
+      ownerByQueryKeyFn.set(
+        infiniteQueryKeyFnNameFor(operation.operationName),
+        owner,
+      );
+    }
   }
   for (const operation of operations) {
-    tagByQueryKeyFn.set(
-      queryKeyFnNameFor(operation.operationName),
-      getOperationTagKey(operation),
-    );
+    const owner = {
+      tag: getOperationTagKey(operation),
+      exported: operation.exportsQueryKeys ?? true,
+    };
+    for (const name of operation.queryKeys ?? [operation.operationName]) {
+      ownerByQueryKeyFn.set(queryKeyFnNameFor(name), owner);
+    }
   }
 
   const fillTarget = (
@@ -365,10 +385,14 @@ export const createMutationInvalidatesFileFiller = ({
     if (!isString(target) && target.file) return target;
 
     const query = isString(target) ? target : target.query;
-    const queryTag = tagByQueryKeyFn.get(queryKeyFnNameFor(query));
-    if (!queryTag || queryTag === mutationTag) return target;
+    const owner = ownerByQueryKeyFn.get(queryKeyFnNameFor(query));
+    if (!owner || owner.tag === mutationTag) return target;
+    if (!owner.exported) {
+      onUnexportedTarget?.(query);
+      return target;
+    }
 
-    const file = `./${queryTag}${importExtension}`;
+    const file = `./${owner.tag}${importExtension}`;
     return isString(target) ? { query, file } : { ...target, file };
   };
 
